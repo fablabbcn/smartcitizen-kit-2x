@@ -21,6 +21,7 @@ public:
 	// Noise
 	float GetNoise();
 	void gainChange(uint8_t value);
+	float getsound();
 	void writeResistorRaw(byte resistor, int value);
 	int gain_step = 0;
 	float sounddB = 0;

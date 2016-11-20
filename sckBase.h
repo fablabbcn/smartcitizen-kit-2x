@@ -264,6 +264,8 @@ public:
 	};
 	void espMessage(String message);
 	void ESPpublish();
+	uint8_t publishRetryCounter = 0;
+	uint8_t maxPublishRetry = 3;
 
 	// Time
 	bool setTime(String epoch);

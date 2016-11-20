@@ -492,6 +492,15 @@ void SckBase::espMessage(String message) {
 			break;
 		case ESP_MQTT_ERROR:
 			sckOut(F("MQTT connection error"));
+			if (publishRetryCounter < maxPublishRetry) {
+				publishRetryCounter = publishRetryCounter + 1;
+				sckOut(String F("MQTT publish retry number ") + publishRetryCounter);
+				ESPcontrol(ESP_REBOOT);
+				ESPpublish();
+			} else {
+				sckOut(F("MQTT persistent error, giving up!!"));
+				if (mode == MODE_NET) ESPcontrol(ESP_OFF);
+			}
 			prompt();
 			break;
 		case ESP_HOSTNAME_UPDATED:
@@ -500,79 +509,6 @@ void SckBase::espMessage(String message) {
 			prompt();
 			break;
 	}
-
-
-
-	// if (message.indexOf(espMes[0]) > -1) {	///substituir por substring para saber si lo contiene no si son iguales!!
-
-	// 	//wifiOK
-	// 	onWifi = true;
-	// 	sckOut("");
-	// 	sckOut(F("Connected to Wifi!!"));
-	// 	led.wifiOK();
-	// 	changeMode(MODE_NET);
-	// 	prompt();
-
-	// } else if (message.indexOf(espMes[1]) > -1) {
-
-	// 	//fail time
-	// 	sckOut("");
-	// 	sckOut(F("Time sync failed!!!"));
-	// 	prompt();
-
-	// } else if (message.startsWith(espMes[2])) {
-
-	// 	//sync time
-	// 	sckOut("");
-	// 	sckOut(F("Received new time: "), PRIO_MED, false);
-	// 	message.replace(espMes[2], "");
-	// 	message.trim();
-	// 	setTime(message);
-	// 	changeMode(MODE_NET);
-	// 	prompt();
-
-	// } else if (message.indexOf(espMes[3]) > -1) {
-
-	// 	// get reason from ESP
-	// 	message.replace(espMes[3], "");
-	// 	message.trim();
-	// 	//wifi failed
-	// 	onWifi = false;
-	// 	lightResults.ok = false;
-	// 	lightResults.commited =false;
-	// 	changeMode(MODE_AP);
-	// 	sckOut("");
-	// 	sckOut(String F("Wifi conection failed: ") + message);
-	// 	prompt();
-	// } else if (message.indexOf(espMes[4]) > -1) {
-
-	// 	// AP mode on
-	// 	sckOut("");
-	// 	sckOut(F("Started AP mode"));
-	// 	prompt();
-
-	// }  else if (message.indexOf(espMes[5]) > -1) {
-
-	// 	// Starting Web server
-	// 	sckOut("");
-	// 	sckOut(F("Started Web Server"));
-	// 	prompt();
-
-	// } else if (message.indexOf(espMes[6]) > -1) {
-
-	// 	// mqtt hellow OK
-	// 	sckOut("");
-	// 	sckOut(F("mqtt hellow OK"));
-	// 	changeMode(MODE_NET);
-	// 	// ESPpublish();
-	// 	prompt();
-
-	// } else if (message.indexOf(espMes[7]) > -1) {
-
-	// 	// mqtt publish OK
-	// 	sckOut("");
-
-	// } 
 }
 
 /* Process text inputs and executes commands

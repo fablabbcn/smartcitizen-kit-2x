@@ -48,7 +48,7 @@
 #define MOSI 	21				// PB10
 #define SCK 	20				// PB11
 #define MISO	18				// PA12
-#define CS_MMC	4				// PA14 -- SPI Select SDcard
+#define CS_SDCARD	4			// PA14 -- SPI Select SDcard
 
 // Power Management
 #define PS 	38					// PA13 -- TPS63001 PS/SYNC
@@ -276,6 +276,15 @@ public:
 	// void configureTimer5(uint16_t periodMS);
 	// void TC5_Handler (void);
 
+	// SDcard
+	float FileSizeLimit = 64000000;
+	File publishFile;
+	String publishFileName = "POST001.CSV";
+	bool openPublishFile();
+	// File logFile;
+	// String logFileName = "sck.log";
+	// void openLogFile();
+
 
 	//TEMP hay que acomodar
 	void writeResistor(byte resistor, float value );
@@ -301,7 +310,6 @@ public:
 	// Urban board
 	friend class SckUrban;
 	bool urbanBoardDetected();
-
 
 private:
 };

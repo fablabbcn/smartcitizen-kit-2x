@@ -104,8 +104,8 @@ void SckBase::setup() {
 	pinMode(MOSI, OUTPUT);
   	pinMode(SCK, OUTPUT);
   	// pinMode(MISO, INPUT);
-  	pinMode(CS_MMC, OUTPUT);
-  	digitalWrite(CS_MMC, HIGH);
+	pinMode(CS_SDCARD, OUTPUT);
+	digitalWrite(CS_SDCARD, HIGH);
 	pinMode(CS_ESP, OUTPUT);		// SPI Select ESP
 	digitalWrite(CS_ESP, HIGH);		// Disable ESP SPI
 
@@ -118,6 +118,13 @@ void SckBase::setup() {
  	rtc.begin();
 	button.setup();
 	led.setup();
+
+	// if (SD.begin(CS_SDCARD)) {
+	// 	sdPresent = true;
+	// 	sckOut(F("Sdcard ready!!"));
+	// } else {
+	// 	sckOut(F("Sdcard not found!!"));
+	// }
 
 	// Output level
 	outputLevel = OUT_NORMAL;
@@ -150,7 +157,6 @@ void SckBase::update() {
 			} else if (!helloPublished && onWifi) {
 				ESPsendCommand(F("sck.hello()"));
 			} else if (helloPublished && hostNameSet && onWifi) {
-				ESPpublish();
 				changeMode(MODE_NET);
 			}
 
@@ -402,7 +408,7 @@ void SckBase::ESPsetToken(String token) {
 
 void SckBase::ESPpublish() {
 	// hay que buscar una libreria json encode
-	const String comToSend PROGMEM = "sck.publish(\"{\\\"time\\\":\\\"" + payloadData.time + "\\\",\\\"noise\\\":" + String(payloadData.noise, 2) + ",\\\"temperature\\\":" + String(payloadData.temperature, 2) + ",\\\"humidity\\\":" + String(payloadData.humidity, 2) + "}\")";
+	const String comToSend PROGMEM = "sck.publish(\"{\\\"time\\\":\\\"" + payloadData.time + "\\\",\\\"noise\\\":\\\"" + String(payloadData.noise, 2) + "\\\",\\\"temperature\\\":\\\"" + String(payloadData.temperature, 2) + "\\\",\\\"humidity\\\":\\\"" + String(payloadData.humidity, 2) + "\\\"}\")";
 	ESPsendCommand(comToSend);
 }
 
@@ -859,6 +865,31 @@ void SckBase::veryLongPress() {
 void SckBase::softReset() {
 	WatchdogSAMD wdt;
  	wdt.enable(10);
+}
+
+bool SckBase::openPublishFile() {
+
+	char charFileName[publishFileName.length()];
+
+	bool writeHeader = false;
+	String header = "Time,Noise, Humidity,Temperature\n";		//TEMP
+
+	if (sdPresent) {
+		int i = 1;
+		while (i < 512) {
+			publishFileName.toCharArray(charFileName, publishFileName.length());
+			if (!SD.exists(charFileName)) writeHeader = true;
+			publishFile = SD.open(charFileName , FILE_WRITE);
+			if (publishFile) {
+				if (writeHeader) publishFile.print(header);
+				if (publishFile.size() < FileSizeLimit) return true;
+				else {
+					publishFileName = String F("POST") + leadingZeros(String(i), 3) + F(".CSV");
+					publishFile.close();
+				}
+			}
+		}
+	}
 }
 
 

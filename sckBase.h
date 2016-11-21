@@ -267,6 +267,8 @@ public:
 	void ESPpublish();
 	uint8_t publishRetryCounter = 0;
 	uint8_t maxPublishRetry = 3;
+	float netStatusTimer;
+	float netStatusPeriod = 5000;
 
 	// Time
 	bool setTime(String epoch);

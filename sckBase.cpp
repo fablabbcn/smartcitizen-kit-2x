@@ -60,7 +60,6 @@ void disableTimer5() {
 	}
 };
 
-
 /* 	----------------------------------
  	|	SmartCitizen Kit Baseboard   |
  	----------------------------------
@@ -166,7 +165,11 @@ void SckBase::update() {
 				ESPsendCommand(F("sck.hello()"));
 			} else if (helloPublished && hostNameSet && onWifi) {
 				changeMode(MODE_NET);
+			} else if (!onWifi && millis() - netStatusTimer > netStatusPeriod) {
+				netStatusTimer = millis();
+				ESPsendCommand(F("sck.netStatus()"));
 			}
+
 
 		//----------------------------------------
 		// 	MODE_AP

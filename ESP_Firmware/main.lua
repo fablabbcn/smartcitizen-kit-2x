@@ -156,6 +156,15 @@ function module.getTime()
      sntp.sync("pool.ntp.org", function(sec) print(msg.ESP_TIME_NEW, sec) end, function() print(msg.ESP_TIME_FAIL) end)
 end
 
+function module.netStatus()
+     local netStatus = wifi.sta.status()
+     if netStatus == wifi.STA_IDLE then wifi.sta.connect()
+     elseif netStatus == wifi.STA_WRONGPWD then print(msg.ESP_WIFI_ERROR_PASS)
+     elseif netStatus == wifi.STA_APNOTFOUND then print(msg.ESP_WIFI_ERROR_AP)
+     elseif netStatus == wifi.STA_FAIL then print(msg.ESP_WIFI_ERROR)
+     elseif netStatus == wifi.STA_GOTIP then print(msg.ESP_WIFI_CONNECTED) end
+end
+
 --------------------------------------
 -- Start SCK
 --------------------------------------

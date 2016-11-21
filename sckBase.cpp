@@ -135,6 +135,15 @@ void SckBase::setup() {
 	configureTimer5(refreshPeriod);		// Hardware timer led refresh period
 
 	ESPcontrol(ESP_ON);
+
+	changeMode(MODE_FIRST_BOOT);	// Start in first boot mode until we are connected, or wifi fail
+
+	// if (SD.begin(CS_SDCARD)) {
+	// 	sdPresent = true;
+	// 	sckOut(F("Sdcard ready!!"));
+	// } else {
+	// 	sckOut(F("Sdcard not found!!"));
+	// }
 };
 
 void SckBase::update() {
@@ -144,7 +153,6 @@ void SckBase::update() {
 		if (Serial1.available()) SerialUSB.write(Serial1.read());
 	} else {
 		inputUpdate();
-
 
 		//----------------------------------------
 		// 	MODE_FIRST_BOOT
@@ -436,7 +444,7 @@ void SckBase::espMessage(String message) {
 		case ESP_WIFI_CONNECTED:
 			onWifi = true;
 			sckOut(F("Connected to Wifi!!"));
-			if (!helloPublished || !hostNameSet) changeMode(MODE_FIRST_BOOT);
+			if (!helloPublished || !hostNameSet) led.wifiOK();
 			else changeMode(MODE_NET);
 			prompt();
 			break;
@@ -1017,14 +1025,14 @@ void Led::setup() {
 	pinMode(PIN_LED_GREEN, OUTPUT);
 	pinMode(PIN_LED_BLUE, OUTPUT);
 	off();
-	hue = 4;
-	sat = 0.92;
+	hue = 40;
+	sat = 1.0;
 	inten = 0;
 	dir = true;
 	newHue = hue;
 	newSat = sat;
-	update(MODE_NET);
-	// update(MODE_AP); //always start in apmode??? or try to comunicate: starting network.... FAIL --> APmode SUCCES --> netmode
+	pulseMode = PULSE_STATIC;
+	newPulseMode = PULSE_STATIC;
 }
 
 /* Call this every time there is an event that changes SCK mode
@@ -1034,7 +1042,7 @@ void Led::update(SCKmodes newMode) {
 
 	switch (newMode) {
 		case MODE_AP:
-			newHue = 6;
+			newHue = 5;
 			newSat = 0.92;
 			newPulseMode = PULSE_SOFT;
 			break;
@@ -1068,9 +1076,9 @@ void Led::update(SCKmodes newMode) {
 			newPulseMode = PULSE_STATIC;
 			break;
 		case MODE_FIRST_BOOT:
-			newHue = 170;
-			newSat = 1;
-			newPulseMode = PULSE_SOFT;
+			newHue = 40;
+			newSat = 1.0;
+			newPulseMode = PULSE_STATIC;
 			break;
 	}
 }
@@ -1086,16 +1094,16 @@ void Led::wifiOK() {
 	newHue = 120;
 	newSat = 1.0;
 	setHSIColor(120, 1.0, inten);
-	pulseMode = PULSE_SOFT;
+	newPulseMode = PULSE_STATIC;
 }
 
 void Led::crcOK() {
 
 	// Yellow
-	newHue = 26;
-	newSat = 0.87;
+	newHue = 35;
+	newSat = 1.0;
 	setHSIColor(26, 0.87, inten);
-	pulseMode = PULSE_SOFT;
+	newPulseMode = PULSE_STATIC;
 }
 
 void Led::bridge() {

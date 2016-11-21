@@ -274,8 +274,6 @@ public:
 
 	// Hardware timer
 	uint8_t refreshPeriod = 30;
-	// void configureTimer5(uint16_t periodMS);
-	// void TC5_Handler (void);
 
 	// SDcard
 	float FileSizeLimit = 64000000;

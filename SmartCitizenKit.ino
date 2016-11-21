@@ -19,7 +19,6 @@ void TC5_Handler (void) {
     TC5->COUNT16.INTFLAG.bit.MC0 = 1;
 };
 
-float interval = 15000;
 float intervalTimer = millis();
 
 void setup() {
@@ -32,7 +31,7 @@ void loop() {
 
 	base.update();
 
-	if (millis() - intervalTimer > interval && base.mode == MODE_NET){
+	if (millis() - intervalTimer > base.postInterval * 1000 && base.mode == MODE_NET){
 
 		// take reading
 		base.payloadData.time = base.ISOtime();

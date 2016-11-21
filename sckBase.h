@@ -169,6 +169,7 @@ public:
 
 	// Sensors
 	sensorData payloadData;
+	float postInterval = 15;   // seconds
 
 	//FLAGS
 	bool onWifi = false;

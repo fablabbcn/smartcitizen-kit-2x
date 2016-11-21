@@ -240,7 +240,7 @@ void SckBase::inputUpdate() {
 		}
 	}
 
-	if (Serial1.available()) {
+	while (Serial1.available()) {
 		char buff = Serial1.read();
 		espBuff += buff;
 		if (mode == MODE_BRIDGE) SerialUSB.write(buff);
@@ -453,25 +453,25 @@ void SckBase::espMessage(String message) {
 			if (!helloPublished || !hostNameSet) {
 				changeMode(MODE_FIRST_BOOT);
 			}
-			else changeMode(MODE_NET);
+			else if (mode != MODE_SHELL && mode != MODE_BRIDGE) changeMode(MODE_NET);
 			prompt();
 			break;
 		case ESP_WIFI_ERROR:
 			onWifi = false;
 			sckOut(F("Wifi conection failed: Unknown cause"));
-			changeMode(MODE_AP);
+			if (mode != MODE_SHELL && mode != MODE_BRIDGE) changeMode(MODE_AP);
 			prompt();
 			break;
 		case ESP_WIFI_ERROR_PASS:
 			onWifi = false;
 			sckOut(String F("Wifi conection failed: wrong password"));
-			changeMode(MODE_AP);
+			if (mode != MODE_SHELL && mode != MODE_BRIDGE) changeMode(MODE_AP);
 			prompt();
 			break;
 		case ESP_WIFI_ERROR_AP:
 			onWifi = false;
 			sckOut(String F("Wifi conection failed: AP not found"));
-			changeMode(MODE_AP);
+			if (mode != MODE_SHELL && mode != MODE_BRIDGE) changeMode(MODE_AP);
 			prompt();
 			break;
 		case ESP_TIME_FAIL:

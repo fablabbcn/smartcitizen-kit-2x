@@ -165,6 +165,13 @@ function module.netStatus()
      elseif netStatus == wifi.STA_GOTIP then print(msg.ESP_WIFI_CONNECTED) end
 end
 
+function module.APmode()
+     rLED.blink(80)
+     lLED.set(0)
+     enduser_setup.start()
+     print(msg.ESP_MODE_AP)
+end
+
 --------------------------------------
 -- Start SCK
 --------------------------------------
@@ -179,24 +186,23 @@ function module.start()
      -- Hostname
      wifi.sta.sethostname(config.hostName)
 
-     wifi.sta.eventMonReg(wifi.STA_WRONGPWD, function() print(msg.ESP_WIFI_ERROR_PASS) end)
-     wifi.sta.eventMonReg(wifi.STA_APNOTFOUND, function() print(msg.ESP_WIFI_ERROR_AP) end)
+     wifi.sta.eventMonReg(wifi.STA_WRONGPWD, function()
+          print(msg.ESP_WIFI_ERROR_PASS)
+          module.APmode()
+     end)
+     wifi.sta.eventMonReg(wifi.STA_APNOTFOUND, function()
+          print(msg.ESP_WIFI_ERROR_AP)
+          module.APmode()
+     end)
      wifi.sta.eventMonReg(wifi.STA_FAIL, function()
           print(msg.ESP_WIFI_ERROR)
-          lLED.blink(350)
-          rLED.blink(350)
-          require("APmode")
-          print(msg.ESP_MODE_AP)
-          require("web")
-          print(msg.ESP_WEB_STARTED)
+          module.APmode()
      end)
      wifi.sta.eventMonReg(wifi.STA_GOTIP,    function()
                                                   print(msg.ESP_WIFI_CONNECTED)
-                                                  tmr.stop(6)
                                                   lLED.set(1)
                                                   rLED.set(0)
                                                   module.saveConf()
-
                                                   if wifi.getmode() ~= wifi.STATION then 
                                                        print(msg.ESP_MODE_STA)
                                                        wifi.setmode(wifi.STATION) 

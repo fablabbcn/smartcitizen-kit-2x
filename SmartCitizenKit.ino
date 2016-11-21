@@ -2,7 +2,6 @@
 #include "sckUrban.h"
 #include "sckAux.h"
 
-
 SckBase base;
 SckUrban urban;
 

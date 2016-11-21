@@ -408,7 +408,7 @@ void SckBase::ESPsetToken(String token) {
 
 void SckBase::ESPpublish() {
 	// hay que buscar una libreria json encode
-	const String comToSend PROGMEM = "sck.publish(\"{\\\"time\\\":\\\"" + payloadData.time + "\\\",\\\"noise\\\":\\\"" + String(payloadData.noise, 2) + "\\\",\\\"temperature\\\":\\\"" + String(payloadData.temperature, 2) + "\\\",\\\"humidity\\\":\\\"" + String(payloadData.humidity, 2) + "\\\"}\")";
+	const String comToSend PROGMEM = "sck.publish(\"{\\\"time\\\":\\\"" + payloadData.time + "\\\",\\\"noise\\\":\\\"" + String(payloadData.noise, 2) + "\\\",\\\"temperature\\\":\\\"" + String(payloadData.temperature, 2) + "\\\",\\\"humidity\\\":\\\"" + String(payloadData.humidity, 2) + "\\\",\\\"battery\\\":\\\"" + String(payloadData.battery) + "\\\"}\")";
 	ESPsendCommand(comToSend);
 }
 
@@ -890,6 +890,7 @@ bool SckBase::openPublishFile() {
 			}
 		}
 	}
+	return false;
 }
 
 

@@ -151,6 +151,7 @@ struct sensorData {
 		float noise;
 		float humidity;
 		float temperature;
+		uint16_t battery;
 	};
 
 /* 	----------------------------------

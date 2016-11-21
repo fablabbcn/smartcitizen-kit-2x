@@ -142,11 +142,11 @@ end
 --------------------------------------
 function module.publish(payload)
      local topic = "device/sck/" .. config.token .. "/readings"
-     local datos = cjson.decode(payload)
+     local data = cjson.decode(payload)
 
      local mess = ""
 
-     mess = '{"data":[{"recorded_at":"' .. datos.time .. '","sensors":[{"id":29,"value":' .. datos.noise ..'},{"id":13,"value":' .. datos.humidity ..'},{"id":12,"value":' .. datos.temperature ..'},{"id":10,"value":100}]}]}'
+     mess = '{"data":[{"recorded_at":"' .. data.time .. '","sensors":[{"id":29,"value":' .. data.noise ..'},{"id":13,"value":' .. data.humidity ..'},{"id":12,"value":' .. data.temperature ..'},{"id":10,"value":' .. data.battery .. '}]}]}'
      
      module.mqttConnect(function(client) module.mclient:publish(topic, mess, 1, 0, function(client) print(msg.ESP_MQTT_PUBLISH_OK) end) end)
 

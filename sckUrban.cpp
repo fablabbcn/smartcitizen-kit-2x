@@ -5,30 +5,20 @@ uint8_t pot_7_db_preset[] = {0, 17, 97, 255, 255};
 
 void SckUrban::setup() {
 
-//void SckUrban::setup() {
   digitalWrite(IO0, LOW); 		// Turn off CO Sensor Heather
   digitalWrite(IO1, LOW); 		// Turn off NO2 Sensor Heater
 
+  ADCini();
 
   ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV16;       // clock prescaler to 16
   ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1024 |   // 1024 samples for averaging
                        ADC_AVGCTRL_ADJRES(0x4ul);   // Adjusting result by 4
   gainChange(0);
 
-  // TEST TEMP
-  ADCini();
 };
 
 
-  ////TEMP
-void SckUrban::ADCini()
-  {
-    byte temp = readI2C(ADC_DIR,0)&B00000000;
-    //temp = temp|B11000000;
-    writeI2C(ADC_DIR, 0, temp);
-  }
-
-
+// Noise sensor
 float SckUrban::GetNoise() {
   uint16_t soundraw = 0;
   uint8_t section = 0;
@@ -90,11 +80,10 @@ float SckUrban::GetNoise() {
       break;
     }
   }
-return sounddB;
+  return sounddB;
 }
 
-void SckUrban::gainChange(uint8_t value)
-{
+void SckUrban::gainChange(uint8_t value) {
   writeResistorRaw(6, pot_6_db_preset[value]);
   //delay(20);
   writeResistorRaw(7, pot_7_db_preset[value]);
@@ -109,8 +98,7 @@ void SckUrban::gainChange(uint8_t value)
   gain_step = value;
 }
 
-
-float SckUrban::getsound(){
+float SckUrban::getsound() {
     return ((float)(analogRead(S4)) + 1) / RESOLUTION_ANALOG * VCC;
 }
 
@@ -153,8 +141,7 @@ byte SckUrban::readI2C(int deviceaddress, byte address ) {
 
 
 
-/*Sensor temperature*/
-  
+// Temperature sensor
 uint16_t SckUrban::readSHT(uint8_t type){
       uint16_t DATA = 0;
       Wire.beginTransmission(SHT21_DIR);
@@ -168,7 +155,7 @@ uint16_t SckUrban::readSHT(uint8_t type){
       Wire.read();
       DATA &= ~0x0003; 
       return DATA;
-  }
+}
   
 float SckUrban::getHumidity() {
   return (-6 + (125*(readSHT(0xE5)/65536.0)));
@@ -179,8 +166,35 @@ float SckUrban::getTemperature() {
 }
 
 
-// void SCKDriver::getSHT()
-//    {
-//         *__Temperature = (-46.85 + (175.72*(readSHT(0xE3)/65536.0)));
-//         *__Humidity    = (-6 + (125*(readSHT(0xE5)/65536.0)));
-//     }
+// Battery level
+uint16_t SckUrban::getBattery() {
+  uint16_t temp = 2*(readADC(3))*VCC/RESOLUTION_ANALOG;
+  temp = map(temp, batteryMin, batteryMax, 0, 100);
+  if (temp>100) temp=100;
+  if (temp<0) temp=0;
+  return temp;
+}
+
+uint16_t SckUrban::getCharger() {
+  uint16_t temp = 2*(readADC(2))*VCC/RESOLUTION_ANALOG;
+  return temp;
+}
+
+uint16_t SckUrban::readADC(byte channel) {
+  byte dir[4] = {2,4,6,8};
+  byte temp = B11000000 + channel;
+  writeI2C(ADC_DIR, 0, temp);
+  writeI2C(ADC_DIR, 0, temp);
+  uint16_t data = (readI2C(ADC_DIR, dir[channel])<<4) + (readI2C(ADC_DIR, dir[channel] + 1)>>4);
+  return data;
+}
+
+void SckUrban::ADCini() {
+  byte temp = readI2C(ADC_DIR,0)&B00000000;
+  writeI2C(ADC_DIR, 0, temp);
+}
+
+void SckUrban::ADCoff() {
+  byte temp = readI2C(ADC_DIR,0)&B00000000;
+  writeI2C(ADC_DIR, 0, temp);
+}

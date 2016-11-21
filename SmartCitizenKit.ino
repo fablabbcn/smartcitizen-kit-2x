@@ -39,6 +39,7 @@ void loop() {
 		base.payloadData.noise = urban.GetNoise();
 		base.payloadData.humidity = urban.getHumidity();
 		base.payloadData.temperature = urban.getTemperature();
+		base.payloadData.battery = urban.getBattery();
 
 		// save to sdcard (TEMP)
 		if (base.openPublishFile()) {
@@ -49,6 +50,8 @@ void loop() {
 			base.publishFile.print(base.payloadData.humidity);
 			base.publishFile.print(",");
 			base.publishFile.print(base.payloadData.temperature);
+			base.publishFile.print(",");
+			base.publishFile.print(base.payloadData.battery);
 			base.publishFile.print("\n");
 			base.publishFile.close();
 		}

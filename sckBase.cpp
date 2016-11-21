@@ -176,12 +176,8 @@ void SckBase::update() {
 				if(!lightResults.ok  && readLightEnabled) lightResults = readLight.read();
 				else if(!lightResults.commited) {
 
-					SerialUSB.println("readlight finished");
-					led.crcOK();
-
-					// SerialUSB.println(lightResults.lines[0]);
-					// SerialUSB.println(lightResults.lines[1]);
-					// SerialUSB.println(lightResults.lines[2]);
+					changeMode(MODE_FIRST_BOOT);
+					// led.crcOK();
 					if (lightResults.lines[0].endsWith(F("auth"))) {
 						ESPsetWifi(lightResults.lines[1], lightResults.lines[2]);
 						ESPsetToken(lightResults.lines[3]);
@@ -205,7 +201,10 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 	if (newMode != mode) {
 
-		if (newMode == MODE_BRIDGE) {
+		if (newMode == MODE_AP && mode != MODE_AP) {
+			lightResults.ok = false;
+			lightResults.commited = false;
+		}else if (newMode == MODE_BRIDGE) {
 			prevOutputLevel = outputLevel;
 			outputLevel = OUT_SILENT;
 		} else {
@@ -444,7 +443,9 @@ void SckBase::espMessage(String message) {
 		case ESP_WIFI_CONNECTED:
 			onWifi = true;
 			sckOut(F("Connected to Wifi!!"));
-			if (!helloPublished || !hostNameSet) led.wifiOK();
+			if (!helloPublished || !hostNameSet) {
+				changeMode(MODE_FIRST_BOOT);
+			}
 			else changeMode(MODE_NET);
 			prompt();
 			break;

@@ -249,7 +249,6 @@ bool ReadLight::calibrate() {
     // Save the old value for next loop comparison
     oldValue = currentValue;
   }
-
 }
 
 
@@ -334,7 +333,7 @@ float ReadLight::getValue() {
     if (abs(newReading - OldReading) < tolerance) {
       repetition++;
     } else {
-        repetition = 0;
+      repetition = 0;
     }
 
     // Wait for light sensor to recover

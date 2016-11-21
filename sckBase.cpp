@@ -122,13 +122,6 @@ void SckBase::setup() {
 	button.setup();
 	led.setup();
 
-	// if (SD.begin(CS_SDCARD)) {
-	// 	sdPresent = true;
-	// 	sckOut(F("Sdcard ready!!"));
-	// } else {
-	// 	sckOut(F("Sdcard not found!!"));
-	// }
-
 	// Output level
 	outputLevel = OUT_NORMAL;
 	outputLevel = OUT_VERBOSE;				// Remove for production
@@ -150,7 +143,14 @@ void SckBase::setup() {
 };
 
 void SckBase::update() {
-	
+
+	// Button Stuff
+	if (button.isDown) {
+		if (millis() - button.lastPress > longPressInterval && !longPressStillDownTrigered)	longPressStillDown();
+		else if (millis() - button.lastPress > veryLongPressInterval && !veryLongPressStillDownTrigered) veryLongPressStillDown();
+	}
+
+	// General Stuff
 	if (mode == MODE_FLASH){
 		if (SerialUSB.available()) Serial1.write(SerialUSB.read());
 		if (Serial1.available()) SerialUSB.write(Serial1.read());
@@ -509,7 +509,10 @@ void SckBase::espMessage(String message) {
 			break;
 		case ESP_MQTT_PUBLISH_OK:
 			sckOut(F("MQTT publish OK"));
-			if (mode == MODE_NET) ESPcontrol(ESP_OFF);
+			if (mode == MODE_NET) {
+				ESPcontrol(ESP_OFF);
+				// goToSleep(); // todavia falta implementar el wakeup correctamente...
+			}
 			prompt();
 			break;
 		case ESP_MQTT_ERROR:
@@ -858,29 +861,58 @@ void SckBase::buttonEvent() {
 void SckBase::buttonDown() {
 
 	sckOut(F("buttonDown"), PRIO_MED);
-	sckOut((String)rtc.getSeconds(), PRIO_MED);
-	//lanza timer para longPress y veryLongPress
 }
 
 void SckBase::buttonUp() {
 	sckOut(F("buttonUp"), PRIO_MED);
-	//remueve timer para longPress y veryLongPress
-	shortPress();
+
+	longPressStillDownTrigered = false;
+	veryLongPressStillDownTrigered = false;
+
+	float pressedTime = button.lastRelease - button.lastPress;
+	if (pressedTime < longPressInterval) {
+		shortPress();	
+	} else if (pressedTime < veryLongPressInterval) {
+		sckOut(String F("Pressed time: ") + String(pressedTime));
+		longPress();
+	} else {
+		sckOut(String F("Pressed time: ") + String(pressedTime));
+		veryLongPress();
+	}
+	
 }
 
 void SckBase::shortPress() {
 
-	sckOut(F("shortPRESS"), PRIO_MED);
+	// Atach to an interrupt to wave up
+
+	sckOut(F("shortPress"), PRIO_MED);
 }
 
 void SckBase::longPress() {
-
-	sckOut(F("longPRESS"), PRIO_MED);
+	sckOut(F("longPress"), PRIO_MED);
 }
 
 void SckBase::veryLongPress() {
+	sckOut(F("veryLongPress"), PRIO_MED);
+}
 
-	sckOut(F("VERYlongPRESS"), PRIO_MED);	
+void SckBase::longPressStillDown() {
+	longPressStillDownTrigered = true;
+
+	// Sleep
+
+	sckOut(F("longPressStillDown"), PRIO_MED);
+}
+
+void SckBase::veryLongPressStillDown() {
+	veryLongPressStillDownTrigered = true;
+
+	// Factory reset
+	factoryReset();
+
+
+	sckOut(F("veryLongPressStillDown"), PRIO_MED);
 }
 
 void SckBase::softReset() {
@@ -914,6 +946,45 @@ bool SckBase::openPublishFile() {
 	return false;
 }
 
+void SckBase::goToSleep() {
+
+	rtc.setAlarmSeconds(postInterval);
+	// para implementar periodos de sleep:
+	// habra que hacer una seleccion del match (y de la funcion correspondiente segun el periodo solicitado)
+	// MATCH_OFF          = RTC_MODE2_MASK_SEL_OFF_Val,          // Never
+ //    MATCH_SS           = RTC_MODE2_MASK_SEL_SS_Val,           // Every Minute
+ //    MATCH_MMSS         = RTC_MODE2_MASK_SEL_MMSS_Val,         // Every Hour
+ //    MATCH_HHMMSS       = RTC_MODE2_MASK_SEL_HHMMSS_Val,       // Every Day
+ //    MATCH_DHHMMSS      = RTC_MODE2_MASK_SEL_DDHHMMSS_Val,     // Every Month
+	// MATCH_MMDDHHMMSS = RTC_MODE2_MASK_SEL_MMDDHHMMSS_Val, // Every Year
+  	// rtc.enableAlarm(rtc.MATCH_SS);
+
+  	// Timer interrupt for wake up
+  	// rtc.attachInterrupt(wakeUp);
+  	// Button interrupt for wake up
+  	// MISSING HERE BUTTON INTERRUPT
+
+	// rtc.standbyMode();	//luego ponerlo de modo que espere a que el led llegue a zero
+
+	led.off();
+	disableTimer5();
+}
+
+void SckBase::wakeUp() {
+	configureTimer5(refreshPeriod);
+}
+
+void SckBase::factoryReset() {
+	changeMode(MODE_SHELL);
+	ESPcontrol(ESP_REBOOT);
+	delay(2000);
+	ESPsetWifi("null", "password");
+	ESPsetToken("null");
+	delay(2000);
+	// ESPcontrol(ESP_REBOOT);
+	// delay(1000);
+	softReset();
+}
 
 /* 	-------------
  	|	 POT control (por ahora es cun copy paste del codigo de miguel, hay que revisarlo y adaptarlo)	|

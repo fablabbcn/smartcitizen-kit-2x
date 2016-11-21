@@ -241,6 +241,13 @@ public:
 	void longPress();
 	void veryLongPress();
 	void softReset();
+	float longPressInterval = 3000;
+	float veryLongPressInterval = 15000;
+	void longPressStillDown();
+	void veryLongPressStillDown();
+	bool longPressStillDownTrigered = false;
+	bool veryLongPressStillDownTrigered = false;
+	void factoryReset();
 
 	//ESP8266
 	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_BRIDGE_ON, ESP_BRIDGE_OFF, ESP_ON, ESP_REBOOT };
@@ -315,6 +322,10 @@ public:
 	// Urban board
 	friend class SckUrban;
 	bool urbanBoardDetected();
+
+	// Power
+	void goToSleep();
+	void wakeUp();
 
 private:
 };

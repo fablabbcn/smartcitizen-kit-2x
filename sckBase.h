@@ -167,6 +167,8 @@ public:
 	void setup();
 	void update();
 
+	String version = "SCK-1.5_0.1-";
+
 	// Sensors
 	sensorData payloadData;
 	float postInterval = 15;   // seconds
@@ -188,7 +190,7 @@ public:
 	String modeTitles[MODE_count] PROGMEM;
 		
 	//EXTERNAL COMMANDS
-	const String comTitles[26] PROGMEM = {	
+	const String comTitles[27] PROGMEM = {
 
 		"esp bridge on", 		// 0
 		"esp bridge off",		// 1
@@ -215,7 +217,8 @@ public:
 		"gettoken",				// 22
 		"shell mode",			// 23
 		"getmode",				// 24
-		"help"					// 25
+		"getversion",			// 25
+		"help"					// 26
 
 	};
 

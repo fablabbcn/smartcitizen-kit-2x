@@ -66,6 +66,10 @@ void disableTimer5() {
 */
 void SckBase::setup() {
 
+	String buildDate = __DATE__;
+	buildDate.replace(' ', '-');
+	version += buildDate + '-' + String(__TIME__);
+
 	modeTitles[MODE_AP]			= 	"Ap mode";
 	modeTitles[MODE_NET] 		=	"Network mode";
 	modeTitles[MODE_SD] 		= 	"SD card mode";
@@ -759,7 +763,12 @@ void SckBase::sckIn(String strIn) {
 		// getmode
 		sckOut(modeTitles[mode]);
 
-	} else if (strIn.startsWith(comTitles[25])) {
+	} else if (strIn.equals(comTitles[25])) {
+
+		// getversion
+		sckOut(version);
+
+	} else if (strIn.startsWith(comTitles[26])) {
 
 		// help
 		sckOut(F("Available commands:"));

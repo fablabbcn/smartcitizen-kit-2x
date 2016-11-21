@@ -225,6 +225,7 @@ bool ReadLight::calibrate() {
     // I value is bigger than previous go up one level
     if (currentValue > oldValue) {
       newLevel ++;
+      feedDOG();
     } else {
       // If we reach the levelnum we are done!
       if (newLevel + 1 == levelNum) {

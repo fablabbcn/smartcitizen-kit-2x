@@ -171,7 +171,7 @@ function module.start()
      wifi.sta.sethostname(config.hostName)
 
      wifi.sta.eventMonReg(wifi.STA_WRONGPWD, function() print(msg.ESP_WIFI_ERROR_PASS) end)
-     wifi.sta.eventMonReg(wifi.STA_APNOTFOUND, function() print(msg.SP_WIFI_ERROR_AP) end)
+     wifi.sta.eventMonReg(wifi.STA_APNOTFOUND, function() print(msg.ESP_WIFI_ERROR_AP) end)
      wifi.sta.eventMonReg(wifi.STA_FAIL, function()
           print(msg.ESP_WIFI_ERROR)
           lLED.blink(350)

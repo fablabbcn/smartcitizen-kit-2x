@@ -172,6 +172,8 @@ public:
 	// Sensors
 	sensorData payloadData;
 	float postInterval = 15;   // seconds
+	float lastPublishTime;
+	float publishAnswerTimeout = 5000;
 
 	//FLAGS
 	bool onWifi = false;

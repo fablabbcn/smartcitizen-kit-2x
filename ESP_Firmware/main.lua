@@ -25,6 +25,8 @@ local msg = {
 function module.saveConf()
      if file.open("config.lua", "w") ~= nil then
           local s,p = wifi.sta.getconfig()
+          if s == "" then s = "ssid" end
+          if p == "" then p = "password" end
           file.writeline('wifi.sta.config("' .. s .. '", "' .. p .. '")')
           file.writeline('config = {}')
 

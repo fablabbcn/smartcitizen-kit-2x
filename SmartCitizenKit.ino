@@ -23,6 +23,7 @@ float intervalTimer = millis();
 void setup() {
 
 	base.setup();
+	urban.setup();
 
 	// Gets readings for first post
 	base.payloadData.time = base.ISOtime();
@@ -77,18 +78,3 @@ void loop() {
 // a1b2c3 = 3770
 // t7d9z7 = 3771
 /*
---------------------------------------
--- MQTT
---------------------------------------
---mqtt:connect(host[, port[, secure[, autoreconnect]]][, function(client)[, function(client, reason)]])
-
--- mqtt:subscribe(topic, qos[, function(client)])
--- mqtt:subscribe(table[, function(client)])
--- table: array of 'topic, qos' pairs to subscribe to
--- `/device/sck/devicetoken:/hello`
--- `/device/sck/devicetoken:/readings`
--- `/device/sck/devicetoken:/settings`
--- `/device/sck/devicetoken:/errors`
-
--- mqtt:publish(topic, payload, qos, retain[, function(client)])
-*/

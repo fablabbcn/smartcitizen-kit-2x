@@ -5,8 +5,13 @@ uint8_t pot_7_db_preset[] = {0, 17, 97, 255, 255};
 
 void SckUrban::setup() {
 
+  pinMode(IO0, OUTPUT);
+  pinMode(IO1, OUTPUT);
+
   digitalWrite(IO0, LOW); 		// Turn off CO Sensor Heather
   digitalWrite(IO1, LOW); 		// Turn off NO2 Sensor Heater
+  
+  digitalWrite(PS, HIGH);
 
   ADCini();
 
@@ -14,7 +19,6 @@ void SckUrban::setup() {
   ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1024 |   // 1024 samples for averaging
                        ADC_AVGCTRL_ADJRES(0x4ul);   // Adjusting result by 4
   gainChange(0);
-
 };
 
 

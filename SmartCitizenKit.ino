@@ -24,6 +24,13 @@ void setup() {
 
 	base.setup();
 
+	// Gets readings for first post
+	base.payloadData.time = base.ISOtime();
+	base.payloadData.noise = urban.GetNoise();
+	base.payloadData.humidity = urban.getHumidity();
+	base.payloadData.temperature = urban.getTemperature();
+	base.payloadData.battery = urban.getBattery();
+
 }
 
 void loop() {

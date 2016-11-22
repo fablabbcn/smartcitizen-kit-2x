@@ -169,6 +169,7 @@ void SckBase::update() {
 				ESPsendCommand(F("sck.hello()"));
 			} else if (helloPublished && hostNameSet && onWifi) {
 				changeMode(MODE_NET);
+				ESPpublish();
 			} else if (!onWifi && millis() - netStatusTimer > netStatusPeriod) {
 				netStatusTimer = millis();
 				ESPsendCommand(F("sck.netStatus()"));

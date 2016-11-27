@@ -784,7 +784,22 @@ void SckBase::sckIn(String strIn) {
 		// getversion
 		sckOut(version);
 
-	} else if (strIn.startsWith(comTitles[26])) {
+	} else if (strIn.equals(comTitles[26])) {
+
+		// sleep
+		goToSleep();
+
+	} else if (strIn.equals(comTitles[27])) {
+
+		// led off
+		led.off();
+
+	} else if (strIn.equals(comTitles[28])) {
+
+		// get esp time
+		sckOut(String(espTotalOnTime));
+
+	} else if (strIn.startsWith(comTitles[29])) {
 
 		// help
 		sckOut(F("Available commands:"));

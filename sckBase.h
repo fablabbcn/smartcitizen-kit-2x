@@ -220,7 +220,10 @@ public:
 		"shell mode",			// 23
 		"getmode",				// 24
 		"getversion",			// 25
-		"help"					// 26
+		"sleep",				// 26
+		"led off",				// 27
+		"get espTime",			// 28
+		"help"					// 29
 
 	};
 

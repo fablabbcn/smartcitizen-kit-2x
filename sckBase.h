@@ -285,6 +285,8 @@ public:
 	uint8_t maxPublishRetry = 3;
 	float netStatusTimer;
 	float netStatusPeriod = 5000;
+	float espLastOn;
+	float espTotalOnTime = 0;
 
 	// Time
 	bool setTime(String epoch);

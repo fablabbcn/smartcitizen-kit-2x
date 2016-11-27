@@ -268,6 +268,8 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 				digitalWrite(CH_PD, LOW);
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
 				digitalWrite(GPIO0, LOW);
+				espTotalOnTime += millis() - espLastOn;
+				sckOut(String F("ESP was on for milliseconds: ") + String(millis() - espLastOn));
 				delay(100);
 			} else {
 				sckOut(F("ESP already off!"));
@@ -315,6 +317,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 				digitalWrite(GPIO0, HIGH);		// HIGH for normal mode
 				delay(50);
 				digitalWrite(POWER_WIFI, LOW); 		// Turn on ESP
+				espLastOn = millis();
 				delay(500);					// Give time to ESP to boot and stabilize (later add a sanity check or run a reboot on ESP)
 											// Also verify if this operation is ressetting SAM with reset cause and logit
 											// Also turn it off after some sleep time...

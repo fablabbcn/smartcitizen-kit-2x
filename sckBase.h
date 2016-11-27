@@ -69,7 +69,7 @@
 #define VERY_LONG_PRESS_DURATION 15000	// Button very long press duration (ms)
 
 
-enum SCKmodes {	MODE_AP, MODE_NET, MODE_SD, MODE_SHELL, MODE_FLASH, MODE_BRIDGE, MODE_ERROR, MODE_FIRST_BOOT, MODE_count };
+enum SCKmodes {	MODE_AP, MODE_NET, MODE_SD, MODE_SHELL, MODE_FLASH, MODE_BRIDGE, MODE_ERROR, MODE_FIRST_BOOT, MODE_OFF, MODE_count };
 
 /* 	-----------------
  	|	 Button 	|
@@ -192,7 +192,7 @@ public:
 	String modeTitles[MODE_count] PROGMEM;
 		
 	//EXTERNAL COMMANDS
-	const String comTitles[27] PROGMEM = {
+	const String comTitles[30] PROGMEM = {
 
 		"esp bridge on", 		// 0
 		"esp bridge off",		// 1

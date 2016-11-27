@@ -66,22 +66,6 @@ void disableTimer5() {
 */
 void SckBase::setup() {
 
-	String buildDate = __DATE__;
-	buildDate.replace(' ', '-');
-	version += buildDate + '-' + String(__TIME__);
-
-	modeTitles[MODE_AP]			= 	"Ap mode";
-	modeTitles[MODE_NET] 		=	"Network mode";
-	modeTitles[MODE_SD] 		= 	"SD card mode";
-	modeTitles[MODE_SHELL] 		= 	"Shell mode";
-	modeTitles[MODE_FLASH] 		= 	"ESP flashing mode";
-	modeTitles[MODE_BRIDGE] 	= 	"ESP bridging mode";
-	modeTitles[MODE_ERROR] 		= 	"Error mode";
-	modeTitles[MODE_FIRST_BOOT] = 	"First boot mode";
-
-	// I2C Configuration
-	Wire.begin();				// Init wire library
-
 	// Serial Ports Configuration
 	Serial1.begin(baudrate);
 	SerialUSB.begin(baudrate);
@@ -94,6 +78,25 @@ void SckBase::setup() {
 	digitalWrite(POWER_WIFI, HIGH);
 	ESPcontrol(ESP_OFF);
 
+
+	String buildDate = __DATE__;
+	buildDate.replace(' ', '-');
+	version += buildDate + '-' + String(__TIME__) + "-ALPHA";
+
+	modeTitles[MODE_AP]			= 	"Ap mode";
+	modeTitles[MODE_NET] 		=	"Network mode";
+	modeTitles[MODE_SD] 		= 	"SD card mode";
+	modeTitles[MODE_SHELL] 		= 	"Shell mode";
+	modeTitles[MODE_FLASH] 		= 	"ESP flashing mode";
+	modeTitles[MODE_BRIDGE] 	= 	"ESP bridging mode";
+	modeTitles[MODE_ERROR] 		= 	"Error mode";
+	modeTitles[MODE_FIRST_BOOT] = 	"First boot mode";
+	modeTitles[MODE_OFF]		=	"Off mode";
+
+	// I2C Configuration
+	Wire.begin();				// Init wire library
+
+
 	// Sensor Board Conector
 	pinMode(IO0, OUTPUT);	// PA7 -- CO Sensor Heather
 	pinMode(IO1, OUTPUT);	// PA6 -- NO2 Sensor Heater
@@ -105,11 +108,12 @@ void SckBase::setup() {
 
 	// SPI Configuration
 	pinMode(MOSI, OUTPUT);
-  	pinMode(SCK, OUTPUT);
+	pinMode(SCK, OUTPUT);
+
   	// pinMode(MISO, INPUT);
 	pinMode(CS_SDCARD, OUTPUT);
-	digitalWrite(CS_SDCARD, HIGH);
-	pinMode(CS_ESP, OUTPUT);		// SPI Select ESP
+	digitalWrite(CS_SDCARD, LOW);
+	pinMode(CS_ESP, OUTPUT);
 	digitalWrite(CS_ESP, HIGH);		// Disable ESP SPI
 
 	// Power management configuration
@@ -213,7 +217,7 @@ void SckBase::changeMode(SCKmodes newMode) {
 		if (newMode == MODE_AP && mode != MODE_AP) {
 			lightResults.ok = false;
 			lightResults.commited = false;
-		}else if (newMode == MODE_BRIDGE) {
+		} else if (newMode == MODE_BRIDGE) {
 			prevOutputLevel = outputLevel;
 			outputLevel = OUT_SILENT;
 		} else {
@@ -868,8 +872,12 @@ void SckBase::buttonEvent() {
 }
 
 void SckBase::buttonDown() {
-
 	sckOut(F("buttonDown"), PRIO_MED);
+	if (mode == MODE_OFF) {
+		changeMode(MODE_FIRST_BOOT);
+		intervalTimer = 0;	// start instantly
+	}
+	
 }
 
 void SckBase::buttonUp() {
@@ -908,10 +916,10 @@ void SckBase::veryLongPress() {
 
 void SckBase::longPressStillDown() {
 	longPressStillDownTrigered = true;
-
-	// Sleep
-
 	sckOut(F("longPressStillDown"), PRIO_MED);
+	changeMode(MODE_OFF);
+	ESPcontrol(ESP_OFF);
+	led.off();
 }
 
 void SckBase::veryLongPressStillDown() {
@@ -1132,6 +1140,8 @@ void Led::setup() {
  *
  */ 
 void Led::update(SCKmodes newMode) {
+
+	configureTimer5(30); //TEMP este refreshperiod debe ser la variable de base
 
 	switch (newMode) {
 		case MODE_AP:

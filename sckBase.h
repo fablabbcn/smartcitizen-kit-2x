@@ -36,7 +36,7 @@
 #define IO0 9					// PA7 -- CO Sensor Heather
 #define IO1 8       			// PA6 -- NO2 Sensor Heater
 #define IO2 3					// PA9 -- Unused
-#define IO3 2					// PA8 -- Unused
+#define IO3 4					// PA8 -- Unused
 #define S0 A3         			// PA4 -- CO Sensor
 #define S1 A4         			// PA5 -- NO2 Sensor
 #define S2 A1         			// PB8 -- CO Current Sensor
@@ -48,7 +48,7 @@
 #define MOSI 	21				// PB10
 #define SCK 	20				// PB11
 #define MISO	18				// PA12
-#define CS_SDCARD	4			// PA14 -- SPI Select SDcard
+#define CS_SDCARD	2			// PA14 -- SPI Select SDcard
 
 // Power Management
 #define PS 	38					// PA13 -- TPS63001 PS/SYNC

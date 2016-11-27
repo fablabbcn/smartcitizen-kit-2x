@@ -60,6 +60,14 @@ void disableTimer5() {
 	}
 };
 
+
+/* 	---------------------------------------------------------
+	|	Persistent Variables (eeprom emulation on flash)	|
+	---------------------------------------------------------
+*/
+FlashStorage(offOnBoot, bool);
+
+
 /* 	----------------------------------
  	|	SmartCitizen Kit Baseboard   |
  	----------------------------------
@@ -132,11 +140,31 @@ void SckBase::setup() {
 
 	analogReadResolution(12);				// Set Analog resolution to MAX
 
-	configureTimer5(refreshPeriod);		// Hardware timer led refresh period
 
-	ESPcontrol(ESP_ON);
+	bool wasSleeping = offOnBoot.read();
 
-	changeMode(MODE_FIRST_BOOT);	// Start in first boot mode until we are connected, or wifi fail
+	if (wasSleeping) {
+		sckOut(F("Before reboot I was sleeping..."));
+		changeMode(MODE_OFF);
+		goToSleep();
+	} else {
+		sckOut(F("Before reboot I was awake..."));
+		changeMode(MODE_FIRST_BOOT);
+		wakeUp();
+	}
+
+
+	// configureTimer5(refreshPeriod);		// Hardware timer led refresh period
+
+	// ESPcontrol(ESP_ON);
+
+	// changeMode(MODE_SHELL);
+
+	// changeMode(MODE_OFF);
+	// intervalTimer = millis();
+	// led.off();
+
+	// changeMode(MODE_FIRST_BOOT);	// Start in first boot mode until we are connected, or wifi fail
 
 	// if (SD.begin(CS_SDCARD)) {
 	// 	sdPresent = true;
@@ -877,6 +905,12 @@ String SckBase::ISOtime() {
 	}
 }
 
+
+
+/* 	--------------
+ 	|	Button   |
+ 	--------------
+*/
 void SckBase::buttonEvent() {
 	if (!digitalRead(PIN_BUTTON)) {
 		button.isDown = true;
@@ -891,11 +925,11 @@ void SckBase::buttonEvent() {
 
 void SckBase::buttonDown() {
 	sckOut(F("buttonDown"), PRIO_MED);
+	offOnBoot.write(false);
 	if (mode == MODE_OFF) {
 		changeMode(MODE_FIRST_BOOT);
 		intervalTimer = 0;	// start instantly
 	}
-	
 }
 
 void SckBase::buttonUp() {
@@ -935,9 +969,9 @@ void SckBase::veryLongPress() {
 void SckBase::longPressStillDown() {
 	longPressStillDownTrigered = true;
 	sckOut(F("longPressStillDown"), PRIO_MED);
+	offOnBoot.write(true);
 	changeMode(MODE_OFF);
-	ESPcontrol(ESP_OFF);
-	led.off();
+	goToSleep();
 }
 
 void SckBase::veryLongPressStillDown() {
@@ -949,6 +983,8 @@ void SckBase::veryLongPressStillDown() {
 
 	sckOut(F("veryLongPressStillDown"), PRIO_MED);
 }
+
+
 
 void SckBase::softReset() {
 	WatchdogSAMD wdt;

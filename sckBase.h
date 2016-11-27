@@ -9,6 +9,7 @@
 #include <SD.h>
 #include "WatchdogSAMD.h"
 // #include <Scheduler.h>
+#include <FlashStorage.h>
 
 #include "ReadLight.h"
 // #include "sckUrban.h"

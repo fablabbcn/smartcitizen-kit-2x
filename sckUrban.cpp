@@ -11,8 +11,6 @@ void SckUrban::setup() {
   digitalWrite(IO0, LOW); 		// Turn off CO Sensor Heather
   digitalWrite(IO1, LOW); 		// Turn off NO2 Sensor Heater
   
-  digitalWrite(PS, HIGH);
-
   ADCini();
 
   ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV16;       // clock prescaler to 16

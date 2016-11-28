@@ -184,7 +184,6 @@ public:
 	uint32_t lastTimeSync = 0;
 	bool onBattery = false;
 	bool charging = false;
-	bool sdPresent = false;
 
 	//MODES
 	void changeMode(SCKmodes newMode);
@@ -298,6 +297,7 @@ public:
 
 	// SDcard
 	float FileSizeLimit = 64000000;
+	bool sdPresent();
 	File publishFile;
 	String publishFileName = "POST001.CSV";
 	bool openPublishFile();

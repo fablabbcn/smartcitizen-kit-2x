@@ -115,14 +115,15 @@ void SckBase::setup() {
 	pinMode(S4, INPUT);		// PB2 -- Sound Sensor
 
 	// SPI Configuration
-	pinMode(MOSI, OUTPUT);
-	pinMode(SCK, OUTPUT);
-
+	// pinMode(MOSI, OUTPUT);
+	// pinMode(SCK, OUTPUT);
   	// pinMode(MISO, INPUT);
-	pinMode(CS_SDCARD, OUTPUT);
-	digitalWrite(CS_SDCARD, LOW);
+	// pinMode(CS_SDCARD, OUTPUT);
+	// digitalWrite(CS_SDCARD, LOW);
+
 	pinMode(CS_ESP, OUTPUT);
 	digitalWrite(CS_ESP, HIGH);		// Disable ESP SPI
+	pinMode(SS, OUTPUT);
 
 	// Power management configuration
   	pinMode(PS, OUTPUT);
@@ -165,13 +166,6 @@ void SckBase::setup() {
 	// led.off();
 
 	// changeMode(MODE_FIRST_BOOT);	// Start in first boot mode until we are connected, or wifi fail
-
-	// if (SD.begin(CS_SDCARD)) {
-	// 	sdPresent = true;
-	// 	sckOut(F("Sdcard ready!!"));
-	// } else {
-	// 	sckOut(F("Sdcard not found!!"));
-	// }
 };
 
 void SckBase::update() {
@@ -996,9 +990,9 @@ bool SckBase::openPublishFile() {
 	char charFileName[publishFileName.length()];
 
 	bool writeHeader = false;
-	String header = "Time,Noise, Humidity,Temperature\n";		//TEMP
+	String header = "Time,Noise,Humidity,Temperature,Battery\n";		//TEMP
 
-	if (sdPresent) {
+	if (sdPresent()) {
 		int i = 1;
 		while (i < 512) {
 			publishFileName.toCharArray(charFileName, publishFileName.length());
@@ -1015,6 +1009,16 @@ bool SckBase::openPublishFile() {
 		}
 	}
 	return false;
+}
+
+bool SckBase::sdPresent() {
+	if (SD.begin(CS_SDCARD)) {
+		sckOut(F("Sdcard ready!!"));
+		return true;
+	} else {
+		sckOut(F("Sdcard not found!!"));
+		return false;
+	}
 }
 
 void SckBase::goToSleep() {

@@ -44,20 +44,21 @@ void loop() {
 		base.payloadData.battery = urban.getBattery();
 
 		base.intervalTimer = millis();
+
 		// save to sdcard (TEMP)
-		if (base.openPublishFile()) {
-			base.publishFile.print(base.payloadData.time);
-			base.publishFile.print(",");
-			base.publishFile.print(base.payloadData.noise);
-			base.publishFile.print(",");
-			base.publishFile.print(base.payloadData.humidity);
-			base.publishFile.print(",");
-			base.publishFile.print(base.payloadData.temperature);
-			base.publishFile.print(",");
-			base.publishFile.print(base.payloadData.battery);
-			base.publishFile.print("\n");
-			base.publishFile.close();
-		}
+		// if (base.openPublishFile()) {
+		// 	base.publishFile.print(base.payloadData.time);
+		// 	base.publishFile.print(",");
+		// 	base.publishFile.print(base.payloadData.noise);
+		// 	base.publishFile.print(",");
+		// 	base.publishFile.print(base.payloadData.humidity);
+		// 	base.publishFile.print(",");
+		// 	base.publishFile.print(base.payloadData.temperature);
+		// 	base.publishFile.print(",");
+		// 	base.publishFile.print(base.payloadData.battery);
+		// 	base.publishFile.print("\n");
+		// 	base.publishFile.close();
+		// }
 
 		// If time is not updated or last update is oldest than 12 hours (43200 sec), updates time
 		if (!base.onTime || base.rtc.getEpoch() - base.lastTimeSync > 43200) base.ESPsendCommand(F("sck.getTime()"));

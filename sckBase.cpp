@@ -155,7 +155,7 @@ void SckBase::setup() {
 	}
 
 
-	// configureTimer5(refreshPeriod);		// Hardware timer led refresh period
+	// configureTimer5(led.refreshPeriod);		// Hardware timer led refresh period
 
 	// ESPcontrol(ESP_ON);
 
@@ -323,7 +323,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			break;
 		case ESP_BRIDGE_OFF:
 			if (mode == MODE_BRIDGE) {
-				configureTimer5(refreshPeriod);
+				configureTimer5(led.refreshPeriod);
 				changeMode(prevMode);
 				sckOut("");
 				sckOut(F("Turning off ESP bridge..."));
@@ -1199,7 +1199,7 @@ void Led::setup() {
  */ 
 void Led::update(SCKmodes newMode) {
 
-	configureTimer5(30); //TEMP este refreshperiod debe ser la variable de base
+	configureTimer5(refreshPeriod);
 
 	switch (newMode) {
 		case MODE_AP:

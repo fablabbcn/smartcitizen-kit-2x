@@ -126,6 +126,8 @@ public:
 	uint8_t HARD_PULSE = 0;
 	uint8_t SOFT_PULSE = 1;
 
+	// Hardware timer
+	uint8_t refreshPeriod = 50;
 
 	pulseModes pulseMode = PULSE_SOFT;
 	pulseModes newPulseMode = PULSE_SOFT;
@@ -291,9 +293,6 @@ public:
 	// Time
 	bool setTime(String epoch);
 	String ISOtime();
-
-	// Hardware timer
-	uint8_t refreshPeriod = 30;
 
 	// SDcard
 	float FileSizeLimit = 64000000;

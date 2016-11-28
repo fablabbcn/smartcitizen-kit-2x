@@ -12,7 +12,6 @@
 #include <FlashStorage.h>
 
 #include "ReadLight.h"
-// #include "sckUrban.h"
 #include "sckAux.h"
 
 /* 	-------------------------------
@@ -173,6 +172,7 @@ public:
 	// Sensors
 	sensorData payloadData;
 	float postInterval = 15;   // seconds
+	float intervalTimer;
 	float lastPublishTime;
 	float publishAnswerTimeout = 5000;
 

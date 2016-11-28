@@ -12,13 +12,9 @@ void ISR_button() {
 // Timer 5 interrupt handler   BUSCAR COMO PONERLO DENTRO DEL CODIGO sckBase
 void TC5_Handler (void) {
 	base.led.tick();
-	// base.inputUpdate();
-	
     // Clear the interrupt
     TC5->COUNT16.INTFLAG.bit.MC0 = 1;
 };
-
-float intervalTimer = millis();
 
 void setup() {
 
@@ -38,7 +34,7 @@ void loop() {
 
 	base.update();
 
-	if (millis() - intervalTimer > base.postInterval * 1000 && base.mode == MODE_NET){
+	if (millis() - base.intervalTimer > base.postInterval * 1000 && base.mode == MODE_NET){
 
 		// take reading
 		base.payloadData.time = base.ISOtime();
@@ -47,6 +43,7 @@ void loop() {
 		base.payloadData.temperature = urban.getTemperature();
 		base.payloadData.battery = urban.getBattery();
 
+		base.intervalTimer = millis();
 		// save to sdcard (TEMP)
 		if (base.openPublishFile()) {
 			base.publishFile.print(base.payloadData.time);
@@ -67,14 +64,5 @@ void loop() {
 
 		// Publish data
 		else base.ESPpublish();
-
-		intervalTimer = millis();
 	}
 }
-
-
-// KITS
-// e82d8e = 3769
-// a1b2c3 = 3770
-// t7d9z7 = 3771
-/*

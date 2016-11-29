@@ -53,8 +53,6 @@ function module.factoryReset()
 end
 
 function module.updateHostName()
-     -- local mac = wifi.ap.getmac()
-     -- config.hostName = "SmartCitizen" .. string.sub(mac,-5,-4) .. string.sub(mac,-2,-1)
      config.hostName = nil
      if module.saveConf() then print(msg.ESP_HOSTNAME_UPDATED) end
 end
@@ -120,7 +118,6 @@ end
 function module.mqttConnect(action)
       module.mclient = mqtt.Client(config.token, 120, "user", "password", 0)
       module.mclient:connect("mqtt.smartcitizen.me", 1883, 0, action, function(client, reason) print(msg.ESP_MQTT_ERROR) end)
-      -- Se deberia enviar la razon del fallo
 end
 
 --------------------------------------
@@ -188,6 +185,8 @@ function module.start()
      -- Hostname
      wifi.sta.sethostname(config.hostName)
 
+     wifi.sta.connect()
+
      wifi.sta.eventMonReg(wifi.STA_WRONGPWD, function()
           print(msg.ESP_WIFI_ERROR_PASS)
           module.APmode()
@@ -204,7 +203,7 @@ function module.start()
                                                   print(msg.ESP_WIFI_CONNECTED)
                                                   lLED.set(1)
                                                   rLED.set(0)
-                                                  module.saveConf()
+                                                  -- module.saveConf()
                                                   if wifi.getmode() ~= wifi.STATION then 
                                                        print(msg.ESP_MODE_STA)
                                                        wifi.setmode(wifi.STATION) 

@@ -439,7 +439,6 @@ void SckBase::ESPsetToken(String token) {
 			String tokenSaved = ESPsendCommand(F("=sck.saveConf()"));
 			if (tokenSaved.equals(F("true"))) {
 				sckOut(F("Setting token on ESP succeded!!!"));
-				String saved = ESPsendCommand(F("sck.saveConf()"));
 				helloPublished = false;
 			}
 		} else {

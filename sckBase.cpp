@@ -65,7 +65,20 @@ void disableTimer5() {
 	|	Persistent Variables (eeprom emulation on flash)	|
 	---------------------------------------------------------
 */
+typedef struct {
+	bool valid;
+	char ssid[64];
+	char pass[64];
+} Credentials;
+
+typedef struct {
+	bool valid;
+	char token[64];
+} Token;
+
 FlashStorage(offOnBoot, bool);
+FlashStorage(eppromCred, Credentials);
+FlashStorage(eppromToken, Token);
 
 
 /* 	----------------------------------
@@ -187,6 +200,12 @@ void SckBase::update() {
 		// 	MODE_FIRST_BOOT
 		//----------------------------------------
 		if (mode == MODE_FIRST_BOOT) {
+
+			if (!tokenSynced) {
+				tokenSynced = true;
+				ESPsyncToken();
+			}
+
 			if (!onTime && onWifi) {
 				ESPsendCommand(F("sck.getTime()"));
 			} else if (!hostNameSet && onWifi) {
@@ -197,6 +216,7 @@ void SckBase::update() {
 				changeMode(MODE_NET);
 				ESPpublish();
 			} else if (!onWifi && millis() - netStatusTimer > netStatusPeriod) {
+				if (!wifiSynced) ESPsyncWifi();
 				netStatusTimer = millis();
 				ESPsendCommand(F("sck.netStatus()"));
 			}
@@ -365,6 +385,8 @@ String SckBase::ESPsendCommand(String command, float timeout, bool external) {
 	if (!ESPworking) {
 		ESPworking = true;
 		sckOut(String F("Sending command : ") + command, PRIO_LOW);
+		Serial1.write('\n');
+		delay(2);
 		while (Serial1.available()) Serial1.read(); 	// Cleans all chars in the buffer
 		float sentCommand = millis();
 		Serial1.print(command);
@@ -401,53 +423,146 @@ String SckBase::ESPsendCommand(String command, float timeout, bool external) {
 	return F("timedout");
 }
 
-void SckBase::ESPsetWifi(String ssid, String pass) {
+bool SckBase::ESPsetToken(String token, int retrys) {
+
+	if (retrys > 5) {
+		sckOut(F("Failed setting ESP token..."));
+		return false;
+	}
+
+	sckOut(String F("Setting token: ") + token);
+
+	if (retrys == 0) {
+		Token tokenToSave;
+		tokenToSave.valid = true;
+		token.toCharArray(tokenToSave.token, 64);
+		eppromToken.write(tokenToSave);
+	}
+
+	const String comToSend PROGMEM = "config.token=\"" + token + "\"";
+	String answer = ESPsendCommand(comToSend);
+	ESPsyncToken(retrys);
+	answer = ESPsendCommand(F("sck.saveConf()"));
+	return true;
+}
+
+bool SckBase::ESPgetToken(){
+
+	String answer = ESPsendCommand(F("=config.token"));
+
+	if (!answer.equals(F("timedout"))) {
+
+		answer.replace(">", "");
+		answer.trim();
+
+		ESPtoken = answer;
+
+		sckOut(String F("ESPtoken: ") + ESPtoken);
+		return true;
+	}
+	return false;
+}
+
+bool SckBase::ESPsyncToken(int retrys){
+
+	Token readedToken;
+	readedToken = eppromToken.read();
+
+	if (readedToken.valid) {
+
+		String SAMtoken = readedToken.token;
+
+		sckOut(String F("SAMtoken: ") + SAMtoken);
+
+		retrys = retrys + 1;
+
+		if (ESPgetToken()) {
+			if (SAMtoken.equals(ESPtoken)) {
+				sckOut(F("Esp token OK"));
+				return true;
+			} else {
+				sckOut(F("Syncing ESP token..."));
+				ESPsetToken(SAMtoken, retrys);
+			}
+		}
+	}
+	sckOut(F("No valid token saved on EPPROM"));
+	return false;
+}
+
+bool SckBase::ESPsetWifi(String ssid, String pass, int retrys) {
+
+	if (retrys > 5) {
+		sckOut(F("Failed setting ESP credentials..."));
+		return false;
+	}
+
+	sckOut(String F("Setting ssid: ") + ssid + F(" pass: ") + pass);
+
+	if (retrys == 0) {
+		Credentials credentials;
+		credentials.valid = true;
+		ssid.toCharArray(credentials.ssid, 64);
+		pass.toCharArray(credentials.pass, 64);
+		eppromCred.write(credentials);
+	}
 
 	const String comToSend PROGMEM = "wifi.sta.config(\"" + ssid + "\", \"" + pass + "\")";
-	ESPsendCommand(comToSend, 0);
-	delay(20);
+	String answer = ESPsendCommand(comToSend);
+	ESPsyncWifi(retrys);
+	answer = ESPsendCommand(F("sck.saveConf()"));
+	return true;
+}
+
+bool SckBase::ESPgetWifi(){
+
 	String answer = ESPsendCommand(F("=wifi.sta.getconfig()"));
 
 	if (!answer.equals(F("timedout"))) {
 
+		answer.replace(">", "");
+		answer.trim();
+
 		uint8_t first = answer.indexOf('\t');
 		uint8_t second = answer.indexOf('\t', first + 1);
 
-		String settedSsid = answer.substring(0, first);
-		String settedPass = answer.substring(first + 1, second);
+		ESPssid = answer.substring(0, first);
+		ESPpass = answer.substring(first + 1, second);
 
-		if (ssid.equals(settedSsid) && pass.equals(settedPass)) {
-			sckOut(F("Setting credentials on ESP succeded!!!"));
-			ESPsendCommand(F("sck.saveConf()"));
-		} else {
-			sckOut(F("Setting credentials on ESP failed!!!"));
-			sckOut(F("Please try again."));
-		}
-	} else {
-		sckOut(F("No response from ESP"));
+		sckOut(String F("ESPssid: ") + ESPssid + F(" ESPpass: ") + ESPpass);
+		return true;
 	}
+	return false;
 }
 
-void SckBase::ESPsetToken(String token) {
-	const String comToSend PROGMEM = "config.token=\"" + token + "\"";
-	ESPsendCommand(comToSend, 0);
-	delay(20);
-	String answer = ESPsendCommand(F("print(config.token)"));
+bool SckBase::ESPsyncWifi(int retrys){
 
-	if (!answer.equals(F("timedout"))) {
-		if (answer.equals(token)) {
-			String tokenSaved = ESPsendCommand(F("=sck.saveConf()"));
-			if (tokenSaved.equals(F("true"))) {
-				sckOut(F("Setting token on ESP succeded!!!"));
-				helloPublished = false;
+	Credentials credentials;
+	credentials = eppromCred.read();
+
+	if (credentials.valid) {
+
+		String SAMssid = credentials.ssid;
+		String SAMpass = credentials.pass;
+
+		// if (retrys > 1) ESPcontrol(ESP_OFF);
+		sckOut(String F("SAMssid: ") + SAMssid + F(" SAMpass: ") + SAMpass);
+
+		retrys = retrys + 1;
+
+		if (ESPgetWifi()) {
+			if (SAMssid.equals(ESPssid) && SAMpass.equals(ESPpass)) {
+				wifiSynced = true;
+				sckOut(F("Esp credentials OK"));
+				return true;
+			} else {
+				sckOut(F("Syncing ESP credentials..."));
+				ESPsetWifi(SAMssid, SAMpass, retrys);
 			}
-		} else {
-			sckOut(F("Setting token on ESP failed!!!"));
-			sckOut(F("Please try again."));
 		}
-	} else {
-		sckOut(F("No response from ESP"));
 	}
+	sckOut(F("No valid credentials saved on EPPROM"));
+	return false;
 }
 
 void SckBase::ESPpublish() {
@@ -487,10 +602,10 @@ void SckBase::espMessage(String message) {
 		case ESP_WIFI_CONNECTED:
 			onWifi = true;
 			sckOut(F("Connected to Wifi!!"));
-			if (!helloPublished || !hostNameSet) {
-				changeMode(MODE_FIRST_BOOT);
+			if (mode != MODE_SHELL && mode != MODE_BRIDGE) {
+				if (!helloPublished || !hostNameSet) changeMode(MODE_FIRST_BOOT);
+				else changeMode(MODE_NET);
 			}
-			else if (mode != MODE_SHELL && mode != MODE_BRIDGE) changeMode(MODE_NET);
 			prompt();
 			break;
 		case ESP_WIFI_ERROR:
@@ -626,11 +741,9 @@ void SckBase::sckIn(String strIn) {
 		// esp listap
 		ESPsendCommand(F("sck.getAPlist(function(t) print(t) end)"), 5000);
 		
-
 	} else if (strIn.startsWith(comTitles[8])) {
 
 		// setwifi SSID PASS
-		if (!ESPon) ESPcontrol(ESP_ON);
 		String separator;
 		if (strIn.indexOf('"') >= 0) separator = '"';
 		else if (strIn.indexOf("'") >= 0) separator = "'";
@@ -652,7 +765,6 @@ void SckBase::sckIn(String strIn) {
 	} else if (strIn.startsWith(comTitles[9])) {
 
 		// settoken TOKEN
-		if (!ESPon) ESPcontrol(ESP_ON);
 		strIn.replace(comTitles[9], "");
 		strIn.trim();
 		ESPsetToken(strIn);
@@ -776,10 +888,9 @@ void SckBase::sckIn(String strIn) {
 
 	} else if (strIn.equals(comTitles[20])) {
 
-		// TEMP tengo que rediseñar como será esto
-		// aux
-		// sckOut(String F("Bus Voltage:   ") + aux1.getBusVoltage_V() + "mV");
-		// sckOut(String F("Current:   ") + aux1.getCurrent_mA() + "mV");
+		// checkconfig
+		ESPgetWifi();
+		ESPgetToken();
 
 	} else if (strIn.equals(comTitles[21])) {
 
@@ -1240,11 +1351,6 @@ void Led::reading() {
 
 void Led::wifiOK() {
 	ledRGBcolor = greenRGB;
-	pulseMode = PULSE_STATIC;
-}
-
-void Led::crcOK() {
-	ledRGBcolor = yellowRGB;
 	pulseMode = PULSE_STATIC;
 }
 

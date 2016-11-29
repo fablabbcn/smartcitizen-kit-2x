@@ -116,7 +116,6 @@ public:
 	void reading();
 	void off();
 	void bridge();
-	void crcOK();
 	void wifiOK();
 	enum pulseModes {PULSE_SOFT, PULSE_HARD, PULSE_STATIC};
 	void tick();
@@ -229,7 +228,7 @@ public:
 		"time",					// 17
 		"sync time",			// 18
 		"last sync",			// 19
-		"aux",					// 20
+		"checkconfig",			// 20
 		"publish",				// 21
 		"gettoken",				// 22
 		"shell mode",			// 23
@@ -276,8 +275,17 @@ public:
 	bool ESPworking = false;
 	void ESPsend(String payload);
 	String ESPsendCommand(String command, float timeout=2000, bool external=false);
-	void ESPsetWifi(String ssid, String pass);
-	void ESPsetToken(String token);
+	bool ESPsetWifi(String ssid, String pass, int retrys=0);
+	bool ESPgetWifi();
+	bool ESPsyncWifi(int retrys=0);
+	String ESPssid;
+	String ESPpass;
+	bool wifiSynced = false;
+	bool ESPsetToken(String token, int retrys=0);
+	bool ESPgetToken();
+	bool ESPsyncToken(int retrys=0);
+	String ESPtoken;
+	bool tokenSynced = false;
 	enum espMes {
 		ESP_NOT_COMMAND,
 		ESP_WIFI_CONNECTED,

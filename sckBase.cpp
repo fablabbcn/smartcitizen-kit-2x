@@ -1184,14 +1184,10 @@ void Led::setup() {
 	pinMode(PIN_LED_GREEN, OUTPUT);
 	pinMode(PIN_LED_BLUE, OUTPUT);
 	off();
-	hue = 40;
-	sat = 1.0;
-	inten = 0;
 	dir = true;
-	newHue = hue;
-	newSat = sat;
+	colorIndex = 0;
+	ledRGBcolor = yellowRGB;
 	pulseMode = PULSE_STATIC;
-	newPulseMode = PULSE_STATIC;
 }
 
 /* Call this every time there is an event that changes SCK mode
@@ -1203,110 +1199,89 @@ void Led::update(SCKmodes newMode) {
 
 	switch (newMode) {
 		case MODE_AP:
-			newHue = 5;
-			newSat = 0.92;
-			newPulseMode = PULSE_SOFT;
+			currentPulse = pulseRed;
+			pulseMode = PULSE_SOFT;
 			break;
 		case MODE_NET:
-			newHue = 233;
-			newSat = 1.0;
-			newPulseMode = PULSE_SOFT;
+			currentPulse = pulseBlue;
+			pulseMode = PULSE_SOFT;
 			break;
 		case MODE_SD:
-			newHue = 308;
-			newSat = 0.85;
-			newPulseMode = PULSE_SOFT;
+			currentPulse = pulsePink;
+			pulseMode = PULSE_SOFT;
 			break;
 		case MODE_SHELL:
-			newHue = 40;
-			newSat = 1.0;
-			newPulseMode = PULSE_STATIC;
+			ledRGBcolor = yellowRGB;
+			pulseMode = PULSE_STATIC;
 			break;
 		case MODE_ERROR:
-			newHue = 28;
-			newPulseMode = PULSE_HARD;
+			ledRGBcolor = orangeRGB;
+			pulseMode = PULSE_HARD;
 			break;
 		case MODE_FLASH:
-			newHue = 170;
-			newSat = 1;
-			newPulseMode = PULSE_STATIC;
+			ledRGBcolor = lightBLueRGB;
+			pulseMode = PULSE_STATIC;
 			break;
 		case MODE_BRIDGE:
-			newHue = 170;
-			newSat = 1;
-			newPulseMode = PULSE_STATIC;
+			ledRGBcolor = lightBLueRGB;
+			pulseMode = PULSE_STATIC;
 			break;
 		case MODE_FIRST_BOOT:
-			newHue = 40;
-			newSat = 1.0;
-			newPulseMode = PULSE_STATIC;
+			ledRGBcolor = yellowRGB;
+			pulseMode = PULSE_STATIC;
 			break;
 	}
 }
 
 void Led::reading() {
-	setRGBColor(white);
+	ledRGBcolor = whiteRGB;
+	pulseMode = PULSE_STATIC;
 	timerReading = millis(); //substituir esto por una libreria de timers
 }
 
 void Led::wifiOK() {
-
-	// Green
-	newHue = 120;
-	newSat = 1.0;
-	setHSIColor(120, 1.0, inten);
-	newPulseMode = PULSE_STATIC;
+	ledRGBcolor = greenRGB;
+	pulseMode = PULSE_STATIC;
 }
 
 void Led::crcOK() {
-
-	// Yellow
-	newHue = 35;
-	newSat = 1.0;
-	setHSIColor(26, 0.87, inten);
-	newPulseMode = PULSE_STATIC;
+	ledRGBcolor = yellowRGB;
+	pulseMode = PULSE_STATIC;
 }
 
 void Led::bridge() {
-	setRGBColor(white);
+	ledRGBcolor = whiteRGB;
+	pulseMode = PULSE_STATIC;
 }
 
 void Led::tick() {
 	
 	if(pulseMode != PULSE_STATIC) {
-		//Esto hay que substituirlo por el modelo COS o por el de la tabla de gamma
 		
-		pulseMode = newPulseMode;
+		ledRGBcolor = *(currentPulse + colorIndex);
 
 		if (dir) {
-			inten = inten + 0.03;
-			// When the led is in the top part of the pulse
-			if (inten >= 1) {
+			colorIndex = colorIndex + 1;
+			if (colorIndex > 24) {
+				colorIndex = 24;
 				dir = false;
 			}
 		} else {
-			// When the led is in the off part of the pulse
-			inten = inten - 0.03;
-			if (inten <= 0) {
+			colorIndex = colorIndex - 1;
+			if (colorIndex < 0) {
+				colorIndex = 0;
 				dir = true;
-				sat = newSat;
-				hue = newHue;
 			}
 		}
-	} else {
-		dir = false;
-		inten = 1;
-		sat = newSat;
-		hue = newHue;
-		pulseMode = newPulseMode;
 	}
-	setHSIColor(hue, sat, inten);
+
+	setRGBColor(ledRGBcolor);
 }
 
 /* Change Led color based on RGB values
  *
  */
-void Led::setRGBColor(oneColor myColor) {
+void Led::setRGBColor(RGBcolor myColor) {
 	analogWrite(PIN_LED_RED, 255 - constrain(myColor.r, 0, 255));
 	analogWrite(PIN_LED_GREEN, 255 - constrain(myColor.g, 0, 255));
 	analogWrite(PIN_LED_BLUE, 255 - constrain(myColor.b, 0, 255));
@@ -1315,8 +1290,7 @@ void Led::setRGBColor(oneColor myColor) {
 /* Change Led color based on HSI values (Hue, Saturation, Intensity)
  *
  */
-void Led::setHSIColor(float h, float s, float i) 
-{
+void Led::setHSIColor(float h, float s, float i) {
 	uint8_t r, g, b;
 
 	h = fmod(h,360);
@@ -1344,6 +1318,7 @@ void Led::setHSIColor(float h, float s, float i)
 };
 
 void Led::off() {
+	disableTimer5();
 	digitalWrite(PIN_LED_RED, HIGH);
 	digitalWrite(PIN_LED_GREEN, HIGH);
 	digitalWrite(PIN_LED_BLUE, HIGH);

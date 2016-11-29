@@ -92,11 +92,18 @@ void ISR_button();
 /* Color definition
  *
  */
-struct oneColor {
+struct HSIcolor {
+	float h;
+	float s;
+	float i;
+};
+
+struct RGBcolor {
 	uint8_t r;
 	uint8_t g;
 	uint8_t b;
 };
+
 
 /* 	-------------
  	|	 Led	|
@@ -114,37 +121,43 @@ public:
 	enum pulseModes {PULSE_SOFT, PULSE_HARD, PULSE_STATIC};
 	void tick();
 
-	oneColor white = {255,165,255};    	//hue 180, sat 0.50
-	oneColor red = {255,20,8};			//hue 4, sat .92
-	oneColor green = {0,255,0};			//hue 120, sat 1.0
-	oneColor blue = {0,50,255};			//hue 233, sat 1.0
-	oneColor pink = {100,15,35};		//hue 308, sat 0.85
-	oneColor orange = {255,70,0};		//hue 12, sat 1.0
-	//oneColor lightBLue = 				//hue 170, sat 1.0
-	//oneColor yellow = 				//hue 26, sat 0.87
+	// Need a retouch
+	HSIcolor whiteHSI 		= {180,	0.5,	1.0};
+	HSIcolor redHSI 		= {4,	0.92,	1.0};
+	HSIcolor greenHSI 		= {120,	1.0,	1.0};
+	HSIcolor blueHSI 		= {233,	1.0,	1.0};
+	HSIcolor pinkHSI 		= {308,	0.85,	1.0};
+	HSIcolor yellowHSI 	= {26,	0.87,	1.0};
+	HSIcolor orangeHSI 	= {12,	1.0,	1.0};
+	HSIcolor lightBLueHSI 	= {170, 1.0,	1.0};
 
-	uint8_t HARD_PULSE = 0;
-	uint8_t SOFT_PULSE = 1;
+
+	RGBcolor whiteRGB 		= {254,	254,	254};
+	RGBcolor redRGB 		= {224,	23,		6};
+	RGBcolor greenRGB 		= {0,	254,	0};
+	RGBcolor blueRGB 		= {0,	29,		225};
+	RGBcolor pinkRGB 		= {129,	12,		112};
+	RGBcolor yellowRGB 		= {154,	100,	0};
+	RGBcolor orangeRGB 		= {143,	111,	0};
+	RGBcolor lightBLueRGB 	= {0, 	140,	114};
+
+	const RGBcolor pulseBlue[25] PROGMEM = {{0,1,9},{0,2,18},{0,3,27},{0,4,36},{0,5,45},{0,7,54},{0,8,63},{0,9,72},{0,10,81},{0,11,90},{0,13,99},{0,14,108},{0,15,117},{0,16,126},{0,17,135},{0,19,144},{0,20,153},{0,21,162},{0,22,171},{0,23,180},{0,25,189},{0,26,198},{0,27,207},{0,28,216},{0,29,225}};
+	const RGBcolor pulseRed[25] PROGMEM	= {{8,1,0},{17,2,0},{26,3,0},{35,4,1},{44,5,1},{52,6,1},{61,7,1},{70,8,2},{79,9,2},{88,10,2},{97,12,2},{105,13,3},{114,14,3},{123,15,3},{132,16,4},{141,17,4},{150,18,4},{158,19,4},{167,20,5},{176,21,5},{185,23,5},{194,24,5},{203,25,6},{211,26,6},{220,27,6}};
+	const RGBcolor pulsePink[25] PROGMEM = {{5,0,4},{10,1,8},{15,1,13},{20,2,17},{25,2,22},{31,3,26},{36,3,31},{41,4,35},{46,4,40},{51,5,44},{57,5,49},{62,6,53},{67,6,58},{72,7,62},{77,7,67},{83,8,71},{88,8,76},{93,9,80},{98,9,85},{103,10,89},{109,10,94},{114,11,98},{119,11,103},{124,12,107},{129,12,112}};
 
 	// Hardware timer
-	uint8_t refreshPeriod = 50;
+	uint8_t refreshPeriod = 40;
 
 	pulseModes pulseMode = PULSE_SOFT;
-	pulseModes newPulseMode = PULSE_SOFT;
 	float timerReading;   //substituir esto por una libreria de timers
-	float pulseduration = 500;
-	uint16_t readingDuration = 1000;
 
 private:
-	float hue;
-	float sat;
-	float inten;
-	float newHue;
-	float newSat;
 	bool dir;
-	void setRGBColor(oneColor myColor);
+	int colorIndex = 0;
+	RGBcolor ledRGBcolor;
+	const RGBcolor *currentPulse;
+	void setRGBColor(RGBcolor myColor);
 	void setHSIColor(float h, float s, float i);
-	void setRGB(uint8_t r, uint8_t g, uint8_t b);
 };
 
 

@@ -231,10 +231,11 @@ void SckBase::update() {
 				else if(!lightResults.commited) {
 
 					changeMode(MODE_FIRST_BOOT);
-					// led.crcOK();
 					if (lightResults.lines[0].endsWith(F("auth"))) {
 						ESPsetWifi(lightResults.lines[1], lightResults.lines[2]);
 						ESPsetToken(lightResults.lines[3]);
+					} else if (lightResults.lines[0].endsWith(F("wifi"))) {
+						ESPsetWifi(lightResults.lines[1], lightResults.lines[2]);
 					}
 				 	lightResults.commited = true;
 				}

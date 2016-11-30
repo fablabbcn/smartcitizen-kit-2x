@@ -1157,7 +1157,7 @@ void SckBase::goToSleep() {
 }
 
 void SckBase::wakeUp() {
-	configureTimer5(refreshPeriod);
+	configureTimer5(led.refreshPeriod);
 }
 
 void SckBase::factoryReset() {

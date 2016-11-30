@@ -261,7 +261,7 @@ public:
 	void veryLongPress();
 	void softReset();
 	float longPressInterval = 3000;
-	float veryLongPressInterval = 15000;
+	float veryLongPressInterval = 10000;
 	void longPressStillDown();
 	void veryLongPressStillDown();
 	bool longPressStillDownTrigered = false;

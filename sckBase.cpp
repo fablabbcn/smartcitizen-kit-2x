@@ -1151,7 +1151,8 @@ void SckBase::goToSleep() {
   	// MISSING HERE BUTTON INTERRUPT
 
 	// rtc.standbyMode();	//luego ponerlo de modo que espere a que el led llegue a zero
-
+	changeMode(MODE_OFF);
+	ESPcontrol(ESP_OFF);
 	led.off();
 	disableTimer5();
 }
@@ -1161,14 +1162,11 @@ void SckBase::wakeUp() {
 }
 
 void SckBase::factoryReset() {
-	changeMode(MODE_SHELL);
 	ESPcontrol(ESP_REBOOT);
-	delay(2000);
+	delay(1000);
 	ESPsetWifi("null", "password");
 	ESPsetToken("null");
-	delay(2000);
-	// ESPcontrol(ESP_REBOOT);
-	// delay(1000);
+	offOnBoot.write(false);
 	softReset();
 }
 

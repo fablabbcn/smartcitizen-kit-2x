@@ -171,9 +171,9 @@ float SckUrban::getTemperature() {
 // Battery level
 uint16_t SckUrban::getBattery() {
   uint16_t temp = 2*(readADC(3))*VCC/RESOLUTION_ANALOG;
-  temp = map(temp, batteryMin, batteryMax, 0, 100);
-  if (temp>100) temp=100;
-  if (temp<0) temp=0;
+  // temp = map(temp, batteryMin, batteryMax, 0, 100);
+  // if (temp>100) temp=100;
+  // if (temp<0) temp=0;
   return temp;
 }
 

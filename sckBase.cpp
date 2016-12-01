@@ -1450,51 +1450,6 @@ void Button::setup() {
     00       0000     00000       0000
 
 -- BUGS
-  [ ] -- dejan de postear despues de un tiempo (puede ser un problema de reconexion a wifi si lo pierden o MQTT)
-
-
--- PARA el onboarding del miercoles
-(HAY QUE TENER TODO ESTO EL LUNES 21 y HACER PRUEBAS HASTA EL MIERCOLES)
-
-	[ ] -- CREDENCIALES input de credenciales por el usuario
-	  	[ ] -- Terminar todos los pendientes de lightRead
-	  		[ ] -- Verificar el funcionamiento de la versión Non-blocking
-	  		[ ] -- Probarla con el codigo del onboarding en pantallas mate, móvil, reflejantes...
-	  		[ ] -- Implementar una manera de reiniciar el lightRead cuando el CRC es correcto pero la conexion a wifi falla
-	  	[ ] -- Web server en APmode como fallback para el lightRead
-	  	[ ] -- Soporte para el configurador antiguo via serial.
-	[ ] -- POSTING
-		[ ] -- Simplificar el flow para cada publishReading
-		[ ] -- Apagar y prender al ESP solo cuando se vaya a postear
-		[ ] -- Verificar la rutina del ESP 
-			[ ] -- Conexión Wifi 	(onWifi)
-			[ ] -- SNTP				
-			[ ] -- MQTT
-				[ ] -- Crear cliente
-				[ ] -- Suscripción con sesion persistente
-				[ ] -- Recepcion de configuracion (por ahora solo UN intervalo)
-				[ ] -- Publicación de readings y/o errores en su caso
-				[ ] -- Aviso al SAM de status (algun error o todo bien) y luego irse a dormir
-		[ ] -- Guardar lecturas cuando no sea exitosa la conexion (en el ESP?)
-	[ ] -- CONFIGURACION
-		[ ] -- Guardado de configuracion del SAM por lo menos los intervalos de lecturas
-		[ ] -- Implementar el Factory reset para la configuracion del SAM (por ahora solo intervalo de lecturas)
-		[ ] -- Asociar el veryLongPress a Factory Reset
-	[ ] -- SONIDO
-		[ ] -- Revision del codigo de jano.
-		[ ] -- Pruebas de niveles con la referencia del sonómetro para calibrado
-	[ ] -- POWER
-		[ ] -- Pruebas de consumo y fórmula para estimación de duración de batería (sólo para el caso fixed de Making Sense)
-		[ ] -- SAM sleep mode y wakeup para cada intervalo
-		[ ] -- Leer y Reportar el nivel de bateria.
-		[ ] -- Revisar y testear el charge de la bateria
-	[ ] -- DEBUGGING
-		[ ] -- Reporte de Sensor errors via mqtt
-		[ ] -- Integrar en los readings deteccion de comportamientos anormales en los sensores(fuera de rangos, demasiado tiempo sin cambiar, etc)
-	[ ] -- FEEDBACK
-		[ ] -- revisar que el comportamiento del led sea consistente para cada caso
-		[ ] -- Poner un led del wifi en fast pulsin on sending/receiving data.
-
 
 NOTAS
 -----BASE BOARD-------
@@ -1503,65 +1458,41 @@ NOTAS
   --it's important to get a very simple design
   --Make a list of triggers that changes the mode
 
-** SHELL OBJECT:
-	--Solo hay que pensar como manejar multiples outputs.
-		Un output tipo broadcast siempre que se ejecute una accion, y que vaya a todos los outputs activos en ese momento
-		De esta manera podemos escuchar todas las acciones desde cualquier canal.
-		Para esto tendriamos que tener una lista donde podamos ver que outputs estan activos y en que nivel.
-		Los niveles podrian ser 3: SILENT, MEDIUM and VERBOSE y cuando se establezca un canal de comunicacion se define su nivel.
-		enum outLevels {OUT_SILENT, OUT_NORMAL, OUT_VERBOSE};
-		enum prioLevels {PRIO_LOW, PRIO_MED, PRIO_HIGH};
-		OUT_SILENT + PRIO_LOW = 0
-		OUT_SILENT + PRIO_MED = 1
-		OUT_SILENT + PRIO_HIGH = 2 *
-		OUT_NORMAL + PRIO_LOW = 1
-		OUT_NORMAL + PRIO_MED = 2 *
-		OUT_NORMAL + PRIO_HIGH = 3 *
-		OUT_VERBOSE + PRIO_LOW = 2 *
-		OUT_VERBOSE + PRIO_MED = 3 *
-		OUT_VERBOSE + PRIO_HIGH = 4 *
-		output si la suma es mayor que 1
-
-		** INPUT-OUTPUT
-		  [ ] -- Diseñar una clase IOobject para crear instancias con USB, ESP, SDCARD, donde se definan sus caracteristicas (es in y/o out, nivel de out, es interactivo, esta activo.)
-		  [x] -- sckIn receives a struct with a string and the origin (USB, ESP, LIGHT, etc), process the command, and outputs via sckOut
-		  [x] -- sckOut recibe un string con el String y lo redirecciona a las outputs disponibles (USB,ESP, SDCARD), dependiendo del nivel de output y de la prioridad del mensaje
-		  [x] -- Create an array to store command titles saving all the strings in flash
-		  [x] -- FANCY in the case of interactive inputs, get a prompt!! ej. >, echo of what youre typing and a welcome message with some info.
-		  [x] -- Revisar la libreria de cmdMessenger https://github.com/thijse/Arduino-CmdMessenger para ver si vale la pena hacer el cambio.
-		  [ ] -- Migrar la solucion actual a cmdMessenger, el ejemplo ConsoleShell.ino tiene todo lo necesario...
+** INPUT-OUTPUT
+  [ ] -- Diseñar una clase IOobject para crear instancias con USB, ESP, SDCARD, donde se definan sus caracteristicas (es in y/o out, nivel de out, es interactivo, esta activo.)
+  [x] -- sckIn receives a struct with a string and the origin (USB, ESP, LIGHT, etc), process the command, and outputs via sckOut
+  [x] -- sckOut recibe un string con el String y lo redirecciona a las outputs disponibles (USB,ESP, SDCARD), dependiendo del nivel de output y de la prioridad del mensaje
+  [x] -- Create an array to store command titles saving all the strings in flash
+  [x] -- FANCY in the case of interactive inputs, get a prompt!! ej. >, echo of what youre typing and a welcome message with some info.
+  [x] -- Revisar la libreria de cmdMessenger https://github.com/thijse/Arduino-CmdMessenger para ver si vale la pena hacer el cambio.
+  [ ] -- Migrar la solucion actual a cmdMessenger, el ejemplo ConsoleShell.ino tiene todo lo necesario...
 
 ** ESP COMMUNICATION
-  [ ] -- Hacer que los commandos SAM <> ESP sean numericos
+  [x] -- Hacer que los commandos SAM <> ESP sean numericos
   [ ] -- Migrar todo el codigo a arduino
   [x] -- Esp control  (ESP_OFF, ESP_ON, ESP_REBOOT, etc)
   [x] -- Implementar una manera de salir de ESPbridging mode
   [x] -- Send Serial commands
   [ ] -- Get net status
+  [ ] -- Reimplementar el esp publish
 
 ** LED
   [x] -- Automatic change depending on mode
   [ ] -- Mejorar el Fade ROSA
-  [ ] -- Integrate HSI and RGB colors in a tansparent way
-  [ ] -- Smooth soft pulse with interrupt timers
+  [x] -- Integrate HSI and RGB colors in a tansparent way
+  [x] -- Smooth soft pulse with interrupt timers
   [ ] -- Funtions for exceptions (reading, config, etc)
 
 ** RTC - TIME
-  [ ] --integrate time library with rtczero AND esp as sync providers... FIND OUT HOW
-  	https://github.com/PaulStoffregen/Time
-  	http://www.pjrc.com/teensy/td_libs_TimeAlarms.html
-	-lo ideal seria que la time library maneje todo, esp, usb y rtc as syncproviders y setteando el rtc desde los otros dos providers.
-	-despues poner encima de time la libreria timealarms que permite mucha versatilidad como time scheduler.
-
-** SCHEDULER - TIMER SYSTEM
-  [ ] -- usar timeAlarms
+  [ ] -- Resolver la integración de las alarmas de la libreria rtc
+  [ ] -- Implementar otras opciones de recibir el time ademas del ESP, (light, sound, USB)
 
 ** BUTTON
   [x] -- Interrupt
   [x] -- Detect Down, Up, and shortPress
-  [ ] -- Detect long and verylong (faltan los timers del RTC para que esto funcione)
+  [ ] -- Detect long and verylong (faltan resolver los hanhgs de los timers del RTC para que esto funcione)
 
-** READING-LIGHT
+** READING-LIGHT-SOUND
   [ ] -- Debug the new nonbloking version
   [ ] -- Probar en todas las pantallas posibles y en moviles
   [ ] -- Hacer commit a github de la non blocking
@@ -1569,56 +1500,60 @@ NOTAS
   [x] -- Send esp command on succsesfull received credentials
   [x] -- Change led with checksum OK.
   [ ] -- Only use it if Urban board is present, if not, go to fallback
+  [ ] -- Usar la implementación de lightRead para poner tambien el sonido
 
 ** CONFIGURATION
-  [ ] -- Make hardcoded Default configuration
-  [ ] -- Save configuration on eeprom
+  [x] -- Make hardcoded Default configuration
+  [x] -- Save configuration on eeprom
   [ ] -- get configuration from ESP
+  [ ] -- Hacer configurable el periodo de readings
 
 ** POWER MANAGMENT
+  [ ] -- Manejar los chargemodes
+  [ ] -- Poner feedback en el led del nivel de bateria y carga
+  [ ] -- Terminar el sleep mode y hacer pruebas de consumo
   [ ] -- Emergency mode with interrupt to wake up
   [ ] -- How on battery influences modes
   [ ] -- Diseñar bien la estrategia acerca del ESP y MICS
 
-** BATTERY CHARGING
-  [ ] -- Automatic managment of charge modes
-
 ** SDCARD
+  [ ] -- Encontrar la combinación entre ESP y SD para que el SPi no se cuelgue
   [ ] -- Integrate SD library
   [ ] -- Detect if sdcard is present
 
 ** ACCELEROMETER
+  [ ] -- Crear una funcion get Acc
 
 
 -----URBAN BOARD------
 
 ** DETECTION AND DIAGNOSIS
 
-  --detect if urban present and run diagnosis
+  [x] -- Detect if urban present
+  [ ] -- Hacer que el funcionamiento con/sin urban board sea mas robusto
 
 ** SENSOR TEMPLATE
 
 ** SOUND
-  --basic average
-  --design modes
+  [x] -- Basic average
 
 ** TEMP AND HUMIDITY
+  [ ] -- Buscar una libreria para el SHT21
 
 ** LIGHT
+  [ ] -- Implementar el get light
+  [ ] -- Implementar el get UV
 
 ** GASES
-  [ ] -- Revisar muy bien el codigo para ver lo del power consumption y asegurarse de que no cree problemas de reboots.
+  [ ] -- Implementar el get CO
+  [ ] -- Implementar el get No2
+  [ ] -- Hacer pruebas de consumo y plantear modos de uso
 
 --------ESP8266-------
-** POWER
-  [ ] -- Buscar a fondo como disminuir el consumo de energia para evitar reboots cuando corre junto con el MICS
-
+***DECIDIR SI MIGRAR O NO A C++
 ** APMODE
   [ ] -- Http GET ssid & pass
   [ ] -- HttpServer
-
-** RTC - TIME
-  [x] -- Update
 
 ** POSTS
   [ ] -- Http
@@ -1628,8 +1563,5 @@ NOTAS
 ** NET DEBUG OUTPUT
   [ ] -- Net console (netcat)
   [ ] -- Errors via mqtt
-
-** STANDALONE MODE
-  [ ] -- Http server (evitar que nada de esto use memoria en otros modos)
 
 */

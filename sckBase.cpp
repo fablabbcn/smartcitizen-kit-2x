@@ -570,13 +570,7 @@ void SckBase::ESPpublish() {
 	// hay que buscar una libreria json encode
 	const String comToSend PROGMEM = "sck.publish(\"{\\\"time\\\":\\\"" + payloadData.time + "\\\",\\\"noise\\\":\\\"" + String(payloadData.noise, 2) + "\\\",\\\"temperature\\\":\\\"" + String(payloadData.temperature, 2) + "\\\",\\\"humidity\\\":\\\"" + String(payloadData.humidity, 2) + "\\\",\\\"battery\\\":\\\"" + String(payloadData.battery) + "\\\"}\")";
 	lastPublishTime = millis();
-	String answer = ESPsendCommand(comToSend, publishAnswerTimeout, false);
-	if (answer.equals(F("timedout"))) {
-		sckOut(F("Timeout waiting for MQTT publish answer!!"));
-		// Save data in EEprom for later publish
-		ESPcontrol(ESP_OFF);	//This goes inside goToSleep();
-		// goToSleep()
-	}
+	String answer = ESPsendCommand(comToSend);
 }
 
 void SckBase::espMessage(String message) {

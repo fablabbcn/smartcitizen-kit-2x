@@ -10,6 +10,7 @@
 #include "WatchdogSAMD.h"
 // #include <Scheduler.h>
 #include <FlashStorage.h>
+#include "../lib/bridge.h"
 
 #include "ReadLight.h"
 #include "sckAux.h"

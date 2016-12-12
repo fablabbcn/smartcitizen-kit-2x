@@ -69,16 +69,16 @@ typedef struct {
 	bool valid;
 	char ssid[64];
 	char pass[64];
-} Credentials;
+} EppromCred;
 
 typedef struct {
 	bool valid;
 	char token[64];
-} Token;
+} EppromToken;
 
 FlashStorage(offOnBoot, bool);
-FlashStorage(eppromCred, Credentials);
-FlashStorage(eppromToken, Token);
+FlashStorage(eppromCred, EppromCred);
+FlashStorage(eppromToken, EppromToken);
 
 
 /* 	----------------------------------
@@ -434,7 +434,7 @@ bool SckBase::ESPsetToken(String token, int retrys) {
 	sckOut(String F("Setting token: ") + token);
 
 	if (retrys == 0) {
-		Token tokenToSave;
+		EppromToken tokenToSave;
 		tokenToSave.valid = true;
 		token.toCharArray(tokenToSave.token, 64);
 		eppromToken.write(tokenToSave);
@@ -466,7 +466,7 @@ bool SckBase::ESPgetToken(){
 
 bool SckBase::ESPsyncToken(int retrys){
 
-	Token readedToken;
+	EppromToken readedToken;
 	readedToken = eppromToken.read();
 
 	if (readedToken.valid) {
@@ -501,7 +501,7 @@ bool SckBase::ESPsetWifi(String ssid, String pass, int retrys) {
 	sckOut(String F("Setting ssid: ") + ssid + F(" pass: ") + pass);
 
 	if (retrys == 0) {
-		Credentials credentials;
+		EppromCred credentials;
 		credentials.valid = true;
 		ssid.toCharArray(credentials.ssid, 64);
 		pass.toCharArray(credentials.pass, 64);
@@ -538,7 +538,7 @@ bool SckBase::ESPgetWifi(){
 
 bool SckBase::ESPsyncWifi(int retrys){
 
-	Credentials credentials;
+	EppromCred credentials;
 	credentials = eppromCred.read();
 
 	if (credentials.valid) {

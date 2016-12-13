@@ -2,7 +2,7 @@
 
 #include <ESP8266WiFi.h>
 #include <Ticker.h>
-#include "../lib/bridge.h"
+#include <Bridge.h>
 
 // Led pins
 #define LED_RIGHT	5		// GPIO5

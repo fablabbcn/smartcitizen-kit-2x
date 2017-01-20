@@ -919,6 +919,13 @@ void SckBase::sckIn(String strIn) {
 
 	} else if (strIn.startsWith(comTitles[29])) {
 
+		//set time
+		strIn.replace(comTitles[29], "");
+		strIn.trim();
+		setTime(strIn);
+
+	} else if (strIn.startsWith(comTitles[30])) {
+
 		// help
 		sckOut(F("Available commands:"));
 		sckOut("");

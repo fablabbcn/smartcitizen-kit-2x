@@ -206,7 +206,7 @@ public:
 	String modeTitles[MODE_count] PROGMEM;
 		
 	//EXTERNAL COMMANDS
-	const String comTitles[30] PROGMEM = {
+	const String comTitles[31] PROGMEM = {
 
 		"esp bridge on", 		// 0
 		"esp bridge off",		// 1
@@ -237,7 +237,8 @@ public:
 		"sleep",				// 26
 		"led off",				// 27
 		"get espTime",			// 28
-		"help"					// 29
+		"set time",				// 29
+		"help"					// 30
 
 	};
 

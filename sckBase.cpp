@@ -76,7 +76,7 @@ typedef struct {
 	char token[64];
 } Token;
 
-FlashStorage(offOnBoot, bool);
+FlashStorage(eppromMode, SCKmodes);
 FlashStorage(eppromCred, Credentials);
 FlashStorage(eppromToken, Token);
 
@@ -154,31 +154,11 @@ void SckBase::setup() {
 
 	analogReadResolution(12);				// Set Analog resolution to MAX
 
+	SCKmodes previousMode = eppromMode.read();
+	if (previousMode) changeMode(previousMode);
+	else changeMode(MODE_OFF);
+	eppromMode.write(mode);
 
-	bool wasSleeping = offOnBoot.read();
-
-	if (wasSleeping) {
-		sckOut(F("Before reboot I was sleeping..."));
-		changeMode(MODE_OFF);
-		goToSleep();
-	} else {
-		sckOut(F("Before reboot I was awake..."));
-		changeMode(MODE_FIRST_BOOT);
-		wakeUp();
-	}
-
-
-	// configureTimer5(led.refreshPeriod);		// Hardware timer led refresh period
-
-	// ESPcontrol(ESP_ON);
-
-	// changeMode(MODE_SHELL);
-
-	// changeMode(MODE_OFF);
-	// intervalTimer = millis();
-	// led.off();
-
-	// changeMode(MODE_FIRST_BOOT);	// Start in first boot mode until we are connected, or wifi fail
 };
 
 void SckBase::update() {
@@ -257,20 +237,28 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 	if (newMode != mode) {
 
-		if (newMode == MODE_AP && mode != MODE_AP) {
+		if (prevMode == MODE_BRIDGE) outputLevel = prevOutputLevel;
+
+		if (newMode == MODE_AP) {
 			lightResults.ok = false;
 			lightResults.commited = false;
+			if (!ESPon) ESPcontrol(ESP_ON);
 		} else if (newMode == MODE_BRIDGE) {
 			prevOutputLevel = outputLevel;
 			outputLevel = OUT_SILENT;
-		} else {
-			outputLevel = prevOutputLevel;
+		} else if (newMode == MODE_OFF) {
+			goToSleep();
+		} else if (newMode == MODE_NET) {
+			intervalTimer = 0;	// start instantly
+		} else if (newMode == MODE_SD) {
+			if (ESPon) ESPcontrol(ESP_OFF);
 		}
 
 		sckOut(String F("Changing mode to ") + modeTitles[newMode] + F(" from ") + modeTitles[mode]);
 		prevMode = mode;
 		mode = newMode;
 		led.update(newMode);
+		eppromMode.write(mode);
 	}	
 }
 
@@ -306,14 +294,14 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			onWifi = false;
 			if (ESPon && mode != MODE_BRIDGE) {
 				sckOut(F("Turning off ESP..."));
-				delay(100);
+				// delay(100);
 				ESPon = false;
 				digitalWrite(CH_PD, LOW);
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
 				digitalWrite(GPIO0, LOW);
 				espTotalOnTime += millis() - espLastOn;
 				sckOut(String F("ESP was on for milliseconds: ") + String(millis() - espLastOn));
-				delay(100);
+				// delay(100);
 			} else {
 				sckOut(F("ESP already off!"));
 			}
@@ -355,13 +343,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 		case ESP_ON:
 			if (!ESPon) {
 				sckOut(F("Turning on ESP..."));
-				delay(100);
+				// delay(100);
 				digitalWrite(CH_PD, HIGH);
 				digitalWrite(GPIO0, HIGH);		// HIGH for normal mode
-				delay(50);
+				// delay(50);
 				digitalWrite(POWER_WIFI, LOW); 		// Turn on ESP
 				espLastOn = millis();
-				delay(500);					// Give time to ESP to boot and stabilize (later add a sanity check or run a reboot on ESP)
+				// delay(500);					// Give time to ESP to boot and stabilize (later add a sanity check or run a reboot on ESP)
 											// Also verify if this operation is ressetting SAM with reset cause and logit
 											// Also turn it off after some sleep time...
 				ESPon = true;
@@ -597,7 +585,7 @@ void SckBase::espMessage(String message) {
 		case ESP_WIFI_CONNECTED:
 			onWifi = true;
 			sckOut(F("Connected to Wifi!!"));
-			if (mode != MODE_SHELL && mode != MODE_BRIDGE) {
+			if (mode == MODE_FIRST_BOOT || mode == MODE_AP) {
 				if (!helloPublished || !hostNameSet) changeMode(MODE_FIRST_BOOT);
 				else changeMode(MODE_NET);
 			}
@@ -606,19 +594,19 @@ void SckBase::espMessage(String message) {
 		case ESP_WIFI_ERROR:
 			onWifi = false;
 			sckOut(F("Wifi conection failed: Unknown cause"));
-			if (mode != MODE_SHELL && mode != MODE_BRIDGE) changeMode(MODE_AP);
+			if (mode == MODE_NET) changeMode(MODE_AP);
 			prompt();
 			break;
 		case ESP_WIFI_ERROR_PASS:
 			onWifi = false;
 			sckOut(String F("Wifi conection failed: wrong password"));
-			if (mode != MODE_SHELL && mode != MODE_BRIDGE) changeMode(MODE_AP);
+			if (mode == MODE_NET) changeMode(MODE_AP);
 			prompt();
 			break;
 		case ESP_WIFI_ERROR_AP:
 			onWifi = false;
 			sckOut(String F("Wifi conection failed: AP not found"));
-			if (mode != MODE_SHELL && mode != MODE_BRIDGE) changeMode(MODE_AP);
+			if (mode == MODE_NET) changeMode(MODE_AP);
 			prompt();
 			break;
 		case ESP_TIME_FAIL:
@@ -1024,10 +1012,14 @@ void SckBase::buttonEvent() {
 
 void SckBase::buttonDown() {
 	sckOut(F("buttonDown"), PRIO_MED);
-	offOnBoot.write(false);
 	if (mode == MODE_OFF) {
-		changeMode(MODE_FIRST_BOOT);
-		intervalTimer = 0;	// start instantly
+		changeMode(prevMode);
+	} else if (mode == MODE_SD) {
+		changeMode(MODE_AP);
+	} else if (mode == MODE_FIRST_BOOT || mode == MODE_NET) {
+		changeMode(MODE_SD);
+	} else if (mode == MODE_AP) {
+		changeMode(MODE_NET);
 	}
 }
 
@@ -1068,7 +1060,6 @@ void SckBase::veryLongPress() {
 void SckBase::longPressStillDown() {
 	longPressStillDownTrigered = true;
 	sckOut(F("longPressStillDown"), PRIO_MED);
-	offOnBoot.write(true);
 	changeMode(MODE_OFF);
 	goToSleep();
 }
@@ -1145,7 +1136,6 @@ void SckBase::goToSleep() {
   	// MISSING HERE BUTTON INTERRUPT
 
 	// rtc.standbyMode();	//luego ponerlo de modo que espere a que el led llegue a zero
-	changeMode(MODE_OFF);
 	ESPcontrol(ESP_OFF);
 	led.off();
 	disableTimer5();
@@ -1160,7 +1150,6 @@ void SckBase::factoryReset() {
 	delay(1000);
 	ESPsetWifi("null", "password");
 	ESPsetToken("null");
-	offOnBoot.write(false);
 	softReset();
 }
 
@@ -1332,6 +1321,9 @@ void Led::update(SCKmodes newMode) {
 		case MODE_FIRST_BOOT:
 			ledRGBcolor = yellowRGB;
 			pulseMode = PULSE_STATIC;
+			break;
+		case MODE_OFF:
+			off();
 			break;
 	}
 }

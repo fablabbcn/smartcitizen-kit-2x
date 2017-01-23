@@ -67,19 +67,28 @@ void disableTimer5() {
 */
 typedef struct {
 	bool valid;
+	uint32_t lastUpdated;
 	char ssid[64];
-	char pass[64];
+	char password[64];
 } EppromCred;
 
 typedef struct {
 	bool valid;
-	char token[64];
+	uint32_t lastUpdated;
+	char data[64];
 } EppromToken;
 
 FlashStorage(offOnBoot, bool);
 FlashStorage(eppromCred, EppromCred);
 FlashStorage(eppromToken, EppromToken);
 
+
+/* 	---------------------------------------------------------
+	|	Structs for SAM <<>> ESP communication				|
+	---------------------------------------------------------
+*/
+EasyTransfer BUS_credentials;
+EasyTransfer BUS_token;
 
 /* 	----------------------------------
  	|	SmartCitizen Kit Baseboard   |
@@ -91,6 +100,13 @@ void SckBase::setup() {
 	Serial1.begin(baudrate);
 	SerialUSB.begin(baudrate);
 
+	// SAM <<>> ESP comunication
+	BUS_credentials.begin(details(credentials), &Serial1);
+	BUS_token.begin(details(token), &Serial1);
+
+	// Load configuration from EEPROM
+	loadCredentials();
+	loadToken();
 
 	// ESP Configuration
 	pinMode(POWER_WIFI, OUTPUT);
@@ -104,15 +120,62 @@ void SckBase::setup() {
 	buildDate.replace(' ', '-');
 	version += buildDate + '-' + String(__TIME__) + "-ALPHA";
 
-	modeTitles[MODE_AP]			= 	"Ap mode";
-	modeTitles[MODE_NET] 		=	"Network mode";
-	modeTitles[MODE_SD] 		= 	"SD card mode";
-	modeTitles[MODE_SHELL] 		= 	"Shell mode";
-	modeTitles[MODE_FLASH] 		= 	"ESP flashing mode";
-	modeTitles[MODE_BRIDGE] 	= 	"ESP bridging mode";
-	modeTitles[MODE_ERROR] 		= 	"Error mode";
-	modeTitles[MODE_FIRST_BOOT] = 	"First boot mode";
-	modeTitles[MODE_OFF]		=	"Off mode";
+	// MODE TITLES
+	modeTitles[MODE_AP]			= 	"ap";
+	modeTitles[MODE_NET] 		=	"network";
+	modeTitles[MODE_SD] 		= 	"sdcard";
+	modeTitles[MODE_SHELL] 		= 	"shell";
+	modeTitles[MODE_FLASH] 		= 	"esp flash";
+	modeTitles[MODE_BRIDGE] 	= 	"esp bridge";
+	modeTitles[MODE_ERROR] 		= 	"error";
+	modeTitles[MODE_FIRST_BOOT] = 	"first boot";
+	modeTitles[MODE_OFF]		=	"off";
+
+	// EXTERNAL COMMAND TITLES
+	// Esp Commands
+	comTitles[EXTCOM_ESP_REBOOT]	= 	"esp reboot";
+	comTitles[EXTCOM_ESP_OFF]		= 	"esp off";
+	comTitles[EXTCOM_ESP_ON]		= 	"esp on";
+	comTitles[EXTCOM_ESP_SLEEP]		= 	"esp sleep";
+
+	// Configuration commands
+	comTitles[EXTCOM_SET_WIFI]			= 	"set wifi";
+	comTitles[EXTCOM_GET_WIFI]			= 	"get wifi";
+	comTitles[EXTCOM_SYNC_WIFI]			= 	"sync wifi";
+	comTitles[EXTCOM_SET_TOKEN]			= 	"set token";
+	comTitles[EXTCOM_GET_TOKEN]			= 	"get token";
+	comTitles[EXTCOM_SYNC_TOKEN]		= 	"sync token";
+	comTitles[EXTCOM_GET_VERSION]		= 	"get version";
+	comTitles[EXTCOM_SYNC_CONFIG]		= 	"sync config";
+	comTitles[EXTCOM_DOWNLOAD_CONFIG]	= 	"download config";
+	comTitles[EXTCOM_SET_CONFIG]		= 	"set config";		// @params: ToDo
+	comTitles[EXTCOM_GET_CONFIG]		= 	"get config";
+
+	// Mode commands
+	comTitles[EXTCOM_RESET]			= 	"reset";
+	comTitles[EXTCOM_RESET_CAUSE]	= 	"rcause";
+	comTitles[EXTCOM_GET_MODE]		= 	"get mode";
+	comTitles[EXTCOM_SET_MODE]		= 	"set mode";			// @params: net, shell, sdcard, bridge, flash, sleep, off
+
+	// Other configuration
+	comTitles[EXTCOM_SET_OUTLEVEL]			= 	"set outlevel";
+	comTitles[EXTCOM_GET_OUTLEVEL]			= 	"get outlevel";
+	comTitles[EXTCOM_SET_LED]				= 	"set led";				// @params: off, (to implement: red, blue, green, etc)
+	comTitles[EXTCOM_GET_URBAN_PRESENT]		= 	"urban present";
+
+	// Time configuration
+	comTitles[EXTCOM_SET_TIME]		= 	"set time";			// @params: epoch time
+	comTitles[EXTCOM_GET_TIME]		= 	"get time";			// @params: iso (default), epoch
+	comTitles[EXTCOM_SYNC_TIME]		= 	"sync time";
+
+	// Sensor readings
+	comTitles[EXTCOM_GET_BATTERY]	=	"get battery";
+
+	// Other
+	comTitles[EXTCOM_FORCE_PUBLISH]	= 	"force publish";
+	comTitles[EXTCOM_GET_APLIST]	= 	"get aplist";
+	comTitles[EXTCOM_HELP]			= 	"help";
+
 
 	// I2C Configuration
 	Wire.begin();				// Init wire library
@@ -166,7 +229,7 @@ void SckBase::setup() {
 		changeMode(MODE_FIRST_BOOT);
 		wakeUp();
 	}
-
+	prompt();
 
 	// configureTimer5(led.refreshPeriod);		// Hardware timer led refresh period
 
@@ -189,8 +252,8 @@ void SckBase::update() {
 		else if (millis() - button.lastPress > veryLongPressInterval && !veryLongPressStillDownTrigered) veryLongPressStillDown();
 	}
 
-	// General Stuff
-	if (mode == MODE_FLASH){
+	// Flash and bridge modes
+	if (mode == MODE_FLASH || mode == MODE_BRIDGE){
 		if (SerialUSB.available()) Serial1.write(SerialUSB.read());
 		if (Serial1.available()) SerialUSB.write(Serial1.read());
 	} else {
@@ -201,25 +264,25 @@ void SckBase::update() {
 		//----------------------------------------
 		if (mode == MODE_FIRST_BOOT) {
 
-			if (!tokenSynced) {
-				tokenSynced = true;
-				ESPsyncToken();
-			}
+			// if (!tokenSynced) {
+			// 	tokenSynced = true;
+			// 	ESPsyncToken();
+			// }
 
-			if (!onTime && onWifi) {
-				ESPsendCommand(F("sck.getTime()"));
-			} else if (!hostNameSet && onWifi) {
-				ESPsendCommand(F("sck.updateHostName()"));
-			} else if (!helloPublished && onWifi) {
-				ESPsendCommand(F("sck.hello()"));
-			} else if (helloPublished && hostNameSet && onWifi) {
-				changeMode(MODE_NET);
-				ESPpublish();
-			} else if (!onWifi && millis() - netStatusTimer > netStatusPeriod) {
-				if (!wifiSynced) ESPsyncWifi();
-				netStatusTimer = millis();
-				ESPsendCommand(F("sck.netStatus()"));
-			}
+			// if (!onTime && onWifi) {
+			// 	ESPsendCommand(F("sck.getTime()"));
+			// } else if (!hostNameSet && onWifi) {
+			// 	ESPsendCommand(F("sck.updateHostName()"));
+			// } else if (!helloPublished && onWifi) {
+			// 	ESPsendCommand(F("sck.hello()"));
+			// } else if (helloPublished && hostNameSet && onWifi) {
+			// 	changeMode(MODE_NET);
+			// 	ESPpublish();
+			// } else if (!onWifi && millis() - netStatusTimer > netStatusPeriod) {
+			// 	// if (!wifiSynced) ESPsyncWifi();
+			// 	netStatusTimer = millis();
+			// 	ESPsendCommand(F("sck.netStatus()"));
+			// }
 
 
 		//----------------------------------------
@@ -231,11 +294,17 @@ void SckBase::update() {
 				else if(!lightResults.commited) {
 
 					changeMode(MODE_FIRST_BOOT);
+					if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
+						lightResults.lines[1].toCharArray(credentials.ssid, lightResults.lines[1].length());
+						lightResults.lines[2].toCharArray(credentials.password, lightResults.lines[2].length());
+						credentials.lastUpdated = rtc.getEpoch();
+						saveCredentials();
+					}
 					if (lightResults.lines[0].endsWith(F("auth"))) {
-						ESPsetWifi(lightResults.lines[1], lightResults.lines[2]);
-						ESPsetToken(lightResults.lines[3]);
-					} else if (lightResults.lines[0].endsWith(F("wifi"))) {
-						ESPsetWifi(lightResults.lines[1], lightResults.lines[2]);
+						/// FALTA EL TOKEN !!!!!
+
+						// ESPsetWifi(lightResults.lines[1], lightResults.lines[2]);
+						// ESPsetToken(lightResults.lines[3]);
 					}
 				 	lightResults.commited = true;
 				}
@@ -251,27 +320,130 @@ void SckBase::update() {
 			}
 		}
 	}
+};
+
+void SckBase::saveCredentials() {
+	
+	EppromCred toSaveCredentials;
+
+	toSaveCredentials.valid = true;
+	toSaveCredentials.lastUpdated = credentials.lastUpdated;
+	strncpy(toSaveCredentials.ssid, credentials.ssid, 64);
+	strncpy(toSaveCredentials.password, credentials.password, 64);
+	eppromCred.write(toSaveCredentials);
+
+	sckOut(String(credentials.ssid) + F(" - ") + String(credentials.password) + F(" -- credentials saved to EEPROM"));
+
+	syncCredentials();
+};
+
+bool SckBase::loadCredentials() {
+
+	EppromCred savedCredentials;
+
+	savedCredentials = eppromCred.read();
+
+	if (savedCredentials.valid) {
+		credentials.lastUpdated = savedCredentials.lastUpdated;
+		strncpy(credentials.ssid, savedCredentials.ssid, 64);
+		strncpy(credentials.password, savedCredentials.password, 64);
+
+		sckOut(String(credentials.ssid) + F(" - ") + String(credentials.password) + F(" -- credentials loaded from EEPROM"));
+
+		return true;
+	}
+	sckOut(F("No valid credentials saved on EEPROM"));	
+	return false;
+};
+
+void SckBase::syncCredentials() {
+
+	// debe sincronizar a las credenciales mas nuevas (esp o sam)
+	// se deberia correr siempre al bootear.
+	// debe tener una verificacion de que las credenciales se setearon en el ESP
+
+	if (!ESP_ON) ESPcontrol(ESP_ON);
+	credentials.sender = SENDER_SAM;
+	BUS_credentials.sendData();
+	sckOut(String(credentials.ssid) + F(" - ") + String(credentials.password) + F(" -- credentials sent to ESP"));
+	// get credentials from ESP and compare...
+	// if son iguales, perfecto!
+	// si son diferentes
+	// conservar las que sean mas nuevas.
+};
+
+void SckBase::saveToken() {
+
+	EppromToken toSaveToken;
+
+	toSaveToken.valid = true;
+	toSaveToken.lastUpdated = token.lastUpdated;
+	token.data.toCharArray(toSaveToken.data, 64);
+	eppromToken.write(toSaveToken);
+
+	sckOut(token.data + F(" -- token saved to EEPROM"));
+
+	syncToken();
+}
+
+bool SckBase::loadToken() {
+
+	EppromToken savedToken;
+
+	savedToken = eppromToken.read();
+
+	if (savedToken.valid) {
+		token.lastUpdated = savedToken.lastUpdated;
+		token.data = savedToken.data;
+
+		sckOut(token.data + F(" -- token loaded from EEPROM"));
+
+		return true;
+	}
+	sckOut(F("No valid token saved on EEPROM"));	
+	return false;
+}
+
+void SckBase::syncToken() {
+
+	// debe sincronizar al token mas nuevo (esp o sam)
+	// se deberia correr siempre al bootear.
+	// debe asegurarse que el ESP este prendido
+	// debe tener una verificacion de que el token se seteo en el ESP
+
+	token.sender = SENDER_SAM;
+	BUS_token.sendData();
+	sckOut(token.data + F(" -- token sent to ESP"));
 }
 
 void SckBase::changeMode(SCKmodes newMode) {
 
 	if (newMode != mode) {
 
-		if (newMode == MODE_AP && mode != MODE_AP) {
+		// Restore previous output level
+		if (mode == MODE_BRIDGE) changeOutputLevel(prevOutputLevel);
+
+		if (newMode == MODE_AP) {
 			lightResults.ok = false;
 			lightResults.commited = false;
 		} else if (newMode == MODE_BRIDGE) {
-			prevOutputLevel = outputLevel;
-			outputLevel = OUT_SILENT;
-		} else {
-			outputLevel = prevOutputLevel;
+			if (!ESPon) ESPcontrol(ESP_ON);
+			changeOutputLevel(OUT_SILENT);
+		} else if (newMode == MODE_FLASH) {
+			changeOutputLevel(OUT_SILENT);
+			ESPcontrol(ESP_FLASH);
 		}
 
-		sckOut(String F("Changing mode to ") + modeTitles[newMode] + F(" from ") + modeTitles[mode]);
+		sckOut(String F("Changing mode to ") + modeTitles[newMode] + F(" mode from ") + modeTitles[mode] + F(" mode"));
 		prevMode = mode;
 		mode = newMode;
 		led.update(newMode);
 	}	
+}
+
+void SckBase::changeOutputLevel(OutLevels newLevel) {
+	prevOutputLevel = outputLevel;
+	outputLevel = newLevel;
 }
 
 void SckBase::inputUpdate() {
@@ -279,22 +451,20 @@ void SckBase::inputUpdate() {
 	if (SerialUSB.available()) {
 		char buff = SerialUSB.read();
 		serialBuff += buff;
-		if (mode == MODE_BRIDGE) Serial1.write(buff); 			// Send buffer to ESP
-		else sckOut((String)buff, PRIO_MED, false);				// Shell echo
-		if (buff == 13 || buff == 10) { 						// New line detected
+		sckOut((String)buff, PRIO_MED, false);			// Shell echo
+		if (buff == 13 || buff == 10) { 				// New line detected
 			sckOut("");
-			sckIn(serialBuff);									// Process input
+			sckIn(serialBuff);							// Process input
 			serialBuff = "";
 			prompt();
 		}
 	}
 
-	while (Serial1.available()) {
+	if (Serial1.available()) {
 		char buff = Serial1.read();
 		espBuff += buff;
-		if (mode == MODE_BRIDGE) SerialUSB.write(buff);
-		else if (buff == 13 || buff == 10) {
-			espMessage(espBuff);
+		if (buff == 13 || buff == 10) {
+			// espMessage(espBuff);
 			espBuff = "";
 		}
 	}
@@ -312,14 +482,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
 				digitalWrite(GPIO0, LOW);
 				espTotalOnTime += millis() - espLastOn;
-				sckOut(String F("ESP was on for milliseconds: ") + String(millis() - espLastOn));
+				sckOut(String F("ESP was on for ") + String(millis() - espLastOn, 0) + F(" milliseconds."));
 				delay(100);
 			} else {
 				sckOut(F("ESP already off!"));
 			}
 			break;
 		case ESP_FLASH:			// The only way out off flash mode is phisically reset SCK (buscar alguna otra manera: podria ser con el boton, si espflash true then reset)
-			changeMode(MODE_FLASH);
 			led.bridge();
 			disableTimer5();
 			sckOut(F("Putting ESP in flash mode...\r\nRemember to reboot ESP after flashing (esp reboot)!"));
@@ -330,27 +499,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			digitalWrite(CH_PD, HIGH);
 			digitalWrite(GPIO0, LOW);			// LOW for flash mode
 			digitalWrite(POWER_WIFI, LOW); 		// Turn on ESP
-			break;
-		case ESP_BRIDGE_ON:
-			if (mode != MODE_BRIDGE) {
-				led.bridge();
-				disableTimer5();
-				changeMode(MODE_BRIDGE);
-				if (!ESPon) ESPcontrol(ESP_ON);
-				sckOut(F("Starting ESP bridge mode..."));
-			} else {
-				sckOut(F("ESP bridge already on!"));
-			}
-			break;
-		case ESP_BRIDGE_OFF:
-			if (mode == MODE_BRIDGE) {
-				configureTimer5(led.refreshPeriod);
-				changeMode(prevMode);
-				sckOut("");
-				sckOut(F("Turning off ESP bridge..."));
-			} else {
-				sckOut(F("ESP bridge already off!"));
-			}
 			break;
 		case ESP_ON:
 			if (!ESPon) {
@@ -405,7 +553,7 @@ String SckBase::ESPsendCommand(String command, float timeout, bool external) {
 					if (command.startsWith(espBuff)) {
 						espBuff = "";					// Clears echo line
 					} else {
-						prioLevels custom_PRIO = PRIO_LOW;
+						PrioLevels custom_PRIO = PRIO_LOW;
 						if (external) custom_PRIO = PRIO_HIGH;
 						sckOut(String F("Response: ") + espBuff, custom_PRIO);
 						espBuff.replace("\n", "");
@@ -424,7 +572,11 @@ String SckBase::ESPsendCommand(String command, float timeout, bool external) {
 	return F("timedout");
 }
 
-bool SckBase::ESPsetToken(String token, int retrys) {
+void SckBase::ESPsend(int command) {
+
+}
+
+/*bool SckBase::ESPsetToken(String token, int retrys) {
 
 	if (retrys > 5) {
 		sckOut(F("Failed setting ESP token..."));
@@ -489,9 +641,9 @@ bool SckBase::ESPsyncToken(int retrys){
 	}
 	sckOut(F("No valid token saved on EPPROM"));
 	return false;
-}
+}*/
 
-bool SckBase::ESPsetWifi(String ssid, String pass, int retrys) {
+/*bool SckBase::ESPsetWifi(String ssid, String pass, int retrys) {
 
 	if (retrys > 5) {
 		sckOut(F("Failed setting ESP credentials..."));
@@ -501,11 +653,11 @@ bool SckBase::ESPsetWifi(String ssid, String pass, int retrys) {
 	sckOut(String F("Setting ssid: ") + ssid + F(" pass: ") + pass);
 
 	if (retrys == 0) {
-		EppromCred credentials;
-		credentials.valid = true;
-		ssid.toCharArray(credentials.ssid, 64);
-		pass.toCharArray(credentials.pass, 64);
-		eppromCred.write(credentials);
+		EppromCred toSaveCredentials;
+		toSaveCredentials.valid = true;
+		ssid.toCharArray(toSaveCredentials.ssid, 64);
+		pass.toCharArray(toSaveCredentials.pass, 64);
+		eppromCred.write(toSaveCredentials);
 	}
 
 	const String comToSend PROGMEM = "wifi.sta.config(\"" + ssid + "\", \"" + pass + "\")";
@@ -538,13 +690,13 @@ bool SckBase::ESPgetWifi(){
 
 bool SckBase::ESPsyncWifi(int retrys){
 
-	EppromCred credentials;
-	credentials = eppromCred.read();
+	EppromCred savedCredentials;
+	savedCredentials = eppromCred.read();
 
-	if (credentials.valid) {
+	if (savedCredentials.valid) {
 
-		String SAMssid = credentials.ssid;
-		String SAMpass = credentials.pass;
+		String SAMssid = savedCredentials.ssid;
+		String SAMpass = savedCredentials.pass;
 
 		// if (retrys > 1) ESPcontrol(ESP_OFF);
 		sckOut(String F("SAMssid: ") + SAMssid + F(" SAMpass: ") + SAMpass);
@@ -564,16 +716,16 @@ bool SckBase::ESPsyncWifi(int retrys){
 	}
 	sckOut(F("No valid credentials saved on EPPROM"));
 	return false;
-}
+}*/
 
 void SckBase::ESPpublish() {
 	// hay que buscar una libreria json encode
-	const String comToSend PROGMEM = "sck.publish(\"{\\\"time\\\":\\\"" + payloadData.time + "\\\",\\\"noise\\\":\\\"" + String(payloadData.noise, 2) + "\\\",\\\"temperature\\\":\\\"" + String(payloadData.temperature, 2) + "\\\",\\\"humidity\\\":\\\"" + String(payloadData.humidity, 2) + "\\\",\\\"battery\\\":\\\"" + String(payloadData.battery) + "\\\"}\")";
+	const String comToSend PROGMEM = "sck.publish(\"{\\\"time\\\":\\\"" + readings.time + "\\\",\\\"noise\\\":\\\"" + String(readings.noise.data, 2) + "\\\",\\\"temperature\\\":\\\"" + String(readings.temperature.data, 2) + "\\\",\\\"humidity\\\":\\\"" + String(readings.humidity.data, 2) + "\\\",\\\"battery\\\":\\\"" + String(readings.battery.data) + "\\\"}\")";
 	lastPublishTime = millis();
 	String answer = ESPsendCommand(comToSend);
 }
 
-void SckBase::espMessage(String message) {
+/*void SckBase::espMessage(String message) {
 
 	// sckOut("received: " + message);
 
@@ -681,7 +833,7 @@ void SckBase::espMessage(String message) {
 			prompt();
 			break;
 	}
-}
+}*/
 
 /* Process text inputs and executes commands
  *
@@ -694,263 +846,229 @@ void SckBase::sckIn(String strIn) {
 	strIn.replace("\r", "");
 	strIn.trim();
 
-	//PENSAR LA MEJOR MANERA DE PONER LAS EXCEPCIONES PARA EL ESP BRIDGE Y FLASH
-	if (strIn.equals(comTitles[0])){
+	uint8_t executedCommand = EXTCOM_COUNT + 1;
 
-		// esp bridge on
-		ESPcontrol(ESP_BRIDGE_ON);
-	
-	} else if (strIn.equals(comTitles[1])) {
-		
-		// esp bridge off
-		ESPcontrol(ESP_BRIDGE_OFF);
-
-	} else if (strIn.equals(comTitles[2])) {
-
-		// esp flash
-		ESPcontrol(ESP_FLASH);
-
-	} else if (strIn.equals(comTitles[3])) {
-
-		// esp reboot
-		ESPcontrol(ESP_REBOOT); 
-
-	} else if (strIn.equals(comTitles[4])) {
-
-		// esp off
-		ESPcontrol(ESP_OFF);
-
-	} else if (strIn.equals(comTitles[5])) {
-
-		// esp on
-		ESPcontrol(ESP_ON);
-
-	} else if (strIn.equals(comTitles[6])) {
-
-		// esp start
-		if (!ESPon) ESPcontrol(ESP_ON);
-		ESPsendCommand(F("dofile(\"preinit.lua\")"));
-
-	} else if (strIn.equals(comTitles[7])) {
-
-		// esp listap
-		ESPsendCommand(F("sck.getAPlist(function(t) print(t) end)"), 5000);
-		
-	} else if (strIn.startsWith(comTitles[8])) {
-
-		// setwifi SSID PASS
-		String separator;
-		if (strIn.indexOf('"') >= 0) separator = '"';
-		else if (strIn.indexOf("'") >= 0) separator = "'";
-		uint8_t first = strIn.indexOf(separator);
-		uint8_t second = strIn.indexOf(separator, first + 1);
-		uint8_t third = strIn.indexOf(separator, second + 1);
-		uint8_t fourth = strIn.indexOf(separator, third + 1);
-
-		String ssid = strIn.substring(first + 1, second);
-		String pass = strIn.substring(third + 1, fourth);
-
-		if (pass.length() < 8) {
-			sckOut(F("Wifi password should have at least 8 characters!!!"));
-		} else {
-			ESPsetWifi(ssid, pass);
-		}
-		
-
-	} else if (strIn.startsWith(comTitles[9])) {
-
-		// settoken TOKEN
-		strIn.replace(comTitles[9], "");
-		strIn.trim();
-		ESPsetToken(strIn);
-
-	} else if (strIn.startsWith(comTitles[10])) {
-
-		// esp command
-		if (!ESPon) ESPcontrol(ESP_ON);
-		strIn.replace(comTitles[10], "");
-		strIn.trim();
-		ESPsendCommand(strIn, 2000, true);
-
-	} else if (strIn.startsWith(comTitles[11])) {
-
-		// debug level
-		strIn.replace(comTitles[11], "");
-		strIn.trim();
-		sckOut(F("Current output level is "), PRIO_HIGH, false);
-		if (strIn.length() > 0) { 
-			uint8_t newLevel = (uint8_t)strIn.toInt();
-			if (newLevel == 0) outputLevel = OUT_SILENT;
-			else if (newLevel == 1) outputLevel = OUT_NORMAL;
-			else if (newLevel == 2) outputLevel = OUT_VERBOSE;
-		}
-		if (outputLevel == 0) sckOut(F("Silent"), PRIO_HIGH);
-		else if (outputLevel == 1) sckOut(F("Normal"), PRIO_HIGH);
-		else if (outputLevel == 2) sckOut(F("Verbose"), PRIO_HIGH);
-
-
-	} else if (strIn.startsWith(comTitles[12])) {
-
-		// urban present
-		if (urbanBoardDetected()) {
-			sckOut(F("Urban board detected!!"));
-		} else {
-			sckOut(F("Urban board not found!!"));
-		}
-
-	} else if (strIn.equals(comTitles[13])) {
-
-		// reset cause
-		int resetCause = PM->RCAUSE.reg;
-		switch(resetCause){
-			case 1:
-				sckOut(F("POR: Power On Reset"));
+	if (strIn.length() > 0) {
+		// Search in title list
+		for (uint8_t i=0; i < EXTCOM_COUNT; ++i) {
+			if (strIn.startsWith(comTitles[i])) {
+				executedCommand = i;
+				strIn.replace(comTitles[i], "");
+				strIn.trim();
 				break;
-			case 2:
-				sckOut(F("BOD12: Brown Out 12 Detector Reset"));
-				break;
-			case 4:
-				sckOut(F("BOD33: Brown Out 33 Detector Reset"));
-				break;
-			case 16:
-				sckOut(F("EXT: External Reset"));
-				break;
-			case 32:
-				sckOut(F("WDT: Watchdog Reset"));
-				break;
-			case 64:
-				sckOut(F("SYST: System Reset Request"));
-				break;
-		}
-		
-	} else if (strIn.equals(comTitles[14])) {
-
-		// reset
-		sckOut(F("Bye!"), PRIO_HIGH);
-		softReset();
-
-	}  else if (strIn.equals(comTitles[15])) {
-
-		// card mode
-		sckOut(F("Entering SD card mode..."));
-		changeMode(MODE_SD);
-
-	} else if (strIn.equals(comTitles[16])) {
-
-		// net mode
-		sckOut(F("Entering Net mode..."));
-		changeMode(MODE_NET);
-
-	} else if (strIn.equals(comTitles[17])) {
-
-		// time
-		sckOut(ISOtime()); 
-
-	} else if (strIn.equals(comTitles[18])) {
-
-		// sync time
-		if (!ESPon) {
-			sckOut(F("Turning on ESP... Try sync time in a moment"));
-			ESPcontrol(ESP_ON);
-		} else if (!onWifi) {
-			sckOut(F("Wifi not connected... can't sync time"));	
-		} else {
-			ESPsendCommand(F("sck.getTime()"));
-		}
-
-	} else if (strIn.equals(comTitles[19])) {
-
-		// last sync
-		if (lastTimeSync > 0){
-			uint32_t seconds = rtc.getEpoch() - lastTimeSync;
-			if (seconds > 86400) {
-				sckOut(String(seconds / 86400) + F(" days "), PRIO_MED, false);
-				seconds = seconds % 86400;
 			}
-			if (seconds > 3600) {
-				sckOut(String(seconds / 3600) + F(" hours "), PRIO_MED, false);
-				seconds = seconds % 3600;	
-			}
-			if (seconds > 60) {
-				sckOut(String(seconds / 60) + F(" minutes "), PRIO_MED, false);
-				seconds = seconds % 60;
-			}
-			sckOut(String(seconds) + F(" seconds"));
-		} else {
-			sckOut(F("Time not synced since last reset!!!"));
 		}
-		
-
-	} else if (strIn.equals(comTitles[20])) {
-
-		// checkconfig
-		ESPgetWifi();
-		ESPgetToken();
-
-	} else if (strIn.equals(comTitles[21])) {
-
-		// publish
-		ESPpublish();
-
-	} else if (strIn.equals(comTitles[22])) {
-
-		// gettoken
-		ESPsendCommand(F("=config.token"), 1000, true);
-
-	} else if (strIn.equals(comTitles[23])) {
-
-		// shell mode
-		if (mode != MODE_SHELL) {
-			changeMode(MODE_SHELL);
-		} else changeMode(prevMode);
-
-	} else if (strIn.equals(comTitles[24])) {
-
-		// getmode
-		sckOut(modeTitles[mode]);
-
-	} else if (strIn.equals(comTitles[25])) {
-
-		// getversion
-		sckOut(version);
-
-	} else if (strIn.equals(comTitles[26])) {
-
-		// sleep
-		goToSleep();
-
-	} else if (strIn.equals(comTitles[27])) {
-
-		// led off
-		led.off();
-
-	} else if (strIn.equals(comTitles[28])) {
-
-		// get esp time
-		sckOut(String(espTotalOnTime));
-
-	} else if (strIn.startsWith(comTitles[29])) {
-
-		// help
-		sckOut(F("Available commands:"));
-		sckOut("");
-		for (uint i = 0; i < (sizeof(comTitles)/sizeof(*comTitles)) - 1;) {
-			for (int ii = 0; ii < 3; ++ii) {
-				sckOut(comTitles[i] + "\t\t", PRIO_MED, false);
-				if (comTitles[i].length() < 8) sckOut(String('\t'), PRIO_MED, false);
-				i++;
-			}
-			sckOut("");
-		}
-		sckOut("");
-
 	} else {
-		if (strIn.length() > 0) {
-			sckOut(F("Unrecognized command"));
-			sckOut(F("Try 'help' for a list of commands."));
-		}
+		executedCommand = EXTCOM_COUNT;
 	}
+
+	switch(executedCommand) {
+
+		// ESP commands
+		case EXTCOM_ESP_REBOOT: {
+			ESPcontrol(ESP_REBOOT);
+			break;
+
+		} case EXTCOM_ESP_OFF: {
+			ESPcontrol(ESP_OFF);
+			break;
+
+		} case EXTCOM_ESP_ON: {
+			ESPcontrol(ESP_ON);
+			break;
+
+		} case EXTCOM_ESP_SLEEP: {
+			sckOut(F("To be implemented!!!"), PRIO_HIGH);
+			break;
+
+		// Configuration commands
+		} case EXTCOM_SET_WIFI: {
+			String separator;
+			if (strIn.indexOf('"') >= 0) separator = '"';
+			else if (strIn.indexOf("'") >= 0) separator = "'";
+			uint8_t first = strIn.indexOf(separator);
+			uint8_t second = strIn.indexOf(separator, first + 1);
+			uint8_t third = strIn.indexOf(separator, second + 1);
+			uint8_t fourth = strIn.indexOf(separator, third + 1);
+
+			String newSsid = strIn.substring(first + 1, second);
+			String newPass = strIn.substring(third + 1, fourth);
+
+			if (newPass.length() < 8) {
+				sckOut(F("Wifi password should have at least 8 characters!!!"), PRIO_HIGH);
+			} else {
+
+				newSsid.toCharArray(credentials.ssid, 64);
+				newPass.toCharArray(credentials.password, 64);
+
+				credentials.lastUpdated = rtc.getEpoch();
+				saveCredentials();
+			}
+			break;
+
+		} case EXTCOM_GET_WIFI: {
+			sckOut(String F("ssid: ") + credentials.ssid, PRIO_HIGH);
+			sckOut(String F("pass: ") + credentials.password, PRIO_HIGH);
+			break;
+
+		} case EXTCOM_SYNC_WIFI: {
+			syncCredentials();
+			break;
+
+		} case EXTCOM_SET_TOKEN: {
+			token.data = strIn;
+			token.lastUpdated = rtc.getEpoch();
+			saveToken();
+			break;
+		
+		} case EXTCOM_GET_TOKEN: {
+			sckOut(String F("token: ") + token.data, PRIO_HIGH);
+			break;
+
+		} case EXTCOM_SYNC_TOKEN: {
+			syncToken();
+			break;
+
+		} case EXTCOM_GET_VERSION: {
+			sckOut(version);
+			break;
+
+		} case EXTCOM_SYNC_CONFIG: {
+			sckOut(F("To be implemented!!!"), PRIO_HIGH);
+			break;
+
+		} case EXTCOM_DOWNLOAD_CONFIG: {
+			sckOut(F("To be implemented!!!"), PRIO_HIGH);
+			break;
+
+		} case EXTCOM_SET_CONFIG: {
+			sckOut(F("To be implemented!!!"), PRIO_HIGH);
+			break;
+
+		} case EXTCOM_GET_CONFIG: {
+			sckOut(F("To be implemented!!!"), PRIO_HIGH);
+			break;
+
+		// Mode commands
+		} case EXTCOM_RESET: {
+			sckOut(F("Bye!"), PRIO_HIGH);
+			softReset();
+			break;
+
+		} case EXTCOM_RESET_CAUSE: {
+			uint8_t resetCause = PM->RCAUSE.reg;
+			switch(resetCause){
+				case 1:
+					sckOut(F("POR: Power On Reset"));
+					break;
+				case 2:
+					sckOut(F("BOD12: Brown Out 12 Detector Reset"));
+					break;
+				case 4:
+					sckOut(F("BOD33: Brown Out 33 Detector Reset"));
+					break;
+				case 16:
+					sckOut(F("EXT: External Reset"));
+					break;
+				case 32:
+					sckOut(F("WDT: Watchdog Reset"));
+					break;
+				case 64:
+					sckOut(F("SYST: System Reset Request"));
+					break;
+			}
+			break;
+
+		} case EXTCOM_GET_MODE: {
+			sckOut(String F("Current mode is ") + modeTitles[mode] + F(" mode"));
+			break;
+
+		} case EXTCOM_SET_MODE: {
+
+			SCKmodes requestedMode = MODE_COUNT;
+
+			for (uint8_t i=0; i < MODE_COUNT; ++i) {
+				if (strIn.startsWith(modeTitles[i])) {
+					// Foo foo = static_cast<Foo>(fooInt);
+					requestedMode = static_cast<SCKmodes>(i);
+					changeMode(requestedMode);
+					break;
+				}
+			}
+			if (requestedMode == MODE_COUNT) sckOut(F("Unrecognized mode, please try again!"));
+			break;
+
+		// Other configuration
+		} case EXTCOM_SET_OUTLEVEL: {
+			if (strIn.length() > 0) {
+				uint8_t newLevel = (uint8_t)strIn.toInt();
+				if (newLevel >= 0 && newLevel <= 2) {
+					if (newLevel == 0) outputLevel = OUT_SILENT;
+					else if (newLevel == 1) outputLevel = OUT_NORMAL;
+					else outputLevel = OUT_VERBOSE;
+					sckOut(String F("Output level set to ") + outLevelTitles[outputLevel], PRIO_HIGH);
+				}
+			}
+			break;
+
+		} case EXTCOM_GET_OUTLEVEL: {
+			sckOut(String F("Current output level is ") + outLevelTitles[outputLevel], PRIO_HIGH);
+			break;
+
+		} case EXTCOM_SET_LED: {
+			sckOut(F("To be implemented!!!"), PRIO_HIGH);
+			break;
+
+		} case EXTCOM_GET_URBAN_PRESENT: {
+			if (urbanBoardDetected()) sckOut(F("Urban board detected!!"), PRIO_HIGH);
+			else sckOut(F("Urban board not found!!"), PRIO_HIGH);
+			break;
+
+		// Time configuration
+		} case EXTCOM_SET_TIME: {
+			setTime(strIn);
+			break;
+
+		} case EXTCOM_GET_TIME: {
+			if (ISOtime().equals("0")) sckOut(F("Time NOT synced since last reset!!!"), PRIO_HIGH);
+			else sckOut(ISOtime());
+			break;
+		} case EXTCOM_SYNC_TIME: {
+			sckOut(F("To be implemented!!!"), PRIO_HIGH);
+			break;
+
+		// Sensor readings
+		} case EXTCOM_GET_BATTERY: {
+			sckOut(String F("Battery: ") + getBatteryVoltage(), PRIO_HIGH);
+			break;
+
+		// Other
+		} case EXTCOM_FORCE_PUBLISH: {
+			sckOut(F("To be implemented!!!"), PRIO_HIGH);
+			break;
+
+		} case EXTCOM_GET_APLIST: {
+			sckOut(F("To be implemented!!!"), PRIO_HIGH);
+			break;
+
+		// Help
+		} case EXTCOM_HELP: {
+			sckOut(F("Help: soon..."), PRIO_HIGH);
+			break;
+
+		// Just linebreak
+		} case EXTCOM_COUNT: {
+			break;
+
+		} default: {
+			sckOut(F("Unrecognized command, try help!"), PRIO_HIGH);
+			break;
+		}
+
+	}
+
 }
+
 
 /* Text outputs
  *
@@ -961,7 +1079,7 @@ void SckBase::sckIn(String strIn) {
 							PRIO_HIGH - showed in all modes (even in OUT_SILENT)
 	@params newLine		Print a carriage return after output?
  */
-void SckBase::sckOut(String strOut, prioLevels priority, bool newLine) {
+void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine) {
 
 	if (outputLevel + priority > 1) {
 		SerialUSB.print(strOut);
@@ -981,6 +1099,7 @@ bool SckBase::setTime(String epoch) {
 		sckOut(F("RTC updated!!!"));
 		onTime = true;
 		lastTimeSync = rtc.getEpoch();
+		sckOut(ISOtime()); 		///REVISAR
 		return true;
 	}
 	else sckOut(F("RTC update failed!!"));
@@ -1023,11 +1142,17 @@ void SckBase::buttonEvent() {
 }
 
 void SckBase::buttonDown() {
+
 	sckOut(F("buttonDown"), PRIO_MED);
-	offOnBoot.write(false);
+
 	if (mode == MODE_OFF) {
 		changeMode(MODE_FIRST_BOOT);
+		offOnBoot.write(false);
 		intervalTimer = 0;	// start instantly
+	} else if (mode == MODE_FLASH) {
+		softReset();
+	} else if (mode == MODE_BRIDGE) {
+		changeMode(prevMode);
 	}
 }
 
@@ -1148,7 +1273,6 @@ void SckBase::goToSleep() {
 	changeMode(MODE_OFF);
 	ESPcontrol(ESP_OFF);
 	led.off();
-	disableTimer5();
 }
 
 void SckBase::wakeUp() {
@@ -1158,11 +1282,21 @@ void SckBase::wakeUp() {
 void SckBase::factoryReset() {
 	ESPcontrol(ESP_REBOOT);
 	delay(1000);
-	ESPsetWifi("null", "password");
-	ESPsetToken("null");
+
+	strncpy(credentials.ssid, "ssid", 64);
+	strncpy(credentials.password, "password", 64);
+	credentials.lastUpdated = 0;
+	saveCredentials();
+
+	token.data = "null";
+	token.lastUpdated = 0;
+	saveToken();
+
 	offOnBoot.write(false);
 	softReset();
 }
+
+
 
 /* 	-------------
  	|	 POT control (por ahora es cun copy paste del codigo de miguel, hay que revisarlo y adaptarlo)	|
@@ -1239,6 +1373,25 @@ byte SckBase::readI2C(int deviceaddress, byte address ) {
  	|	 Power management (por ahora es cun copy paste del codigo de miguel, hay que revisarlo y adaptarlo)	|
  	-------------
 */
+uint16_t SckBase::getBatteryVoltage() {
+  uint16_t batVoltage = 2*(readADC(3))*VCC/RESOLUTION_ANALOG;
+  return batVoltage;
+}
+
+uint16_t SckBase::getCharger() {
+  uint16_t temp = 2*(readADC(2))*VCC/RESOLUTION_ANALOG;
+  return temp;
+}
+
+uint16_t SckBase::readADC(byte channel) {
+  byte dir[4] = {2,4,6,8};
+  byte temp = B11000000 + channel;
+  writeI2C(ADC_DIR, 0, temp);
+  writeI2C(ADC_DIR, 0, temp);
+  uint16_t data = (readI2C(ADC_DIR, dir[channel])<<4) + (readI2C(ADC_DIR, dir[channel] + 1)>>4);
+  return data;
+}
+
 void SckBase::writeCurrent(int current)
   {
     int resistor = (4000000/current)-96-3300;
@@ -1314,26 +1467,33 @@ void Led::update(SCKmodes newMode) {
 			pulseMode = PULSE_SOFT;
 			break;
 		case MODE_SHELL:
-			ledRGBcolor = yellowRGB;
+			ledRGBcolor = orangeRGB;
 			pulseMode = PULSE_STATIC;
 			break;
 		case MODE_ERROR:
-			ledRGBcolor = orangeRGB;
+			ledRGBcolor = redRGB;
 			pulseMode = PULSE_HARD;
 			break;
 		case MODE_FLASH:
-			ledRGBcolor = lightBLueRGB;
+			ledRGBcolor = lightBlueRGB;
 			pulseMode = PULSE_STATIC;
 			break;
 		case MODE_BRIDGE:
-			ledRGBcolor = lightBLueRGB;
+			ledRGBcolor = lightGreenRGB;
 			pulseMode = PULSE_STATIC;
 			break;
 		case MODE_FIRST_BOOT:
 			ledRGBcolor = yellowRGB;
 			pulseMode = PULSE_STATIC;
 			break;
+		case MODE_OFF:
+			ledRGBcolor = offRGB;
+			pulseMode = PULSE_STATIC;
+			break;
 	}
+
+	tick();
+	if (pulseMode == PULSE_STATIC) disableTimer5();
 }
 
 void Led::reading() {
@@ -1451,6 +1611,14 @@ NOTAS
 ** STATE MACHINE DESIGN (MODES)
   --it's important to get a very simple design
   --Make a list of triggers that changes the mode
+  -- Decidir donde pongo las acciones que deciden como proceder ante un determinado evento
+  		.podria ser en update pero eso haría una revision innecesaria y las acciones se ejecutan indefinidamente
+  		.podria ser en una funcion especifica que procese eventos (que substituya a espin e incluya otros eventos como boton, etc)
+  		. podria sur una funcion separada para cada tipo de eventos pero no solo deben actualizar flags, deben ejectuar las acciones
+  		y anunciar que la accion se esta ejecutando y cuando termine anunciar cual fue su resultado.
+  			- net events (ahora entran por espmessage)
+  			- shell events (ahora entran por sckin)
+  			- button events (ahora entran por button event)
 
 ** INPUT-OUTPUT
   [ ] -- Diseñar una clase IOobject para crear instancias con USB, ESP, SDCARD, donde se definan sus caracteristicas (es in y/o out, nivel de out, es interactivo, esta activo.)

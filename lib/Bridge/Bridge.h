@@ -1,5 +1,13 @@
 #pragma once
 
+#include <EasyTransfer.h>
+
+enum Sender {
+	SENDER_NONE,
+	SENDER_SAM,
+	SENDER_ESP
+};
+
 enum EspEvent {
 	ESP_NULL,
 	ESP_WIFI_CONNECTED_EVENT,
@@ -45,7 +53,8 @@ enum EspCommand {
 							//		-- time: ESP_TIME_FAIL, ESP_TIME_NEW
 							//		-- mode: ESP_MODE_AP, ESP_MODE_STA, ESP_MODE_APSTATION
 							//		-- conf: ESP_CONF_CHANGED
-	ESP_GET_LAST_EVENT_COM	// @return espEvents
+	ESP_GET_LAST_EVENT_COM,	// @return espEvents
+	ESP_LED_OFF				// Turn off both leds
 };
 
 struct EspStatus {
@@ -57,6 +66,32 @@ struct EspStatus {
 };
 
 struct Credentials {
-	String ssid;
-	String password;
+	uint32_t lastUpdated = 0;			// epoch time
+	Sender sender = SENDER_NONE;
+	char ssid[64] = "ssid";
+	char password[64] = "password";
+};
+
+struct Token {
+	uint32_t lastUpdated = 0;			// epoch time
+	Sender sender = SENDER_NONE;
+	String data = "null";
+};
+
+struct Config {
+
+};
+
+struct SingleSensorData {
+	float data;
+	uint32_t lastReadingTime;
+	bool valid = false;
+};
+
+struct SensorsData {
+	String time;
+	SingleSensorData noise;
+	SingleSensorData humidity;
+	SingleSensorData temperature;
+	SingleSensorData battery;
 };

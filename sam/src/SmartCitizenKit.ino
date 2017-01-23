@@ -19,14 +19,14 @@ void TC5_Handler (void) {
 void setup() {
 
 	base.setup();
-	urban.setup();
+	// urban.setup();
 
 	// Gets readings for first post
-	base.payloadData.time = base.ISOtime();
-	base.payloadData.noise = urban.GetNoise();
-	base.payloadData.humidity = urban.getHumidity();
-	base.payloadData.temperature = urban.getTemperature();
-	base.payloadData.battery = urban.getBattery();
+	// base.readings.time = base.ISOtime();
+	// base.readings.noise.data = urban.GetNoise();
+	// base.readings.humidity.data = urban.getHumidity();
+	// base.readings.temperature.data = urban.getTemperature();
+	// base.readings.battery.data = base.getBattery();
 
 }
 
@@ -34,36 +34,36 @@ void loop() {
 
 	base.update();
 
-	if (millis() - base.intervalTimer > base.postInterval * 1000 && base.mode == MODE_NET){
+	// if (millis() - base.intervalTimer > base.postInterval * 1000 && base.mode == MODE_NET){
 
-		// take reading
-		base.payloadData.time = base.ISOtime();
-		base.payloadData.noise = urban.GetNoise();
-		base.payloadData.humidity = urban.getHumidity();
-		base.payloadData.temperature = urban.getTemperature();
-		base.payloadData.battery = urban.getBattery();
+	// 	// take reading
+	// 	base.readings.time = base.ISOtime();
+	// 	base.readings.noise.data = urban.GetNoise();
+	// 	base.readings.humidity.data = urban.getHumidity();
+	// 	base.readings.temperature.data = urban.getTemperature();
+	// 	base.readings.battery.data = base.getBattery();
 
-		base.intervalTimer = millis();
+	// 	base.intervalTimer = millis();
 
-		// save to sdcard (TEMP)
-		// if (base.openPublishFile()) {
-		// 	base.publishFile.print(base.payloadData.time);
-		// 	base.publishFile.print(",");
-		// 	base.publishFile.print(base.payloadData.noise);
-		// 	base.publishFile.print(",");
-		// 	base.publishFile.print(base.payloadData.humidity);
-		// 	base.publishFile.print(",");
-		// 	base.publishFile.print(base.payloadData.temperature);
-		// 	base.publishFile.print(",");
-		// 	base.publishFile.print(base.payloadData.battery);
-		// 	base.publishFile.print("\n");
-		// 	base.publishFile.close();
-		// }
+	// 	// save to sdcard (TEMP)
+	// 	// if (base.openPublishFile()) {
+	// 	// 	base.publishFile.print(base.readings.time);
+	// 	// 	base.publishFile.print(",");
+	// 	// 	base.publishFile.print(base.readings.noise);
+	// 	// 	base.publishFile.print(",");
+	// 	// 	base.publishFile.print(base.readings.humidity);
+	// 	// 	base.publishFile.print(",");
+	// 	// 	base.publishFile.print(base.readings.temperature);
+	// 	// 	base.publishFile.print(",");
+	// 	// 	base.publishFile.print(base.readings.battery);
+	// 	// 	base.publishFile.print("\n");
+	// 	// 	base.publishFile.close();
+	// 	// }
 
-		// If time is not updated or last update is oldest than 12 hours (43200 sec), updates time
-		if (!base.onTime || base.rtc.getEpoch() - base.lastTimeSync > 43200) base.ESPsendCommand(F("sck.getTime()"));
+	// 	// If time is not updated or last update is oldest than 12 hours (43200 sec), updates time
+	// 	if (!base.onTime || base.rtc.getEpoch() - base.lastTimeSync > 43200) base.ESPsendCommand(F("sck.getTime()"));
 
-		// Publish data
-		else base.ESPpublish();
-	}
+	// 	// Publish data
+	// 	else base.ESPpublish();
+	// }
 }

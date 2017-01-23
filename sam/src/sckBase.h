@@ -52,9 +52,12 @@
 #define CS_SDCARD	2			// PA14 -- SPI Select SDcard
 
 // Power Management
-#define PS 	38					// PA13 -- TPS63001 PS/SYNC
+#define VCC 	3300.			// mV
+#define PS 		38				// PA13 -- TPS63001 PS/SYNC
 
 // ACOMODAR Y CAMBIAR NOMBRES ESTO ES TEMP
+#define RESOLUTION_ANALOG    4095.   //Resolucion de las entradas analogicas
+#define ADC_DIR             0x48    // Direction of the ADC
 #define POT1                 0x50    
 #define POT2                 0x51    // Direction of the Potenciometer 2 for MICS heather voltage
 #define POT3                 0x52    // Direction of the Potenciometer 3 for MICS measure
@@ -70,7 +73,18 @@
 #define VERY_LONG_PRESS_DURATION 15000	// Button very long press duration (ms)
 
 
-enum SCKmodes {	MODE_AP, MODE_NET, MODE_SD, MODE_SHELL, MODE_FLASH, MODE_BRIDGE, MODE_ERROR, MODE_FIRST_BOOT, MODE_OFF, MODE_count };
+enum SCKmodes {
+	MODE_AP,
+	MODE_NET,
+	MODE_SD,
+	MODE_SHELL,
+	MODE_FLASH,
+	MODE_BRIDGE,
+	MODE_ERROR,
+	MODE_FIRST_BOOT,
+	MODE_OFF,
+	MODE_COUNT
+};
 
 /* 	-----------------
  	|	 Button 	|
@@ -138,8 +152,10 @@ public:
 	RGBcolor blueRGB 		= {0,	29,		225};
 	RGBcolor pinkRGB 		= {129,	12,		112};
 	RGBcolor yellowRGB 		= {154,	100,	0};
-	RGBcolor orangeRGB 		= {143,	111,	0};
-	RGBcolor lightBLueRGB 	= {0, 	140,	114};
+	RGBcolor orangeRGB 		= {220,	111,	0};
+	RGBcolor lightBlueRGB 	= {0, 	140,	114};
+	RGBcolor lightGreenRGB 	= {0, 	254,	50};
+	RGBcolor offRGB 		= {0, 	0,		0};
 
 	const RGBcolor pulseBlue[25] PROGMEM = {{0,1,9},{0,2,18},{0,3,27},{0,4,36},{0,5,45},{0,7,54},{0,8,63},{0,9,72},{0,10,81},{0,11,90},{0,13,99},{0,14,108},{0,15,117},{0,16,126},{0,17,135},{0,19,144},{0,20,153},{0,21,162},{0,22,171},{0,23,180},{0,25,189},{0,26,198},{0,27,207},{0,28,216},{0,29,225}};
 	const RGBcolor pulseRed[25] PROGMEM	= {{8,1,0},{17,2,0},{26,3,0},{35,4,1},{44,5,1},{52,6,1},{61,7,1},{70,8,2},{79,9,2},{88,10,2},{97,12,2},{105,13,3},{114,14,3},{123,15,3},{132,16,4},{141,17,4},{150,18,4},{158,19,4},{167,20,5},{176,21,5},{185,23,5},{194,24,5},{203,25,6},{211,26,6},{220,27,6}};
@@ -161,14 +177,6 @@ private:
 };
 
 
-struct sensorData {
-		String time;
-		float noise;
-		float humidity;
-		float temperature;
-		uint16_t battery;
-	};
-
 /* 	----------------------------------
  	|	SmartCitizen Kit Baseboard   |
  	----------------------------------
@@ -182,16 +190,25 @@ public:
 	void setup();
 	void update();
 
-	String version = "SCK-1.5_0.1-";
-
-	// Sensors
-	sensorData payloadData;
+	// Sensors (REACOMODAR)
+	SensorsData readings;
 	float postInterval = 15;   // seconds
 	float intervalTimer;
 	float lastPublishTime;
 	float publishAnswerTimeout = 5000;
 
-	//FLAGS
+	// Configuration
+	String version = "SCK-1.5_0.1-";
+	Credentials credentials;
+	void saveCredentials();
+	bool loadCredentials();
+	void syncCredentials();
+	Token token;
+	void saveToken();
+	bool loadToken();
+	void syncToken();
+
+	// Flags
 	bool onWifi = false;
 	bool hostNameSet = false;
 	bool helloPublished = false;
@@ -200,57 +217,86 @@ public:
 	bool onBattery = false;
 	bool charging = false;
 
-	//MODES
+	// Modes
 	void changeMode(SCKmodes newMode);
 	SCKmodes mode = MODE_FIRST_BOOT;
 	SCKmodes prevMode = MODE_FIRST_BOOT;
-	String modeTitles[MODE_count] PROGMEM;
-		
-	//EXTERNAL COMMANDS
-	const String comTitles[30] PROGMEM = {
+	String modeTitles[MODE_COUNT] PROGMEM;
 
-		"esp bridge on", 		// 0
-		"esp bridge off",		// 1
-		"esp flash",			// 2
-		"esp reboot",			// 3
-		"esp off",				// 4
-		"esp on",				// 5
-		"esp start",			// 6
-		"esp listap",			// 7
-		"setwifi",				// 8
-		"settoken",				// 9
-		"esp command",			// 10
-		"outlevel",				// 11
-		"urban present",		// 12
-		"reset cause",			// 13
-		"reset",				// 14
-		"sdcard mode",			// 15
-		"net mode",				// 16
-		"time",					// 17
-		"sync time",			// 18
-		"last sync",			// 19
-		"checkconfig",			// 20
-		"publish",				// 21
-		"gettoken",				// 22
-		"shell mode",			// 23
-		"getmode",				// 24
-		"getversion",			// 25
-		"sleep",				// 26
-		"led off",				// 27
-		"get espTime",			// 28
-		"help"					// 29
+
+	// External Commands
+	enum ExternalCommand {
+		// Esp commands
+		EXTCOM_ESP_REBOOT,
+		EXTCOM_ESP_OFF,
+		EXTCOM_ESP_ON,
+		EXTCOM_ESP_SLEEP,
+
+		// Configuration commands
+		EXTCOM_SET_WIFI,
+		EXTCOM_GET_WIFI,
+		EXTCOM_SYNC_WIFI,
+		EXTCOM_SET_TOKEN,
+		EXTCOM_GET_TOKEN,
+		EXTCOM_SYNC_TOKEN,
+		EXTCOM_GET_VERSION,
+		EXTCOM_SYNC_CONFIG,
+		EXTCOM_DOWNLOAD_CONFIG,
+		EXTCOM_SET_CONFIG,			// @params: ToDo
+		EXTCOM_GET_CONFIG,
+
+		// Mode commands
+		EXTCOM_RESET,
+		EXTCOM_RESET_CAUSE,
+		EXTCOM_GET_MODE,
+		EXTCOM_SET_MODE,			// @params: net, shell, sdcard, bridge, flash, sleep, off
+		
+		// Other configuration
+		EXTCOM_SET_OUTLEVEL,
+		EXTCOM_GET_OUTLEVEL,
+		EXTCOM_SET_LED,				// @params: off, (to implement: red, blue, green, etc)
+		EXTCOM_GET_URBAN_PRESENT,
+
+		// Time configuration
+		EXTCOM_SET_TIME,			// @params: epoch time
+		EXTCOM_GET_TIME,			// @params: iso (default), epoch
+		EXTCOM_SYNC_TIME,
+
+		// Sensor readings
+		EXTCOM_GET_BATTERY,
+
+		// Other
+		EXTCOM_FORCE_PUBLISH,
+		EXTCOM_GET_APLIST,
+		EXTCOM_HELP,
+
+		// Count
+		EXTCOM_COUNT
 
 	};
+
+	String comTitles[EXTCOM_COUNT] PROGMEM;
 
 	//INPUT/OUTPUT
 	float baudrate = 115200;
 	void inputUpdate();
 	void sckIn(String strIn);
-	enum outLevels {OUT_SILENT, OUT_NORMAL, OUT_VERBOSE};
-	enum prioLevels {PRIO_LOW, PRIO_MED, PRIO_HIGH};
-	void sckOut(String strOut, prioLevels priority=PRIO_MED, bool newLine=true);
-	outLevels outputLevel = OUT_NORMAL;
-	outLevels prevOutputLevel = OUT_NORMAL;
+	enum OutLevels {
+		OUT_SILENT,
+		OUT_NORMAL,
+		OUT_VERBOSE,
+		OUT_COUNT
+	};
+	const String outLevelTitles[OUT_COUNT] PROGMEM = {
+		"Silent",
+		"Normal",
+		"Verbose"
+	};
+	enum PrioLevels {PRIO_LOW, PRIO_MED, PRIO_HIGH};
+	void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true);
+	void changeOutputLevel(OutLevels newLevel);
+	OutLevels outputLevel = OUT_NORMAL;
+	OutLevels prevOutputLevel = OUT_NORMAL;
 	void prompt();
 
 	//BUTTON -- pensar de nuevo como organizar el boton y sus metodos
@@ -270,39 +316,40 @@ public:
 	void factoryReset();
 
 	//ESP8266
-	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_BRIDGE_ON, ESP_BRIDGE_OFF, ESP_ON, ESP_REBOOT };
+	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
 	void ESPcontrol(ESPcontrols myESPControl);
 	bool ESPon;
 	bool ESPworking = false;
 	void ESPsend(String payload);
 	String ESPsendCommand(String command, float timeout=2000, bool external=false);
-	bool ESPsetWifi(String ssid, String pass, int retrys=0);
-	bool ESPgetWifi();
-	bool ESPsyncWifi(int retrys=0);
-	String ESPssid;
-	String ESPpass;
-	bool wifiSynced = false;
-	bool ESPsetToken(String token, int retrys=0);
-	bool ESPgetToken();
-	bool ESPsyncToken(int retrys=0);
-	String ESPtoken;
-	bool tokenSynced = false;
-	enum espMes {
-		ESP_NOT_COMMAND,
-		ESP_WIFI_CONNECTED,
-		ESP_WIFI_ERROR,
-		ESP_WIFI_ERROR_PASS,
-		ESP_WIFI_ERROR_AP,
-		ESP_TIME_FAIL,
-		ESP_TIME_NEW,
-		ESP_MODE_AP,
-		ESP_MODE_STA,
-		ESP_WEB_STARTED,
-		ESP_MQTT_HELLO_OK,
-		ESP_MQTT_PUBLISH_OK,
-		ESP_MQTT_ERROR,
-		ESP_HOSTNAME_UPDATED
-	};
+	void ESPsend(int command);
+	// bool ESPsetWifi(String ssid, String pass, int retrys=0);
+	// bool ESPgetWifi();
+	// bool ESPsyncWifi(int retrys=0);
+	// String ESPssid;
+	// String ESPpass;
+	// bool wifiSynced = false;
+	// bool ESPsetToken(String token, int retrys=0);
+	// bool ESPgetToken();
+	// bool ESPsyncToken(int retrys=0);
+	// String ESPtoken;
+	// bool tokenSynced = false;
+	// enum espMes {
+	// 	ESP_NOT_COMMAND,
+	// 	ESP_WIFI_CONNECTED,
+	// 	ESP_WIFI_ERROR,
+	// 	ESP_WIFI_ERROR_PASS,
+	// 	ESP_WIFI_ERROR_AP,
+	// 	ESP_TIME_FAIL,
+	// 	ESP_TIME_NEW,
+	// 	ESP_MODE_AP,
+	// 	ESP_MODE_STA,
+	// 	ESP_WEB_STARTED,
+	// 	ESP_MQTT_HELLO_OK,
+	// 	ESP_MQTT_PUBLISH_OK,
+	// 	ESP_MQTT_ERROR,
+	// 	ESP_HOSTNAME_UPDATED
+	// };
 	void espMessage(String message);
 	void ESPpublish();
 	uint8_t publishRetryCounter = 0;
@@ -325,6 +372,13 @@ public:
 	// File logFile;
 	// String logFileName = "sck.log";
 	// void openLogFile();
+
+	// Battery
+	uint16_t getBatteryVoltage();
+	uint16_t getCharger();
+	const uint16_t batteryMax = 4208;
+	const uint16_t batteryMin = 3000;
+	uint16_t readADC(byte channel);
 
 
 	//TEMP hay que acomodar

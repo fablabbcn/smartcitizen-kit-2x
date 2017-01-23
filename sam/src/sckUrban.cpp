@@ -23,7 +23,7 @@ void SckUrban::setup() {
 // Noise sensor
 float SckUrban::GetNoise() {
   uint16_t soundraw = 0;
-  uint8_t section = 0;
+  // uint8_t section = 0;
   boolean validReading = 0;
 
   while (!validReading) {
@@ -141,8 +141,6 @@ byte SckUrban::readI2C(int deviceaddress, byte address ) {
   return data;
 }
 
-
-
 // Temperature sensor
 uint16_t SckUrban::readSHT(uint8_t type){
       uint16_t DATA = 0;
@@ -165,30 +163,6 @@ float SckUrban::getHumidity() {
 
 float SckUrban::getTemperature() {
   return (-46.85 + (175.72*(readSHT(0xE3)/65536.0)));
-}
-
-
-// Battery level
-uint16_t SckUrban::getBattery() {
-  uint16_t temp = 2*(readADC(3))*VCC/RESOLUTION_ANALOG;
-  // temp = map(temp, batteryMin, batteryMax, 0, 100);
-  // if (temp>100) temp=100;
-  // if (temp<0) temp=0;
-  return temp;
-}
-
-uint16_t SckUrban::getCharger() {
-  uint16_t temp = 2*(readADC(2))*VCC/RESOLUTION_ANALOG;
-  return temp;
-}
-
-uint16_t SckUrban::readADC(byte channel) {
-  byte dir[4] = {2,4,6,8};
-  byte temp = B11000000 + channel;
-  writeI2C(ADC_DIR, 0, temp);
-  writeI2C(ADC_DIR, 0, temp);
-  uint16_t data = (readI2C(ADC_DIR, dir[channel])<<4) + (readI2C(ADC_DIR, dir[channel] + 1)>>4);
-  return data;
 }
 
 void SckUrban::ADCini() {

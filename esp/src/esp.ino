@@ -2,14 +2,6 @@
 
 SckESP esp;
 
-
-void ledToggleLeft() {
-	esp.ledToggle(esp.ledLeft);
-}
-void ledToggleRight() {
-	esp.ledToggle(esp.ledRight);
-}
-
 void setup() {
   
 	esp.setup();
@@ -19,7 +11,16 @@ void setup() {
 
 void loop() {
 
+	// Serial.println(esp.fs_info.totalBytes);
+	// Serial.println(esp.fs_info.blockSize);
+	esp.update(); 
+	// delay(2000);
+}
 
-  // ts.update()
-  
+
+void LedToggleLeft() {
+	esp.ledToggle(esp.ledLeft);
+}
+void LedToggleRight() {
+	esp.ledToggle(esp.ledRight);
 }

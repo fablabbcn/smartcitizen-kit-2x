@@ -94,6 +94,10 @@ EasyTransfer BUS_token;
  	|	SmartCitizen Kit Baseboard   |
  	----------------------------------
 */
+
+// SD card
+SdFat sd;
+
 void SckBase::setup() {
 
 	// Serial Ports Configuration
@@ -168,6 +172,10 @@ void SckBase::setup() {
 	comTitles[EXTCOM_GET_TIME]		= 	"get time";			// @params: iso (default), epoch
 	comTitles[EXTCOM_SYNC_TIME]		= 	"sync time";
 
+	// SD card
+	comTitles[EXTCOM_SD_PRESENT]	=	"sd present";
+
+
 	// Sensor readings
 	comTitles[EXTCOM_GET_BATTERY]	=	"get battery";
 
@@ -179,7 +187,6 @@ void SckBase::setup() {
 
 	// I2C Configuration
 	Wire.begin();				// Init wire library
-
 
 	// Sensor Board Conector
 	pinMode(IO0, OUTPUT);	// PA7 -- CO Sensor Heather
@@ -197,8 +204,11 @@ void SckBase::setup() {
 	// pinMode(CS_SDCARD, OUTPUT);
 	// digitalWrite(CS_SDCARD, LOW);
 
-	pinMode(CS_ESP, OUTPUT);
-	digitalWrite(CS_ESP, HIGH);		// Disable ESP SPI
+
+	// pinMode(CS_ESP, OUTPUT);
+	// digitalWrite(CS_ESP, HIGH);		// Disable ESP SPI
+
+	// SD card
 	pinMode(SS, OUTPUT);
 
 	// Power management configuration
@@ -476,14 +486,12 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			onWifi = false;
 			if (ESPon && mode != MODE_BRIDGE) {
 				sckOut(F("Turning off ESP..."));
-				delay(100);
 				ESPon = false;
 				digitalWrite(CH_PD, LOW);
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
 				digitalWrite(GPIO0, LOW);
 				espTotalOnTime += millis() - espLastOn;
 				sckOut(String F("ESP was on for ") + String(millis() - espLastOn, 0) + F(" milliseconds."));
-				delay(100);
 			} else {
 				sckOut(F("ESP already off!"));
 			}
@@ -493,8 +501,8 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			disableTimer5();
 			sckOut(F("Putting ESP in flash mode...\r\nRemember to reboot ESP after flashing (esp reboot)!"));
 			if (ESPon) ESPcontrol(ESP_OFF);
-			SerialUSB.begin(230400);
-			Serial1.begin(230400);
+			SerialUSB.begin(ESP_FLASH_SPEED);
+			Serial1.begin(ESP_FLASH_SPEED);
 			delay(500);
 			digitalWrite(CH_PD, HIGH);
 			digitalWrite(GPIO0, LOW);			// LOW for flash mode
@@ -503,15 +511,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 		case ESP_ON:
 			if (!ESPon) {
 				sckOut(F("Turning on ESP..."));
-				delay(100);
+				SPI.end();						// Important so the sdfat lib releases the SPI bus and the ESP can access his flash
+				delay(5);
 				digitalWrite(CH_PD, HIGH);
 				digitalWrite(GPIO0, HIGH);		// HIGH for normal mode
-				delay(50);
 				digitalWrite(POWER_WIFI, LOW); 		// Turn on ESP
 				espLastOn = millis();
-				delay(500);					// Give time to ESP to boot and stabilize (later add a sanity check or run a reboot on ESP)
-											// Also verify if this operation is ressetting SAM with reset cause and logit
-											// Also turn it off after some sleep time...
+				// delay(500);					// Give time to ESP to boot and stabilize (later add a sanity check or run a reboot on ESP)
 				ESPon = true;
 			} else {
 				sckOut(F("ESP already on!"));
@@ -1042,6 +1048,11 @@ void SckBase::sckIn(String strIn) {
 			sckOut(String F("Battery: ") + getBatteryVoltage(), PRIO_HIGH);
 			break;
 
+		// SD card
+		} case EXTCOM_SD_PRESENT: {
+			sdPresent();
+			break;
+
 		// Other
 		} case EXTCOM_FORCE_PUBLISH: {
 			sckOut(F("To be implemented!!!"), PRIO_HIGH);
@@ -1222,27 +1233,29 @@ bool SckBase::openPublishFile() {
 	bool writeHeader = false;
 	String header = "Time,Noise,Humidity,Temperature,Battery\n";		//TEMP
 
-	if (sdPresent()) {
-		int i = 1;
-		while (i < 512) {
-			publishFileName.toCharArray(charFileName, publishFileName.length());
-			if (!SD.exists(charFileName)) writeHeader = true;
-			publishFile = SD.open(charFileName , FILE_WRITE);
-			if (publishFile) {
-				if (writeHeader) publishFile.print(header);
-				if (publishFile.size() < FileSizeLimit) return true;
-				else {
-					publishFileName = String F("POST") + leadingZeros(String(i), 3) + F(".CSV");
-					publishFile.close();
-				}
-			}
-		}
-	}
+	// if (sdPresent()) {
+	// 	int i = 1;
+	// 	while (i < 512) {
+	// 		publishFileName.toCharArray(charFileName, publishFileName.length());
+	// 		if (!SD.exists(charFileName)) writeHeader = true;
+	// 		publishFile = SD.open(charFileName , FILE_WRITE);
+	// 		if (publishFile) {
+	// 			if (writeHeader) publishFile.print(header);
+	// 			if (publishFile.size() < FileSizeLimit) return true;
+	// 			else {
+	// 				publishFileName = String F("POST") + leadingZeros(String(i), 3) + F(".CSV");
+	// 				publishFile.close();
+	// 			}
+	// 		}
+	// 	}
+	// }
 	return false;
 }
 
 bool SckBase::sdPresent() {
-	if (SD.begin(CS_SDCARD)) {
+
+	// if (1){
+	if (sd.cardBegin(CS_SDCARD, SPI_HALF_SPEED)) {
 		sckOut(F("Sdcard ready!!"));
 		return true;
 	} else {

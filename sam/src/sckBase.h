@@ -6,7 +6,7 @@
 #include <RTCZero.h>
 #include <Wire.h>
 #include <SPI.h>
-#include <SD.h>
+#include "SdFat.h"
 #include "WatchdogSAMD.h"
 // #include <Scheduler.h>
 #include <FlashStorage.h>
@@ -71,6 +71,8 @@
 */
 #define LONG_PRESS_DURATION 3000 		// Button long press duration (ms)
 #define VERY_LONG_PRESS_DURATION 15000	// Button very long press duration (ms)
+
+#define ESP_FLASH_SPEED 230400
 
 
 enum SCKmodes {
@@ -262,6 +264,9 @@ public:
 		EXTCOM_GET_TIME,			// @params: iso (default), epoch
 		EXTCOM_SYNC_TIME,
 
+		// SD card
+		EXTCOM_SD_PRESENT,
+
 		// Sensor readings
 		EXTCOM_GET_BATTERY,
 
@@ -366,7 +371,7 @@ public:
 	// SDcard
 	float FileSizeLimit = 64000000;
 	bool sdPresent();
-	File publishFile;
+	// File publishFile;
 	String publishFileName = "POST001.CSV";
 	bool openPublishFile();
 	// File logFile;

@@ -14,48 +14,46 @@ class ReadLight {
 public:
 	void setup();
 	dataLight read();
-	dataLight results;
 	void reset();
+	dataLight results;
 	bool debugFlag = false;
 
 private:
 
-	int BH1730 = 0x29;			// Light sensor I2C address
+	uint8_t BH1730 = 0x29;			// Light sensor I2C address
 	uint8_t TIME0 = 0xFB;
 
 	// Variables to manage sensor readings
-	float newReading = 0;		// Here we store the light sensor new readings
-	float OldReading = 0;		// Variable for saving readings between loops
-	int repetition = 0;			// Whit this we validate readings, we need at least MIN_REP repetitions inside the tolerance
-	int MIN_REP = 2;
-	float tolerance = 0.20;		// Threshold for considering a reading the same as other
-
-	// Variables to manage light values
+	uint32_t readyTimer = 0;
+	uint32_t readyPause = ((2.8/1000.0) * 964 * (float)(256 - TIME0));
+	uint16_t newReading = 0;		// Here we store the light sensor new readings
+	uint16_t OldReading = 0;		// Variable for saving readings between loops
+	uint16_t tolerance = 1;			// Threshold for considering a reading the same as other
+	uint8_t readingRepetitions = 0;		// Whit this we validate readings, we need at least MIN_REP repetitions inside the tolerance
+	const uint8_t MIN_REP = 3;
+	
+	// Variables to manage light values (just for calibration)
+  	float newValue = 0;
   	float oldValue = 0;
-  	float currentValue = 0;
-
-	// Variables to manage screen color levels
-	int levelNum = 9;			// Number of different grey levels the sensor can read (the screen should use the same number)
-
-		///AQUI HAY QUE PONER levelnum en vez de 9 NO ME ACUERDO COMO CONSTINT
-	float levels[9];			// Array for saving the sensor reading for each level during calibration
-	int newLevel = 0;			// Stores the new detected level
-	int oldLevel = 0;			// Variable for storing previous detected level
-	float getValueTimer = 0;	// Timer for calling get light function when looking for new values
-	float getValueRetry = (2.8/1000.0) * 964 * (float)(256 - TIME0);
-
+		
+	// Variables to manage levels (each level represents an octal char)
+	uint8_t levelNum = 9;				// Number of different grey levels the sensor can read (the screen should use the same number)
+	uint16_t levels[9];				// Array for saving the sensor reading for each level during calibration
+	uint8_t newLevel = 0;				// Stores the new detected level
+	uint8_t oldLevel = -1;				// Variable for storing previous detected level
+	uint8_t lastGoodLevel = 0;		// For storing last used good level
+	uint8_t levelRepetitions = 0;	// Whit this we validate levels, we need at least MIN_REP of the same value
+	
 	// String variable
-	String newChar = "0";		
-	String lightBuffer;
 	String octalString = "0";
 
 	// Checksum variables
-	float localCheckSum = 0;	// Stores the received text checksum for verification
+	uint16_t localCheckSum = 0;	// Stores the received text checksum for verification
 	String sum = "";
 
 	// Watchdog variables
-	float watchDOG = 0;			// Variable for the watchdog timeout
-	float DOG_TIMEOUT = 2000;	// If no valid char is received in this timeout we restart and calibrate again. in milliseconds
+	uint32_t watchDOG = 0;			// Variable for the watchdog timeout
+	uint32_t DOG_TIMEOUT = 2000;	// If no valid char is received in this timeout we restart and calibrate again. in milliseconds
 
 	// State variables
 	bool calibrated = false;
@@ -63,14 +61,14 @@ private:
 	bool EOT = false;	// End of transmission, true when transmission ends or watchdog kicks in.
 	bool ETX = false;
 
-	float getLight();
-	float getValue();
-	int getLevel();
-	int closerLevel(float reading);
 	bool calibrate();
+	bool getLight();
 	char getChar();
-	int checksum();
+	bool getLevel();
+	bool getRawLevel();
+	bool checksum();
 	void feedDOG();
 	bool dogBite();
 	void debugOUT(String debugText, bool newLine=true);
+
 };

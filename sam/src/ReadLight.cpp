@@ -62,11 +62,23 @@ FLOW
 
 //Setup must be executed before read
 void ReadLight::setup() {
-    Wire.begin();
-    reset();
-    feedDOG();          // Start timer for watchdog
+  // Wire.begin();
+  reset();
+  feedDOG();          // Start timer for watchdog
 
-    debugFlag = true;   // Remove for production
+  debugFlag = true;   // Remove for production
+
+  // Set values for light readings (only once)
+  uint8_t DATA [8] = {0x07, TIME0, 0x00 ,0x00, 0x00, 0xFF, 0xFF ,0x00} ;
+
+  Wire.beginTransmission(BH1730);
+  Wire.write(0x80|0x00);
+  for(int i= 0; i<8; i++) Wire.write(DATA[i]);
+  Wire.endTransmission();
+  delay(20);
+  Wire.beginTransmission(BH1730);
+  Wire.write(0x94);
+  Wire.endTransmission();
 }
 
 /*
@@ -74,132 +86,51 @@ void ReadLight::setup() {
  */
 dataLight ReadLight::read() {
 
-  if (!calibrated) calibrate();
-  else {
-    
-    if (dogBite()) return results;
-    
-    if (!ETX) {
-      // Get char
-      char b = getChar();
+    if (!calibrated) calibrate();
+    else {
+      
+      if (dogBite()) return results;
+      
+      if (!ETX) {
+        // Get char
+        char b = getChar();
 
-      // Start of text
-      if (b == 0x02) {
-        debugOUT(F("STX received!!!"));
-        localCheckSum = 0;
-        TransmittingText = true;
-        feedDOG();
-      } else if (b == 0x03) {
-        // End of text signal
-        debugOUT(F("ETX received!!!"));
-        ETX = true;
-        TransmittingText = false;
-        feedDOG();
-      } else if (b == 0x04) {
-        // End of transfer
-        debugOUT(F("EOT received!!!"));
-        EOT = true;
-        feedDOG();
-      } else if (TransmittingText && b != 0x00) {
-        // If received char its not a newline, we store it in buffer
-        if (b != 0x0A) {
-          results.lines[results.lineIndex].concat(b);
+        // Start of text
+        if (b == 0x02) {
+          debugOUT(F("STX received!!!"));
+          localCheckSum = 0;
+          TransmittingText = true;
           feedDOG();
-        } else {
-          // If we receive a new line store it in results and restart buffer
-          debugOUT(results.lines[results.lineIndex]);
-          results.lineIndex++;
+        } else if (b == 0x03) {
+          // End of text signal
+          debugOUT(F("ETX received!!!"));
+          ETX = true;
+          TransmittingText = false;
           feedDOG();
-        }
-      } 
-    } else {
-      int checksumResult = checksum();
-       // Verify checksum and finish
-      if (checksumResult == 1) {
-        results.ok = true;
-        return results;
-      } else if (checksumResult == 0) {
-        //aqui hay que retornar un error
-        results.ok = false;
-        return results;
+        } else if (b == 0x04) {
+          // End of transfer
+          debugOUT(F("EOT received!!!"));
+          EOT = true;
+          feedDOG();
+        } else if (TransmittingText && b != 0x00) {
+          // If received char its not a newline, we store it in buffer
+          if (b != 0x0A) {
+            results.lines[results.lineIndex].concat(b);
+            feedDOG();
+          } else {
+            // If we receive a new line store it in results and restart buffer
+            debugOUT(results.lines[results.lineIndex]);
+            results.lineIndex++;
+            feedDOG();
+          }
+        } 
+      } else {
+        // Verify checksum and finish
+        if (checksum()) return results;
       }
     }
-  }
-  results.ok = false;
   return results;
 }
-
-
-/*
- *  Check if we need a restart
- *  @return True if timeout has been reached
- */
-bool ReadLight::dogBite() {
-	if (millis() - watchDOG > DOG_TIMEOUT) {
-    debugOUT(F("watchdog timeout!!"));
-    reset();
-    feedDOG();
-		return true;
-	}
-	return false;
-} 
-
-void ReadLight::reset() {
-  debugOUT(F("Resetting readlight"));
-  calibrated = false;
-  currentValue = 0;
-  oldLevel = 0;
-  octalString = "0";
-  newLevel = 0;
-  sum = "";
-  EOT = false;
-  ETX = false;
-  TransmittingText = false;
-  for (int i=0; i<8; ++i) results.lines[i] = "";
-  results.ok = false;
-  results.lineIndex = 0;
-}
-
-
-/*
- *  Avoid the watchdog timer to trigger a restart()
- */
-void ReadLight::feedDOG() {
-	watchDOG = millis();
-}
-
-
-/*
- *  Gets the checksum from sender and compare it with the calculated from received text.
- *  @return True is checksum is OK, False otherwise
- */
-int ReadLight::checksum(){
-  
-  int thisLev = getLevel();
-  if (thisLev != -1) {
-    sum.concat(thisLev);
-    feedDOG();
-  }
-
-  // Gets checksum digits (6) sended from the screen
-  if (sum.length() > 5) {
-
-    int receivedInt = strtol(sum.c_str(), NULL, 8);
-
-    if (receivedInt == localCheckSum - 3) {
-      debugOUT(F("  Checksum OK!!"));
-      sum = "";
-      return 1;
-    } else {
-      debugOUT(F("  Checksum ERROR!!"));
-      sum = "";
-      return 0;
-    }
-  }
-  return -1;
-}
-
-
 
 /*
  *  Calibrates level color creating a table with valid level values from 0 to levelNum.
@@ -210,55 +141,96 @@ bool ReadLight::calibrate() {
 
   feedDOG();
 
-    if (millis() - getValueTimer > getValueRetry) {
-      
-      // Get new value
-      currentValue = getValue();
+  // If we are no ready for a new reading return
+  if (!getLight()) return false;
 
-      getValueTimer = millis();
+  // If the new value difference from previous is less than tolerance we use it.
+  if (abs(newReading - OldReading) < tolerance) readingRepetitions++;
+  else readingRepetitions = 0;
+  
+  // Save old reading for future comparisons
+  OldReading = newReading;
 
-      if (currentValue > -1){
-        // I value is bigger than previous go up one level
-        if (currentValue > oldValue) {
-          newLevel ++;
-          levels[newLevel] = currentValue;
-          oldValue = currentValue;
-          return false;
-        } else {
-          // If we reach the levelnum we are done!
-          if (newLevel + 1 == levelNum) {
-            debugOUT(F("Calibrated!!"));
-            calibrated = true;
-            for (int i = 0; i<levelNum; i++) {
-              debugOUT(String(i) + F(": ") + String(levels[i]));
-            }
+  // We need MIN_REP repetitions in reading to consider it valid.
+  if (readingRepetitions == MIN_REP) newValue = newReading;
+  else return false;
+  
+  // If value is bigger than previous go up one level
+  if (newValue > oldValue) {
+    newLevel ++;
+    levels[newLevel] = newValue;
+    oldValue = newValue;
+    return false;                       // Not yet there!
+  } else {
+    // If we reach the levelnum we are done!
+    if (newLevel + 1 == levelNum) {
 
-            // Keep the watchdog timer cool
-            feedDOG();
-            return true;
-          } 
+      debugOUT(F("Calibrated!!"));
+      calibrated = true;
+      for (int i = 0; i<levelNum; i++) debugOUT(String(i) + F(": ") + String(levels[i]));
 
-          // no calibration sequence found return false
-          oldValue = currentValue;
-          newLevel = 0;
-          return false;
-        }
-      }
-    }
+      // Keep the watchdog timer cool
+      feedDOG();
+      return true;
+    } 
+
+    // no calibration sequence found, return false
+    oldValue = newValue;
+    newLevel = 0;
+    return false;
+  }
   return false;
 }
 
+/*
+ *   Gets a raw reading from BH1730 light sensor. The resolution and speed depends on TIME0
+ *   @return raw reading of the light sensor
+ */
+bool ReadLight::getLight() {
+ /*    
+  * TIME0 posible values, more time = more resolution
+  * 0xA0 (~3200 values in 260 ms)
+  * 0xB0 (~2100 values in 220 ms)
+  * 0xC0 (~1300 values in 180 ms)
+  * 0xD0 (~800 values in 130 ms)
+  * 0xE0 (~350 values in 88 ms)
+  * 0xF0 (~80 values in 45 ms)
+  * 0xFA (12 values in 18 ms)
+  * 0XFB (8 values in 15 ms)
+  * 
+  * The best working option is 0xFB: using 9 values and printing output from screen at intervals of 70ms
+  */
+
+  if (millis() - readyTimer > readyPause + 1) {
+    readyTimer = millis();
+    Wire.requestFrom(BH1730, 4);
+    uint16_t DATA0 = Wire.read();
+    DATA0=DATA0|(Wire.read()<<8);
+    newReading = DATA0;
+    return true;
+  } else {
+    return false;
+  }
+}
 
 /* 
- *  Gets a char from 3 valid values obtainde from light sensor
+ *  Gets a char from 3 valid values obtained from light sensor
  *  @return obtained char
  */
 char ReadLight::getChar() {
-  
-  int thisLev = getLevel();
 
-  if(thisLev != -1) {
-    octalString.concat(thisLev);
+  if (getLevel()) {
+
+    // Exception for clearing INIT chars 0808
+    if (!TransmittingText) {
+      if (newLevel == 2) {
+        octalString = "0"; //reset Container String
+        return 0x02;
+      }  
+    }
+    
+
+    octalString.concat(newLevel);
 
     if (octalString.length() > 3) {
 
@@ -278,88 +250,127 @@ char ReadLight::getChar() {
   return 0x00;
 }
 
-
 /*
  *  Gets a valid level from a lightsensor value between the grey levels
  *  @return a grey level
  */
-int ReadLight::getLevel() {
+bool ReadLight::getLevel() {
 
-  // Finds de closer calibrated level
-  int clevel = closerLevel(getLight());
+  // If we are not yet ready for sensor reading... 
+  if (!getRawLevel()) return false;
+  else {
 
-  // If level has changed may be a good one
-  if (clevel != oldLevel) {
+    // If we do get a reading and is different from previous, start counting repetitions
+    if (newLevel != oldLevel) {
+      oldLevel = newLevel;
+      levelRepetitions = 1;
+      return false;
 
-    // Takes MIN_REP readings (Already had taken one just before) and if value persist its considered a good one
-    for (int i=0; i<MIN_REP-1; i++) {
-      if (clevel != closerLevel(getLight())) return -1;
-    }
+    } else levelRepetitions++;
+  }
 
-    // Save old value for REPEAT cases
-    int preold = oldLevel;
+  // If we have MIN_REP repetitions, we have a good reading!
+  if (levelRepetitions == MIN_REP) {
 
-    // Save good value for next evaluation
-    oldLevel = clevel;
+    debugOUT(String(newLevel), false);
+
+    if (newLevel+1 == levelNum) {
+      newLevel = lastGoodLevel;
+    } 
+
+    // Store the new level for future comparisons
+    lastGoodLevel = newLevel;
     
-    // If we receive REPEAT, send the last value
-    if (clevel+1 == levelNum) {
-      debugOUT(String(preold), false);
-      return preold;
-    } else {
-      // Or send the good one
-      debugOUT(String(clevel), false);
-      return clevel;
-    }
-  }  
-  // If still no change in color, return empty
-  return -1;
+    return true;
+
+  } else {
+    return false;
+  }
 }
 
+bool ReadLight::getRawLevel() {
 
-int ReadLight::closerLevel(float reading) {
-  int clevel = 0;
-  float minDiff = abs(levels[0] - reading);
-  for (int i=1; i<levelNum; ++i) {
-    float thisDiff = abs(levels[i] - reading);
+  // Get light reading from sensor
+  if (!getLight()) return false;
 
+  // Find the level of this reading
+  newLevel = 0;
+  uint16_t minDiff = abs(levels[newLevel] - newReading);
+  for (uint8_t i=1; i<levelNum; ++i) {
+    uint16_t thisDiff = abs(levels[i] - newReading);
     if (thisDiff < minDiff) {
       minDiff = thisDiff;
-      clevel = i;
+      newLevel = i;
     }
   }
-  return clevel;
-}
 
+  return true;
+}
 
 /*
- *  Only used for calibration (before we have the levels setted)
- *  Checks if the value has changed and if it stays stable for at least two readings it is considered a valid value
- *  @return a validated light sensor value 
+ *  Gets the checksum from sender and compare it with the calculated from received text.
+ *  @return True is checksum is OK, False otherwise
  */
-float ReadLight::getValue() {
+bool ReadLight::checksum(){
+  
+  if (!getLevel()) return false;
 
-  // Getting reading from light sensor
-  newReading = getLight();
+  sum.concat(newLevel);
+  feedDOG();
 
-  // If the new value difference from previous is less than tolerance we use it.
-  if (abs(newReading - OldReading) < tolerance) {
-    repetition++;
-  } else {
-    repetition = 0;
+  // Gets checksum digits (6) sended from the screen
+  if (sum.length() > 5) {
+
+    int receivedInt = strtol(sum.c_str(), NULL, 8);
+
+    if (receivedInt == localCheckSum - 3) {
+      debugOUT(F("  Checksum OK!!"));
+      results.ok = true;
+      return true;      
+    } else {
+      debugOUT(F("  Checksum ERROR!!"));
+      reset();
+    }
   }
-
-  // Save old reading for future comparisons
-  OldReading = newReading;
-
-  // We need ONE repetition in reading to consider it valid.
-  if (repetition == MIN_REP) {
-    return newReading;
-  } else {
-    return -1;
-  }
+  return false;
 }
 
+/*
+ *  Avoid the watchdog timer to trigger a restart()
+ */
+void ReadLight::feedDOG() {
+  watchDOG = millis();
+}
+
+/*
+ *  Check if we need a restart
+ *  @return True if timeout has been reached
+ */
+bool ReadLight::dogBite() {
+  if (millis() - watchDOG > DOG_TIMEOUT) {
+    debugOUT(F("watchdog timeout!!"));
+    reset();
+    return true;
+  }
+  return false;
+} 
+
+void ReadLight::reset() {
+  debugOUT(F("Resetting readlight"));
+  calibrated = false;
+  newValue = 0;
+  oldValue = 0;
+  newLevel = 0;
+  oldLevel = -1;
+  octalString = "0";
+  sum = "";
+  EOT = false;
+  ETX = false;
+  TransmittingText = false;
+  for (int i=0; i<8; ++i) results.lines[i] = "";
+  results.ok = false;
+  results.lineIndex = 0;
+}
 
 void ReadLight::debugOUT(String debugText, bool newLine) {
 
@@ -367,62 +378,4 @@ void ReadLight::debugOUT(String debugText, bool newLine) {
     if (newLine) SerialUSB.println(debugText);
     else SerialUSB.print(debugText);
   }
-}
-
-
-/*
- *   Gets a raw reading from BH1730 light sensor. The resolution and speed depends on TIME0
- *   @return raw reading of the light sensor
- */
-float ReadLight::getLight() {
- /*    
-  * TIME0 posible values, more time = more resolution
-  * 0xA0 (~3200 values in 260 ms)
-  * 0xB0 (~2100 values in 220 ms)
-  * 0xC0 (~1300 values in 180 ms)
-  * 0xD0 (~800 values in 130 ms)
-  * 0xE0 (~350 values in 88 ms)
-  * 0xF0 (~80 values in 45 ms)
-  * 0xFA (12 values in 18 ms)
-  * 0XFB (8 values in 15 ms)
-  * 
-  * The best working option is 0xFB: using 9 values and printing output from screen at intervals of 70ms
-  */
-
-  uint8_t GAIN0 = 0x00;     //x1
-  uint8_t CONTROL = 0x07;  //continous mode only type 0 measurement 
-      
-  uint8_t DATA [8] = {CONTROL, TIME0, 0x00 ,0x00, 0x00, 0xFF, 0xFF ,GAIN0} ;
-
-  float Tint = 2.8/1000.0;
-  float itime_ms = Tint * 964 * (float)(256 - TIME0);
-      
-  uint16_t DATA0 = 0;
-  uint16_t DATA1 = 0;
-      
-  Wire.beginTransmission(BH1730);
-  Wire.write(0x80|0x00);
-  for(int i= 0; i<8; i++) Wire.write(DATA[i]);
-  Wire.endTransmission();
-  delay(itime_ms + 1);
-  Wire.beginTransmission(BH1730);
-  Wire.write(0x94);
-  Wire.endTransmission();
-  Wire.requestFrom(BH1730, 4);
-  DATA0 = Wire.read();
-  DATA0=DATA0|(Wire.read()<<8);
-  DATA1 = Wire.read();
-  DATA1=DATA1|(Wire.read()<<8);
-      
-  float Lx = 0;
-  float cons = 102.6 / itime_ms;
-  float comp = DATA1/DATA0;
-
-  if      (comp < 0.26) Lx = ( 1.290*(float)DATA0 - 2.733*(float)DATA1 ) / cons;
-  else if (comp < 0.55) Lx = ( 0.795*(float)DATA0 - 0.859*(float)DATA1 ) / cons;
-  else if (comp < 1.09) Lx = ( 0.510*(float)DATA0 - 0.345*(float)DATA1 ) / cons;
-  else if (comp < 2.13) Lx = ( 0.276*(float)DATA0 - 0.130*(float)DATA1 ) / cons;
-  else                  Lx = 0;
-
-  return Lx;
 }

@@ -3,18 +3,11 @@
 SckESP esp;
 
 void setup() {
-  
 	esp.setup();
-	esp.start();
-
 }
 
 void loop() {
-
-	// Serial.println(esp.fs_info.totalBytes);
-	// Serial.println(esp.fs_info.blockSize);
-	esp.update(); 
-	// delay(2000);
+	esp.update();
 }
 
 
@@ -23,4 +16,16 @@ void LedToggleLeft() {
 }
 void LedToggleRight() {
 	esp.ledToggle(esp.ledRight);
+}
+time_t ntpProvider() {
+	return esp.getNtpTime();
+}
+void extRoot() {
+	esp.webRoot();	
+}
+void extSet() {
+	esp.webSet();
+}
+void extShow() {
+	esp.webShow();	
 }

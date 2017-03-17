@@ -4,16 +4,21 @@
 
 #include <Arduino.h>
 #include <RTCZero.h>
+#include <time.h>
 #include <Wire.h>
 #include <SPI.h>
 #include "SdFat.h"
 #include "WatchdogSAMD.h"
 // #include <Scheduler.h>
+#include <ArduinoJson.h>
 #include <FlashStorage.h>
-#include <Bridge.h>
 
+#include <Bridge.h>
+#include <Sensors.h>
 #include "ReadLight.h"
 #include "sckAux.h"
+
+
 
 /* 	-------------------------------
 	|	SCK Baseboard Pinout	  |
@@ -75,6 +80,10 @@
 #define ESP_FLASH_SPEED 230400
 
 
+/* 	-----------------
+ 	|	 Modes 	|
+ 	-----------------
+*/
 enum SCKmodes {
 	MODE_AP,
 	MODE_NET,
@@ -88,22 +97,14 @@ enum SCKmodes {
 	MODE_COUNT
 };
 
+
 /* 	-----------------
  	|	 Button 	|
  	-----------------
 */
-class Button {
-public:
-	void setup();
-
-	bool isDown;
-	float lastPress;
-	float lastRelease;
-
-	float longPressDuration;
-	float veryLongPressDuration;
-};
 void ISR_button();
+
+void ISR_alarm();
 
 
 /* Color definition
@@ -128,13 +129,13 @@ struct RGBcolor {
 */
 class Led {
 public:
+	enum pulseModes {PULSE_SOFT, PULSE_HARD_SLOW, PULSE_HARD_FAST, PULSE_STATIC};
 	void setup();
-	void update(SCKmodes newMode);
+	void update(SCKmodes newMode, uint8_t newPulseMode=0);
 	void reading();
 	void off();
 	void bridge();
 	void wifiOK();
-	enum pulseModes {PULSE_SOFT, PULSE_HARD, PULSE_STATIC};
 	void tick();
 
 	// Need a retouch
@@ -143,31 +144,37 @@ public:
 	HSIcolor greenHSI 		= {120,	1.0,	1.0};
 	HSIcolor blueHSI 		= {233,	1.0,	1.0};
 	HSIcolor pinkHSI 		= {308,	0.85,	1.0};
-	HSIcolor yellowHSI 	= {26,	0.87,	1.0};
-	HSIcolor orangeHSI 	= {12,	1.0,	1.0};
+	HSIcolor yellowHSI 		= {26,	0.87,	1.0};
+	HSIcolor orangeHSI 		= {10,	1.0,	1.0};
 	HSIcolor lightBLueHSI 	= {170, 1.0,	1.0};
 
 
 	RGBcolor whiteRGB 		= {254,	254,	254};
-	RGBcolor redRGB 		= {224,	23,		6};
+	RGBcolor redRGB 		= {250,	4,		6};
 	RGBcolor greenRGB 		= {0,	254,	0};
 	RGBcolor blueRGB 		= {0,	29,		225};
 	RGBcolor pinkRGB 		= {129,	12,		112};
 	RGBcolor yellowRGB 		= {154,	100,	0};
-	RGBcolor orangeRGB 		= {220,	111,	0};
+	RGBcolor orangeRGB 		= {215,	39,		0};
 	RGBcolor lightBlueRGB 	= {0, 	140,	114};
 	RGBcolor lightGreenRGB 	= {0, 	254,	50};
 	RGBcolor offRGB 		= {0, 	0,		0};
 
 	const RGBcolor pulseBlue[25] PROGMEM = {{0,1,9},{0,2,18},{0,3,27},{0,4,36},{0,5,45},{0,7,54},{0,8,63},{0,9,72},{0,10,81},{0,11,90},{0,13,99},{0,14,108},{0,15,117},{0,16,126},{0,17,135},{0,19,144},{0,20,153},{0,21,162},{0,22,171},{0,23,180},{0,25,189},{0,26,198},{0,27,207},{0,28,216},{0,29,225}};
-	const RGBcolor pulseRed[25] PROGMEM	= {{8,1,0},{17,2,0},{26,3,0},{35,4,1},{44,5,1},{52,6,1},{61,7,1},{70,8,2},{79,9,2},{88,10,2},{97,12,2},{105,13,3},{114,14,3},{123,15,3},{132,16,4},{141,17,4},{150,18,4},{158,19,4},{167,20,5},{176,21,5},{185,23,5},{194,24,5},{203,25,6},{211,26,6},{220,27,6}};
+	const RGBcolor pulseRed[25] PROGMEM	= {{250,4,0},{240,4,0},{230,4,0},{220,4,0},{210,4,0},{200,3,0},{190,3,0},{180,3,0},{170,3,0},{160,3,0},{150,2,0},{140,2,0},{130,2,0},{120,2,0},{110,2,0},{100,1,0},{90,1,0},{80,1,0},{70,1,0},{60,1,0},{50,0,0},{40,0,0},{30,0,0},{20,0,0},{10,0,0}};
 	const RGBcolor pulsePink[25] PROGMEM = {{5,0,4},{10,1,8},{15,1,13},{20,2,17},{25,2,22},{31,3,26},{36,3,31},{41,4,35},{46,4,40},{51,5,44},{57,5,49},{62,6,53},{67,6,58},{72,7,62},{77,7,67},{83,8,71},{88,8,76},{93,9,80},{98,9,85},{103,10,89},{109,10,94},{114,11,98},{119,11,103},{124,12,107},{129,12,112}};
+	const RGBcolor pulseOFF[25] PROGMEM = {{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}};
 
 	// Hardware timer
 	uint8_t refreshPeriod = 40;
 
+	// Hard pulses
+	uint16_t slowHard = 300;
+	uint16_t fastHard = 80;
+	uint32_t hardTimer; 
+
 	pulseModes pulseMode = PULSE_SOFT;
-	float timerReading;   //substituir esto por una libreria de timers
+	uint32_t timerReading;   //substituir esto por una libreria de timers
 
 private:
 	bool dir;
@@ -177,7 +184,6 @@ private:
 	void setRGBColor(RGBcolor myColor);
 	void setHSIColor(float h, float s, float i);
 };
-
 
 /* 	----------------------------------
  	|	SmartCitizen Kit Baseboard   |
@@ -192,30 +198,59 @@ public:
 	void setup();
 	void update();
 
+	// Timer
+	bool timerRun();
+	enum TimerAction { 
+		ACTION_NULL, 
+		ACTION_CLEAR_ESP_BOOTING,
+		ACTION_ESP_ON,
+		ACTION_ESP_REBOOT,
+		ACTION_CHECK_SD,
+		ACTION_GET_ESP_STATUS, 
+		ACTION_LONG_PRESS,
+		ACTION_VERY_LONG_PRESS, 
+		ACTION_FACTORY_RESET,
+		ACTION_READING_FINISHED,
+		ACTION_PUBLISH,
+	};
+	struct OneTimer	{
+		TimerAction action = ACTION_NULL;
+		bool periodic = false;
+		uint32_t interval = 0;
+		uint32_t started = 0;
+	};
+	static const uint8_t timerSlots = 8;
+	OneTimer timers[timerSlots];
+	void timerSet(TimerAction action, uint16_t interval, bool isPeriodic=false);
+	bool timerClear(TimerAction action);
+	bool timerExists(TimerAction action);
+
 	// Sensors (REACOMODAR)
-	SensorsData readings;
-	float postInterval = 15;   // seconds
-	float intervalTimer;
+	Sensors sensors;
+	const uint8_t READING_MAX_TIME = 5;			// In seconds
+	void sensorRead(SensorType toRead);
+	void sensorReadAll();
+	bool readingFinished();
+	void sensorPublish();
+	bool ESPpublish();
+	bool publishToSD(bool platformPublishedOK=false);
 	float lastPublishTime;
-	float publishAnswerTimeout = 5000;
 
 	// Configuration
 	String version = "SCK-1.5_0.1-";
 	Credentials credentials;
-	void saveCredentials();
-	bool loadCredentials();
-	void syncCredentials();
-	Token token;
-	void saveToken();
-	bool loadToken();
-	void syncToken();
-
+	void sendNetwork();
+	void clearNetworks();
+	char token[8];
+	void sendToken();
+	Configuration configuration;
+	void saveConf();
+	
 	// Flags
 	bool onWifi = false;
 	bool hostNameSet = false;
 	bool helloPublished = false;
 	bool onTime = false;
-	uint32_t lastTimeSync = 0;
 	bool onBattery = false;
 	bool charging = false;
 
@@ -232,15 +267,27 @@ public:
 		EXTCOM_ESP_REBOOT,
 		EXTCOM_ESP_OFF,
 		EXTCOM_ESP_ON,
+		EXTCOM_ESP_START_AP,
+		EXTCOM_ESP_STOP_AP,
+		EXTCOM_ESP_START_WEB,
+		EXTCOM_ESP_STOP_WEB,
 		EXTCOM_ESP_SLEEP,
+		EXTCOM_ESP_WAKEUP,
+		EXTCOM_GET_APLIST,
+		EXTCOM_ESP_SERIAL_DEBUG_ON,
+		EXTCOM_ESP_SERIAL_DEBUG_OFF,
+		EXTCOM_ESP_LED_ON,
+		EXTCOM_ESP_LED_OFF,
 
 		// Configuration commands
 		EXTCOM_SET_WIFI,
 		EXTCOM_GET_WIFI,
-		EXTCOM_SYNC_WIFI,
+		EXTCOM_GET_BEST_WIFI,
+		EXTCOM_CLEAR_WIFI,
+		EXTCOM_GET_IP,
 		EXTCOM_SET_TOKEN,
 		EXTCOM_GET_TOKEN,
-		EXTCOM_SYNC_TOKEN,
+		EXTCOM_CLEAR_TOKEN,
 		EXTCOM_GET_VERSION,
 		EXTCOM_SYNC_CONFIG,
 		EXTCOM_DOWNLOAD_CONFIG,
@@ -258,21 +305,36 @@ public:
 		EXTCOM_GET_OUTLEVEL,
 		EXTCOM_SET_LED,				// @params: off, (to implement: red, blue, green, etc)
 		EXTCOM_GET_URBAN_PRESENT,
+		EXTCOM_READLIGHT_ON,
+		EXTCOM_READLIGHT_OFF,
+		EXTCOM_READLIGHT_RESET,
 
 		// Time configuration
 		EXTCOM_SET_TIME,			// @params: epoch time
-		EXTCOM_GET_TIME,			// @params: iso (default), epoch
 		EXTCOM_SYNC_TIME,
 
 		// SD card
 		EXTCOM_SD_PRESENT,
 
 		// Sensor readings
+		EXTCOM_GET_TIME,			// @params: iso (default), epoch
+		EXTCOM_GET_APCOUNT,
+		EXTCOM_GET_NOISE,
+		EXTCOM_GET_HUMIDITY,
+		EXTCOM_GET_TEMPERATURE,
 		EXTCOM_GET_BATTERY,
+		EXTCOM_GET_LIGHT,
+		EXTCOM_GET_CO,
+		EXTCOM_GET_NO2,
+		EXTCOM_GET_VOLTIN,
+		EXTCOM_GET_ALPHADELTA,
+		EXTCOM_ALPHADELTA_POT,
+
+		EXTCOM_PUBLISH,
 
 		// Other
-		EXTCOM_FORCE_PUBLISH,
-		EXTCOM_GET_APLIST,
+		EXTCOM_GET_CHAN0,
+		EXTCOM_GET_CHAN1,
 		EXTCOM_HELP,
 
 		// Count
@@ -308,82 +370,67 @@ public:
 	void buttonEvent();
 	void buttonDown();
 	void buttonUp();
-	void shortPress();
 	void longPress();
 	void veryLongPress();
 	void softReset();
-	float longPressInterval = 3000;
-	float veryLongPressInterval = 10000;
-	void longPressStillDown();
-	void veryLongPressStillDown();
-	bool longPressStillDownTrigered = false;
-	bool veryLongPressStillDownTrigered = false;
+	uint16_t longPressInterval = 5000;
+	uint16_t veryLongPressInterval = 15000;
+	uint32_t butLastEvent = 0;
+	bool butIsDown = false;
+	void checkFactoryReset();
 	void factoryReset();
+
 
 	//ESP8266
 	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
 	void ESPcontrol(ESPcontrols myESPControl);
-	bool ESPon;
-	bool ESPworking = false;
-	void ESPsend(String payload);
-	String ESPsendCommand(String command, float timeout=2000, bool external=false);
-	void ESPsend(int command);
-	// bool ESPsetWifi(String ssid, String pass, int retrys=0);
-	// bool ESPgetWifi();
-	// bool ESPsyncWifi(int retrys=0);
-	// String ESPssid;
-	// String ESPpass;
-	// bool wifiSynced = false;
-	// bool ESPsetToken(String token, int retrys=0);
-	// bool ESPgetToken();
-	// bool ESPsyncToken(int retrys=0);
-	// String ESPtoken;
-	// bool tokenSynced = false;
-	// enum espMes {
-	// 	ESP_NOT_COMMAND,
-	// 	ESP_WIFI_CONNECTED,
-	// 	ESP_WIFI_ERROR,
-	// 	ESP_WIFI_ERROR_PASS,
-	// 	ESP_WIFI_ERROR_AP,
-	// 	ESP_TIME_FAIL,
-	// 	ESP_TIME_NEW,
-	// 	ESP_MODE_AP,
-	// 	ESP_MODE_STA,
-	// 	ESP_WEB_STARTED,
-	// 	ESP_MQTT_HELLO_OK,
-	// 	ESP_MQTT_PUBLISH_OK,
-	// 	ESP_MQTT_ERROR,
-	// 	ESP_HOSTNAME_UPDATED
-	// };
-	void espMessage(String message);
-	void ESPpublish();
-	uint8_t publishRetryCounter = 0;
-	uint8_t maxPublishRetry = 3;
-	float netStatusTimer;
-	float netStatusPeriod = 5000;
+	void ESPqueueMsg(bool sendParam=true, bool waitAnswer=false);
+	void ESPbusUpdate();
+	void ESPprocessMsg();
+	BUS_Serial msgIn;
+	BUS_Serial msgOut;
+	BUS_Serial msgBuff;
+	BUS_Serial BUS_queue[4];
+	const uint16_t answerTimeout = 250;
+	int BUS_queueIndex = -1;
+	bool espSerialDebug = false;
+	bool ESPon = false;
+	bool ESPbooting = false;
 	float espLastOn;
 	float espTotalOnTime = 0;
+	// --- esp status
+	void getStatus();
+	void processStatus();
+	ESPstatus espStatus;
+	ESPstatus prevEspStatus;
+	float statusPoolingInterval = 1000;		// ESP status pooling interval in ms
 
 	// Time
 	bool setTime(String epoch);
 	String ISOtime();
+	String epoch2iso(uint32_t epochTime);
 
 	// SDcard
+	// SdFat sd;
 	float FileSizeLimit = 64000000;
 	bool sdPresent();
 	// File publishFile;
 	String publishFileName = "POST001.CSV";
 	bool openPublishFile();
 	// File logFile;
-	// String logFileName = "sck.log";
-	// void openLogFile();
+	String logFileName = "SCK.LOG";
+	String oldLogFileName = "SCK_OLD.LOG";
+	bool openLogFile();
 
 	// Battery
 	uint16_t getBatteryVoltage();
 	uint16_t getCharger();
+	uint16_t getChann0();
+	uint16_t getChann1();
 	const uint16_t batteryMax = 4208;
 	const uint16_t batteryMin = 3000;
 	uint16_t readADC(byte channel);
+	bool isCharging = false;
 
 
 	//TEMP hay que acomodar
@@ -396,23 +443,23 @@ public:
 	// LightRead
 	ReadLight readLight;
 	dataLight lightResults;
-	bool readLightEnabled = true;
+	bool readLightEnabled = false;
 
 	// Serial buffers
 	String serialBuff;
 	String espBuff;
 
 	// Peripherals
-	Button button;
 	Led led;
 	RTCZero rtc;
 	
 	// Urban board
 	friend class SckUrban;
 	bool urbanBoardDetected();
+	bool urbanPresent = false;
 
 	// Power
-	void goToSleep();
+	void goToSleep(bool wakeToCheck = true);
 	void wakeUp();
 
 private:

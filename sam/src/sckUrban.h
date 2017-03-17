@@ -1,14 +1,14 @@
 #pragma once
 
-#define kr                  392.1568    //Constante de conversion a resistencia de potenciometrosen ohmios
+#define kr				392.1568    //Constante de conversion a resistencia de potenciometrosen ohmios
 
 //TEMP
-#define SHT21_DIR          	0x40    // Direction of the SHT21
+#define SHT21_DIR       0x40    // SHT21 Temperature and humidity I2C address
+#define BH1730_DIR 		0x29	// Light sensor I2C adress
 
 #include "sckBase.h"
-// #include <Wire.h>
-
-
+#include <Wire.h>
+#include <Arduino.h>
 
 class SckUrban {
 public:
@@ -16,7 +16,7 @@ public:
 	//void setup();
 
 	// Noise
-	float GetNoise();
+	float getNoise();
 	void gainChange(uint8_t value);
 	float getsound();
 	void writeResistorRaw(byte resistor, int value);
@@ -27,6 +27,7 @@ public:
 	uint16_t readSHT(uint8_t type);
 	float getHumidity();
 	float getTemperature();
+	float getLight();
 
 	// Utility functions
 	void writeI2C(byte deviceaddress, byte address, byte data );

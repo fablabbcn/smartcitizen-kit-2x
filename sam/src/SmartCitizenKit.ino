@@ -1,5 +1,4 @@
 #include "sckBase.h"
-#include "sckAux.h"
 
 SckBase base;
 

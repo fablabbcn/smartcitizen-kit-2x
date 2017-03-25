@@ -25,10 +25,11 @@ enum EspCommand {
 	ESP_FACTORY_RESET_EVENT,
 	ESP_CONF_NOT_CHANGED_EVENT,
 	ESP_CONF_CHANGED_EVENT,
+	ESP_DEBUG_EVENT,
 	// 						------ Configuration
 	ESP_WIFI_CONNECT_COM,	//
 	ESP_WIFI_DISCONNECT_COM,//
-	ESP_GET_WIFI_COM,		// @params uint_8t (the index of the network to retrieve)
+	ESP_GET_WIFI_COM,		// @params uint8_t (the index of the network to retrieve)
 	ESP_GET_BEST_WIFI_COM,	// Get best configured network
 	ESP_SET_WIFI_COM,		// @params String ssid, String password
 	ESP_CLEAR_WIFI_COM,			// @params uint8_t index (the index of the network to be cleared)
@@ -52,11 +53,14 @@ enum EspCommand {
 	ESP_MQTT_HELLOW_COM,
 	ESP_MQTT_PUBLISH_COM,	// @params String payload, int QoS
 	ESP_MQTT_SYNC_COM,
+	ESP_MQTT_CLEAR_STATUS,
+	ESP_GET_FREE_HEAP_COM,
+
 	//						------ State
 	ESP_GET_STATUS_COM,		// @return struct espStatus:
 							//		-- wifi: ESP_WIFI_CONNECTED, ESP_WIFI_ERROR, ESP_WIFI_ERROR_PASS, ESP_WIFI_ERROR_AP
 							//		-- net:	ESP_PING_OK, ESP_PING_ERROR
-							//		-- mqtt: ESP_MQTT_HELLO_OK, ESP_MQTT_PUBLISH_OK, ESP_MQTT_ERROR
+							//		-- mqtt: ESP_MQTT_HELLO_OK, ESP_MQTT_PUBLISH_OK, ESP_MQTT_ERROR_EVENT
 							//		-- time: ESP_TIME_FAIL, ESP_TIME_UPDATED
 							//		-- ap: ESP_AP_ON, ESP_AP_OFF
 							//		-- web: ESP_WEB_ON, ESP_WEB_OFF
@@ -69,9 +73,7 @@ enum EspCommand {
 	ESP_LED_ON				// Turn on both leds
 };
 
-// puede ser que el error tenga que ver con mezclar tipos dentro del struct
 struct BUS_Serial {
-	uint32_t time = 0;					// epoch time
 	uint8_t com;
 	char param[240];
 	bool waitAnswer = false;

@@ -3,8 +3,15 @@
 // Structs for SAM <<>> ESP communication
 EasyTransfer BUS_in, BUS_out;
 
+// Wifi client
+WiFiClient wclient;
+
+// MQTT client
+PubSubClient MQTTclient(wclient);
+
 // Web Server
 ESP8266WebServer webServer(80);
+
 // DNS for captive portal
 DNSServer dnsServer;
 
@@ -36,6 +43,7 @@ void SckESP::setup() {
 	WiFi.hostname("smartcitizen");
 	WiFi.persistent(false);		 		// Only write to flash credentials when changed (for protecting flash from wearing out)
 	readNetwork();
+	readToken();
 	startAP();
 };
 void SckESP::update() {
@@ -131,8 +139,7 @@ bool SckESP::processMsg() {
 
 			if (addNetwork()) {
 				readNetwork();
-				msgOut.com = ESP_SET_WIFI_COM;
-				sendNetwork(1);
+				sendNetwork(1, ESP_SET_WIFI_COM);
 				if (WiFi.status() != WL_CONNECTED) tryConnection();
 			} 
 			break;
@@ -224,11 +231,12 @@ bool SckESP::processMsg() {
 	 		break;
 
 	 	} case ESP_GET_APCOUNT_COM: {
-	 		msgOut.com = ESP_GET_APCOUNT_COM;
+	 		
 	 		int n = scanAP();
 			String sn = String(n);
 			clearParam();
 			sn.toCharArray(msgOut.param, 240);
+			msgOut.com = ESP_GET_APCOUNT_COM;
 	 		SAMsendMsg();
 	 		break;
 
@@ -250,10 +258,69 @@ bool SckESP::processMsg() {
 	 		break;
 
 	 	} case ESP_GET_TIME_COM: {
-	 		msgOut.com = ESP_GET_TIME_COM;
+	 		
 			String epochSTR = String(now());
 			clearParam();
 			epochSTR.toCharArray(msgOut.param, 240);
+			msgOut.com = ESP_GET_TIME_COM;
+			SAMsendMsg();
+	 		break;
+
+	 	} case ESP_MQTT_HELLOW_COM: {
+
+	 		// ACK response
+			msgOut.com = ESP_MQTT_HELLOW_COM;
+			clearParam();
+			SAMsendMsg();
+
+	 		if (mqttHellow()) espStatus.mqtt = ESP_MQTT_HELLO_OK_EVENT;
+	 		else espStatus.mqtt = ESP_MQTT_ERROR_EVENT;
+
+	 		break;
+
+	 	} case ESP_MQTT_PUBLISH_COM: {
+
+	 		debugOUT("Receiving new readings...");
+
+	 		// Parse input
+			StaticJsonBuffer<240> jsonBuffer;
+			JsonObject& jsonSensors = jsonBuffer.parseObject(msgIn.param);
+
+			// Iterate over all sensors
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
+				SensorType wichSensor = static_cast<SensorType>(i);
+
+				// Check if sensor exists in SAM readings (we asume that missing sensors are disabled)
+				if (jsonSensors.containsKey(String(i))) {
+
+					if (wichSensor == SENSOR_TIME) {
+						sensors[wichSensor].lastReadingTime = jsonSensors[String(i)];
+					} else {
+						sensors[wichSensor].reading = jsonSensors[String(i)];
+					}
+					sensors[wichSensor].enabled = true;
+				} else {
+					sensors[wichSensor].enabled = false;
+				}
+			}
+
+			// ACK response
+			msgOut.com = ESP_MQTT_PUBLISH_COM;
+			clearParam();
+			SAMsendMsg();
+
+			if (mqttPublish()) espStatus.mqtt = ESP_MQTT_PUBLISH_OK_EVENT;
+			else espStatus.mqtt = ESP_MQTT_ERROR_EVENT;
+	 		break;
+
+	 	} case ESP_MQTT_CLEAR_STATUS: {
+
+	 		espStatus.mqtt = ESP_NULL;
+
+	 		// ACK response
+			msgOut.com = ESP_MQTT_CLEAR_STATUS;
+			clearParam();
 			SAMsendMsg();
 	 		break;
 
@@ -280,30 +347,38 @@ bool SckESP::processMsg() {
 	 		debugOUT(F("Turning debug output OFF"));
 	 		serialDebug = false;
 	 		break;
+	 	} case ESP_GET_FREE_HEAP_COM: {
+
+	 		int f = ESP.getFreeHeap();
+			String free = String(f);
+			clearParam();
+			free.toCharArray(msgOut.param, 240);
+			msgOut.com = ESP_GET_FREE_HEAP_COM;
+	 		SAMsendMsg();
+	 		break;
+
 	 	}
 	}
 
 	// Clear msg
-	msgIn.time = 0;
 	msgIn.com = 0;
 	strncpy(msgIn.param, "", 240);
 };
 void SckESP::debugOUT(String strOut) {
 
-	// TODO implementar otras vias de debug output
 	if (serialDebug) { 
-		Serial.print(F("ESP > "));
-		Serial.println(strOut);
+		msgOut.com = ESP_DEBUG_EVENT;
+		strOut.toCharArray(msgOut.param, 240);
+		SAMsendMsg();
 	}
 };
 void SckESP::SAMsendMsg() {
 
 	if (sizeof(msgOut.param) > 240) {
 		// TODO handle multiple packages in msgout
-		debugOUT(F("WARNING: Serial package is more than 256 bytes of size!!!"));
+		debugOUT(F("WARNING: Serial package is too big!!!"));
 	}
 
-	msgOut.time = now();
 	BUS_out.sendData();
 };
 void SckESP::sendStatus() {
@@ -329,7 +404,7 @@ void SckESP::clearParam() {
 
 	memset(msgOut.param, 0, sizeof(msgOut.param));
 };
-void SckESP::sendNetwork(uint8_t index) {
+void SckESP::sendNetwork(uint8_t index, EspCommand comm) {
 
 	// Prepare json for sending
 	StaticJsonBuffer<240> jsonBuffer;
@@ -337,6 +412,7 @@ void SckESP::sendNetwork(uint8_t index) {
 	jsonNet["n"] = index;
 	jsonNet["s"] = credentials.ssid;
 	jsonNet["p"] = credentials.password;
+	msgOut.com = comm;
 	clearParam();
 	jsonNet.printTo(msgOut.param, 240);
 	SAMsendMsg();
@@ -347,7 +423,6 @@ void SckESP::SAMlistSavedNetworks() {
 
 	if (netCount > 0) {
 
-		msgOut.com = ESP_GET_WIFI_COM;
 		for (int8_t i=0;  i<netCount; i++) {
 			readNetwork(i);
 			delay(5);
@@ -935,16 +1010,126 @@ void SckESP::readToken() {
 //	|	MQTT 	|
 //	-------------
 //
-bool SckESP::mqttStart(String server) {
+bool SckESP::mqttStart() {
+	
+	debugOUT(F("Connecting to MQTT server..."));
 
+	MQTTclient.setServer(MQTT_SERVER_NAME, 1883);
+
+	if (MQTTclient.connect(token)) {
+		debugOUT(F("Established MQTT connection..."));
+		return true;
+	} else {
+		debugOUT(F("ERROR: MQTT connection failed!!!"));
+		debugOUT(String(MQTTclient.state()));
+		espStatus.mqtt = ESP_MQTT_ERROR_EVENT;
+		return false;
+	}
 };
 bool SckESP::mqttHellow() {
 
+	debugOUT("Trying MQTT Hello...");
+
+	if (!MQTTclient.connected()) {
+    	mqttStart();
+  	}
+
+	String helloTopic = String F("device/sck/") + String(token) + F("/hello");
+	char ht[helloTopic.length()+1];
+	helloTopic.toCharArray(ht, helloTopic.length()+1);
+
+	String helloPayload = String(token) + F(":Hello");
+	char pl[helloPayload.length()+1];
+	helloPayload.toCharArray(pl, helloPayload.length()+1);
+
+	debugOUT(String(ht));
+	debugOUT(String(pl));
+
+	if (MQTTclient.publish(ht, pl)) return true;
+
+	return false;
 };
+bool SckESP::mqttPublish(){
+
+	debugOUT("Trying MQTT publish...");
+
+	if (!MQTTclient.connected()) {
+    	mqttStart();
+  	}
+
+  	String Publishtopic = String F("device/sck/") + String(token) + F("/readings");
+	char ht[Publishtopic.length()+1];
+	Publishtopic.toCharArray(ht, Publishtopic.length()+1);
+
+	/* Example
+	{	"data":[
+			{"recorded_at":"2017-03-24T13:35:14Z",
+				"sensors":[
+					{"id":29,"value":48.45},
+					{"id":13,"value":66},
+					{"id":12,"value":28},
+					{"id":10,"value":4.45}
+				]
+			}
+		]
+	}
+		*/
+
+	// Prepare json for sending (very big buffer)
+	uint16_t bufferSize = 4096;
+	DynamicJsonBuffer jsonBuffer(bufferSize);
+	
+	// Root object
+	JsonObject& jsonPublish = jsonBuffer.createObject();
+
+	// Data array
+	JsonArray& jsonData = jsonPublish.createNestedArray("data");
+
+	// This time data object
+	JsonObject& jsonThisTime = jsonData.createNestedObject();
+
+	// Add time
+	jsonThisTime["recorded_at"] = (epoch2iso(sensors[SENSOR_TIME].lastReadingTime));
+
+	// Sensors array
+	JsonArray& jsonSensors = jsonThisTime.createNestedArray("sensors");
+
+	// Iterate over sensors, only publish enabled sensors and with a valid id (ID != 0), also dont publish time as a sensor
+	for (uint8_t i=1; i<SENSOR_COUNT; i++) {
+
+		SensorType wichSensor = static_cast<SensorType>(i);
+
+		// Only send enabled sensors
+		if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
+			
+			// Create sensor object
+			JsonObject& jsonThisSensor = jsonSensors.createNestedObject();
+
+			// Add id and value
+			jsonThisSensor["id"] = sensors[wichSensor].id;
+			jsonThisSensor["value"] =  double_with_n_digits(sensors[wichSensor].reading, 2);
+		}
+	}
+
+	// To allow big MQTT messages (more than 128 bytes) we had modified PubSubClient.h MQTT_MAX_PACKET_SIZE
+	// If we see any problem with big packet transmission we should implement the stream option of the pubsubclient
+	if (jsonPublish.measureLength() > 128) debugOUT(F("WARNING: MQTT message too big, remember to modify puSubClient library limit!!!"));
+
+	char charPl[jsonPublish.measureLength()+1];
+	jsonPublish.printTo(charPl, jsonPublish.measureLength()+1);
+
+	// String to be published
+	debugOUT(String(charPl));
+
+	
+	if (MQTTclient.publish(ht, charPl)) return true;
+
+	return false;
+}
+
 bool SckESP::mqttSend(String payload) {
 
-};
-
+}
 
 // 	------------
 // 	|	Time   |
@@ -1020,6 +1205,21 @@ String leadingZeros(String original, int decimalNumber) {
 	}
 	return original;
 }
+
+String SckESP::epoch2iso(uint32_t toConvert) {
+
+	time_t tc = toConvert;
+
+	String isoTime = String(year(tc)) + "-" +
+	leadingZeros(String(month(tc)), 2) + "-" + 
+	leadingZeros(String(day(tc)), 2) + "T" +
+	leadingZeros(String(hour(tc)), 2) + ":" + 
+	leadingZeros(String(minute(tc)), 2) + ":" + 
+	leadingZeros(String(second(tc)), 2) + "Z";
+	
+	return isoTime;
+}
+
 
 // 	------------
 // 	|	Leds   |

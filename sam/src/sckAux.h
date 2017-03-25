@@ -1,17 +1,21 @@
 #pragma once
 
+
 // Include the necessary libraries for the auxiliary sensor to be used
 #include <Wire.h>
 #include <Adafruit_INA219.h>
 #include "Adafruit_SHT31.h"
 #include <MCP3424.h>
 
+#include <Sensors.h>
+
 // TEMP
 // Adafruit_INA219 aux1(0x41);
 
-class auxSensor {
+class AuxBoards {
 public:
 	void setup();
+	bool getReading(SensorType wichSensor);
 
 private:
 };

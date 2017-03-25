@@ -11,6 +11,7 @@
 #include <ESP8266SSDP.h>
 #include <ESP8266mDNS.h>
 #include <DNSServer.h>
+#include <PubSubClient.h>
 
 #include <Bridge.h>
 #include <Sensors.h>
@@ -29,6 +30,7 @@
 
 // Time server
 #define NTP_SERVER_NAME "pool.ntp.org"
+#define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
 
 
 class SckESP {
@@ -61,7 +63,7 @@ public:
 	bool readNetwork(int index=-1);
 	void removeNetwork(int index);
 	int countSavedNetworks();
-	void sendNetwork(uint8_t index);
+	void sendNetwork(uint8_t index, EspCommand comm=ESP_GET_WIFI_COM);
 	void clearDuplicated();
 	int8_t selectBestNetwork();
 	void setGoodNet();
@@ -87,8 +89,9 @@ public:
 	void readToken();
 
 	// MQTT
-	bool mqttStart(String server);
+	bool mqttStart();
 	bool mqttHellow();
+	bool mqttPublish();
 	bool mqttSend(String payload);
 	bool mqttSync();
 
@@ -112,12 +115,16 @@ public:
 	time_t getNtpTime();
 	void sendNTPpacket(IPAddress &address);
 	String ISOtime();
+	String epoch2iso(uint32_t toConvert);
 	WiFiUDP Udp;
 	byte packetBuffer[48];
 	
 	// Debug
 	void debugOUT(String strOut);
 	bool serialDebug = false;
+
+	// Sensors
+	AllSensors sensors;
 
 private:
 };

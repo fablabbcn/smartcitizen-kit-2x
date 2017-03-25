@@ -1,7 +1,5 @@
 #pragma once
 
-// #define ARDUINO_ARCH_SAMD
-
 #include <Arduino.h>
 #include <RTCZero.h>
 #include <time.h>
@@ -9,79 +7,19 @@
 #include <SPI.h>
 #include "SdFat.h"
 #include "WatchdogSAMD.h"
-// #include <Scheduler.h>
 #include <ArduinoJson.h>
 #include <FlashStorage.h>
 
 #include <Bridge.h>
 #include <Sensors.h>
-#include "ReadLight.h"
 #include "sckAux.h"
-
-
-
-/* 	-------------------------------
-	|	SCK Baseboard Pinout	  |
- 	-------------------------------
-*/
-// ESP8266 Management
-#define CH_PD   		31		// PB23
-#define POWER_WIFI  	30		// PB22
-#define GPIO0   		11		// PA16
-#define CS_ESP  		13		// PA17
-
-// RGB Led 
-#define PIN_LED_RED 	6		// PA20
-#define PIN_LED_GREEN 	12		// PA19
-#define PIN_LED_BLUE 	10		// PA18
-
-// Button 
-#define PIN_BUTTON 		7		// PA21
-
-// Sensor Board Conector
-#define IO0 9					// PA7 -- CO Sensor Heather
-#define IO1 8       			// PA6 -- NO2 Sensor Heater
-#define IO2 3					// PA9 -- Unused
-#define IO3 4					// PA8 -- Unused
-#define S0 A3         			// PA4 -- CO Sensor
-#define S1 A4         			// PA5 -- NO2 Sensor
-#define S2 A1         			// PB8 -- CO Current Sensor
-#define S3 A2         			// PB9 -- NO2 Current Sensor
-#define S4 A5         			// PB2 -- Sound Sensor
-#define S5 A0         			// PA2 -- Unused
-
-// SPI Configuration
-#define MOSI 	21				// PB10
-#define SCK 	20				// PB11
-#define MISO	18				// PA12
-#define CS_SDCARD	2			// PA14 -- SPI Select SDcard
-
-// Power Management
-#define VCC 	3300.			// mV
-#define PS 		38				// PA13 -- TPS63001 PS/SYNC
-
-// ACOMODAR Y CAMBIAR NOMBRES ESTO ES TEMP
-#define RESOLUTION_ANALOG    4095.   //Resolucion de las entradas analogicas
-#define ADC_DIR             0x48    // Direction of the ADC
-#define POT1                 0x50    
-#define POT2                 0x51    // Direction of the Potenciometer 2 for MICS heather voltage
-#define POT3                 0x52    // Direction of the Potenciometer 3 for MICS measure
-#define POT4                 0x53  		
-#define  kr  392.1568     //Constante de conversion a resistencia de potenciometrosen ohmios
-
-
-/* 	----------------------------
- 	|	Settings Constants	   |
- 	----------------------------
-*/
-#define LONG_PRESS_DURATION 3000 		// Button long press duration (ms)
-#define VERY_LONG_PRESS_DURATION 15000	// Button very long press duration (ms)
-
-#define ESP_FLASH_SPEED 230400
+#include "ReadLight.h"
+#include "sckUrban.h"
+#include "Constants.h"
 
 
 /* 	-----------------
- 	|	 Modes 	|
+ 	|	 Modes 		|
  	-----------------
 */
 enum SCKmodes {
@@ -105,6 +43,21 @@ enum SCKmodes {
 void ISR_button();
 
 void ISR_alarm();
+
+
+/* 	---------------------------------------------------------
+	|	Persistent Variables (eeprom emulation on flash)	|
+	---------------------------------------------------------
+*/
+struct EppromMode {
+	bool valid;
+	SCKmodes mode;
+};
+
+struct EppromConf {
+	bool valid;
+	uint32_t readInterval;
+};
 
 
 /* Color definition
@@ -212,6 +165,8 @@ public:
 		ACTION_FACTORY_RESET,
 		ACTION_READING_FINISHED,
 		ACTION_PUBLISH,
+		ACTION_CHECK_ESP_PUBLISH_TIMEOUT,
+		ACTION_READ_NETWORKS
 	};
 	struct OneTimer	{
 		TimerAction action = ACTION_NULL;
@@ -221,18 +176,26 @@ public:
 	};
 	static const uint8_t timerSlots = 8;
 	OneTimer timers[timerSlots];
-	void timerSet(TimerAction action, uint16_t interval, bool isPeriodic=false);
+	void timerSet(TimerAction action, uint32_t interval, bool isPeriodic=false);		// interval is in milliseconds
 	bool timerClear(TimerAction action);
 	bool timerExists(TimerAction action);
 
 	// Sensors (REACOMODAR)
-	Sensors sensors;
+	AllSensors sensors;
+	void sensorRead(SensorType wichSensor);
+	bool getReading(SensorType wichSensor);
+
+	float getBatteryVoltage();
+	float getCharger();
+
+
 	const uint8_t READING_MAX_TIME = 5;			// In seconds
-	void sensorRead(SensorType toRead);
-	void sensorReadAll();
+	void publish();
 	bool readingFinished();
 	void sensorPublish();
-	bool ESPpublish();
+	void ESPpublish();
+	bool ESPpublishPending = false;
+	const uint16_t ESP_publish_timeout_interval = 5000;	// In ms
 	bool publishToSD(bool platformPublishedOK=false);
 	float lastPublishTime;
 
@@ -245,6 +208,7 @@ public:
 	void sendToken();
 	Configuration configuration;
 	void saveConf();
+	void setReadInterval(uint32_t newReadInterval);
 	
 	// Flags
 	bool onWifi = false;
@@ -278,6 +242,7 @@ public:
 		EXTCOM_ESP_SERIAL_DEBUG_OFF,
 		EXTCOM_ESP_LED_ON,
 		EXTCOM_ESP_LED_OFF,
+		EXTCOM_ESP_MQTT_HELLO,
 
 		// Configuration commands
 		EXTCOM_SET_WIFI,
@@ -310,6 +275,7 @@ public:
 		EXTCOM_READLIGHT_RESET,
 
 		// Time configuration
+		EXTCOM_GET_TIME,			// @params: iso (default), epoch
 		EXTCOM_SET_TIME,			// @params: epoch time
 		EXTCOM_SYNC_TIME,
 
@@ -317,24 +283,17 @@ public:
 		EXTCOM_SD_PRESENT,
 
 		// Sensor readings
-		EXTCOM_GET_TIME,			// @params: iso (default), epoch
-		EXTCOM_GET_APCOUNT,
-		EXTCOM_GET_NOISE,
-		EXTCOM_GET_HUMIDITY,
-		EXTCOM_GET_TEMPERATURE,
-		EXTCOM_GET_BATTERY,
-		EXTCOM_GET_LIGHT,
-		EXTCOM_GET_CO,
-		EXTCOM_GET_NO2,
-		EXTCOM_GET_VOLTIN,
-		EXTCOM_GET_ALPHADELTA,
-		EXTCOM_ALPHADELTA_POT,
-
+		EXTCOM_GET_SENSOR,
+		EXTCOM_SET_SENSOR,
 		EXTCOM_PUBLISH,
+
+		// Set Alpha POTs
+		EXTCOM_ALPHADELTA_POT,
 
 		// Other
 		EXTCOM_GET_CHAN0,
 		EXTCOM_GET_CHAN1,
+		EXTCOM_GET_FREEHEAP,
 		EXTCOM_HELP,
 
 		// Count
@@ -403,7 +362,8 @@ public:
 	void processStatus();
 	ESPstatus espStatus;
 	ESPstatus prevEspStatus;
-	float statusPoolingInterval = 1000;		// ESP status pooling interval in ms
+	float statusPoolingInterval = 500;		// ESP status pooling interval in ms
+	const uint32_t ESP_FLASH_SPEED = 230400;
 
 	// Time
 	bool setTime(String epoch);
@@ -423,8 +383,6 @@ public:
 	bool openLogFile();
 
 	// Battery
-	uint16_t getBatteryVoltage();
-	uint16_t getCharger();
 	uint16_t getChann0();
 	uint16_t getChann1();
 	const uint16_t batteryMax = 4208;

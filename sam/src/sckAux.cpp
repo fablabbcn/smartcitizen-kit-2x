@@ -1,9 +1,33 @@
 #include "sckAux.h"
 
-void auxSensor::setup(){
+AlphaDelta alphaDelta;
+
+void AuxBoards::setup() {
 
 }
 
+bool AuxBoards::getReading(SensorType wichSensor) {
+	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE1, 				"AlphaDelta AE1"},
+	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE1, 				"AlphaDelta WE1"},
+	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE2, 				"AlphaDelta AE2"},
+	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE2, 				"AlphaDelta WE2"},
+	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE3, 				"AlphaDelta AE3"},
+	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE3, 				"AlphaDelta WE3"},
+	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_TEMPERATURE, 		"AlphaDelta Temperature"},
+	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity"}
+
+	switch (wichSensor) {
+		case SENSOR_ALPHADELTA_AE1: return alphaDelta.getElectrode(alphaDelta.AE_1); break;
+		case SENSOR_ALPHADELTA_AE2: return 98.23; break;
+		// case SENSOR_HUMIDITY: return getHumidity(); break;
+		// case SENSOR_TEMPERATURE: return getTemperature(); break;
+		// case SENSOR_LIGHT: return getLight(); break;
+		// case SENSOR_CO: return getCO(); break;
+		// case SENSOR_NO2: return getNO2(); break;
+	}
+	
+
+}
 
 MCP3424 adc_Slot_1_2(0x68);
 MCP3424 adc_Slot_3(0x69);
@@ -39,7 +63,6 @@ float AlphaDelta::getHumidity() {
 
 	return sht31.readHumidity();
 }
-
 
 double AlphaDelta::getElectrode(Electrodes wichElectrode) {
 

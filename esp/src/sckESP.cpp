@@ -73,6 +73,8 @@ void SckESP::update() {
 			setSyncProvider(ntpProvider);
 			setSyncInterval(300);
 
+			startWebServer();	// CHECK if it doesnt mess with NTP
+
 		// WL_DISCONNECTED if module is not configured in station mode
 		} else if (actualWIFIStatus == WL_DISCONNECTED) {
 
@@ -383,20 +385,16 @@ void SckESP::SAMsendMsg() {
 };
 void SckESP::sendStatus() {
 
-	// debugOUT(F("Sending status data."));
-
-	StaticJsonBuffer<240> jsonBuffer;
-	JsonObject& jsonNet = jsonBuffer.createObject();
-	jsonNet["wifi"] 	= espStatus.wifi;
-	jsonNet["net"] 		= espStatus.net;
-	jsonNet["mqtt"] 	= espStatus.mqtt;
-	jsonNet["time"] 	= espStatus.time;
-	jsonNet["ap"] 		= espStatus.ap;
-	jsonNet["web"]		= espStatus.web;
-	jsonNet["conf"] 	= espStatus.conf;
-
 	clearParam();
-	jsonNet.printTo(msgOut.param, 240);
+
+	msgOut.param[0] = espStatus.wifi;
+	msgOut.param[1]	= espStatus.net;
+	msgOut.param[2]	= espStatus.mqtt;
+	msgOut.param[3]	= espStatus.time;
+	msgOut.param[4]	= espStatus.ap;
+	msgOut.param[5]	= espStatus.web;
+	msgOut.param[6]	= espStatus.conf;
+
 	msgOut.com = ESP_GET_STATUS_COM;
 	SAMsendMsg();
 };
@@ -616,6 +614,9 @@ void SckESP::webSet() {
 	
 	String response = "<!DOCTYPE html><html><head><meta name=viewport content=width=device-width, initial-scale=1><style>body {color: #434343;font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif;font-size: 22px;line-height: 1.1;padding: 20px;}</style></head><body>";
 
+	// To send a forced status change if anything changed
+	bool somethingChanged = false;
+
 	// TODO support open networks (nopassword)
 	// If we found ssid AND pass
 	if (webServer.hasArg("ssid") && webServer.hasArg("password"))  {
@@ -629,7 +630,7 @@ void SckESP::webSet() {
 			tssid.toCharArray(credentials.ssid, 64);
 			tpass.toCharArray(credentials.password, 64);
 
-			addNetwork();
+			if (addNetwork()) somethingChanged = true;
 
 			response += String(F("Success: New net added: ")) + tssid + " - " + tpass + "<br/>";
 			
@@ -647,6 +648,7 @@ void SckESP::webSet() {
 		if (ttoken.length() == 6) {
 			ttoken.toCharArray(token, 8);
 			saveToken();
+			somethingChanged = true;
 			response += String(F("Success: New token added: ")) + ttoken + "<br/>";
 		} else {
 			response += String(F("Error: token must have 6 chars!!<br/>"));
@@ -655,6 +657,7 @@ void SckESP::webSet() {
 		response += String(F("Warning: no token received<br/>"));
 	}
 
+	// If we found new time
 	if (webServer.hasArg("epoch")) {
 
 		String tepoch = webServer.arg("epoch");
@@ -664,6 +667,7 @@ void SckESP::webSet() {
 		if (iepoch >= DEFAULT_TIME) { 
        		setTime(iepoch);
        		espStatus.time = ESP_TIME_UPDATED_EVENT;
+       		somethingChanged = true;
       		debugOUT(F("Time updated from apmode web!!!"));
        		response += String(F("Success: Time synced: ")) + ISOtime() + "<br/>";
 		} else {
@@ -684,6 +688,7 @@ void SckESP::webSet() {
 		if (intTinterval > 0 && intTinterval < ONE_DAY_IN_SECONDS) {
 			configuration.readInterval = intTinterval;
 			espStatus.conf = ESP_CONF_CHANGED_EVENT;
+			somethingChanged = true;
 			response += String(F("Success: New reading interval: ")) + String(intTinterval) + String(F(" seconds"));
 		} else {
 			response += String(F("Error: received read interval is not valid!!!"));
@@ -697,6 +702,13 @@ void SckESP::webSet() {
 
 	webServer.send(200, "text/html", response);
 	if (WiFi.status() != WL_CONNECTED) tryConnection();
+
+	// Send message to SAM that something changed via webServer
+	if (somethingChanged) {
+		clearParam();
+		msgOut.com = ESP_WEB_CONFIG_SUCCESS;
+		SAMsendMsg();
+	}
 };
 void SckESP::webShow() {
 	

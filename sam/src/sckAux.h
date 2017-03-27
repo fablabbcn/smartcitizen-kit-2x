@@ -20,13 +20,13 @@ public:
 private:
 };
 
-struct Resistor {
-	byte deviceAddress;
-	byte resistorAddress;
-};
-
 class AlphaDelta {
 public:
+
+	struct Resistor {
+		byte deviceAddress;
+		byte resistorAddress;
+	};
 	
 	bool begin();
 	

@@ -41,10 +41,10 @@
 #define SHT21_I2C_DIR			0x40	// SHT21 Temperature and Humidity sensor
 #define BH1730_I2C_DIR			0x29	// BH1730 Light sensor
 #define ADC_DIR              	0x48    // Direction of the ADC
-#define POT1                 	0x50    
-#define POT2                 	0x51    // Direction of the Potenciometer 2 for MICS heather voltage
-#define POT3                 	0x52    // Direction of the Potenciometer 3 for MICS measure
-#define POT4                 	0x53  		
+#define POT1                 	0x50
+#define POT2                 	0x51    // I2C Direction of the Potenciometer 2 for MICS heather resistor (Rh) (channel_0 > CO) y (channel_1 > NO2)
+#define POT3                 	0x52    // I2C Direction of the Potenciometer 3 for MICS sensor resistor (Rs)
+#define POT4                 	0x53
 
 #define RESOLUTION_ANALOG    	4095.   //Resolucion de las entradas analogicas
 #define ohmsPerStep				392.1568     //Constante de conversion a resistencia de potenciometrosen ohmios

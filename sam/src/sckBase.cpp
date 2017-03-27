@@ -224,6 +224,9 @@ void SckBase::setup() {
 		urban.setup();
 	}
 
+	// Auxiliary boards
+	auxBoards.setup();
+
 	// Output level
 	outputLevel = OUT_NORMAL;
 
@@ -448,7 +451,7 @@ void SckBase::changeMode(SCKmodes newMode) {
 		led.update(newMode, pulseMode);
 
 		if (newMode == MODE_OFF) goToSleep();		// This must be at the end so the ret get executed before goig to sleep
-	// }	
+	// }
 }
 
 void SckBase::changeOutputLevel(OutLevels newLevel) {
@@ -600,7 +603,11 @@ void SckBase::ESPprocessMsg() {
 	sckOut(String F("Parameters: ") + String(msgIn.param), PRIO_LOW);
 
 	switch(msgIn.com) {
-		case ESP_BOOTED_AND_READY: {
+		case ESP_GET_STATUS_COM: {
+			processStatus();
+			break;
+
+		} case ESP_BOOTED_AND_READY: {
 			ESPbooting = false;
 			ESPon = true;
 			sckOut(F("ESP ready!!!"), PRIO_LOW);
@@ -715,10 +722,6 @@ void SckBase::ESPprocessMsg() {
 			setTime(epochSTR);
 			break;
 
-		} case ESP_GET_STATUS_COM: {
-			processStatus();
-			break;
-
 		} case ESP_MQTT_PUBLISH_COM: {
 			sckOut(F("ESP sensor readings updated!!!"));
 			break;
@@ -734,6 +737,12 @@ void SckBase::ESPprocessMsg() {
 		} case ESP_GET_FREE_HEAP_COM:{
 
 			sckOut(String F("ESP free heap: ") + String(msgIn.param));
+			break;
+
+		} case ESP_WEB_CONFIG_SUCCESS: {
+
+			sckOut(F("Configuration changed via WebServer!!!"));
+			// TODO Give led feedback
 			break;
 
 		}
@@ -753,18 +762,13 @@ void SckBase::getStatus() {
 
 void SckBase::processStatus() {
 
-	// Decode json
-	StaticJsonBuffer<240> jsonBuffer;
-	JsonObject& jsonNet = jsonBuffer.parseObject(msgIn.param);
-
-	// Dump to the struct
-	espStatus.wifi 	= jsonNet["wifi"];
-	espStatus.net 	= jsonNet["net"];
-	espStatus.mqtt 	= jsonNet["mqtt"];
-	espStatus.time 	= jsonNet["time"];
-	espStatus.ap 	= jsonNet["ap"];
-	espStatus.web 	= jsonNet["web"];
-	espStatus.conf 	= jsonNet["conf"];
+	espStatus.wifi 	= msgIn.param[0];
+	espStatus.net	= msgIn.param[1];
+	espStatus.mqtt	= msgIn.param[2];
+	espStatus.time	= msgIn.param[3];
+	espStatus.ap	= msgIn.param[4];
+	espStatus.web	= msgIn.param[5];
+	espStatus.conf	= msgIn.param[6];
 
 	// Wifi status has changed
 	if (espStatus.wifi != prevEspStatus.wifi) {
@@ -1206,11 +1210,13 @@ void SckBase::sckIn(String strIn) {
 
 		} case EXTCOM_READLIGHT_ON: {
 
+			sckOut(F("Turning on readlight..."));
 			readLightEnabled = true;
 			break;
 
 		} case EXTCOM_READLIGHT_OFF: {
 
+			sckOut(F("Turning on readlight..."));
 			readLightEnabled = false;
 			break;
 
@@ -1256,7 +1262,7 @@ void SckBase::sckIn(String strIn) {
 
 				thisType = static_cast<SensorType>(i);
 				
-				// makes comparison lower case and not strict (sensor title only have to contain command)
+				// Makes comparison lower case and not strict (sensor title only have to contain command)
 				String titleCompare = sensors[thisType].title;
 				titleCompare.toLowerCase();
 				strIn.toLowerCase();
@@ -2238,7 +2244,7 @@ bool SckBase::timerRun() {
 						break;
 
 					} case ACTION_GET_ESP_STATUS: {
-						getStatus();
+						if (mode != MODE_AP) getStatus();
 						break;
 					
 					} case ACTION_LONG_PRESS: {
@@ -2444,10 +2450,12 @@ NOTAS
 
 Hay que documentar el cambio de MQTT_MAX_PACKET_SIZE en pubSubClient.h a 1024 por que si no se hace los paquetes largos simplemente son desechados sin aviso
 
-BUGS MUY GRAVES
+FIRST PRIORITY
+-- End MICS support
+-- Si no tiene el rtc updated no lo hace cuando se conecta para postear??
+-- Readlight is not working!!!!!!! parece que el get status mete problemas...
 -- check battery readings when no battery is connected and charging
 -- check for headers and number of commas for csv and find solution for all disabled sensors
--- Readlight is not working!!!!!!!
 -- A veces no detecta el button up y no hace clear timer, poner un chequeo de si el boton sigue abajo al ejecutar sleep y reset
 -- Por lo menos en un kit detecta el release del button como buttonDown
 
@@ -2460,6 +2468,11 @@ BUGS LEVES
 -- en modo SD si quito la card y la reinserto no se da cuenta rapido, segun yo hay un chequeo cada 500 ms, revisarlo.
 -- Cuando detecta sdcard no debe borrar el error de rtc no sincronizado (del led) (la solucion podria ser asegurarse de que simpre reentre en el modo cuando hay un cambio de estado para que reevalue todas las variables de estado)
 -- al ejecutar un ESP_OFF el led del esp se queda con algo de corriente
+
+
+Short things todo
+-- hacer una funcion process wifi que reciba un string y lo procese (ya no porcesar por separado)
+-- lo mismo para cualwuier input que exista en mas lugares que en la consola
 
 
 

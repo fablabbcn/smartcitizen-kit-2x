@@ -8,8 +8,7 @@ void SckUrban::setup() {
 	pinMode(IO0, OUTPUT);
 	pinMode(IO1, OUTPUT);
 
-	digitalWrite(IO0, LOW); 		// Turn off CO Sensor Heather
-	digitalWrite(IO1, LOW); 		// Turn off NO2 Sensor Heater
+	GasSetup();
 	
 	ADCini();
 
@@ -220,6 +219,28 @@ float SckUrban::getLight() {
 	return Lx;
 }
 
+
+// Gas sensor
+void SckUrban::GasSetup() {
+
+	// Turn off both sensor heaters
+	digitalWrite(IO0, LOW);
+	digitalWrite(IO1, LOW);
+	
+	// Setup load sensor resistors (minimal safe value is 820);
+	setPot(POT_CO_LOAD_RESISTOR, 100000);
+	setPot(POT_NO2_LOAD_RESISTOR, 100000);
+
+}
+
+void SckUrban::GasOFF() {
+
+}
+
+void SckUrban::GasON() {
+
+}
+
 float SckUrban::getCO() {
 	return 0;
 }
@@ -237,4 +258,41 @@ void SckUrban::ADCini() {
 void SckUrban::ADCoff() {
 	byte temp = readI2C(ADC_DIR,0)&B00000000;
 	writeI2C(ADC_DIR, 0, temp);
+}
+
+
+
+// Utility functions
+void SckUrban::setPot(Resistor wichPot, uint32_t value) {
+
+	// Check minimal safe value for Gas sensor (820)
+	if (wichPot.deviceAddress == POT3 && value < 820) value = 820;
+
+	// Data to be writen
+	int data=0x00;
+	if (value>100000) value = 100000;
+	data = (int)(value/ohmsPerStep);
+	
+	Wire.beginTransmission(wichPot.deviceAddress);
+	Wire.write(wichPot.resistorAddress);
+	Wire.write(data);
+	Wire.endTransmission();
+	delay(4);
+}
+
+uint32_t SckUrban::getPot(Resistor wichPot) {
+
+	byte data = 0x0000;
+
+	Wire.beginTransmission(wichPot.deviceAddress);
+	Wire.write(wichPot.resistorAddress);
+	Wire.endTransmission();
+	Wire.requestFrom(wichPot.deviceAddress,1);
+
+	// Wait for answer with a timeout
+	uint16_t waitTimeout = 500;
+	uint32_t time = millis();
+	while (!Wire.available()) if ((millis() - time) > waitTimeout) return 0x00;
+	data = Wire.read();
+	return data*ohmsPerStep;
 }

@@ -133,7 +133,7 @@ dataLight ReadLight::read() {
 }
 
 /*
- *  Calibrates level color creating a table with valid level values from 0 to levelNum.
+ *  Calibrates level color, creating a table with valid level values from 0 to levelNum.
  *  For this process to work we need the screen to send colors from black to white with all grey levels one by one.
  *  @return True if succsesfull calibration.
  */

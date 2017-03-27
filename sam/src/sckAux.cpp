@@ -4,29 +4,22 @@ AlphaDelta alphaDelta;
 
 void AuxBoards::setup() {
 
+	// TODO enable or disable auxiliary boards based on response from init
+	alphaDelta.begin();
 }
 
 bool AuxBoards::getReading(SensorType wichSensor) {
-	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE1, 				"AlphaDelta AE1"},
-	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE1, 				"AlphaDelta WE1"},
-	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE2, 				"AlphaDelta AE2"},
-	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE2, 				"AlphaDelta WE2"},
-	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE3, 				"AlphaDelta AE3"},
-	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE3, 				"AlphaDelta WE3"},
-	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_TEMPERATURE, 		"AlphaDelta Temperature"},
-	// OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity"}
-
+	
 	switch (wichSensor) {
 		case SENSOR_ALPHADELTA_AE1: return alphaDelta.getElectrode(alphaDelta.AE_1); break;
-		case SENSOR_ALPHADELTA_AE2: return 98.23; break;
-		// case SENSOR_HUMIDITY: return getHumidity(); break;
-		// case SENSOR_TEMPERATURE: return getTemperature(); break;
-		// case SENSOR_LIGHT: return getLight(); break;
-		// case SENSOR_CO: return getCO(); break;
-		// case SENSOR_NO2: return getNO2(); break;
+		case SENSOR_ALPHADELTA_WE1: return alphaDelta.getElectrode(alphaDelta.WE_1); break;
+		case SENSOR_ALPHADELTA_AE2: return alphaDelta.getElectrode(alphaDelta.AE_2); break;
+		case SENSOR_ALPHADELTA_WE2: return alphaDelta.getElectrode(alphaDelta.WE_2); break;
+		case SENSOR_ALPHADELTA_AE3: return alphaDelta.getElectrode(alphaDelta.AE_3); break;
+		case SENSOR_ALPHADELTA_WE3: return alphaDelta.getElectrode(alphaDelta.WE_3); break;
+		case SENSOR_HUMIDITY: return alphaDelta.getHumidity(); break;
+		case SENSOR_TEMPERATURE: return alphaDelta.getTemperature(); break;
 	}
-	
-
 }
 
 MCP3424 adc_Slot_1_2(0x68);
@@ -99,7 +92,6 @@ void AlphaDelta::setPot(Resistor wichPot, uint32_t value) {
 
 uint32_t AlphaDelta::getPot(Resistor wichPot) {
 
-  // byte rdata = 0xFF;
   byte data = 0x0000;
 
   Wire.beginTransmission(wichPot.deviceAddress);
@@ -113,4 +105,4 @@ uint32_t AlphaDelta::getPot(Resistor wichPot) {
   while (!Wire.available()) if ((millis() - time) > waitTimeout) return 0x00;
   data = Wire.read();
   return data*ohmsPerStep;
-}   
+}

@@ -78,7 +78,7 @@ public:
 
 		// Base Sensors
 		OneSensor {	BOARD_BASE, 		SENSOR_TIME, 						"Time",						0,			},
-		OneSensor {	BOARD_BASE, 		SENSOR_BATTERY, 					"Battery", 					10,			"V"},
+		OneSensor {	BOARD_BASE, 		SENSOR_BATTERY, 					"Battery", 					10,			"%"},
 		OneSensor {	BOARD_BASE, 		SENSOR_VOLTIN,						"Input voltage", 			0,			"mV"},
 
 		// ESP Sensors

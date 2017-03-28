@@ -177,6 +177,9 @@ void SckBase::setup() {
 	comTitles[EXTCOM_PUBLISH]			= 	"publish";
 	comTitles[EXTCOM_ALPHADELTA_POT]	=	"set alpha";				// @ params: wichpot (AE1, WE1, AE2...), value (0-100,000)
 
+	comTitles[EXTCOM_ENABLE_SENSOR]		=	"enable";		// @ params wichSensor
+	comTitles[EXTCOM_DISABLE_SENSOR]	=	"disable";		// @params wichSensor
+
 	comTitles[EXTCOM_GET_CHAN0]			=	"get chann0";
 	comTitles[EXTCOM_GET_CHAN1]			=	"get chann1";
 	
@@ -313,11 +316,10 @@ void SckBase::update() {
 						}
 						if (lightResults.lines[0].endsWith(F("auth"))) {
 							if (lightResults.lines[3].length() > 0) {
-								lightResults.lines[3].toCharArray(token, 64);
+								lightResults.lines[3].toCharArray(token, 7);
 								sendToken();
 							}
 							if (lightResults.lines[4].toInt() > 0 && lightResults.lines[4].toInt() < ONE_DAY_IN_SECONDS) {
-								// configuration.readInterval = lightResults.lines[4].toInt();
 								setReadInterval(lightResults.lines[4].toInt());
 								sckOut(String F("New reading interval: ") + String(configuration.readInterval));
 							}
@@ -325,7 +327,12 @@ void SckBase::update() {
 						if (lightResults.lines[0].endsWith(F("time"))) {
 							setTime(lightResults.lines[1]);
 						}
+						led.configOK();
 					 	readLight.reset();
+					 	readLightEnabled = false;
+
+					 	//MQTT Hellow for Onboarding process
+					 	triggerHello = true;
 					}
 				}
 			}
@@ -363,7 +370,7 @@ void SckBase::clearNetworks() {
 void SckBase::sendToken() {
 	strncpy(msgBuff.param, token, 64);
 	msgBuff.com = ESP_SET_TOKEN_COM;
-	ESPqueueMsg(true, false);
+	ESPqueueMsg(true, true);
 }
 
 void SckBase::changeMode(SCKmodes newMode) {
@@ -379,11 +386,14 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 		switch(newMode) {
 			case MODE_AP: {
+
 				// Start ESP and ap mode
 				timerSet(ACTION_ESP_ON, 50);
 				// Start monitoring light for messages
 				sckOut(F("Entering AP mode!"));
+				
 				// Restart lightread for receiving new data
+				readLightEnabled = true;
 				readLight.reset();
 				lightResults.commited = false;
 				break;
@@ -391,6 +401,8 @@ void SckBase::changeMode(SCKmodes newMode) {
 			} case MODE_NET: {
 				
 				sckOut(F("Entering Network mode!"));
+
+				readLightEnabled = false;
 
 				// If we dont have wifi turn off esp (it will be turned on by next publish try)
 				if (!onWifi) ESPcontrol(ESP_OFF);
@@ -410,7 +422,12 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 			} case MODE_SD: {
 
+				readLightEnabled = false;
+
 				ESPcontrol(ESP_OFF);
+
+				if (!onTime) pulseMode = 1;
+				if (!sdPresent()) pulseMode = 2;
 
 				// Clear any previous set timers for publishing
 				timerClear(ACTION_PUBLISH);
@@ -423,11 +440,13 @@ void SckBase::changeMode(SCKmodes newMode) {
 				break;
 
 			} case MODE_BRIDGE: {
+				readLightEnabled = false;
 				ESPcontrol(ESP_ON);
 				changeOutputLevel(OUT_SILENT);
 				break;
 
 			} case MODE_FLASH: {
+				readLightEnabled = false;
 				changeOutputLevel(OUT_SILENT);
 				ESPcontrol(ESP_FLASH);
 				break;
@@ -742,7 +761,7 @@ void SckBase::ESPprocessMsg() {
 		} case ESP_WEB_CONFIG_SUCCESS: {
 
 			sckOut(F("Configuration changed via WebServer!!!"));
-			// TODO Give led feedback
+			led.configOK();
 			break;
 
 		}
@@ -775,9 +794,23 @@ void SckBase::processStatus() {
 		switch (espStatus.wifi) {
 			case ESP_WIFI_CONNECTED_EVENT: {
 				sckOut(F("Conected to wifi!!"));
-				led.update(mode, 0);
+
+				// Feedback
+				if (mode != MODE_AP) led.update(mode, 0);
+
 				onWifi = true;
-				if (ESPpublishPending) {
+
+				// If we dont have time...
+				if (!onTime) {
+					msgBuff.com = ESP_GET_TIME_COM;
+					ESPqueueMsg(false, true);
+				}
+
+				if (triggerHello) {
+					msgBuff.com = ESP_MQTT_HELLOW_COM;
+					ESPqueueMsg(false, false);
+					triggerHello = false;
+				} else if (ESPpublishPending) {
 					// If there is a publish operation waiting...
 					ESPpublish();
 					ESPpublishPending = false;
@@ -1301,6 +1334,71 @@ void SckBase::sckIn(String strIn) {
 			sckOut(String F("chan1: ") + getChann1() + F(" V"), PRIO_HIGH);
 			break;
 
+		} case EXTCOM_ENABLE_SENSOR: {
+
+			SensorType thisType = SENSOR_COUNT;
+
+			// Get sensor type
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
+				thisType = static_cast<SensorType>(i);
+				
+				// Makes comparison lower case and not strict (sensor title only have to contain command)
+				String titleCompare = sensors[thisType].title;
+				titleCompare.toLowerCase();
+				strIn.toLowerCase();
+				
+				if (titleCompare.indexOf(strIn) > -1) break;
+				thisType = SENSOR_COUNT;
+			}
+
+			// Failed to found your sensor
+			if (thisType == SENSOR_COUNT) {
+				sckOut(F("Can't find that sensor!!!"));
+			} else {
+				
+				OneSensor *thisSensor = &sensors[thisType];
+				sckOut(String F("Enabling ") + thisSensor->title);
+				sensors[thisType].enabled = true;
+
+				headersChanged = true;
+			}
+
+			break;
+
+		} case EXTCOM_DISABLE_SENSOR: {
+
+			SensorType thisType = SENSOR_COUNT;
+
+			// Get sensor type
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
+				thisType = static_cast<SensorType>(i);
+				
+				// Makes comparison lower case and not strict (sensor title only have to contain command)
+				String titleCompare = sensors[thisType].title;
+				titleCompare.toLowerCase();
+				strIn.toLowerCase();
+				
+				if (titleCompare.indexOf(strIn) > -1) break;
+				thisType = SENSOR_COUNT;
+			}
+
+			// Failed to found your sensor
+			if (thisType == SENSOR_COUNT) {
+				sckOut(F("Can't find that sensor!!!"));
+			} else {
+				
+				OneSensor *thisSensor = &sensors[thisType];
+				sckOut(String F("Disabling ") + thisSensor->title);
+				sensors[thisType].enabled = false;
+
+				headersChanged = true;
+			}
+
+
+			break;
+
 		} case EXTCOM_SET_SENSOR: {
 			// @params sensorTitle disable/enable (ej. sensor battery enable)
 
@@ -1503,7 +1601,7 @@ bool SckBase::getReading(SensorType wichSensor) {
 			float tempReading = 0;
 
 			switch (wichSensor) {
-				case SENSOR_BATTERY: tempReading = getBatteryVoltage(); break;
+				case SENSOR_BATTERY: tempReading = getBatteryPercent(); break;
 				case SENSOR_TIME: tempReading = rtc.getEpoch(); break;
 				case SENSOR_VOLTIN: tempReading = getCharger(); break;
 				case SENSOR_NETWORKS: {
@@ -1528,6 +1626,7 @@ bool SckBase::getReading(SensorType wichSensor) {
 			sensors[wichSensor].valid = true;
 			break;
 		}
+		sckOut(String(sensors[wichSensor].reading));
 	}
 
 	// Store last reading time
@@ -1722,14 +1821,20 @@ void SckBase::buttonUp() {
 }
 
 void SckBase::veryLongPress() {
-	sckOut(String F("Button very long press: ") + String(millis() - butLastEvent), PRIO_MED);
-	// Factory reset
-	factoryReset();
+	// Make sure we havent released button without noticed it
+	if (!digitalRead(PIN_BUTTON)) {
+		sckOut(String F("Button very long press: ") + String(millis() - butLastEvent), PRIO_MED);
+		// Factory reset
+		factoryReset();
+	} else buttonEvent();
 }
 
 void SckBase::longPress() {
-	sckOut(String F("Button long press: ") + String(millis() - butLastEvent), PRIO_MED);
-	changeMode(MODE_OFF);
+	// Make sure we havent released button without noticed it
+	if (!digitalRead(PIN_BUTTON)) {
+		sckOut(String F("Button long press: ") + String(millis() - butLastEvent), PRIO_MED);
+		changeMode(MODE_OFF);
+	} else buttonEvent();
 }
 
 void SckBase::softReset() {
@@ -1745,7 +1850,8 @@ bool SckBase::sdPresent() {
 	if (sd.cardBegin(CS_SDCARD, SPI_HALF_SPEED)) {
 		sckOut(F("Sdcard ready!!"), PRIO_LOW);
 		if (mode == MODE_SD) {
-			led.update(mode, 0);
+			if (onTime) led.update(mode, 0);
+			else led.update(mode, 1);
 		}
 		return true;
 	} else {
@@ -1775,8 +1881,10 @@ bool SckBase::openPublishFile() {
 
 			publishFileName.toCharArray(charFileName, publishFileName.length() + 1);
 
-			// If file doesn't exist we need to write header
+			// If file doesn't exist we need to write header or headers have changed
 			if (!sd.exists(charFileName)) writeHeader = true;
+
+			headersChanged = false;
 
 			// Open file
 			publishFile = sd.open(charFileName, FILE_WRITE);
@@ -1888,7 +1996,7 @@ void SckBase::goToSleep(bool wakeToCheck) {
 	ESPcontrol(ESP_OFF);
 
 	USB->DEVICE.CTRLA.bit.SWRST = 1;
-  	while (USB->DEVICE.SYNCBUSY.bit.SWRST | USB->DEVICE.CTRLA.bit.SWRST == 1);
+  	while (USB->DEVICE.SYNCBUSY.bit.SWRST | (USB->DEVICE.CTRLA.bit.SWRST == 1));
 
 	USBDevice.detach();
 
@@ -1946,8 +2054,24 @@ void SckBase::factoryReset() {
  	-------------
 */
 float SckBase::getBatteryVoltage() {
-	float batVoltage = (2*(readADC(3))*VCC/RESOLUTION_ANALOG) / 1000;
+	float batVoltage = (int)(2*(readADC(3))*VCC/RESOLUTION_ANALOG);
 	return batVoltage;
+}
+
+float SckBase::getBatteryPercent() {
+
+	float percent = 0;
+	float voltage = getBatteryVoltage();
+
+	for(uint16_t i = 0; i < 100; i++) {
+    	if(voltage < batTable[i]) {
+      		percent = i * 10;
+      		break;
+    	}
+  	}
+  	if(percent < 10 && percent > 0) percent = 10;
+
+  	return percent/10;
 }
 
 float SckBase::getCharger() {
@@ -2032,38 +2156,39 @@ void Led::update(SCKmodes newMode, uint8_t newPulseMode) {
 	}
 
 	switch (newMode) {
-		case MODE_AP:
+		case MODE_AP: {
 			currentPulse = pulseRed;
 			break;
-		case MODE_NET:
+		} case MODE_NET: {
 			currentPulse = pulseBlue;
 			break;
-		case MODE_SD:
+		} case MODE_SD: {
 			currentPulse = pulsePink;
 			break;
-		case MODE_SHELL:
+		} case MODE_SHELL: {
 			ledRGBcolor = orangeRGB;
 			pulseMode = PULSE_STATIC;
 			break;
-		case MODE_ERROR:
+		} case MODE_ERROR: {
 			ledRGBcolor = redRGB;
 			break;
-		case MODE_FLASH:
+		} case MODE_FLASH: {
 			ledRGBcolor = lightBlueRGB;
 			pulseMode = PULSE_STATIC;
 			break;
-		case MODE_BRIDGE:
+		} case MODE_BRIDGE: {
 			ledRGBcolor = lightGreenRGB;
 			pulseMode = PULSE_STATIC;
 			break;
-		case MODE_FIRST_BOOT:
+		} case MODE_FIRST_BOOT: {
 			ledRGBcolor = yellowRGB;
 			pulseMode = PULSE_STATIC;
 			break;
-		case MODE_OFF:
+		} case MODE_OFF: {
 			ledRGBcolor = offRGB;
 			pulseMode = PULSE_STATIC;
 			break;
+		} 
 	}
 
 	if (pulseMode != PULSE_STATIC) configureTimer5(refreshPeriod);
@@ -2079,6 +2204,11 @@ void Led::reading() {
 }
 
 void Led::wifiOK() {
+	ledRGBcolor = greenRGB;
+	pulseMode = PULSE_STATIC;
+}
+
+void Led::configOK() {
 	ledRGBcolor = greenRGB;
 	pulseMode = PULSE_STATIC;
 }
@@ -2244,7 +2374,7 @@ bool SckBase::timerRun() {
 						break;
 
 					} case ACTION_GET_ESP_STATUS: {
-						if (mode != MODE_AP) getStatus();
+						if (!readLightEnabled) getStatus();
 						break;
 					
 					} case ACTION_LONG_PRESS: {
@@ -2447,34 +2577,20 @@ String leadingZeros(String original, int decimalNumber) {
     00       0000     00000       0000
 NOTAS
 -----BASE BOARD-------
-
 Hay que documentar el cambio de MQTT_MAX_PACKET_SIZE en pubSubClient.h a 1024 por que si no se hace los paquetes largos simplemente son desechados sin aviso
 
-FIRST PRIORITY
--- End MICS support
--- Si no tiene el rtc updated no lo hace cuando se conecta para postear??
--- Readlight is not working!!!!!!! parece que el get status mete problemas...
--- check battery readings when no battery is connected and charging
--- check for headers and number of commas for csv and find solution for all disabled sensors
--- A veces no detecta el button up y no hace clear timer, poner un chequeo de si el boton sigue abajo al ejecutar sleep y reset
--- Por lo menos en un kit detecta el release del button como buttonDown
-
+BUGS 
 
 BUGS LEVES
 -- get best wifi via serial dont return anything
 -- cuando hago un publish o get readings aparece el numero de nets antes del output (en la consola)
 -- a veces el webserver necesita un reload para mostrar la lista de aps
--- un timeout despues de prender el esp para apagarlo, asumir error de conexion y esperar al siguiente intervalo de post
--- en modo SD si quito la card y la reinserto no se da cuenta rapido, segun yo hay un chequeo cada 500 ms, revisarlo.
--- Cuando detecta sdcard no debe borrar el error de rtc no sincronizado (del led) (la solucion podria ser asegurarse de que simpre reentre en el modo cuando hay un cambio de estado para que reevalue todas las variables de estado)
--- al ejecutar un ESP_OFF el led del esp se queda con algo de corriente
+-- al ejecutar un ESP_OFF el led del esp se queda con algo de corriente (parece ser por iniciar la sdcard)
 
 
 Short things todo
 -- hacer una funcion process wifi que reciba un string y lo procese (ya no porcesar por separado)
 -- lo mismo para cualwuier input que exista en mas lugares que en la consola
-
-
 
 
 ** STATE MACHINE DESIGN (MODES)
@@ -2483,9 +2599,9 @@ Short things todo
   [x] -- Revisar bien el flow de eventos y excepciones para cada modo
   [x] -- Poner los cambios de modo con el boton
   [x] -- handle wifi errors without entering in setup mode (at least not instantly to avoid confusion on temporal network errors)
-  [ ] -- In APmode when succsesfull setted kit (by any means: light, webbrowser, etc) the light will go to green, if you want to set another thing you have to manually cycle button to start again the ap-setup mode
+  [x] -- In APmode when succsesfull setted kit (by any means: light, webbrowser, etc) the light will go to green, if you want to set another thing you have to manually cycle button to start again the ap-setup mode
   [ ] -- Unify nomenclatures and call always "setup mode" instead of apmode. Reserve apmode for esp wifi-ap mode.
-  [ ] -- Double check net mode flow
+  [x] -- Double check net mode flow
 
 ** INPUT-OUTPUT
   [x] -- sckIn receives a struct with a string and the origin (USB, ESP, LIGHT, etc), process the command, and outputs via sckOut
@@ -2534,7 +2650,7 @@ Short things todo
   [ ] -- White for publishing??
   [x] -- Hard pulse for ERROR modes
   [x] -- Solve led extra white bug (el bug estaba en wiring_digital.c en la funcion de pinmode, en la ultima version de arduino esta corregida (pero no en platformio))
-  [ ] -- Feedback on light setup
+  [x] -- Feedback on light setup
 
 ** RTC - TIME
   [x] -- Cuando !onTime dar feedback con el led
@@ -2558,7 +2674,7 @@ Short things todo
   [x] -- Send esp command on succsesfull received credentials
   [x] -- Change led with checksum OK.
   [x] -- Only use it if Urban board is present.
-  [ ] -- Led feedback on stages: CRC, WIFI, PING, MQTT (solo poner verde si el CRC va bien) los errores de red se deben mostrar cuando cambies a Network mode
+  [x] -- Led feedback on stages: CRC, WIFI, PING, MQTT (solo poner verde si el CRC va bien) los errores de red se deben mostrar cuando cambies a Network mode
   [ ] -- Usar la implementación de lightRead para poner tambien la trasmision por sonido
 
 ** CONFIGURATION
@@ -2584,7 +2700,8 @@ Short things todo
   [ ] -- Emergency mode with interrupt to wake up
   [ ] -- How on battery influences modes
   [ ] -- Diseñar bien la estrategia acerca del ESP y MICS
-  [ ] -- Implementar lookup table dinamica en la bateria
+  [x] -- Integrar la tabla lookup para la bateria
+  [ ] -- Implementar lookup table DINAMICA en la bateria
   [ ] -- logear en sdcard los cuatro canales del adc para entender como se comportan
 
 ** SDCARD

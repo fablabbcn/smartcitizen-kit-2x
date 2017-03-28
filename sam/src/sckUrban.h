@@ -62,6 +62,22 @@ public:
 	byte readI2C(int deviceaddress, byte address);
 	void ADCini();
 	void ADCoff();
+
+
+	// TO BE PORTED
+	void MICSini();
+	void currentHeat(byte device, int current);
+	float average(int anaPin);
+	float readResistor(byte resistor );
+	void writeResistor(byte resistor, float value );
+	float readRs(byte device);
+	float readVH(byte device);
+	void writeVH(byte device, long voltage );
+	float readMICS(byte device);
+	void getMICS(float* __RsCO, float* __RsNO2);
+	void getMICS_CO(float* __RsCO);
+	void getMICS_NO2(float* __RsNO2);
+
 private:
 };
 

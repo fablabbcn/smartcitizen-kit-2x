@@ -90,6 +90,7 @@ public:
 	void bridge();
 	void wifiOK();
 	void tick();
+	void configOK();
 
 	// Need a retouch
 	HSIcolor whiteHSI 		= {180,	0.5,	1.0};
@@ -186,10 +187,11 @@ public:
 	bool getReading(SensorType wichSensor);
 
 	float getBatteryVoltage();
+	float getBatteryPercent();
 	float getCharger();
 
 
-	const uint8_t READING_MAX_TIME = 5;			// In seconds
+	const uint8_t READING_MAX_TIME = 10;			// In seconds
 	void publish();
 	bool readingFinished();
 	void sensorPublish();
@@ -202,6 +204,7 @@ public:
 	// Configuration
 	String version = "SCK-1.5_0.1-";
 	Credentials credentials;
+	bool triggerHello = false;
 	void sendNetwork();
 	void clearNetworks();
 	char token[8];
@@ -286,6 +289,8 @@ public:
 		EXTCOM_GET_SENSOR,
 		EXTCOM_SET_SENSOR,
 		EXTCOM_PUBLISH,
+		EXTCOM_ENABLE_SENSOR,
+		EXTCOM_DISABLE_SENSOR,
 
 		// Set Alpha POTs
 		EXTCOM_ALPHADELTA_POT,
@@ -333,7 +338,7 @@ public:
 	void veryLongPress();
 	void softReset();
 	uint16_t longPressInterval = 5000;
-	uint16_t veryLongPressInterval = 15000;
+	uint16_t veryLongPressInterval = 10000;
 	uint32_t butLastEvent = 0;
 	bool butIsDown = false;
 	void checkFactoryReset();
@@ -381,6 +386,7 @@ public:
 	String logFileName = "SCK.LOG";
 	String oldLogFileName = "SCK_OLD.LOG";
 	bool openLogFile();
+	bool headersChanged = false;
 
 	// Battery
 	uint16_t getChann0();
@@ -389,7 +395,7 @@ public:
 	const uint16_t batteryMin = 3000;
 	uint16_t readADC(byte channel);
 	bool isCharging = false;
-
+	const uint16_t batTable[100] = {3078,3364,3468,3540,3600,3641,3682,3701,3710,3716,3716,3716,3720,3714,3720,3725,3732,3742,3739,3744,3744,3754,3760,3762,3770,3768,3774,3774,3774,3779,3784,3790,3788,3794,3798,3798,3804,3809,3809,3812,3817,3817,3822,3823,3828,3828,3828,3833,3838,3838,3842,3847,3852,3859,3858,3864,3862,3869,3877,3877,3883,3888,3894,3898,3902,3906,3912,3923,3926,3936,3942,3946,3960,3972,3979,3982,3991,3997,4002,4002,4012,4018,4028,4043,4057,4074,4084,4094,4098,4098,4109,4115,4123,4134,4142,4153,4158,4170,4180,4188 };
 
 	//TEMP hay que acomodar
 	void writeResistor(byte resistor, float value );

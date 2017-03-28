@@ -1,5 +1,18 @@
 #include "sckUrban.h"
 
+
+// MICS OLD CODE TO BE PORTED
+#define CO_SENSOR 0x02
+#define NO2_SENSOR 0x03
+
+#define  Rc0  10. //Ohm  Resistencia medida de corriente en el sensor CO sensor
+#define  Rc1  39. //Ohm Resistencia medida de corriente en el sensor NO2 sensor
+#define  R2  24000. //Ohm Resistencia de los reguladores
+#define  kr  392.1568     //Constante de conversion a resistencia de potenciometrosen ohmios
+
+#define  VCC   3300. //mV 
+//-------------------
+
 uint8_t pot_6_db_preset[] = {0,  7, 26, 96, 255};
 uint8_t pot_7_db_preset[] = {0, 17, 97, 255, 255};
 
@@ -8,8 +21,13 @@ void SckUrban::setup() {
 	pinMode(IO0, OUTPUT);
 	pinMode(IO1, OUTPUT);
 
-	GasSetup();
-	
+	// GasSetup();
+
+	// code to be ported
+	currentHeat(CO_SENSOR, 32);
+	MICSini();
+	//-------------
+
 	ADCini();
 
 	ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV16;       // clock prescaler to 16
@@ -19,13 +37,30 @@ void SckUrban::setup() {
 };
 
 float SckUrban::getReading(SensorType wichSensor) {
+
 	switch (wichSensor) {
 		case SENSOR_NOISE: return getNoise(); break;
 		case SENSOR_HUMIDITY: return getHumidity(); break;
 		case SENSOR_TEMPERATURE: return getTemperature(); break;
 		case SENSOR_LIGHT: return getLight(); break;
-		case SENSOR_CO: return getCO(); break;
-		case SENSOR_NO2: return getNO2(); break;
+		case SENSOR_CO: {
+
+			float gasCO;
+			getMICS_CO(&gasCO);
+			return gasCO;
+
+			// return getCO(); 
+			break;
+		}
+		case SENSOR_NO2: {
+
+			float gasNO2;
+			getMICS_NO2(&gasNO2);
+			return gasNO2;
+			
+			// return getNO2(); 
+			break;
+		}
 	}
 }
 
@@ -295,4 +330,141 @@ uint32_t SckUrban::getPot(Resistor wichPot) {
 	while (!Wire.available()) if ((millis() - time) > waitTimeout) return 0x00;
 	data = Wire.read();
 	return data*ohmsPerStep;
+}
+
+
+// MICS OLD CODE TO BE PORTED
+void SckUrban::MICSini() {       
+	currentHeat(CO_SENSOR, 32); //Corriente en mA
+	currentHeat(NO2_SENSOR, 26); //Corriente en mA  
+	digitalWrite(IO0, HIGH); //VH_CO SENSOR
+	digitalWrite(IO1, HIGH); //VH_NO2 SENSOR 
+	writeResistor(CO_SENSOR + 2, 100000); //Inicializacion de la carga del CO SENSOR
+	writeResistor(NO2_SENSOR + 2, 100000); //Inicializacion de la carga del NO2 SENSOR
+}
+
+void SckUrban::currentHeat(byte device, int current) {
+    float Rc=Rc0;
+    byte Sensor = S2;
+    if (device == NO2_SENSOR) { Rc=Rc1; Sensor = S3;}
+
+    float Vc = (float)average(Sensor)*VCC/RESOLUTION_ANALOG; //mV 
+    float current_measure = Vc/Rc; //mA
+    float Rh = (readVH(device)- Vc)/current_measure;
+    float Vh = (Rh + Rc)*current;
+    writeVH(device, Vh);
+}
+
+float SckUrban::average(int anaPin) {
+	int lecturas = 100;
+	long total = 0;
+	float average = 0;
+	for(int i=0; i<lecturas; i++)
+	{
+	//delay(1);
+	total = total + analogRead(anaPin);
+	}
+	average = (float)total / lecturas;  
+	return(average);
+}
+
+float SckUrban::readResistor(byte resistor ) {
+   byte POT = POT1;
+   byte ADDR = resistor;
+   if ((resistor==2)||(resistor==3))
+     {
+       POT = POT2;
+       ADDR = resistor - 2;
+     }
+   else if ((resistor==4)||(resistor==5))
+     {
+       POT = POT3;
+       ADDR = resistor - 4;
+     }
+   else if ((resistor==6)||(resistor==7))
+     {
+       POT = POT4;
+       ADDR = resistor - 6;
+     }
+   return readI2C(POT, ADDR)*kr;
+}   
+
+void SckUrban::writeResistor(byte resistor, float value ) {
+	byte POT = POT1;
+	byte ADDR = resistor;
+	int data=0x00;
+	if (value>100000) value = 100000;
+	data = (int)(value/kr);
+	if ((resistor==2)||(resistor==3))
+	 {
+	   POT = POT2;
+	   ADDR = resistor - 2;
+	 }
+	else if ((resistor==4)||(resistor==5))
+	 {
+	   POT = POT3;
+	   ADDR = resistor - 4;
+	 }
+	else if ((resistor==6)||(resistor==7))
+	 {
+	   POT = POT4;
+	   ADDR = resistor - 6;
+	 }
+	writeI2C(POT, ADDR, data);
+}
+
+float SckUrban::readRs(byte device) {
+     byte Sensor = S0;
+     if (device == NO2_SENSOR) {Sensor = S1; }
+     float RL = readResistor(device + 2); //Ohm
+     float VL = ((float)average(Sensor)*VCC)/RESOLUTION_ANALOG; //mV
+     if (VL > VCC) VL = VCC;
+     float Rs = ((VCC-VL)/VL)*RL; //Ohm
+     return Rs;
+}
+
+float SckUrban::readVH(byte device) {
+    float resistor = readResistor(device);
+    float voltage = ((resistor/R2) + 1)*800;
+    return(voltage);
+}
+
+void SckUrban::writeVH(byte device, long voltage ) {
+    float resistor = ((voltage/800.)-1)*R2;
+    writeResistor(device, resistor);
+}
+
+float SckUrban::readMICS(byte device) {
+
+      float Rs = readRs(device);
+      float RL = readResistor(device + 2); //Ohm
+      /*Correccion de impedancia de carga*/
+      if ((Rs <= (RL - 1000))||(Rs >= (RL + 1000)))
+      {
+        if (Rs < 2000) writeResistor(device + 2, 2000);
+        else writeResistor(device + 2, Rs);
+        delay(100);
+        Rs = readRs(device);
+      }
+       return Rs;
+}
+
+void SckUrban::getMICS(float* __RsCO, float* __RsNO2){          
+        /*Correccion de la corriente del Heather*/
+        currentHeat(CO_SENSOR, 32); //Corriente en mA
+        currentHeat(NO2_SENSOR, 26); //Corriente en mA
+        
+        *__RsCO = readMICS(CO_SENSOR);
+        *__RsNO2 = readMICS(NO2_SENSOR);
+         
+}
+
+void SckUrban::getMICS_CO(float* __RsCO) {
+	 currentHeat(CO_SENSOR, 32); //Corriente en mA
+	 *__RsCO = readMICS(CO_SENSOR);
+}
+
+void SckUrban::getMICS_NO2(float* __RsNO2) {
+	currentHeat(NO2_SENSOR, 26); //Corriente en mA
+	*__RsNO2 = readMICS(NO2_SENSOR);
 }

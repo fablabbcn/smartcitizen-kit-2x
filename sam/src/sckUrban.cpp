@@ -24,9 +24,9 @@ void SckUrban::setup() {
 	// GasSetup();
 
 	// code to be ported
-	currentHeat(CO_SENSOR, 32);
-	MICSini();
+	// MICSini();
 	//-------------
+	GasOFF();
 
 	ADCini();
 
@@ -57,7 +57,7 @@ float SckUrban::getReading(SensorType wichSensor) {
 			float gasNO2;
 			getMICS_NO2(&gasNO2);
 			return gasNO2;
-			
+
 			// return getNO2(); 
 			break;
 		}
@@ -269,6 +269,14 @@ void SckUrban::GasSetup() {
 }
 
 void SckUrban::GasOFF() {
+
+	// Setup load sensor resistors (minimal safe value is 820);
+	setPot(POT_CO_LOAD_RESISTOR, 100000);
+	setPot(POT_NO2_LOAD_RESISTOR, 100000);
+
+	// Turn off both sensor heaters
+	digitalWrite(IO0, LOW);
+	digitalWrite(IO1, LOW);
 
 }
 

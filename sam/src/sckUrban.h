@@ -51,8 +51,6 @@ public:
 	float getCO();
 	float getNO2();
 
-	
-
 	// Utility functions
 	void setPot(Resistor wichPot, uint32_t value);
 	uint32_t getPot(Resistor wichPot);

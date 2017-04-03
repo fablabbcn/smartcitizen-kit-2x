@@ -18,6 +18,10 @@
 // Button 
 #define PIN_BUTTON 		7		// PA21
 
+// Serial USB leds
+#define SERIAL_TX_LED	26		// PA27
+#define SERIAL_RX_LED	25		// PB3
+
 // Sensor Board Conector
 #define IO0 9					// PA7 -- CO Sensor Heather
 #define IO1 8       			// PA6 -- NO2 Sensor Heater

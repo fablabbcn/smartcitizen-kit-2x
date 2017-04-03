@@ -56,7 +56,7 @@ struct EppromMode {
 
 struct EppromConf {
 	bool valid;
-	uint32_t readInterval;
+	uint32_t readInterval;	// in seconds
 };
 
 
@@ -167,7 +167,9 @@ public:
 		ACTION_READING_FINISHED,
 		ACTION_PUBLISH,
 		ACTION_CHECK_ESP_PUBLISH_TIMEOUT,
-		ACTION_READ_NETWORKS
+		ACTION_READ_NETWORKS,
+		ACTION_DEBUG_LOG,
+		ACTION_WATCHDOG_RESET
 	};
 	struct OneTimer	{
 		TimerAction action = ACTION_NULL;
@@ -180,6 +182,8 @@ public:
 	void timerSet(TimerAction action, uint32_t interval, bool isPeriodic=false);		// interval is in milliseconds
 	bool timerClear(TimerAction action);
 	bool timerExists(TimerAction action);
+	void restartWatchdog();
+	const uint8_t MAX_PUBLISH_FAILS_ALLOWED = 5;
 
 	// Sensors (REACOMODAR)
 	AllSensors sensors;
@@ -211,7 +215,7 @@ public:
 	void sendToken();
 	Configuration configuration;
 	void saveConf();
-	void setReadInterval(uint32_t newReadInterval);
+	void setReadInterval(uint32_t newReadInterval);		// in seconds
 	
 	// Flags
 	bool onWifi = false;
@@ -220,6 +224,7 @@ public:
 	bool onTime = false;
 	bool onBattery = false;
 	bool charging = false;
+	bool onUSB = false;
 
 	// Modes
 	void changeMode(SCKmodes newMode);
@@ -285,19 +290,21 @@ public:
 		// SD card
 		EXTCOM_SD_PRESENT,
 
-		// Sensor readings
+		// Sensors
 		EXTCOM_GET_SENSOR,
-		EXTCOM_SET_SENSOR,
 		EXTCOM_PUBLISH,
+		EXTCOM_LIST_SENSORS,
 		EXTCOM_ENABLE_SENSOR,
 		EXTCOM_DISABLE_SENSOR,
 
-		// Set Alpha POTs
+		// Sey Alpha POT's (TODO remove from here and find a more modular solution)
 		EXTCOM_ALPHADELTA_POT,
 
 		// Other
 		EXTCOM_GET_CHAN0,
 		EXTCOM_GET_CHAN1,
+		EXTCOM_GET_CHARGER,
+		EXTCOM_GET_BATTVOLT,
 		EXTCOM_GET_FREEHEAP,
 		EXTCOM_HELP,
 
@@ -387,6 +394,7 @@ public:
 	String oldLogFileName = "SCK_OLD.LOG";
 	bool openLogFile();
 	bool headersChanged = false;
+	bool sdLogADC();
 
 	// Battery
 	uint16_t getChann0();
@@ -396,6 +404,8 @@ public:
 	uint16_t readADC(byte channel);
 	bool isCharging = false;
 	const uint16_t batTable[100] = {3078,3364,3468,3540,3600,3641,3682,3701,3710,3716,3716,3716,3720,3714,3720,3725,3732,3742,3739,3744,3744,3754,3760,3762,3770,3768,3774,3774,3774,3779,3784,3790,3788,3794,3798,3798,3804,3809,3809,3812,3817,3817,3822,3823,3828,3828,3828,3833,3838,3838,3842,3847,3852,3859,3858,3864,3862,3869,3877,3877,3883,3888,3894,3898,3902,3906,3912,3923,3926,3936,3942,3946,3960,3972,3979,3982,3991,3997,4002,4002,4012,4018,4028,4043,4057,4074,4084,4094,4098,4098,4109,4115,4123,4134,4142,4153,4158,4170,4180,4188 };
+	bool USBConnected();
+
 
 	//TEMP hay que acomodar
 	void writeResistor(byte resistor, float value );

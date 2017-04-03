@@ -1116,14 +1116,10 @@ void SckBase::sckIn(String strIn) {
 			String newSsid = strIn.substring(first + 1, second);
 			String newPass = strIn.substring(third + 1, fourth);
 
-			if (newPass.length() < 8) {
-				sckOut(F("Wifi password should have at least 8 characters!!!"), PRIO_HIGH);
-			} else {
+			newSsid.toCharArray(credentials.ssid, 64);
+			newPass.toCharArray(credentials.password, 64);
+			sendNetwork();
 
-				newSsid.toCharArray(credentials.ssid, 64);
-				newPass.toCharArray(credentials.password, 64);
-				sendNetwork();
-			}
 			break;
 
 		} case EXTCOM_GET_WIFI: {

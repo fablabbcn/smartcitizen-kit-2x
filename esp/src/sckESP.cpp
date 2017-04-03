@@ -485,7 +485,11 @@ void SckESP::tryConnection() {
 
 		debugOUT(String F("Trying connection to wifi: ") + String(credentials.ssid) + " - " + String(credentials.password));
 
-		WiFi.begin(credentials.ssid, credentials.password);
+		String tp = String(credentials.password);
+
+		if (tp.length() == 0) WiFi.begin(credentials.ssid);
+		else WiFi.begin(credentials.ssid, credentials.password);
+
 	} else {
 		debugOUT(String F("Already connected to wifi: ") + String(WiFi.SSID()));
 	}
@@ -642,13 +646,17 @@ void SckESP::webSet() {
 
 	// TODO support open networks (nopassword)
 	// If we found ssid AND pass
-	if (webServer.hasArg("ssid") && webServer.hasArg("password"))  {
+	if (webServer.hasArg("ssid"))  {
 
 		String tssid = webServer.arg("ssid");
-		String tpass = webServer.arg("password");
+		String tpass = "";
 
-		// If ssid is no zero chars and pass is at least 8 chars
-		if (tssid.length() > 0 && tpass.length() > 7) {
+		if (webServer.hasArg("password")) {
+			String tpass = webServer.arg("password");
+		}
+			
+		// If ssid is no zero chars
+		if (tssid.length() > 0) {
 
 			tssid.toCharArray(credentials.ssid, 64);
 			tpass.toCharArray(credentials.password, 64);

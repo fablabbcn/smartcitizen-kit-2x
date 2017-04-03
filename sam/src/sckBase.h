@@ -159,7 +159,6 @@ public:
 		ACTION_CLEAR_ESP_BOOTING,
 		ACTION_ESP_ON,
 		ACTION_ESP_REBOOT,
-		ACTION_CHECK_SD,
 		ACTION_GET_ESP_STATUS, 
 		ACTION_LONG_PRESS,
 		ACTION_VERY_LONG_PRESS, 
@@ -181,6 +180,7 @@ public:
 	OneTimer timers[timerSlots];
 	void timerSet(TimerAction action, uint32_t interval, bool isPeriodic=false);		// interval is in milliseconds
 	bool timerClear(TimerAction action);
+	void timerClearAll();
 	bool timerExists(TimerAction action);
 	void restartWatchdog();
 	const uint8_t MAX_PUBLISH_FAILS_ALLOWED = 5;

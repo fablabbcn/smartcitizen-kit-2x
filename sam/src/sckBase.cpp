@@ -342,13 +342,6 @@ void SckBase::update() {
 					}
 				}
 			}
-			
-
-		// //----------------------------------------
-		// // 	MODE_NET TODO SOLO checar si lleva demasiado tiempo prendido el wifi y apagarlo.
-		// //----------------------------------------
-		} else if (mode == MODE_NET) {
-			// if (millis() - lastPublishTime > configuration.readInterval * 1000 * 5) softReset();	// Something went wrong!! RESET
 		}
 	}
 }
@@ -383,22 +376,15 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 	// Start with a new clear state
 	// --------------------------------------
+
+	// Clear ALL timers
+	timerClearAll();
+
 	// Led is steady until we found something to give feedback of
 	uint8_t pulseMode = 0;
 
-	// Remove the watchdog timer
-	timerClear(ACTION_WATCHDOG_RESET);
-
-	// Clear previous publish timers
-	timerClear(ACTION_PUBLISH);
-	timerClear(ACTION_READING_FINISHED);
-
-	// Stop looking for sd card
-	timerClear(ACTION_CHECK_SD);
-
 	// Stop searching for light signals (only do it on setup mode)
 	readLightEnabled = false;
-
 
 
 	// Configure things depending on new mode
@@ -422,7 +408,6 @@ void SckBase::changeMode(SCKmodes newMode) {
 		} case MODE_NET: {
 
 			// Restart Watchdog
-			sckOut("es en net");
 			restartWatchdog();
 
 			// If we dont have wifi turn off esp (it will be turned on by next publish try)
@@ -442,17 +427,19 @@ void SckBase::changeMode(SCKmodes newMode) {
 		} case MODE_SD: {
 
 			// Restart Watchdog
-			sckOut("es en sd");
 			restartWatchdog();
 
-			ESPcontrol(ESP_OFF);
-
-			// Check for sd and (if found) set timer for publishing periodically
-			timerSet(ACTION_CHECK_SD, 50);
-
-
+			// ESPcontrol(ESP_OFF);
 
 			sckOut(F("Entering SD card mode!"));
+
+			// publish in 3 seconds
+			timerSet(ACTION_PUBLISH, 3000);
+
+			// Set timer for periodically publishing
+			timerSet(ACTION_PUBLISH, configuration.readInterval*1000, true);
+
+			sckOut(String F("Publishing every ") + String((int)configuration.readInterval) + " seconds");
 			break;
 
 		} case MODE_BRIDGE: {
@@ -467,7 +454,10 @@ void SckBase::changeMode(SCKmodes newMode) {
 		}
 	}
 
+	// Save previous mode
 	prevMode = mode;
+
+	// Set new mode
 	mode = newMode;
 
 	// Save new mode to epprom to recover it after reset.
@@ -481,7 +471,8 @@ void SckBase::changeMode(SCKmodes newMode) {
 	// Update led
 	led.update(newMode, pulseMode);
 
-	if (newMode == MODE_OFF) goToSleep();		// This must be at the end so the rest get executed before goig to sleep
+	// This must be at the end so the rest get executed before goig to sleep
+	if (newMode == MODE_OFF) goToSleep();
 }
 
 void SckBase::changeOutputLevel(OutLevels newLevel) {
@@ -879,7 +870,6 @@ void SckBase::processStatus() {
 				sckOut(F("MQTT publish OK!!"));
 
 				// Published OK so restarting the watchdog.
-				sckOut("es en status");
 				restartWatchdog();
 
 				bool platformPublishedOK = true;
@@ -1737,7 +1727,6 @@ bool SckBase::publishToSD(bool platformPublishedOK) {
 
 		// Only asume that everything is working if we are not expecting network publish
 		if (mode == MODE_SD) {
-			sckOut("es en publishtosd");
 			restartWatchdog();
 		}
 		sckOut(F("Readings saved to SD!!"));
@@ -1891,6 +1880,8 @@ void SckBase::softReset() {
 */
 bool SckBase::sdPresent() {
 
+	ESPcontrol(ESP_OFF);
+
 	if (sd.cardBegin(CS_SDCARD, SPI_HALF_SPEED)) {
 		sckOut(F("Sdcard ready!!"), PRIO_LOW);
 		if (mode == MODE_SD) {
@@ -1905,15 +1896,12 @@ bool SckBase::sdPresent() {
 		sckOut(F("Sdcard not found!!"));
 		if (mode == MODE_SD) {
 			led.update(mode, 2);
-			// timerSet(ACTION_CHECK_SD, 500);
 		}
 		return false;
 	}
 }
 
 bool SckBase::openPublishFile() {
-
-	ESPcontrol(ESP_OFF);
 
 	char charFileName[publishFileName.length()];
 
@@ -2410,9 +2398,9 @@ void Led::off() {
 }
 
 
-/* 	-------------
- 	|	 Timer 	|
- 	-------------
+/* 	-----------------
+ 	|	 Timers 	|
+ 	-----------------
 */
 bool SckBase::timerRun() {
 
@@ -2435,21 +2423,6 @@ bool SckBase::timerRun() {
 
 					} case ACTION_ESP_REBOOT: {
 						ESPcontrol(ESP_REBOOT);
-						break;
-
-					} case ACTION_CHECK_SD: {
-
-						// If we dont find sd card the sdpresent function will continually trigger this check (if on MODE_SD)
-						if (sdPresent()) {
-							
-							// publish in 3 seconds
-							timerSet(ACTION_PUBLISH, 3000); publish();
-
-							// Set timer for periodically publishing
-							timerSet(ACTION_PUBLISH, configuration.readInterval*1000, true);
-							sckOut(String F("Publishing every ") + String((int)configuration.readInterval) + " seconds");
-
-						}
 						break;
 
 					} case ACTION_GET_ESP_STATUS: {
@@ -2497,6 +2470,8 @@ bool SckBase::timerRun() {
 						break;
 
 					} case ACTION_PUBLISH: {
+
+						// If we are not waiting for previous publish triggger a new one
 						if (!timerExists(ACTION_READING_FINISHED)) publish();
 						break;
 
@@ -2565,6 +2540,16 @@ bool SckBase::timerClear(TimerAction action) {
 	return false;
 }
 
+void SckBase::timerClearAll() {
+
+	for (uint8_t i=0; i<timerSlots; i++) {
+			timers[i].action = ACTION_NULL;
+			timers[i].interval = 0;
+			timers[i].started = 0;
+			timers[i].periodic = false;
+	}
+}
+
 bool SckBase::timerExists(TimerAction action) {
 	for (uint8_t i=0; i<timerSlots; i++) {
 		if (timers[i].action == action) {
@@ -2584,6 +2569,7 @@ void SckBase::restartWatchdog() {
 	// Reset kit if nobody calls this function in 5 reading intervals
 	timerSet(ACTION_WATCHDOG_RESET, configuration.readInterval * 1000 * MAX_PUBLISH_FAILS_ALLOWED);
 }
+
 
 /* 	-------------
  	|	 POT control (por ahora es copy paste del codigo de miguel, hay que revisarlo y adaptarlo)	|
@@ -2682,20 +2668,25 @@ NOTAS
 Hay que documentar el cambio de MQTT_MAX_PACKET_SIZE en pubSubClient.h a 1024 por que si no se hace los paquetes largos simplemente son desechados sin aviso
 
 BUGS
+*** MODECHANGE ORGANIZATION
 -- Hacer una funcion que borre TODOS los timers
 -- Organizar y unificar los cambios cuando pasas de un modo a otro
 -- HAY que revisar bien el flow de errores en NET y SD MODE 
+
+*** SDCARD ISSUES
+-- En sdcard mode no inicia el serial
 -- sin SDcard no init
-
--- hacer un mqtt hellow siempre que se de una config exitosa, no solo desde el readlight, tambien el webserver
-
+-- Si quito la sdcard y la reinserto el esp ya no inicia
 -- a veces despues de hacer ciclos de botones el esp ya no prende
 
+*** BUTTON ISSUES
+-- a veces el boton se dispara dos veces
+
+*** ONBOARDING TODO
+-- hacer un mqtt hellow siempre que se de una config exitosa, no solo desde el readlight, tambien el webserver
 -- Agregar al webserver las instrucciones para el onboarding despues de un setting exitoso
 -- Hacer pruebas de readlight y webserver
 
--- Si quito la sdcard y la reinserto el esp ya no inicia
--- a veces el boton se dispara dos veces
 
 -- poner un minimo de intervalo entre posts
 -- revisar bien el wait for answer, necesitamos una confirmacion (por lo menos un ack) sobre algunos comandos con el esp (set token set wifi... etc)

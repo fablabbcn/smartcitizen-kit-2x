@@ -250,8 +250,8 @@ void SckBase::setup() {
 	EppromConf savedConf = eppromConf.read();
 	if (savedConf.valid) {
 		configuration.readInterval = savedConf.readInterval;
-	}
-	if (configuration.readInterval == 0) configuration.readInterval = 15;		// Sanity check default
+	} else configuration.readInterval = defaultReadInterval;
+	if (configuration.readInterval < 15) configuration.readInterval = 15;
 
 	if (!urbanPresent) changeMode(MODE_ERROR);
 
@@ -282,7 +282,6 @@ void SckBase::setup() {
 
 	// For debugging purposes only (comment for production)
 	// timerSet(ACTION_DEBUG_LOG, 5000, true);
-
 };
 
 void SckBase::update() {
@@ -393,11 +392,11 @@ void SckBase::changeMode(SCKmodes newMode) {
 	timerClearTasks();
 
 	// Led is steady until we found something to give feedback of
-	uint8_t pulseMode = 0;
+	led.dim = false;
+	led.brightnessFactor = 1;
 
 	// Stop searching for light signals (only do it on setup mode)
 	readLightEnabled = false;
-
 
 	// Configure things depending on new mode
 	// --------------------------------------
@@ -421,6 +420,8 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 		} case MODE_NET: {
 
+			led.dim = true;
+
 			// Restart Watchdog
 			restartWatchdog();
 
@@ -439,6 +440,8 @@ void SckBase::changeMode(SCKmodes newMode) {
 			break;
 
 		} case MODE_SD: {
+
+			led.dim = true;
 
 			// Restart Watchdog
 			restartWatchdog();
@@ -483,7 +486,7 @@ void SckBase::changeMode(SCKmodes newMode) {
 	}
 
 	// Update led
-	led.update(newMode, pulseMode);
+	led.update(newMode, 0);
 
 	// This must be at the end so the rest get executed before goig to sleep
 	// After reset it will go to sleep in a clean state
@@ -727,7 +730,6 @@ void SckBase::ESPprocessMsg() {
 			StaticJsonBuffer<240> jsonBuffer;
 			JsonObject& jsonConf = jsonBuffer.parseObject(msgIn.param);
 			
-			// configuration.readInterval = jsonConf["ri"];
 			setReadInterval(jsonConf["ri"]);
 			
 			saveConf();
@@ -890,6 +892,9 @@ void SckBase::processStatus() {
 		switch (espStatus.mqtt) {
 			case ESP_MQTT_PUBLISH_OK_EVENT: {
 				sckOut(F("MQTT publish OK!!"));
+
+				// Start dimming the led...
+				led.dim = true;
 
 				// Published OK so restarting the watchdog.
 				restartWatchdog();
@@ -1179,7 +1184,6 @@ void SckBase::sckIn(String strIn) {
 				uint32_t intTinterval = strIn.toInt();
 
 				if (intTinterval > 0 && intTinterval < 86400) {
-					// configuration.readInterval = intTinterval;
 					setReadInterval(intTinterval);
 					saveConf();
 					sckOut(String F("Change reading interval to: ") + String(configuration.readInterval), PRIO_HIGH);
@@ -1750,6 +1754,10 @@ bool SckBase::publishToSD(bool platformPublishedOK) {
 			restartWatchdog();
 		}
 		sckOut(F("Readings saved to SD!!"));
+
+		// Start (or continue in case fo MODE_NET) dimming the led...
+		led.dim = true;
+
 		return true;
 	} else {
 		if (mode == MODE_SD) {
@@ -2104,7 +2112,7 @@ void SckBase::factoryReset() {
 	eppromMode.write(toSaveMode);
 
 	// Reset configuration
-	configuration.readInterval = 60;
+	configuration.readInterval = defaultReadInterval;
 	saveConf();
 
 	// Set a periodic timer for reset when ESP comunication (clear wifi and token) is complete
@@ -2320,7 +2328,7 @@ void Led::bridge() {
 }
 
 void Led::tick() {
-	
+
 	if(pulseMode == PULSE_SOFT) {
 		
 		ledRGBcolor = *(currentPulse + colorIndex);
@@ -2338,26 +2346,39 @@ void Led::tick() {
 				dir = true;
 			}
 		}
+
+		// TODO improve very low brightness levels
+		if (dim) {
+			if (brightnessFactor > 0.001) brightnessFactor = brightnessFactor - (1.0 / (2.0 * refreshPeriod));
+		} else {
+			brightnessFactor = 1;
+		}
+
+		ledRGBcolor.r = ledRGBcolor.r * brightnessFactor;
+		ledRGBcolor.g = ledRGBcolor.g * brightnessFactor;
+		ledRGBcolor.b = ledRGBcolor.b * brightnessFactor;
+	
+
 	} else if (pulseMode == PULSE_HARD_SLOW) {
 
 		if (millis() - hardTimer > slowHard) {
 			hardTimer = millis();
 
-			// TODO Optimize this!!!
-			// if (ledRGBcolor.r == offRGB.r && ledRGBcolor.g == offRGB.g && ledRGBcolor.b == offRGB.b) ledRGBcolor = currentPulse[24];
-			if (ledRGBcolor.r == yellowRGB.r && ledRGBcolor.g == yellowRGB.g && ledRGBcolor.b == yellowRGB.b) ledRGBcolor = currentPulse[24];
-			// else ledRGBcolor = offRGB; 
-			else ledRGBcolor = yellowRGB; 
+			if (inErrorColor) ledRGBcolor = currentPulse[24];
+			else ledRGBcolor = yellowRGB;
+
+			inErrorColor = !inErrorColor;
 		}
 
 	} else if (pulseMode == PULSE_HARD_FAST) {
 
 		if (millis() - hardTimer > fastHard) {
 			hardTimer = millis();
-			// if (ledRGBcolor.r == offRGB.r && ledRGBcolor.g == offRGB.g && ledRGBcolor.b == offRGB.b) ledRGBcolor = currentPulse[24];
-			if (ledRGBcolor.r == yellowRGB.r && ledRGBcolor.g == yellowRGB.g && ledRGBcolor.b == yellowRGB.b) ledRGBcolor = currentPulse[24];
-			// else ledRGBcolor = offRGB; 
-			else ledRGBcolor = yellowRGB; 
+
+			if (inErrorColor) ledRGBcolor = currentPulse[24];
+			else ledRGBcolor = yellowRGB;
+
+			inErrorColor = !inErrorColor;
 		}
 
 	}
@@ -2379,7 +2400,7 @@ void Led::setRGBColor(RGBcolor myColor) {
 		pinMode(PIN_LED_GREEN, OUTPUT);
 		digitalWrite(PIN_LED_GREEN, HIGH);
 	} else analogWrite(PIN_LED_GREEN, 255 - myColor.g);
-	
+
 	if (myColor.b == 0) {
 		pinMode(PIN_LED_BLUE, OUTPUT);
 		digitalWrite(PIN_LED_BLUE, HIGH);
@@ -2499,6 +2520,11 @@ bool SckBase::timerRun() {
 								}
 							}
 							sckOut("--------------------------");
+
+							// Turn on led
+							led.brightnessFactor = 1;
+							led.dim = false;
+
 							if (mode == MODE_NET) {
 								if (onWifi) ESPpublish();
 								else ESPpublishPending = true;

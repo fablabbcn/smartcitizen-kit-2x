@@ -91,6 +91,8 @@ public:
 	void wifiOK();
 	void tick();
 	void configOK();
+	float brightnessFactor = 1;
+	bool dim = false;
 
 	// Need a retouch
 	HSIcolor whiteHSI 		= {180,	0.5,	1.0};
@@ -135,6 +137,7 @@ private:
 	int colorIndex = 0;
 	RGBcolor ledRGBcolor;
 	const RGBcolor *currentPulse;
+	bool inErrorColor = false;
 	void setRGBColor(RGBcolor myColor);
 	void setHSIColor(float h, float s, float i);
 };
@@ -217,7 +220,8 @@ public:
 	Configuration configuration;
 	void saveConf();
 	void setReadInterval(uint32_t newReadInterval);		// in seconds
-	
+	const uint16_t defaultReadInterval = 15;
+
 	// Flags
 	bool onWifi = false;
 	bool hostNameSet = false;

@@ -167,6 +167,12 @@ bool SckESP::processMsg() {
 		} case ESP_CLEAR_WIFI_COM: {
 			debugOUT(F("Clearing network configuration..."));
 			clearNetworks();
+
+			// ACK
+			msgOut.com = ESP_CLEAR_WIFI_COM;
+			clearParam();
+			SAMsendMsg();
+
 			break;
 
 		} case ESP_GET_IP_COM: {
@@ -340,6 +346,12 @@ bool SckESP::processMsg() {
 	 		break;
 
 	 	} case ESP_LED_OFF: {
+
+			// ACK response
+			msgOut.com = ESP_LED_OFF;
+			clearParam();
+			SAMsendMsg();
+
 	 		ledSet(ledLeft, 0);
 	 		ledSet(ledRight, 0);
 	 		break;

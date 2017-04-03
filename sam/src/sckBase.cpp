@@ -365,7 +365,7 @@ void SckBase::clearNetworks() {
 	
 	sckOut(F("Clearing networks..."));
 	msgBuff.com = ESP_CLEAR_WIFI_COM;
-	ESPqueueMsg(false, false);
+	ESPqueueMsg(false, true);
 }
 
 void SckBase::sendToken() {
@@ -2091,12 +2091,15 @@ void SckBase::checkFactoryReset() {
 
 void SckBase::factoryReset() {
 
-	clearToken();
+	msgBuff.com = ESP_LED_OFF;
+	ESPqueueMsg(true);
 
 	strncpy(credentials.ssid, "ssid", 64);
 	strncpy(credentials.password, "password", 64);
 	credentials.time = 0;
 	clearNetworks();
+
+	clearToken();
 
 	// Save mode for next reboot
 	EppromMode toSaveMode;
@@ -2109,7 +2112,7 @@ void SckBase::factoryReset() {
 	saveConf();
 
 	// Set a periodic timer for reset when ESP comunication (clear wifi and token) is complete
-	timerSet(ACTION_FACTORY_RESET, 500, true);
+	timerSet(ACTION_FACTORY_RESET, 1000);
 }
 
 
@@ -2473,7 +2476,12 @@ bool SckBase::timerRun() {
 						break;
 
 					} case ACTION_FACTORY_RESET: {
-						if (BUS_queueIndex == 0) softReset();
+
+						EppromMode toSaveMode;
+						toSaveMode.valid = true;
+						toSaveMode.mode = MODE_AP;
+						eppromMode.write(toSaveMode);
+						softReset();
 						break;
 
 					} case ACTION_READING_FINISHED: {

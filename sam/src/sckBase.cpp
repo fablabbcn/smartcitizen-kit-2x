@@ -278,6 +278,9 @@ void SckBase::setup() {
 	sensors[SENSOR_VOLTIN].enabled 		= false;				// Disabled for now
 
 
+	// Check if USB connected and enable-disable Serial communication
+	USBConnected();
+
 	// For debugging purposes only (comment for production)
 	// timerSet(ACTION_DEBUG_LOG, 5000, true);
 
@@ -377,8 +380,11 @@ void SckBase::changeMode(SCKmodes newMode) {
 	// Start with a new clear state
 	// --------------------------------------
 
+	// Close any (potencially) open file
+	closeFiles();
+	
 	// Clear ALL timers
-	timerClearAll();
+	timerClearTasks();
 
 	// Led is steady until we found something to give feedback of
 	uint8_t pulseMode = 0;
@@ -472,7 +478,8 @@ void SckBase::changeMode(SCKmodes newMode) {
 	led.update(newMode, pulseMode);
 
 	// This must be at the end so the rest get executed before goig to sleep
-	if (newMode == MODE_OFF) goToSleep();
+	// After reset it will go to sleep in a clean state
+	if (newMode == MODE_OFF) softReset();
 }
 
 void SckBase::changeOutputLevel(OutLevels newLevel) {
@@ -505,6 +512,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 				sckOut(F("Turning off ESP..."));
 				timerClear(ACTION_GET_ESP_STATUS);
 				ESPon = false;
+				ESPbooting = false;
 				espSerialDebug = false;
 				digitalWrite(CH_PD, LOW);
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
@@ -1990,7 +1998,12 @@ bool SckBase::openLogFile() {
 	return false;
 }
 
+void SckBase::closeFiles() {
 
+	if (publishFile) publishFile.close();
+	if (debugLogFile) debugLogFile.close();
+	if (logFile) logFile.close();
+}
 
 void SckBase::goToSleep(bool wakeToCheck) {
 
@@ -2427,7 +2440,6 @@ bool SckBase::timerRun() {
 
 					} case ACTION_GET_ESP_STATUS: {
 						if (!readLightEnabled) getStatus();
-						USBConnected();
 						break;
 					
 					} case ACTION_LONG_PRESS: {
@@ -2540,13 +2552,16 @@ bool SckBase::timerClear(TimerAction action) {
 	return false;
 }
 
-void SckBase::timerClearAll() {
+void SckBase::timerClearTasks() {
 
 	for (uint8_t i=0; i<timerSlots; i++) {
+
+		if (timers[i].action != ACTION_LONG_PRESS && timers[i].action != ACTION_VERY_LONG_PRESS) {
 			timers[i].action = ACTION_NULL;
 			timers[i].interval = 0;
 			timers[i].started = 0;
 			timers[i].periodic = false;
+		}
 	}
 }
 

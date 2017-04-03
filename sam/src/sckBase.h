@@ -180,7 +180,7 @@ public:
 	OneTimer timers[timerSlots];
 	void timerSet(TimerAction action, uint32_t interval, bool isPeriodic=false);		// interval is in milliseconds
 	bool timerClear(TimerAction action);
-	void timerClearAll();
+	void timerClearTasks();
 	bool timerExists(TimerAction action);
 	void restartWatchdog();
 	const uint8_t MAX_PUBLISH_FAILS_ALLOWED = 5;
@@ -383,17 +383,15 @@ public:
 	String epoch2iso(uint32_t epochTime);
 
 	// SDcard
-	// SdFat sd;
 	float FileSizeLimit = 64000000;
-	bool sdPresent();
-	// File publishFile;
+	bool headersChanged = false;
 	String publishFileName = "POST001.CSV";
-	bool openPublishFile();
-	// File logFile;
 	String logFileName = "SCK.LOG";
 	String oldLogFileName = "SCK_OLD.LOG";
+	bool sdPresent();
+	bool openPublishFile();
 	bool openLogFile();
-	bool headersChanged = false;
+	void closeFiles();
 	bool sdLogADC();
 
 	// Battery

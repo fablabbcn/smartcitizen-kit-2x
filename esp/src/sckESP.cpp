@@ -15,6 +15,8 @@ ESP8266WebServer webServer(80);
 // DNS for captive portal
 DNSServer dnsServer;
 
+
+
 // 	-----------------
 //	|	General 	|
 //	-----------------
@@ -118,7 +120,6 @@ void SckESP::update() {
 };
 
 
-
 // 	---------------------
 //	|	Input-Output 	|
 //	---------------------
@@ -199,6 +200,18 @@ bool SckESP::processMsg() {
 			msgOut.com = ESP_SET_TOKEN_COM;
 			SAMsendMsg();
 	 		break;
+
+		} case ESP_CLEAR_TOKEN_COM: {
+
+			strncpy(token, "-null-", 8);
+			saveToken();
+
+			// ACK
+			msgOut.com = ESP_CLEAR_TOKEN_COM;
+			clearParam();
+			SAMsendMsg();
+
+			break;
 
 	 	} case ESP_GET_CONF_COM: {
 	 		msgOut.com = ESP_GET_CONF_COM;
@@ -450,7 +463,6 @@ bool SckESP::loadConf() {
 };
 
 
-
 // 	-------------
 //	|	WiFi 	|
 //	-------------
@@ -468,9 +480,6 @@ void SckESP::tryConnection() {
 };
 void SckESP::wifiDisconnect(){
 };
-
-
-
 
 
 // 	-----------------------------
@@ -1138,9 +1147,7 @@ bool SckESP::mqttPublish(){
 
 	return false;
 }
-
 bool SckESP::mqttSend(String payload) {
-
 }
 
 // 	------------
@@ -1176,7 +1183,6 @@ time_t SckESP::getNtpTime() {
   debugOUT(F("No NTP Response!!!"));
   return 0;
 };
-
 void SckESP::sendNTPpacket(IPAddress &address) {
   memset(packetBuffer, 0, 48);
 
@@ -1195,7 +1201,6 @@ void SckESP::sendNTPpacket(IPAddress &address) {
   Udp.write(packetBuffer, 48);
   Udp.endPacket();
 };
-
 String SckESP::ISOtime() {
 	// Return string.format("%04d-%02d-%02dT%02d:%02d:%02dZ", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
 	if (timeStatus() == timeSet) {
@@ -1210,14 +1215,12 @@ String SckESP::ISOtime() {
 		return "0";
 	}
 }
-
 String leadingZeros(String original, int decimalNumber) {
 	for (uint8_t i=0; i < (decimalNumber - original.length()); ++i)	{
 		original = "0" + original;
 	}
 	return original;
 }
-
 String SckESP::epoch2iso(uint32_t toConvert) {
 
 	time_t tc = toConvert;
@@ -1243,12 +1246,10 @@ void SckESP::ledSet(uint8_t wichLed, uint8_t value) {
 	ledValue[wichLed] = abs(value - 1);
 	digitalWrite(ledPin[wichLed], ledValue[wichLed]);
 };
-
 void SckESP::ledToggle(uint8_t wichLed) {
 	ledValue[wichLed] = abs(ledValue[wichLed] - 1);
 	digitalWrite(ledPin[wichLed], ledValue[wichLed]);
 };
-
 void SckESP::ledBlink(uint8_t wichLed, float rate) {
 	if (wichLed == ledLeft) Lblink.attach_ms(rate, LedToggleLeft);
 	else if (wichLed == ledRight) Rblink.attach_ms(rate, LedToggleRight);

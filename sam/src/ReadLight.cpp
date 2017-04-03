@@ -66,7 +66,7 @@ void ReadLight::setup() {
   reset();
   feedDOG();          // Start timer for watchdog
 
-  debugFlag = true;   // Remove for production
+  debugFlag = false;   // Remove for production
 
   // Set values for light readings (only once)
   uint8_t DATA [8] = {0x07, TIME0, 0x00 ,0x00, 0x00, 0xFF, 0xFF ,0x00} ;

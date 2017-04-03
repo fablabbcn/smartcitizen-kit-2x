@@ -19,6 +19,7 @@ enum EspCommand {
 	ESP_GET_IP_COM,
 	ESP_SET_TOKEN_COM,		// @params String Token
 	ESP_GET_TOKEN_COM,
+	ESP_CLEAR_TOKEN_COM,
 	ESP_SET_CONF_COM,		// @params struct Configuration
 							// @return bool: true if configuration saved, false otherwise
 	ESP_GET_CONF_COM,		// @return struct Configuration

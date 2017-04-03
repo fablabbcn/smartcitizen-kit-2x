@@ -213,6 +213,7 @@ public:
 	void clearNetworks();
 	char token[8];
 	void sendToken();
+	void clearToken();
 	Configuration configuration;
 	void saveConf();
 	void setReadInterval(uint32_t newReadInterval);		// in seconds
@@ -345,7 +346,7 @@ public:
 	void veryLongPress();
 	void softReset();
 	uint16_t longPressInterval = 5000;
-	uint16_t veryLongPressInterval = 10000;
+	uint16_t veryLongPressInterval = 9000;
 	uint32_t butLastEvent = 0;
 	bool butIsDown = false;
 	void checkFactoryReset();

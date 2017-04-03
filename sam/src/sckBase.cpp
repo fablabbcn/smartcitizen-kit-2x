@@ -375,6 +375,13 @@ void SckBase::sendToken() {
 	ESPqueueMsg(true, true);
 }
 
+void SckBase::clearToken() {
+
+	sckOut(F("Clearing token..."));
+	msgBuff.com = ESP_CLEAR_TOKEN_COM;
+	ESPqueueMsg(false, true);
+}
+
 void SckBase::changeMode(SCKmodes newMode) {
 
 	// Start with a new clear state
@@ -479,7 +486,7 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 	// This must be at the end so the rest get executed before goig to sleep
 	// After reset it will go to sleep in a clean state
-	if (newMode == MODE_OFF) softReset();
+	if (newMode == MODE_OFF) goToSleep();
 }
 
 void SckBase::changeOutputLevel(OutLevels newLevel) {
@@ -1139,12 +1146,11 @@ void SckBase::sckIn(String strIn) {
 		
 		} case EXTCOM_GET_TOKEN: {
 			msgBuff.com = ESP_GET_TOKEN_COM;
-			ESPqueueMsg(false, false);
+			ESPqueueMsg(false, true);
 			break;
 
 		} case EXTCOM_CLEAR_TOKEN: {
-			strncpy(token, "null", 64);
-			sendToken();
+			clearToken();
 			break;
 
 		} case EXTCOM_GET_VERSION: {
@@ -2075,13 +2081,12 @@ void SckBase::checkFactoryReset() {
 
 void SckBase::factoryReset() {
 
+	clearToken();
+
 	strncpy(credentials.ssid, "ssid", 64);
 	strncpy(credentials.password, "password", 64);
 	credentials.time = 0;
 	clearNetworks();
-
-	strncpy(token, "null", 64);
-	sendToken();
 
 	// Save mode for next reboot
 	EppromMode toSaveMode;
@@ -2187,8 +2192,9 @@ bool SckBase::USBConnected() {
 		}
 
 		onUSB = false;
-
 	}
+
+	return onUSB;
 }
 
 /* 	---------------------

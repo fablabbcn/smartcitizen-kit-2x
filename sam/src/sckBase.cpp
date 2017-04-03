@@ -251,7 +251,7 @@ void SckBase::setup() {
 	if (savedConf.valid) {
 		configuration.readInterval = savedConf.readInterval;
 	}
-	if (configuration.readInterval == 0) configuration.readInterval = 60;		// Sanity check default
+	if (configuration.readInterval == 0) configuration.readInterval = 15;		// Sanity check default
 
 	if (!urbanPresent) changeMode(MODE_ERROR);
 
@@ -272,7 +272,6 @@ void SckBase::setup() {
 
 	// Temporary disabled
 	sensors[SENSOR_NETWORKS].enabled 	= false;
-	sensors[SENSOR_LIGHT].enabled 		= false;
 	sensors[SENSOR_CO].enabled 			= false;				// Disabled for now
 	sensors[SENSOR_NO2].enabled			= false;				// Disabled for now
 	sensors[SENSOR_VOLTIN].enabled 		= false;				// Disabled for now
@@ -341,7 +340,7 @@ void SckBase::update() {
 					 	readLightEnabled = false;
 
 					 	//MQTT Hellow for Onboarding process
-					 	triggerHello = true;
+						triggerHello = true;
 					}
 				}
 			}
@@ -408,6 +407,8 @@ void SckBase::changeMode(SCKmodes newMode) {
 	// Actions for each mode
 	switch(newMode) {
 		case MODE_AP: {
+
+			sckOut(F("Entering Setup mode!"));
 
 			// Start ESP and ap mode
 			timerSet(ACTION_ESP_ON, 50);
@@ -769,7 +770,7 @@ void SckBase::ESPprocessMsg() {
 			break;
 
 		} case ESP_MQTT_HELLOW_COM: {
-			sckOut(F("ESP MQTT hellow..."));
+			sckOut(F("ESP trying MQTT hellow..."));
 			break;
 
 		} case ESP_GET_FREE_HEAP_COM:{
@@ -781,6 +782,11 @@ void SckBase::ESPprocessMsg() {
 
 			sckOut(F("Configuration changed via WebServer!!!"));
 			led.configOK();
+		 	readLightEnabled = false;
+		 	readLight.reset();
+		 	
+		 	//MQTT Hellow for Onboarding process
+			triggerHello = true;
 			break;
 
 		}
@@ -826,6 +832,7 @@ void SckBase::processStatus() {
 				}
 
 				if (triggerHello) {
+					sckOut(F("Sending MQTT Hello..."));
 					msgBuff.com = ESP_MQTT_HELLOW_COM;
 					ESPqueueMsg(false, false);
 					triggerHello = false;
@@ -893,6 +900,9 @@ void SckBase::processStatus() {
 
 			} case ESP_MQTT_HELLO_OK_EVENT: {
 				sckOut(F("MQTT Hello OK!!"));
+
+				// Go to network mode
+				changeMode(MODE_NET);
 				break;
 
 			} case ESP_MQTT_ERROR_EVENT: {
@@ -1540,7 +1550,7 @@ bool SckBase::setTime(String epoch) {
 		onTime = true;
 		sckOut(ISOtime());
 		prompt();
-		changeMode(mode);
+		if (mode != MODE_AP) changeMode(mode);
 		return true;
 	}
 	else sckOut(F("RTC update failed!!"));
@@ -2333,16 +2343,22 @@ void Led::tick() {
 
 		if (millis() - hardTimer > slowHard) {
 			hardTimer = millis();
-			if (ledRGBcolor.r == offRGB.r && ledRGBcolor.g == offRGB.g && ledRGBcolor.b == offRGB.b) ledRGBcolor = currentPulse[24];
-			else ledRGBcolor = offRGB; 
+
+			// TODO Optimize this!!!
+			// if (ledRGBcolor.r == offRGB.r && ledRGBcolor.g == offRGB.g && ledRGBcolor.b == offRGB.b) ledRGBcolor = currentPulse[24];
+			if (ledRGBcolor.r == yellowRGB.r && ledRGBcolor.g == yellowRGB.g && ledRGBcolor.b == yellowRGB.b) ledRGBcolor = currentPulse[24];
+			// else ledRGBcolor = offRGB; 
+			else ledRGBcolor = yellowRGB; 
 		}
 
 	} else if (pulseMode == PULSE_HARD_FAST) {
 
 		if (millis() - hardTimer > fastHard) {
 			hardTimer = millis();
-			if (ledRGBcolor.r == offRGB.r && ledRGBcolor.g == offRGB.g && ledRGBcolor.b == offRGB.b) ledRGBcolor = currentPulse[24];
-			else ledRGBcolor = offRGB; 
+			// if (ledRGBcolor.r == offRGB.r && ledRGBcolor.g == offRGB.g && ledRGBcolor.b == offRGB.b) ledRGBcolor = currentPulse[24];
+			if (ledRGBcolor.r == yellowRGB.r && ledRGBcolor.g == yellowRGB.g && ledRGBcolor.b == yellowRGB.b) ledRGBcolor = currentPulse[24];
+			// else ledRGBcolor = offRGB; 
+			else ledRGBcolor = yellowRGB; 
 		}
 
 	}
@@ -2503,8 +2519,7 @@ bool SckBase::timerRun() {
 						// Only reset kit in Setup and net modes
 						if (mode == MODE_NET || mode == MODE_AP) softReset();
 						break;
-
-					}
+					} 
 				}
 
 				// Clear Timer
@@ -2562,7 +2577,7 @@ void SckBase::timerClearTasks() {
 
 	for (uint8_t i=0; i<timerSlots; i++) {
 
-		if (timers[i].action != ACTION_LONG_PRESS && timers[i].action != ACTION_VERY_LONG_PRESS) {
+		if (timers[i].action != ACTION_LONG_PRESS && timers[i].action != ACTION_VERY_LONG_PRESS && timers[i].action != ACTION_GET_ESP_STATUS) {
 			timers[i].action = ACTION_NULL;
 			timers[i].interval = 0;
 			timers[i].started = 0;

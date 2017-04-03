@@ -492,11 +492,11 @@ void SckESP::startAP(){
 	uint8_t macAddr[6];
 	WiFi.softAPmacAddress(macAddr);
 
-	String base = "SmartCitizen";
-	String completo = base + String(macAddr[5]);
+	String base = "SmartCitizen[";
+	String completo = base + String(macAddr[5]) + "]";
 
-	char ssidName[16];
-	completo.toCharArray(ssidName, 16);
+	char ssidName[18];
+	completo.toCharArray(ssidName, 18);
 
 	debugOUT(String F("Starting Ap with ssid: ") + String(ssidName));
 
@@ -620,6 +620,8 @@ void SckESP::webRoot() {
 	webServer.send(200, "text/html", htmlPage);
 };
 void SckESP::webSet() {
+
+	uint8_t score = 0;
 	
 	String response = "<!DOCTYPE html><html><head><meta name=viewport content=width=device-width, initial-scale=1><style>body {color: #434343;font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif;font-size: 22px;line-height: 1.1;padding: 20px;}</style></head><body>";
 
@@ -641,14 +643,16 @@ void SckESP::webSet() {
 
 			if (addNetwork()) somethingChanged = true;
 
-			response += String(F("Success: New net added: ")) + tssid + " - " + tpass + "<br/>";
+			// response += String(F("Success: New net added: ")) + tssid + " - " + tpass + "<br/>";
+
+			score ++;
 			
 		} else {
-			response += String(F("Error: wrong ssid or password!!<br/>"));
+			// response += String(F("Error: wrong ssid or password!!<br/>"));
 		}
 	
 	} else {
-		response += String(F("Warning: can't find ssid or password!!<br/>"));
+		// response += String(F("Warning: can't find ssid or password!!<br/>"));
 	}
 
 	// If we found the token
@@ -658,12 +662,15 @@ void SckESP::webSet() {
 			ttoken.toCharArray(token, 8);
 			saveToken();
 			somethingChanged = true;
-			response += String(F("Success: New token added: ")) + ttoken + "<br/>";
+			// response += String(F("Success: New token added: ")) + ttoken + "<br/>";
+
+			score ++;
+
 		} else {
-			response += String(F("Error: token must have 6 chars!!<br/>"));
+			// response += String(F("Error: token must have 6 chars!!<br/>"));
 		}
 	} else {
-		response += String(F("Warning: no token received<br/>"));
+		// response += String(F("Warning: no token received<br/>"));
 	}
 
 	// If we found new time
@@ -678,13 +685,13 @@ void SckESP::webSet() {
        		espStatus.time = ESP_TIME_UPDATED_EVENT;
        		somethingChanged = true;
       		debugOUT(F("Time updated from apmode web!!!"));
-       		response += String(F("Success: Time synced: ")) + ISOtime() + "<br/>";
+       		// response += String(F("Success: Time synced: ")) + ISOtime() + "<br/>";
 		} else {
-			response += String(F("Error: received time is not valid!!<br/>"));
+			// response += String(F("Error: received time is not valid!!<br/>"));
 		}
 
 	} else {
-		response += String(F("Warning: no time received to sync<br/>"));
+		// response += String(F("Warning: no time received to sync<br/>"));
 	}
 
 	// Interval is in seconds
@@ -698,13 +705,20 @@ void SckESP::webSet() {
 			configuration.readInterval = intTinterval;
 			espStatus.conf = ESP_CONF_CHANGED_EVENT;
 			somethingChanged = true;
-			response += String(F("Success: New reading interval: ")) + String(intTinterval) + String(F(" seconds"));
+			// response += String(F("Success: New reading interval: ")) + String(intTinterval) + String(F(" seconds"));
 		} else {
-			response += String(F("Error: received read interval is not valid!!!"));
+			// response += String(F("Error: received read interval is not valid!!!"));
 		}
 		
 	} else {
-		response += String(F("Warning: no new reading interval received"));
+		// response += String(F("Warning: no new reading interval received"));
+	}
+	
+	// Custom Making Sense message TEMP
+	if (score == 2) {
+		response += "Thank you<br/>Please finish installing the Smart Citizen Kit on the other screen";
+	} else {
+		response += "Something went wrong!!<br/>Please click kit's button until is red and try again!";
 	}
 	
 	response += "</body></html>";

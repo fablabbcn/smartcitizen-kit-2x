@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=UTF-8'>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=380'>
+  <title>Smartcitizen APmode</title>
+  <style media='screen' type='text/css'>
+    *{margin:0;padding:0}
+    html{height:100%;background:linear-gradient(#71B0B8,#065063);)}
+    body{font-family:arial,verdana}
+    form{width:420px;text-align:left;position:relative}
+    .full{position:absolute;margin:auto;top:-150px;right:0;bottom:0;left:0;width:420px;height:304px;}
+    form fieldset{background:#fff;border:0 none;border-radius:3px;box-shadow:0 0 15px 1px rgba(0,0,0,.4)}
+    form input{padding:10px;border:0;border-bottom:2px solid #F5F5F5;width:100%;box-sizing:border-box;color:#2C3E50;font-size:16px}
+    form .action-button{border:0 none;cursor:pointer;}
+    #msform .submit:focus,form .action-button:hover{background: #66E1FF;}
+    #formFrame{display: none;}
+    #aplist{display: block; background: #C8E6ED; color:#065063; border: none}
+    select{width:100%;margin-top: 20px;padding: 10px 5px; border:1px solid #ccc;display:none;}
+    .formTop{background: #065063; padding: 10px; position: absolute; width: 100%}
+    .formCenter{background: #fff; padding: 20px 30px}
+    .fs-title{font-size:25px;text-transform:uppercase;color:#38CEF3;margin-bottom:10px;}
+    .fs-subtitle{font-weight:600;font-size:18px;color:#065063;margin-bottom:20px}
+    .fs-label{font-weight:400;font-size:14px;color:#38CEF3; margin-top: 20px}
+    .fs-status{font-weight:600;font-size:14px;color:#5BBBD4;margin-bottom:40px}
+    .submit{width:100%; height: 70px; background: #38CEF3; color: #fff;font-weight:400;font-size:22px}
+  </style>
+</head>
+<body>
+  
+    <div class='formTop'>
+        <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAsCAYAAAAXb/p7AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4AUZDwwWbFybJwAABStJREFUWMPNmVtslEUUx39n21prQRChFpCrERRCCcpFaFIKKipC5EGQaABD8EHREOXBmJjoi8YECBoTjUoUMTEBjWJECQZS2iIPNlzDVS6NULSUgoItSOnu34edxY9h99vtbeUkzWbmO/Of/5w5c+bMKbRTJJVKupUbVSR9LalJ0qeSJt2IBBfoWjkk6VVJRTcKwdsltep6uSxpnaSZknL+b5LVCpejkvp1ZI7cdhIbD8wCBmegfj5b1sqRNF/STmUmVyRNzBa5ckl71DZ5IxvE8iQtkxRLQWK/pJok/dsl5XY1uR6StiaZ/G9JKyUNd3qTve8XJA3NRgjZ5U0ck7RKUrGnmyupMaC3oKvJ5Uuq8sidlTQzZMwap7euA/POkFSaieLHHrkTkkakGTNb0klJt7UzOrzldqgu9CaS9JhHrlHS3RlMcpOku9ppuTXenD+Ebe1vAcWopPIsRIpJklo8ko8nU1zsKS3P4pX5ujf3gcQ9bgk/AGqBAW7MGWComTWFgA4Ayh3GNjM77uuUbKovzCuIDc/PidRtLy1uCMEqAA4CgwLdM81sQ8Q1pgXIASxPQ+454CiwBvgcOCLptaDOuMq6pfkF0cYI2nElGj09rqrui5JN9YXJ8MzsEvC2170oaMHVQCJ+tQD9zawxBbl+wHEgH6h01n4SEDDGzPaMq6ybg9laN+RPwJ1u+7CmrN8LKXC7Ab8D3V1XK9A7YcGHArqbU5FzUu7ItQDTzWw2sN0tdlrcIpH4Yk3v1ZT174XZkrg1NA8pksKKTcD3XqZVGnG+1D/wYUsan853v5fcH8B8oNjMlgEIDY7zi2wFiMWiFfF+uk3Y0tAnBLvSa5dFgHu8zt1pCCa+93A5IWZ2zMxOX90u5zpX2zEuATuAHeJKawj2L157WC7gZ7zHw9iZ2S5JP7nt/EhSrZmFLmrnlAFHgbEZRJxTXrs4AvhPxwsZAM0DfgX6ABWSpnZSSDwLxALtPskctjAdipk1AFNd7OoJbJA0phMI5gJBTpcjQLOndEcmSGZ2CihzvlUAfONCRUeku9duzgVO+vueKZqZNUqaAexzD6i5wCpf7/7Kk6MiFtkLQDSvb82UovoUkMO8dkMEOOx1PpDm3lwiaZuklx3JemCj+zyhgxb03WR3xMxOeFackYGflAKLXDZtwNBrnphx0giVAEQsZ3TCpy4WnTkXgj3NDwAJh6wI3vGSBoaArAUuAiOAKmArkKjNfAdgsfgv8ObYqlMHQJ+5+Lhx/8iRLSl2pifwaKCrBahMEAym6gYsDfG7OmChIznRHRQBK82sGqCmrO/7wGrADO6NW101Fs17PmThCwK3FMAmMzuXSBbygGOBjOYyMMxtfypfLAImuxNcY2YHfZ3x1XWjgdExdGLIH3dWfzXHoimwCoEjQN9A91z7L+EASa94SeOXWUxYV3hzH7nuXS2pQFKtp7g4C+QeSVIleyaV8hOeYouksi4kVyLpnDfnZhcZUg76xBtwviseT5LGSqpP8ooclG5ggaut+EXJl0JX1jZyz0pqTrJbD2cK0FvS3iR1mQpJozpA7D5JPybBbZX0VFvBekn6OQlYTNK3kqZnUuKVdLM7COtTVMmaJM1KGXfTVQyAFcCLKVT+crfJHhfHLrh0qdBdfxPcG+aWFOMPAU+b2a6O+syDkg6r8+QfSe+493CnFjMXun83tFeaJX0gaUhXBlZz9ZR3Je0Lqb4GQ8d6d3LbXP2yTiDcAxgODHTpfyJLP+0eYLVmpvbi/wtVS+Wj77y49gAAAABJRU5ErkJggg=='>
+        </div>
+  <div class='full'>
+    <form id='credentialsForm' method='get' action='/update' target='formFrame'>
+      <fieldset>
+        <div class='formCenter'>
+          <iframe id='formFrame' src='' name='formFrame'></iframe> <!-- Used to submit data, needed to prevent re-direction after submission -->
+          <h2 class='fs-title'>WiFi Login</h2>
+          <h3 class='fs-subtitle'>Connect your Smart Citizen Kit</h3>
+          <h3 class='fs-status'>Status: <span id='status'>Updating...</span></h3>
+          <h3 class='fs-label'>Wifi Name</h3>
+          <input id='wifi_ssid' autocorrect='off' autocapitalize='none' name='wifi_ssid'>
+          <h3 class='fs-label'>Password</h3>
+          <input name='wifi_password' type='password'>
+          <h3 class='fs-label'>Token</h3>
+          <input name='token'>
+          <!-- <h3 class='fs-status'>Status: <span id='status'>Updating...</span></h3> -->
+        </div>
+        <select id='aplist' name='aplist' size='1' disabled>
+            <option>Scanning for networks...</option>
+        </select>
+        <input type=submit name=save class='action-button submit' value='SAVE'>
+      </fieldset>
+    </form>
+  </div>
+  <script>
+    function fetch(url, method, callback)
+    {
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange=check_ready;
+      function check_ready()
+      {
+        if (xhr.readyState === 4)
+        {
+          callback(xhr.status === 200 ? xhr.responseText : null);
+        }
+      }
+      xhr.open(method, url, true);
+      xhr.send();
+    }
+
+
+    function new_status(stat)
+    {
+      if (stat)
+      {
+        var e = document.getElementById('status');
+        e.innerHTML = stat;
+      }
+    }
+
+
+    function new_status_repeat(stat)
+    {
+      new_status(stat);
+      setTimeout(refresh_status, 750);
+    }
+
+
+    function new_ap_list(json)
+    {
+      if (json)
+      {
+        var list = JSON.parse(json);
+        list.sort(function(a, b){ return b.rssi - a.rssi; });
+        var ssids = list.map(function(a) { return a.ssid; }).filter(function(item, pos, self) { return self.indexOf(item)==pos; });
+        var sel = document.getElementById('aplist');
+        sel.innerHTML = '';
+        sel.setAttribute('size', Math.max(Math.min(3, list.length), 1));
+        sel.removeAttribute('disabled');
+        for (var i = 0; i < ssids.length; ++i)
+        {
+          var o = document.createElement('option');
+          o.innerHTML = ssids[i];
+          sel.options.add(o);
+        }
+        sel.style.display = 'block';
+      }
+    }
+
+
+    function new_ap_list_repeat(json)
+    {
+      new_ap_list(json);
+      setTimeout(refresh_ap_list, 3000);
+    }
+
+
+    function refresh_status()
+    {
+      fetch('/status','GET', new_status_repeat);
+    }
+
+
+    function refresh_ap_list()
+    {
+      fetch('/aplist','GET', new_ap_list_repeat);
+    }
+
+    function set_ssid_field() {
+        var sel = document.getElementById('aplist');
+        document.getElementById('wifi_ssid').value = sel.value;
+    }
+
+    window.onload = function()
+    {
+      // refresh_status();
+      refresh_ap_list();
+      document.getElementById('aplist').onclick = set_ssid_field;
+      document.getElementById('aplist').onchange = set_ssid_field;
+      document.getElementById('credentialsForm').addEventListener('submit', function(){
+        fetch('/status','GET', new_status);
+      });
+    }
+  </script>
+</body>
+</html>

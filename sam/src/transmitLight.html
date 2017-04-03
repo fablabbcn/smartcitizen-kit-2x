@@ -25,14 +25,18 @@
   <br>
   ID Token:
   <input id="TOKEN" type="text" style="margin: 7px" value="yourToken">
+   <br>
+  Reading Interval:
+  <input id="INTERVAL" type="text" style="margin: 7px" value="60">
   <br>
+  <input id="startTime" type="button" value="Just Send Time" style="height:28px; width:120px; margin: 12px" onclick="loadTime();" />
   <input id="start" type="button" value="Start" style="height:28px; width:120px; margin: 12px" onclick="load();" />
 
   </form></div>
 
   <script type="text/javascript" charset="utf-8">
 
-    var gamma = 2.0;
+    var gamma = 1.8;
     var levelNum = 9;
     var MIN = 0;
     var MAX = levelNum -2;
@@ -41,7 +45,7 @@
 
     var checksum = 0;
 
-    var period = 170;
+    var period = 150; //was 170
 
     var queue = [];
     var payload = "";
@@ -98,7 +102,6 @@
       for (var i = 0; i < char.length; i++) {
         outDigit(char[i]);
       }
-
     }
 
     function sendWord(word) {
@@ -143,6 +146,31 @@
 
       } else {
         document.getElementById("start").value = "Start";
+        window.clearInterval(myInterval);
+        paint(MIN);
+      }
+    }
+
+    function startTime(){
+
+      if (document.getElementById("startTime").value == "Just Send Time") {
+
+        document.getElementById("startTime").value = "Stop";
+        document.getElementById('output').innerHTML = "";
+
+        console.log(queue);
+
+        myInterval = window.setInterval(function() {
+          paint(queue[index]);
+          index = index + 1;
+          if (index >= queue.length) {
+            window.clearInterval(myInterval);
+            startTime();
+          }
+        }, period );
+
+      } else {
+        document.getElementById("startTime").value = "Just Send Time";
         window.clearInterval(myInterval);
         paint(MIN);
       }
@@ -193,6 +221,7 @@
       sendWord(document.getElementById("SSID").value + "\n"); //We should validate text input here
       sendWord(document.getElementById("PASS").value + "\n");
       sendWord(document.getElementById("TOKEN").value + "\n");
+      sendWord(document.getElementById("INTERVAL").value + "\n");
       
       ETX();
       sendChecksum();
@@ -200,6 +229,28 @@
 
       start();
     }
+
+    function loadTime() {
+
+      queue = [];
+      payload = "";
+      checksum = 0;
+      index = 0;
+
+      INIT();
+      STX();
+      
+      sendWord("time\n");
+      sendWord(Math.floor((new Date).getTime()/1000) + "\n");
+      
+      ETX();
+      sendChecksum();
+      EOT();
+
+      startTime();
+    }
+
+    // document.getElementById("epoch").value = Math.floor((new Date).getTime()/1000);
 
   </script>
 </body>

@@ -478,10 +478,10 @@ void SckBase::changeMode(SCKmodes newMode) {
 	mode = newMode;
 
 	// Save new mode to epprom to recover it after reset.
-	if (newMode == MODE_SD || newMode == MODE_NET || newMode == MODE_OFF) {
+	if (mode == MODE_OFF || mode == MODE_SD || mode == MODE_NET || mode == MODE_AP) {
 		EppromMode toSaveMode;
 		toSaveMode.valid = true;
-		toSaveMode.mode = newMode;
+		toSaveMode.mode = mode;
 		eppromMode.write(toSaveMode);
 	}
 

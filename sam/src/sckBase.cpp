@@ -83,7 +83,7 @@ void SckBase::setup() {
 
 	// Serial Ports Configuration
 	Serial1.begin(baudrate);
-	SerialUSB.begin(baudrate);
+	// SerialUSB.begin(baudrate);
 
 	// SAM <<>> ESP comunication
 	BUS_in.begin(details(msgIn), &Serial1);
@@ -2180,33 +2180,27 @@ bool SckBase::USBConnected() {
 	if (getCharger() > 4000){
 		// USB is connected
 
-		// If this is the first time we detect the connection
-		if (!onUSB) {
+		// Turn on readlight debug output
+		readLight.debugFlag = true;
 
-			// Turn on readlight debug output
-			readLight.debugFlag = true;
-
-			USBDevice.init();
-			USBDevice.attach();
-		}
+		USBDevice.init();
+		USBDevice.attach();
+		SerialUSB.begin(baudrate);
 
 		onUSB = true;
 
 	} else {
 		// USB is not connected
 
-		// If this is the first time we detect the disconnection
-		if (onUSB) {
+		// Turn off readlight debug output
+		readLight.debugFlag = false;
 
-			// Turn off readlight debug output
-			readLight.debugFlag = false;
+		USBDevice.detach();
+		SerialUSB.end();
 
-			USBDevice.detach();
-
-			// Turn off Serial leds
-			digitalWrite(SERIAL_TX_LED, HIGH);
-			digitalWrite(SERIAL_RX_LED, HIGH);
-		}
+		// Turn off Serial leds
+		digitalWrite(SERIAL_TX_LED, HIGH);
+		digitalWrite(SERIAL_RX_LED, HIGH);
 
 		onUSB = false;
 	}

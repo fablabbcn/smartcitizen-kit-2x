@@ -28,9 +28,9 @@ private:
 	uint32_t readyPause = ((2.8/1000.0) * 964 * (float)(256 - TIME0));
 	uint16_t newReading = 0;		// Here we store the light sensor new readings
 	uint16_t OldReading = 0;		// Variable for saving readings between loops
-	uint16_t tolerance = 1;			// Threshold for considering a reading the same as other
+	uint16_t tolerance = 2;			// Threshold for considering a reading the same as other
 	uint8_t readingRepetitions = 0;		// Whit this we validate readings, we need at least MIN_REP repetitions inside the tolerance
-	const uint8_t MIN_REP = 3;
+	const uint8_t MIN_REP = 2;
 	
 	// Variables to manage light values (just for calibration)
   	float newValue = 0;

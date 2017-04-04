@@ -83,7 +83,7 @@ void SckBase::setup() {
 
 	// Serial Ports Configuration
 	Serial1.begin(baudrate);
-	// SerialUSB.begin(baudrate);
+	SerialUSB.begin(baudrate);
 
 	// SAM <<>> ESP comunication
 	BUS_in.begin(details(msgIn), &Serial1);
@@ -2195,12 +2195,13 @@ bool SckBase::USBConnected() {
 		// Turn off readlight debug output
 		readLight.debugFlag = false;
 
+		// USBDevice.init();
 		USBDevice.detach();
 		SerialUSB.end();
 
-		// Turn off Serial leds
-		digitalWrite(SERIAL_TX_LED, HIGH);
-		digitalWrite(SERIAL_RX_LED, HIGH);
+		//Turn off Serial leds
+		// digitalWrite(SERIAL_TX_LED, HIGH);
+		// digitalWrite(SERIAL_RX_LED, HIGH);
 
 		onUSB = false;
 	}

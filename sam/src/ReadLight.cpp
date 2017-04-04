@@ -201,7 +201,7 @@ bool ReadLight::getLight() {
   * The best working option is 0xFB: using 9 values and printing output from screen at intervals of 70ms
   */
 
-  if (millis() - readyTimer > readyPause + 1) {
+  if (millis() - readyTimer > readyPause + 2) {
     readyTimer = millis();
     Wire.requestFrom(BH1730, 4);
     uint16_t DATA0 = Wire.read();
@@ -367,9 +367,11 @@ void ReadLight::reset() {
   EOT = false;
   ETX = false;
   TransmittingText = false;
-  for (int i=0; i<8; ++i) results.lines[i] = "";
+  for (uint8_t i=0; i<8; ++i) results.lines[i] = "";
   results.ok = false;
   results.lineIndex = 0;
+  // clear all levels
+  for (uint8_t i=0; i<9; i++) levels[i] = 0;
 }
 
 void ReadLight::debugOUT(String debugText, bool newLine) {

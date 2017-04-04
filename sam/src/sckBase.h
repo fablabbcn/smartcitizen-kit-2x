@@ -229,7 +229,7 @@ public:
 	bool onTime = false;
 	bool onBattery = false;
 	bool charging = false;
-	bool onUSB = false;
+	bool onUSB = true;
 
 	// Modes
 	void changeMode(SCKmodes newMode);

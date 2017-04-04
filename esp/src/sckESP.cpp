@@ -652,7 +652,7 @@ void SckESP::webSet() {
 		String tpass = "";
 
 		if (webServer.hasArg("password")) {
-			String tpass = webServer.arg("password");
+			tpass = webServer.arg("password");
 		}
 			
 		// If ssid is no zero chars

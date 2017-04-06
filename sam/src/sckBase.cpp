@@ -2131,18 +2131,24 @@ float SckBase::getBatteryVoltage() {
 
 float SckBase::getBatteryPercent() {
 
-	float percent = 0;
-	float voltage = getBatteryVoltage();
+	uint8_t percent = 0;
+	uint16_t voltage = (uint16_t)getBatteryVoltage();
 
-	for(uint16_t i = 0; i < 100; i++) {
+	for(uint8_t i = 0; i < 100; i++) {
     	if(voltage < batTable[i]) {
-      		percent = i * 10;
+			percent = i;
       		break;
     	}
   	}
-  	if(percent < 10 && percent > 0) percent = 10;
 
-  	return percent/10;
+	// When USB is connected and the battery is not charging
+	// We dont have a way to know if battery is missing or fully charged so we say 100% for both cases
+	if (getChann0() > 4000) percent = 100;
+
+	// If voltage is over the largest value on table
+	if (voltage > batTable[99]) percent = 100;
+
+	return (float)percent;
 }
 
 float SckBase::getCharger() {
@@ -2169,11 +2175,10 @@ uint16_t SckBase::readADC(byte channel) {
   return data;
 }
 
-void SckBase::writeCurrent(int current)
-  {
+void SckBase::writeCurrent(int current) {
     int resistor = (4000000/current)-96-3300;
     writeResistor(0, resistor);
-  }
+}
 
 bool SckBase::USBConnected() {
 

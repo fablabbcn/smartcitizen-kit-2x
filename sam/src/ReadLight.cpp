@@ -40,8 +40,6 @@ Para poder integrar más comandos en el futuro por esta vía se usa un caracter 
 De esta manera queda:
 	STXcomando\nparametro1\nparametro2\nparametroN\nETXCRCEOT
 
-Falta implementar el calculo y envio del CRC entre el ETX y el EOT.
-
 Para el comando de envio de credenciales, al que llamaremos auth:
 
 	INITSTXauth\nmySSID\nmyPASS\nmyTOKEN\nETXCRCEOT
@@ -145,7 +143,7 @@ bool ReadLight::calibrate() {
   if (!getLight()) return false;
 
   // If the new value difference from previous is less than tolerance we use it.
-  if (abs(newReading - OldReading) < tolerance) readingRepetitions++;
+  if (abs(newReading - OldReading) <= (float)(newReading / (newLevel + 1) / 3.0)) readingRepetitions++;
   else readingRepetitions = 0;
   
   // Save old reading for future comparisons
@@ -201,7 +199,7 @@ bool ReadLight::getLight() {
   * The best working option is 0xFB: using 9 values and printing output from screen at intervals of 70ms
   */
 
-  if (millis() - readyTimer > readyPause + 2) {
+  if (millis() - readyTimer > 20) {
     readyTimer = millis();
     Wire.requestFrom(BH1730, 4);
     uint16_t DATA0 = Wire.read();
@@ -370,8 +368,6 @@ void ReadLight::reset() {
   for (uint8_t i=0; i<8; ++i) results.lines[i] = "";
   results.ok = false;
   results.lineIndex = 0;
-  // clear all levels
-  for (uint8_t i=0; i<9; i++) levels[i] = 0;
 }
 
 void ReadLight::debugOUT(String debugText, bool newLine) {

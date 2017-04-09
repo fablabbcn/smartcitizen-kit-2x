@@ -161,6 +161,7 @@ void SckBase::setup() {
 	comTitles[EXTCOM_READLIGHT_ON]			=	"set readlight on";
 	comTitles[EXTCOM_READLIGHT_OFF]			=	"set readlight off";
 	comTitles[EXTCOM_READLIGHT_RESET]		=	"set readlight reset";
+	comTitles[EXTCOM_READLIGHT_TOGGLE_DEBUG]=	"set readlight debug";
 
 	// Time configuration
 	comTitles[EXTCOM_GET_TIME]			= 	"get time";			// @params: iso (default), epoch
@@ -168,7 +169,8 @@ void SckBase::setup() {
 	comTitles[EXTCOM_SYNC_TIME]			= 	"sync time";
 
 	// SD card
-	comTitles[EXTCOM_SD_PRESENT]	=	"sd present";
+	comTitles[EXTCOM_SD_PRESENT]		=	"sd present";
+	comTitles[EXTCOM_SD_OPEN_FILE]		=	"sd open file";
 
 	// Sensors
 	comTitles[EXTCOM_GET_SENSOR]		=	"read";			// @params sensor Title
@@ -338,10 +340,16 @@ void SckBase::update() {
 					 	readLightEnabled = false;
 
 					 	//MQTT Hellow for Onboarding process
-						triggerHello = true;
+					 	if (onWifi) {
+					 		msgBuff.com = ESP_MQTT_HELLOW_COM;
+							ESPqueueMsg(false, false);
+						} else {
+							// If we are not yet connected queue the MQTT hello
+							triggerHello = true;
+						}
 					}
 				}
-			}
+			// }
 		}
 	}
 }
@@ -1281,13 +1289,13 @@ void SckBase::sckIn(String strIn) {
 
 		} case EXTCOM_READLIGHT_ON: {
 
-			sckOut(F("Turning on readlight..."));
+			sckOut(F("Turning readlight ON..."));
 			readLightEnabled = true;
 			break;
 
 		} case EXTCOM_READLIGHT_OFF: {
 
-			sckOut(F("Turning on readlight..."));
+			sckOut(F("Turning readlight OFF..."));
 			readLightEnabled = false;
 			break;
 
@@ -1295,6 +1303,14 @@ void SckBase::sckIn(String strIn) {
 
 			readLight.reset();
 			readLightEnabled = true;
+			break;
+
+		} case EXTCOM_READLIGHT_TOGGLE_DEBUG:{
+
+			readLight.debugFlag = !readLight.debugFlag;
+			sckOut(F("Readlight debug flag: "), PRIO_MED, false);
+			if (readLight.debugFlag) sckOut(F("true"));
+			else sckOut(F("false"));
 			break;
 
 		// Time configuration
@@ -2269,9 +2285,6 @@ bool SckBase::USBConnected() {
 	if (getCharger() > 4000){
 		// USB is connected
 
-		// Turn on readlight debug output
-		readLight.debugFlag = true;
-
 		USBDevice.init();
 		USBDevice.attach();
 		SerialUSB.begin(baudrate);
@@ -2282,9 +2295,6 @@ bool SckBase::USBConnected() {
 
 	} else {
 		// USB is not connected
-
-		// Turn off readlight debug output
-		readLight.debugFlag = false;
 
 		// USBDevice.init();
 		USBDevice.detach();
@@ -2567,7 +2577,7 @@ bool SckBase::timerRun() {
 						break;
 
 					} case ACTION_GET_ESP_STATUS: {
-						if (!readLightEnabled) getStatus();
+						getStatus();
 						break;
 					
 					} case ACTION_LONG_PRESS: {

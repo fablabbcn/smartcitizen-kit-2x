@@ -286,6 +286,7 @@ public:
 		EXTCOM_READLIGHT_ON,
 		EXTCOM_READLIGHT_OFF,
 		EXTCOM_READLIGHT_RESET,
+		EXTCOM_READLIGHT_TOGGLE_DEBUG,
 
 		// Time configuration
 		EXTCOM_GET_TIME,			// @params: iso (default), epoch
@@ -294,6 +295,7 @@ public:
 
 		// SD card
 		EXTCOM_SD_PRESENT,
+		EXTCOM_SD_OPEN_FILE,		// For development purposes
 
 		// Sensors
 		EXTCOM_GET_SENSOR,
@@ -388,7 +390,7 @@ public:
 	String epoch2iso(uint32_t epochTime);
 
 	// SDcard
-	float FileSizeLimit = 64000000;
+	uint32_t FileSizeLimit = 64000000;
 	bool headersChanged = false;
 	String publishFileName = "POST001.CSV";
 	String logFileName = "SCK.LOG";

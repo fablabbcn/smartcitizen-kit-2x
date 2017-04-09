@@ -45,7 +45,7 @@
 
     var checksum = 0;
 
-    var period = 170; //was 170
+    var period = 150; //was 170
 
     var queue = [];
     var payload = "";
@@ -186,7 +186,7 @@
     function STX() { 
       outDigit(0);
       outDigit(0);
-      outDigit(2); 
+      outDigit(2);
     }
 
     function newLine() { 
@@ -250,7 +250,7 @@
       startTime();
     }
 
-    // document.getElementById("epoch").value = Math.floor((new Date).getTime()/1000);
+    document.getElementById("epoch").value = Math.floor((new Date).getTime()/1000);
 
   </script>
 </body>

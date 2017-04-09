@@ -171,7 +171,7 @@ public:
 		ACTION_CHECK_ESP_PUBLISH_TIMEOUT,
 		ACTION_READ_NETWORKS,
 		ACTION_DEBUG_LOG,
-		ACTION_WATCHDOG_RESET
+		// ACTION_WATCHDOG_RESET
 	};
 	struct OneTimer	{
 		TimerAction action = ACTION_NULL;
@@ -185,7 +185,7 @@ public:
 	bool timerClear(TimerAction action);
 	void timerClearTasks();
 	bool timerExists(TimerAction action);
-	void restartWatchdog();
+	// void restartWatchdog();
 	const uint8_t MAX_PUBLISH_FAILS_ALLOWED = 5;
 
 	// Sensors (REACOMODAR)
@@ -204,9 +204,9 @@ public:
 	void sensorPublish();
 	void ESPpublish();
 	bool ESPpublishPending = false;
-	const uint16_t ESP_publish_timeout_interval = 5000;	// In ms
+	const uint16_t ESP_publish_timeout_interval = 25000;	// In ms
 	bool publishToSD(bool platformPublishedOK=false);
-	float lastPublishTime;
+	uint32_t StartedPublishTime;
 
 	// Configuration
 	String version = "SCK-1.5_0.1-";

@@ -94,8 +94,6 @@ void SckBase::setup() {
 	pinMode(CH_PD, OUTPUT);
 	pinMode(GPIO0, OUTPUT);
 	digitalWrite(POWER_WIFI, HIGH);
-	ESPcontrol(ESP_ON);				// This keeps ESP wifi leds totally off
-	delay(20);
 	ESPcontrol(ESP_OFF);
 	timerClear(ACTION_CLEAR_ESP_BOOTING);
 	ESPbooting = false;
@@ -226,7 +224,7 @@ void SckBase::setup() {
 		readLightEnabled = true;
 		readLight.setup();
 		urban.setup();
-	}
+	} else changeMode(MODE_ERROR);
 
 	// Auxiliary boards
 	auxBoards.setup();
@@ -250,10 +248,11 @@ void SckBase::setup() {
 	EppromConf savedConf = eppromConf.read();
 	if (savedConf.valid) {
 		configuration.readInterval = savedConf.readInterval;
-	} else configuration.readInterval = defaultReadInterval;
+	} else {
+		configuration.readInterval = defaultReadInterval;
+		saveConf();
+	}
 	if (configuration.readInterval < 15) configuration.readInterval = 15;
-
-	if (!urbanPresent) changeMode(MODE_ERROR);
 
 	// Sensors Setup
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -306,7 +305,7 @@ void SckBase::update() {
 		// 	MODE_AP
 		//----------------------------------------
 		if (mode == MODE_AP) {
-			if (!onWifi) {
+			// if (!onWifi) {
 
 				// TODO led feedback on CRC OK, wifi OK, ping OK, and MQTT OK
 				if (readLightEnabled) {
@@ -385,9 +384,6 @@ void SckBase::changeMode(SCKmodes newMode) {
 	// Start with a new clear state
 	// --------------------------------------
 
-	// Close any (potencially) open file
-	closeFiles();
-	
 	// Clear ALL timers
 	timerClearTasks();
 
@@ -410,7 +406,7 @@ void SckBase::changeMode(SCKmodes newMode) {
 			sckOut(F("Entering Setup mode!"));
 
 			// Start ESP and ap mode
-			timerSet(ACTION_ESP_ON, 50);
+			if (!ESPon) timerSet(ACTION_ESP_ON, 100);
 			
 			// Restart lightread for receiving new data
 			readLightEnabled = true;
@@ -420,41 +416,40 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 		} case MODE_NET: {
 
-			led.dim = true;
+			// led.dim = true;
 
 			// Restart Watchdog
-			restartWatchdog();
+			// restartWatchdog();
 
 			// If we dont have wifi turn off esp (it will be turned on by next publish try)
 			if (!onWifi) ESPcontrol(ESP_OFF);
+			else espLastOn = millis();			// Workaroud to avoid publish timeout to trigger on entering net mode
 
 			sckOut(F("Entering Network mode!"));
 
 			// first publish in 3 seconds
-			timerSet(ACTION_PUBLISH, 3000);
+			// timerSet(ACTION_PUBLISH, 3000);
 
 			// Set timer for periodically publishing
-			timerSet(ACTION_PUBLISH, configuration.readInterval*1000, true);
+			// timerSet(ACTION_PUBLISH, configuration.readInterval*1000, true);
 
 			sckOut(String F("Publishing every ") + String(configuration.readInterval) + F(" seconds"));
 			break;
 
 		} case MODE_SD: {
 
-			led.dim = true;
+			readLightEnabled = false;
+			// led.dim = true;
 
-			// Restart Watchdog
-			restartWatchdog();
-
-			// ESPcontrol(ESP_OFF);
+			ESPcontrol(ESP_OFF);
 
 			sckOut(F("Entering SD card mode!"));
 
 			// publish in 3 seconds
-			timerSet(ACTION_PUBLISH, 3000);
+			// timerSet(ACTION_PUBLISH, 3000);
 
 			// Set timer for periodically publishing
-			timerSet(ACTION_PUBLISH, configuration.readInterval*1000, true);
+			// timerSet(ACTION_PUBLISH, configuration.readInterval*1000, true);
 
 			sckOut(String F("Publishing every ") + String((int)configuration.readInterval) + " seconds");
 			break;
@@ -518,16 +513,18 @@ void SckBase::inputUpdate() {
 void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 	switch(controlCommand){
 		case ESP_OFF:
-			onWifi = false;
 			if ((ESPon || ESPbooting) && mode != MODE_BRIDGE) {
+				closeFiles();
 				sckOut(F("Turning off ESP..."));
 				timerClear(ACTION_GET_ESP_STATUS);
+				onWifi = false;
 				ESPon = false;
 				ESPbooting = false;
 				espSerialDebug = false;
-				digitalWrite(CH_PD, LOW);
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
 				digitalWrite(GPIO0, LOW);
+				// delay(1);
+				// digitalWrite(CH_PD, LOW);
 				espTotalOnTime += millis() - espLastOn;
 				sckOut(String F("ESP was on for ") + String(millis() - espLastOn, 0) + F(" milliseconds."));
 
@@ -556,6 +553,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 
 		case ESP_ON:
 			if (!ESPon && !ESPbooting) {
+				closeFiles();
 				sdPresent();
 				sckOut(F("Turning on ESP..."));
 				SPI.end();						// Important for SCK-1.5.3 so the sdfat lib releases the SPI bus and the ESP can access his flash
@@ -571,6 +569,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			break;
 
 		case ESP_REBOOT:
+			sckOut(F("Restarting ESP..."));
 			ESPcontrol(ESP_OFF);
 			delay(10);
 			ESPcontrol(ESP_ON);
@@ -622,7 +621,7 @@ void SckBase::ESPbusUpdate() {
 
 void SckBase::ESPqueueMsg(bool sendParam, bool waitAnswer) {
 
-	if (!ESPon) ESPcontrol(ESP_ON);
+	ESPcontrol(ESP_ON);
 
 	BUS_queueIndex++;
 
@@ -841,7 +840,7 @@ void SckBase::processStatus() {
 				} else if (ESPpublishPending) {
 					// If there is a publish operation waiting...
 					ESPpublish();
-					ESPpublishPending = false;
+					// ESPpublishPending = false;
 				}
 				break;
 
@@ -865,7 +864,7 @@ void SckBase::processStatus() {
 
 		// If there was ANY wifi error...
 		if (!onWifi) {
-			// If we are not expecting apmode configuration
+			// If we are not expecting apmode configuration turn ESP off to avoid battery drain
 			if(mode != MODE_AP) ESPcontrol(ESP_OFF);
 
 			// If we NEED network give feedback about error
@@ -873,6 +872,7 @@ void SckBase::processStatus() {
 
 			// If there is a pending publish
 			if (ESPpublishPending) {
+				ESPcontrol(ESP_OFF);
 				sckOut(F("ERROR: publish failed, saving to SDcard only..."));
 				bool platformPublishedOK = false;
 				publishToSD(platformPublishedOK);
@@ -897,8 +897,10 @@ void SckBase::processStatus() {
 				led.dim = true;
 
 				// Published OK so restarting the watchdog.
-				restartWatchdog();
+				// restartWatchdog();
 
+				ESPcontrol(ESP_OFF);
+				ESPpublishPending = false;
 				bool platformPublishedOK = true;
 				publishToSD(platformPublishedOK);
 				break;
@@ -911,9 +913,12 @@ void SckBase::processStatus() {
 				break;
 
 			} case ESP_MQTT_ERROR_EVENT: {
+				if (mode == MODE_NET) led.update(mode, 2);
 				sckOut(F("ERROR: MQTT failed!!"));
+				ESPcontrol(ESP_OFF);
+				bool platformPublishedOK = false;
+				publishToSD(platformPublishedOK);
 				break;
-
 			}
 		}
 
@@ -929,7 +934,9 @@ void SckBase::processStatus() {
 			case ESP_TIME_FAIL_EVENT: {
 
 				sckOut(F("NTP sync ERROR!!"));
-				if (!onTime) led.update(mode, 1);
+				if (mode != MODE_AP) {
+					if (!onTime) led.update(mode, 1);	
+				}
 				break;
 
 			} case ESP_TIME_UPDATED_EVENT: {
@@ -1316,7 +1323,19 @@ void SckBase::sckIn(String strIn) {
 		} case EXTCOM_SD_PRESENT: {
 			if (sdPresent()) sckOut(F("Sdcard ready!!!"));
 			break;
+
+		} case EXTCOM_SD_OPEN_FILE: {
 	
+			sdPresent();
+			sd.begin(CS_SDCARD);
+			sckOut(F("writing file that is not opened..."));
+			publishFile.println("probando...");
+			sckOut(F("paso!!!"));
+			// publishFile = sd.open("POST001.CSV", FILE_WRITE); // Leave the file open to provoque corruption
+			// if (publishFile) sckOut(F("Sucsesfully opened file!!! leaving it open... be carefull"));
+
+			break;
+
 		} case EXTCOM_GET_SENSOR: {
 
 			SensorType thisType = SENSOR_COUNT;
@@ -1595,21 +1614,54 @@ String SckBase::epoch2iso(uint32_t toConvert) {
 */
 void SckBase::publish() {
 
+	// Start Wifi
 	if (mode == MODE_NET) ESPcontrol(ESP_ON);
 
+	// Take readings
 	sckOut("Reading sensors...");
+	sckOut("");
+	sckOut("--------------------------");
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 		SensorType wichSensor = static_cast<SensorType>(i);
 		if (sensors[wichSensor].enabled) {
-			// Restart the valid flag
+
 			getReading(wichSensor);
+
+			if (wichSensor == SENSOR_TIME) 
+				sckOut(sensors[wichSensor].title + ": " + epoch2iso(sensors[wichSensor].lastReadingTime) + " " + sensors[wichSensor].unit, PRIO_HIGH);
+			else if (wichSensor == SENSOR_NETWORKS) 
+				sckOut(sensors[wichSensor].title + ": " + String(sensors[wichSensor].reading) + " " + sensors[wichSensor].unit, PRIO_HIGH);
+			else 
+				sckOut(sensors[wichSensor].title + ": " + String(sensors[wichSensor].reading) + " " + sensors[wichSensor].unit, PRIO_HIGH);
+
 		} else {
 			sensors[wichSensor].reading = 0;
 		}
 	}
+	sckOut("--------------------------");
+	sckOut("");
+	
+	// Turn on led
+	led.brightnessFactor = 1;
+	led.dim = false;
 
-	timerSet(ACTION_READING_FINISHED, 100, true);
+	if (mode == MODE_NET) {
+		
+		// If we are connected publish or wait for conection
+		if (onWifi) ESPpublish();
+		else ESPpublishPending = true;
+
+		StartedPublishTime = millis();
+
+	} else if (mode == MODE_SD) {
+		
+		bool platformPublishedOK = false;
+		publishToSD(platformPublishedOK);
+
+	}
+
+	// timerSet(ACTION_READING_FINISHED, 100, true);
 }
 
 bool SckBase::getReading(SensorType wichSensor) {
@@ -1626,15 +1678,15 @@ bool SckBase::getReading(SensorType wichSensor) {
 				case SENSOR_BATTERY: tempReading = getBatteryPercent(); break;
 				case SENSOR_TIME: tempReading = rtc.getEpoch(); break;
 				case SENSOR_VOLTIN: tempReading = getCharger(); break;
-				case SENSOR_NETWORKS: {
-					if (mode == MODE_NET) {		// Dont turn on ESP on sdcard mode
-						msgBuff.com = ESP_GET_APCOUNT_COM;
-						ESPqueueMsg(false, false);
-						return false;	// This case is a exception because we have to wait for ESP to answer network scan
-					} else {
-						sensors[wichSensor].reading = 0;
-					}
-				}
+				// case SENSOR_NETWORKS: {
+				// 	if (mode == MODE_NET) {		// Dont turn on ESP on sdcard mode
+				// 		msgBuff.com = ESP_GET_APCOUNT_COM;
+				// 		ESPqueueMsg(false, false);
+				// 		return false;	// This case is a exception because we have to wait for ESP to answer network scan
+				// 	} else {
+				// 		sensors[wichSensor].reading = 0;
+				// 	}
+				// }
 			}
 			sensors[wichSensor].reading = tempReading;
 			sensors[wichSensor].valid = true;
@@ -1648,7 +1700,6 @@ bool SckBase::getReading(SensorType wichSensor) {
 			sensors[wichSensor].valid = true;
 			break;
 		}
-		sckOut(String(sensors[wichSensor].reading));
 	}
 
 	// Store last reading time
@@ -1717,6 +1768,8 @@ void SckBase::ESPpublish() {
 
 bool SckBase::publishToSD(bool platformPublishedOK) {
 
+	sckOut(F("Publishing to SDcard..."));
+
 	if (openPublishFile()) {
 		
 		// Write down the platform publish status of this reading
@@ -1730,29 +1783,36 @@ bool SckBase::publishToSD(bool platformPublishedOK) {
 			// Only print data if sensors is enabled, otherwise print only the ,
 			if (sensors[wichSensor].enabled) {
 
-				// Time need a special treatment
 				if (wichSensor == SENSOR_TIME) {
+
+					// Time need a special treatment
 					publishFile.print(epoch2iso(sensors[wichSensor].lastReadingTime));
 				}
-				// This sensors needs rounding
-				else if (wichSensor == SENSOR_NETWORKS || wichSensor == SENSOR_BATTERY)
+				
+				else if (wichSensor == SENSOR_NETWORKS || wichSensor == SENSOR_BATTERY) {
+				
+					// This sensors needs rounding
 					publishFile.print((int)sensors[wichSensor].reading);
 
-				// This are published as float
-				else
+				} else {
+
+					// This are published as float
 					publishFile.print(sensors[wichSensor].reading);
+
+				}
+
+				if (wichSensor < SENSOR_COUNT) publishFile.print(",");
 			} 
 
-			if (wichSensor < SENSOR_COUNT) publishFile.print(",");
 
 		}
 		publishFile.println("");
 		publishFile.close();
 
 		// Only asume that everything is working if we are not expecting network publish
-		if (mode == MODE_SD) {
-			restartWatchdog();
-		}
+		// if (mode == MODE_SD) {
+		// 	restartWatchdog();
+		// }
 		sckOut(F("Readings saved to SD!!"));
 
 		// Start (or continue in case fo MODE_NET) dimming the led...
@@ -1811,7 +1871,7 @@ void SckBase::setReadInterval(uint32_t newReadInterval) {
 	configuration.readInterval = newReadInterval;
 
 	// Restart timers
-	changeMode(mode);
+	// changeMode(mode);
 }
 
 /* 	--------------
@@ -1820,9 +1880,12 @@ void SckBase::setReadInterval(uint32_t newReadInterval) {
 */
 void SckBase::buttonEvent() {
 
+	// if (millis() - butLastEvent < 30) return;
+
 	if (!digitalRead(PIN_BUTTON)) {
 
 		butIsDown = true;
+		led.dim = false;
 		butLastEvent = millis();
 
 		timerSet(ACTION_LONG_PRESS, longPressInterval);
@@ -1833,6 +1896,7 @@ void SckBase::buttonEvent() {
 	} else {
 
 		butIsDown = false;
+		if (mode == MODE_NET || mode == MODE_SD) led.dim = true;
 		butLastEvent = millis();		
 		
 		timerClear(ACTION_LONG_PRESS);
@@ -1899,6 +1963,10 @@ void SckBase::longPress() {
 }
 
 void SckBase::softReset() {
+
+	// Close files before resseting to avoid corruption
+	closeFiles();
+
  	wdt.enable(10);
 }
 
@@ -1909,9 +1977,13 @@ void SckBase::softReset() {
 bool SckBase::sdPresent() {
 
 	ESPcontrol(ESP_OFF);
+	digitalWrite(CH_PD, LOW);		// Do this here to avoid wifi led current drain but provide sd card access
+
+	// Make sure files are closed to avoid corruption
+	closeFiles();
 
 	if (sd.cardBegin(CS_SDCARD, SPI_HALF_SPEED)) {
-		sckOut(F("Sdcard ready!!"), PRIO_LOW);
+		sckOut(F("Sdcard ready!!"));
 		if (mode == MODE_SD) {
 			if (onTime) led.update(mode, 0);
 			else {
@@ -1935,50 +2007,60 @@ bool SckBase::openPublishFile() {
 
 	bool writeHeader = false;
 
+	sckOut(F("Opening publish file..."));
+
 	if (sdPresent()) {
 
-		sd.begin(CS_SDCARD);
-		
-		uint8_t fi = 1;
-		while (fi < 128) {
+		if (sd.begin(CS_SDCARD, SPI_HALF_SPEED)) {
 
-			publishFileName.toCharArray(charFileName, publishFileName.length() + 1);
+			for (uint8_t fi=1; fi<99; fi++) {
 
-			// If file doesn't exist we need to write header or headers have changed
-			if (!sd.exists(charFileName)) writeHeader = true;
+				publishFileName.toCharArray(charFileName, publishFileName.length() + 1);
 
-			headersChanged = false;
+				// If file doesn't exist we need to write header or headers have changed
+				if (!sd.exists(charFileName)) writeHeader = true;
 
-			// Open file
-			publishFile = sd.open(charFileName, FILE_WRITE);
-			
-			if (publishFile) {
-				// Check if file is not to big
-				if (publishFile.size() < FileSizeLimit) {
-					if (writeHeader) {
-						// Write headers;
-						// Published OK or not
-						publishFile.print(F("Published,"));
+				headersChanged = false;
 
-				 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-							SensorType wichSensor = static_cast<SensorType>(i);
-							publishFile.print(sensors[wichSensor].title);
+				// Open file
+				publishFile = sd.open(charFileName, FILE_WRITE);
+
+				if (publishFile) {
+					// Check if file is not to big
+					if (publishFile.size() < FileSizeLimit) {
+
+						// Write headers
+						if (writeHeader) {
 							
-							// If there are units cofigured
-							if (sensors[wichSensor].unit.length() > 0) {
-								publishFile.print("-");
-								publishFile.print(sensors[wichSensor].unit);	
+							// Published OK flag
+							publishFile.print(F("Published,"));
+
+					 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+								SensorType wichSensor = static_cast<SensorType>(i);
+
+								if (sensors[wichSensor].enabled) {
+									// Sensor titles
+									publishFile.print(sensors[wichSensor].title);
+									
+									// If there are units cofigured
+									if (sensors[wichSensor].unit.length() > 0) {
+										publishFile.print("-");
+										publishFile.print(sensors[wichSensor].unit);	
+									}
+									if (wichSensor < SENSOR_COUNT) publishFile.print(",");	
+								}
 							}
-							if (wichSensor < SENSOR_COUNT) publishFile.print(",");
+							publishFile.println("");
 						}
-						publishFile.println("");
+						sckOut(String F("Using ") + publishFileName + F(" to store posts."));
+						return true;
 					}
-					sckOut(String F("Using ") + publishFileName + F(" to store posts."), PRIO_LOW);
-					return true;
-				} else {
-					publishFileName = String F("POST") + leadingZeros(String(fi), 3) + F(".CSV");
 					publishFile.close();
 				}
+
+				// If file dont open or too big try next
+				publishFileName = String F("POST") + leadingZeros(String(fi), 3) + F(".CSV");
+				
 			}
 		}
 	}
@@ -2060,6 +2142,8 @@ void SckBase::goToSleep(bool wakeToCheck) {
  //  	SYSCTRL->DFLLCTRL.bit.RUNSTDBY = 1;
 
 	sckOut(F("Going to sleep..."));
+
+	closeFiles();
 
 	ESPcontrol(ESP_OFF);
 
@@ -2192,6 +2276,8 @@ bool SckBase::USBConnected() {
 		USBDevice.attach();
 		SerialUSB.begin(baudrate);
 
+		sckOut(F("Serial port via USB is connected!"));
+
 		onUSB = true;
 
 	} else {
@@ -2205,8 +2291,8 @@ bool SckBase::USBConnected() {
 		SerialUSB.end();
 
 		//Turn off Serial leds
-		// digitalWrite(SERIAL_TX_LED, HIGH);
-		// digitalWrite(SERIAL_RX_LED, HIGH);
+		digitalWrite(SERIAL_TX_LED, HIGH);
+		digitalWrite(SERIAL_RX_LED, HIGH);
 
 		onUSB = false;
 	}
@@ -2544,12 +2630,13 @@ bool SckBase::timerRun() {
 						sdLogADC();
 						break;
 
-					} case ACTION_WATCHDOG_RESET: {
+					} //case ACTION_WATCHDOG_RESET: {
 
-						// Only reset kit in Setup and net modes
-						if (mode == MODE_NET || mode == MODE_AP) softReset();
-						break;
-					} 
+					// 	sckOut(F("Watchdog reset triggered!!!"));
+					// 	// Only reset kit in Setup and net modes
+					// 	if (mode == MODE_NET || mode == MODE_AP) softReset();
+					// 	break;
+					// } 
 				}
 
 				// Clear Timer
@@ -2625,16 +2712,16 @@ bool SckBase::timerExists(TimerAction action) {
 	return false;
 }
 
-void SckBase::restartWatchdog() {
+// void SckBase::restartWatchdog() {
 
-	sckOut(F("Restarting Watchdog..."));
+// 	sckOut(String F("RE - Starting Watchdog"));
 
-	// Clear the previous set Watchdog
-	timerClear(ACTION_WATCHDOG_RESET);
+// 	// Clear the previous set Watchdog
+// 	timerClear(ACTION_WATCHDOG_RESET);
 
-	// Reset kit if nobody calls this function in 5 reading intervals
-	timerSet(ACTION_WATCHDOG_RESET, configuration.readInterval * 1000 * MAX_PUBLISH_FAILS_ALLOWED);
-}
+// 	// Reset kit if nobody calls this function in 5 reading intervals
+// 	timerSet(ACTION_WATCHDOG_RESET, configuration.readInterval * 1000 * MAX_PUBLISH_FAILS_ALLOWED);
+// }
 
 
 /* 	-------------

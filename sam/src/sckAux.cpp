@@ -2,27 +2,32 @@
 
 AlphaDelta		alphaDelta;
 GrooveI2C_ADC	grooveI2C_ADC;
+INA219			ina219;
 
 void AuxBoards::setup() {
 
 	// TODO enable or disable auxiliary boards based on response from init
 	alphaDelta.begin();
 	grooveI2C_ADC.begin();
-
+	ina219.begin();
 }
 
 float AuxBoards::getReading(SensorType wichSensor) {
 	
 	switch (wichSensor) {
-		case SENSOR_ALPHADELTA_AE1: return alphaDelta.getElectrode(alphaDelta.AE_1); break;
-		case SENSOR_ALPHADELTA_WE1: return alphaDelta.getElectrode(alphaDelta.WE_1); break;
-		case SENSOR_ALPHADELTA_AE2: return alphaDelta.getElectrode(alphaDelta.AE_2); break;
-		case SENSOR_ALPHADELTA_WE2: return alphaDelta.getElectrode(alphaDelta.WE_2); break;
-		case SENSOR_ALPHADELTA_AE3: return alphaDelta.getElectrode(alphaDelta.AE_3); break;
-		case SENSOR_ALPHADELTA_WE3: return alphaDelta.getElectrode(alphaDelta.WE_3); break;
-		case SENSOR_ALPHADELTA_HUMIDITY: return alphaDelta.getHumidity(); break;
+		case SENSOR_ALPHADELTA_AE1: 		return alphaDelta.getElectrode(alphaDelta.AE_1); break;
+		case SENSOR_ALPHADELTA_WE1: 		return alphaDelta.getElectrode(alphaDelta.WE_1); break;
+		case SENSOR_ALPHADELTA_AE2: 		return alphaDelta.getElectrode(alphaDelta.AE_2); break;
+		case SENSOR_ALPHADELTA_WE2: 		return alphaDelta.getElectrode(alphaDelta.WE_2); break;
+		case SENSOR_ALPHADELTA_AE3: 		return alphaDelta.getElectrode(alphaDelta.AE_3); break;
+		case SENSOR_ALPHADELTA_WE3: 		return alphaDelta.getElectrode(alphaDelta.WE_3); break;
+		case SENSOR_ALPHADELTA_HUMIDITY: 	return alphaDelta.getHumidity(); break;
 		case SENSOR_ALPHADELTA_TEMPERATURE: return alphaDelta.getTemperature(); break;
-		case SENSOR_GROOVE_I2C_ADC: return grooveI2C_ADC.getReading(); break;
+		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.getReading(); break;
+		case SENSOR_INA219_BUSVOLT: 		return ina219.getReading(ina219.BUS_VOLT); break;
+		case SENSOR_INA219_SHUNT: 			return ina219.getReading(ina219.SHUNT_VOLT); break;
+		case SENSOR_INA219_CURRENT: 		return ina219.getReading(ina219.CURRENT); break;
+		case SENSOR_INA219_LOADVOLT: 		return ina219.getReading(ina219.LOAD_VOLT); break;
 	}
 }
 
@@ -116,6 +121,7 @@ bool GrooveI2C_ADC::begin() {
 	Wire.write(REG_ADDR_CONFIG);				// Configuration Register
 	Wire.write(0x20);
 	Wire.endTransmission();
+	return true;
 }
 
 float GrooveI2C_ADC::getReading() {
@@ -135,4 +141,49 @@ float GrooveI2C_ADC::getReading() {
 	}
 
 	return data * V_REF * 2.0 / 4096.0;
+}
+
+bool INA219::begin() {
+
+	ada_ina219.begin();
+
+	// By default the initialization will use the largest range (32V, 2A).  However
+	// To use a slightly lower 32V, 1A range (higher precision on amps):
+	//ada_ina219.setCalibration_32V_1A();
+
+	// Or to use a lower 16V, 400mA range (higher precision on volts and amps):
+	ada_ina219.setCalibration_16V_400mA();
+	return true;
+}
+
+float INA219::getReading(typeOfReading wichReading) {
+
+	float thisReading = 0;
+
+	switch(wichReading) {
+		case BUS_VOLT: {
+
+			return ada_ina219.getBusVoltage_V();
+			break;
+
+		} case SHUNT_VOLT: {
+
+			return ada_ina219.getShuntVoltage_mV();
+			break;
+
+		} case CURRENT: {
+
+			return ada_ina219.getCurrent_mA();
+			break;
+
+		} case LOAD_VOLT: {
+
+			float busvoltage 	= ada_ina219.getBusVoltage_V();
+			float shuntvoltage 	= ada_ina219.getShuntVoltage_mV();
+
+			return busvoltage + (shuntvoltage / 1000);
+			break;
+
+		}
+	}
 }

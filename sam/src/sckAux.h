@@ -9,8 +9,6 @@
 
 #include <Sensors.h>
 
-// TEMP
-// Adafruit_INA219 aux1(0x41);
 
 class AuxBoards {
 public:
@@ -70,6 +68,18 @@ public:
 	const byte REG_ADDR_HYST	= 0x05;
 	const byte REG_ADDR_CONVL	= 0x06;
 	const byte REG_ADDR_CONVH	= 0x07;
+
+private:
+};
+
+class INA219 {
+public:
+
+	enum typeOfReading {BUS_VOLT, SHUNT_VOLT, CURRENT, LOAD_VOLT};
+
+	Adafruit_INA219 ada_ina219 = Adafruit_INA219(0x41);		// Select the right I2C Address
+	bool begin();
+	float getReading(typeOfReading wichReading=CURRENT);
 
 private:
 };

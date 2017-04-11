@@ -40,6 +40,11 @@ enum SensorType {
 
 	SENSOR_GROOVE_I2C_ADC,
 
+	SENSOR_INA219_BUSVOLT,
+	SENSOR_INA219_SHUNT,
+	SENSOR_INA219_CURRENT,
+	SENSOR_INA219_LOADVOLT,
+
 	SENSOR_COUNT	
 };
 
@@ -106,7 +111,13 @@ public:
 		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity",		0,			"%"},
 
 		// Groove I2C ADC
-		OneSensor { BOARD_AUX,			SENSOR_GROOVE_I2C_ADC,				"Groove ADC",				0,			}
+		OneSensor { BOARD_AUX,			SENSOR_GROOVE_I2C_ADC,				"Groove ADC",				0,			"V"},
+
+		// Adafruit INA291 High Side DC Current Sensor
+		OneSensor { BOARD_AUX,			SENSOR_INA219_BUSVOLT,				"ina219 busVoltage",		0,			"V"},
+		OneSensor { BOARD_AUX,			SENSOR_INA219_SHUNT,				"ina219 shuntVoltage",		0,			"mV"},
+		OneSensor { BOARD_AUX,			SENSOR_INA219_CURRENT,				"ina219 current",			0,			"mA"},
+		OneSensor { BOARD_AUX,			SENSOR_INA219_LOADVOLT,				"ina219 loadVoltage",		0,			"V"}
 
 		//-----------------------
 		// Add New Sensor Here!!!

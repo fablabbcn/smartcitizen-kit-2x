@@ -41,7 +41,7 @@ void loop() {
 	// Publish
 	if ((millis() - publish_timer) > base.configuration.readInterval * 1000) {
 
-		base.sckOut(F("Time to publish..."));
+		base.sckOut(F("Time to publish..."), base.PRIO_LOW);
 		publish_timer = millis();
 
 		if (base.mode == MODE_NET || base.mode == MODE_SD) {
@@ -50,7 +50,7 @@ void loop() {
 			base.publish();
 
 		} else {
-			base.sckOut(F("Cancelled publish because we are not in the right mode!"));
+			base.sckOut(F("Cancelled publish because we are not in the right mode!"), base.PRIO_LOW);
 		}
 	}
 }

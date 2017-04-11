@@ -1,14 +1,17 @@
 #include "sckAux.h"
 
-AlphaDelta alphaDelta;
+AlphaDelta		alphaDelta;
+GrooveI2C_ADC	grooveI2C_ADC;
 
 void AuxBoards::setup() {
 
 	// TODO enable or disable auxiliary boards based on response from init
 	alphaDelta.begin();
+	grooveI2C_ADC.begin();
+
 }
 
-bool AuxBoards::getReading(SensorType wichSensor) {
+float AuxBoards::getReading(SensorType wichSensor) {
 	
 	switch (wichSensor) {
 		case SENSOR_ALPHADELTA_AE1: return alphaDelta.getElectrode(alphaDelta.AE_1); break;
@@ -17,8 +20,9 @@ bool AuxBoards::getReading(SensorType wichSensor) {
 		case SENSOR_ALPHADELTA_WE2: return alphaDelta.getElectrode(alphaDelta.WE_2); break;
 		case SENSOR_ALPHADELTA_AE3: return alphaDelta.getElectrode(alphaDelta.AE_3); break;
 		case SENSOR_ALPHADELTA_WE3: return alphaDelta.getElectrode(alphaDelta.WE_3); break;
-		case SENSOR_HUMIDITY: return alphaDelta.getHumidity(); break;
-		case SENSOR_TEMPERATURE: return alphaDelta.getTemperature(); break;
+		case SENSOR_ALPHADELTA_HUMIDITY: return alphaDelta.getHumidity(); break;
+		case SENSOR_ALPHADELTA_TEMPERATURE: return alphaDelta.getTemperature(); break;
+		case SENSOR_GROOVE_I2C_ADC: return grooveI2C_ADC.getReading(); break;
 	}
 }
 
@@ -105,4 +109,30 @@ uint32_t AlphaDelta::getPot(Resistor wichPot) {
   while (!Wire.available()) if ((millis() - time) > waitTimeout) return 0x00;
   data = Wire.read();
   return data*ohmsPerStep;
+}
+
+bool GrooveI2C_ADC::begin() {
+	Wire.beginTransmission(deviceAddress);		// transmit to device
+	Wire.write(REG_ADDR_CONFIG);				// Configuration Register
+	Wire.write(0x20);
+	Wire.endTransmission();
+}
+
+float GrooveI2C_ADC::getReading() {
+
+	uint32_t data;
+
+	Wire.beginTransmission(deviceAddress);		// transmit to device
+	Wire.write(REG_ADDR_RESULT);				// get result
+	Wire.endTransmission();
+
+	Wire.requestFrom(deviceAddress, 2);			// request 2byte from device
+	delay(1);
+
+	if (Wire.available()<=2) {
+		data = (Wire.read()&0x0f)<<8;
+		data |= Wire.read();
+	}
+
+	return data * V_REF * 2.0 / 4096.0;
 }

@@ -38,6 +38,8 @@ enum SensorType {
 	SENSOR_ALPHADELTA_TEMPERATURE,
 	SENSOR_ALPHADELTA_HUMIDITY,
 
+	SENSOR_GROOVE_I2C_ADC,
+
 	SENSOR_COUNT	
 };
 
@@ -101,8 +103,10 @@ public:
 		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE3, 				"AlphaDelta AE3",			0,			},
 		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE3, 				"AlphaDelta WE3",			0,			},
 		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_TEMPERATURE, 		"AlphaDelta Temperature", 	0,			"C"},
-		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity",		0,			"%"}
+		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity",		0,			"%"},
 
+		// Groove I2C ADC
+		OneSensor { BOARD_AUX,			SENSOR_GROOVE_I2C_ADC,				"Groove ADC",				0,			}
 
 		//-----------------------
 		// Add New Sensor Here!!!

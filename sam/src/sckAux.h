@@ -15,7 +15,7 @@
 class AuxBoards {
 public:
 	void setup();
-	bool getReading(SensorType wichSensor);
+	float getReading(SensorType wichSensor);
 
 private:
 };
@@ -50,6 +50,26 @@ public:
 	void setPot(Resistor wichPot, uint32_t value);
 	uint32_t getPot(Resistor wichPot);
 	const float ohmsPerStep = 392.1568;     // Resistor conversion constant in Ohms. (100,000 / 255)
+
+private:
+};
+
+class GrooveI2C_ADC {
+public:
+
+	bool begin();
+	float getReading();
+
+	const byte deviceAddress 	= 0x59;
+	const float V_REF 			= 3.30;
+	const byte REG_ADDR_RESULT	= 0x00;
+	const byte REG_ADDR_ALERT	= 0x01;
+	const byte REG_ADDR_CONFIG	= 0x02;
+	const byte REG_ADDR_LIMITL	= 0x03;
+	const byte REG_ADDR_LIMITH	= 0x04;
+	const byte REG_ADDR_HYST	= 0x05;
+	const byte REG_ADDR_CONVL	= 0x06;
+	const byte REG_ADDR_CONVH	= 0x07;
 
 private:
 };

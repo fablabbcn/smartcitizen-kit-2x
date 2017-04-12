@@ -30,6 +30,7 @@
 
 // Time server
 #define NTP_SERVER_NAME "pool.ntp.org"
+#define HTTP_TIME_SERVER_NAME "data.smartcitizen.me"
 #define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
 
 
@@ -116,6 +117,7 @@ public:
 	void sendNTPpacket(IPAddress &address);
 	String ISOtime();
 	String epoch2iso(uint32_t toConvert);
+	bool getHttpTime();
 	WiFiUDP Udp;
 	byte packetBuffer[48];
 	

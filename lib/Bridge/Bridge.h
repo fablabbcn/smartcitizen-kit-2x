@@ -33,6 +33,7 @@ enum EspCommand {
 	ESP_GET_APCOUNT_COM,
 	ESP_GET_APLIST_COM,		// @return String apList (json formatted)
 	ESP_GET_TIME_COM,		// @return String: epoch time
+	ESP_SYNC_HTTP_TIME_COM,
 	ESP_MQTT_CONNECT_COM,	// @params int persistent flag
 	ESP_MQTT_HELLOW_COM,
 	ESP_MQTT_PUBLISH_COM,	// @params String payload, int QoS

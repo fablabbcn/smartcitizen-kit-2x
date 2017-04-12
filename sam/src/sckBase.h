@@ -291,7 +291,7 @@ public:
 		// Time configuration
 		EXTCOM_GET_TIME,			// @params: iso (default), epoch
 		EXTCOM_SET_TIME,			// @params: epoch time
-		EXTCOM_SYNC_TIME,
+		EXTCOM_SYNC_HTTP_TIME,
 
 		// SD card
 		EXTCOM_SD_PRESENT,

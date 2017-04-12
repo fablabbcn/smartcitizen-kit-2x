@@ -166,7 +166,7 @@ void SckBase::setup() {
 	// Time configuration
 	comTitles[EXTCOM_GET_TIME]			= 	"get time";			// @params: iso (default), epoch
 	comTitles[EXTCOM_SET_TIME]			= 	"set time";			// @params: epoch time
-	comTitles[EXTCOM_SYNC_TIME]			= 	"sync time";
+	comTitles[EXTCOM_SYNC_HTTP_TIME]	= 	"sync time";
 
 	// SD card
 	comTitles[EXTCOM_SD_PRESENT]		=	"sd present";
@@ -1329,13 +1329,11 @@ void SckBase::sckIn(String strIn) {
 				sckOut(ISOtime());
 			}
 			break;
-		} case EXTCOM_SYNC_TIME: {
-			if (ESPon) {
-				msgBuff.com = ESP_GET_TIME_COM;
-				ESPqueueMsg(false);
-			} else {
-				sckOut(F("First start ESP and wait for network connection!!"));
-			}
+		} case EXTCOM_SYNC_HTTP_TIME: {
+			sckOut("Asking ESP for HTTP time sync...");
+			msgBuff.com = ESP_SYNC_HTTP_TIME_COM;
+			ESPqueueMsg(false, true);
+
 			break;
 
 		// SD card

@@ -287,6 +287,16 @@ bool SckESP::processMsg() {
 			SAMsendMsg();
 	 		break;
 
+		} case ESP_SYNC_HTTP_TIME_COM: {
+
+			debugOUT("received request for sync HTTP time...");
+
+			// ACK response
+			msgOut.com = ESP_SYNC_HTTP_TIME_COM;
+			SAMsendMsg();
+			getHttpTime();
+			break;
+
 	 	} case ESP_MQTT_HELLOW_COM: {
 
 	 		// ACK response
@@ -1215,6 +1225,7 @@ time_t SckESP::getNtpTime() {
   }
   espStatus.time = ESP_TIME_FAIL_EVENT;
   debugOUT(F("No NTP Response!!!"));
+  getHttpTime();
   return 0;
 };
 void SckESP::sendNTPpacket(IPAddress &address) {
@@ -1267,6 +1278,71 @@ String SckESP::epoch2iso(uint32_t toConvert) {
 	leadingZeros(String(second(tc)), 2) + "Z";
 	
 	return isoTime;
+}
+bool SckESP::getHttpTime() {
+
+	debugOUT(F("Trying to get HTTP time..."));
+
+	String UTCtime;
+
+	if (wclient.connect(HTTP_TIME_SERVER_NAME, 80)) {
+
+		debugOUT(F("Connected to smartcitizen time server!!!"));
+
+		wclient.print(String("GET /datetime") + " HTTP/1.1\r\n" +
+             "Host: " + HTTP_TIME_SERVER_NAME + "\r\n" +
+             "Connection: close\r\n" +
+             "\r\n"
+            );
+
+		while (wclient.connected()) {
+			if (wclient.available()) {
+				String line = wclient.readStringUntil('\n');
+				if (line.startsWith("UTC:") && line.endsWith("#")) {
+					UTCtime = line;
+
+					// Clean String
+					line.replace("UTC:", "");
+					line.replace("#", ",");
+
+					// Parse data
+					// UTC:2017,4,12,15,26,20#
+					// UTC:yr,mnth,day,hr,min,sec#
+					uint16_t numbers[6];
+					for (uint8_t i=0; i<6; i++) {
+						uint8_t nextComma = line.indexOf(",");
+						String numm = line.substring(0, nextComma);
+						line.remove(0, nextComma+1);
+						numbers[i] = numm.toInt();
+					}
+
+					// setTime(int hr,int min,int sec,int day, int month, int yr);
+					setTime(numbers[3], numbers[4], numbers[5], numbers[2], numbers[1], numbers[0]);
+
+					if (year() > 2010) {
+						debugOUT(F("Time updated!!!"));
+						espStatus.time = ESP_TIME_UPDATED_EVENT;
+						return true;
+					} else {
+						debugOUT(F("Error in HTTP time reception!!!"));
+					}
+				}
+			}
+		}
+		wclient.stop();
+
+		if (UTCtime.length() > 0) {
+			// Proces String
+			debugOUT(UTCtime);
+		} else {
+			debugOUT(F("Failed to get HTTP time!!!"));
+		}
+
+	} else {
+		debugOUT(F("Failed to connect to Smartcitizen time server!!!"));
+	}
+	espStatus.time = ESP_TIME_FAIL_EVENT;
+	return false;
 }
 
 

@@ -29,7 +29,7 @@ void loop() {
 	base.update();
 
 	// If publish action takes to much time ()
-	if (base.ESPon && millis() - base.espLastOn > (base.configuration.readInterval - 2) * 1000 && (base.mode == MODE_NET || base.mode == MODE_SD)) {
+	if (!digitalRead(POWER_WIFI) && millis() - base.espLastOn > (base.configuration.readInterval - 2) * 1000 && (base.mode == MODE_NET || base.mode == MODE_SD)) {
 		base.sckOut(F("Network publish timeout!!!"));
 		base.ESPcontrol(base.ESP_OFF);
 		base.ESPpublishPending = false;

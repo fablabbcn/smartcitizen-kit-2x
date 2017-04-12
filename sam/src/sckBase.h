@@ -376,8 +376,6 @@ public:
 	const uint16_t answerTimeout = 250;
 	int BUS_queueIndex = -1;
 	bool espSerialDebug = false;
-	bool ESPon = false;
-	bool ESPbooting = false;
 	float espLastOn;
 	float espTotalOnTime = 0;
 	// --- esp status

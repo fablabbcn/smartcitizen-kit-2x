@@ -6,7 +6,6 @@
 enum EspCommand {
 	ESP_NULL,
 	//						------ Events
-	ESP_BOOTED_AND_READY,
 	ESP_FACTORY_RESET_EVENT,
 	ESP_DEBUG_EVENT,
 	// 						------ Configuration

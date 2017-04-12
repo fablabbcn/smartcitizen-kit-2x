@@ -96,7 +96,6 @@ void SckBase::setup() {
 	digitalWrite(POWER_WIFI, HIGH);
 	ESPcontrol(ESP_OFF);
 	timerClear(ACTION_CLEAR_ESP_BOOTING);
-	ESPbooting = false;
 
 	// Version
 	String buildDate = __DATE__;
@@ -297,7 +296,7 @@ void SckBase::update() {
 	} else {
 
 		// update ESP communications
-		if (ESPon) ESPbusUpdate();
+		if (!digitalRead(POWER_WIFI)) ESPbusUpdate();
 
 		// Update timers
 		timerRun();
@@ -305,7 +304,6 @@ void SckBase::update() {
 		// Check Serial ports inputs
 		inputUpdate();
 
-		
 		//----------------------------------------
 		// 	MODE_AP
 		//----------------------------------------
@@ -417,7 +415,7 @@ void SckBase::changeMode(SCKmodes newMode) {
 			sckOut(F("Entering Setup mode!"));
 
 			// Start ESP and ap mode
-			if (!ESPon) timerSet(ACTION_ESP_ON, 100);
+			if (digitalRead(POWER_WIFI)) timerSet(ACTION_ESP_ON, 100);
 			
 			// Restart lightread for receiving new data
 			readLightEnabled = true;
@@ -524,18 +522,14 @@ void SckBase::inputUpdate() {
 void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 	switch(controlCommand){
 		case ESP_OFF:
-			if ((ESPon || ESPbooting) && mode != MODE_BRIDGE) {
+			if (!digitalRead(POWER_WIFI) && mode != MODE_BRIDGE) {
 				closeFiles();
 				sckOut(F("Turning off ESP..."));
 				timerClear(ACTION_GET_ESP_STATUS);
 				onWifi = false;
-				ESPon = false;
-				ESPbooting = false;
 				espSerialDebug = false;
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
 				digitalWrite(GPIO0, LOW);
-				// delay(1);
-				// digitalWrite(CH_PD, LOW);
 				espTotalOnTime += millis() - espLastOn;
 				sckOut(String F("ESP was on for ") + String(millis() - espLastOn, 0) + F(" milliseconds."));
 
@@ -553,7 +547,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			led.bridge();
 			disableTimer5();
 			sckOut(F("Putting ESP in flash mode...\r\nRemember to reboot ESP after flashing (esp reboot)!"));
-			if (ESPon) ESPcontrol(ESP_OFF);
+			if (!digitalRead(POWER_WIFI)) ESPcontrol(ESP_OFF);
 			SerialUSB.begin(ESP_FLASH_SPEED);
 			Serial1.begin(ESP_FLASH_SPEED);
 			delay(500);
@@ -563,7 +557,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			break;
 
 		case ESP_ON:
-			if (!ESPon && !ESPbooting) {
+			if (digitalRead(POWER_WIFI)) {
 				closeFiles();
 				sdPresent();
 				sckOut(F("Turning on ESP..."));
@@ -574,7 +568,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 				digitalWrite(POWER_WIFI, LOW); 	// Turn on ESP
 				espLastOn = millis();
 				delay(10);
-				ESPbooting = true;
 				timerSet(ACTION_CLEAR_ESP_BOOTING, 500);
 			}
 			break;
@@ -658,13 +651,6 @@ void SckBase::ESPprocessMsg() {
 		case ESP_GET_STATUS_COM: {
 			processStatus();
 			break;
-
-		} case ESP_BOOTED_AND_READY: {
-			ESPbooting = false;
-			ESPon = true;
-			sckOut(F("ESP ready!!!"), PRIO_LOW);
-			break;
-
 		} case ESP_DEBUG_EVENT: {
 
 			sckOut(String F("ESP > ") + String(msgIn.param));
@@ -837,12 +823,6 @@ void SckBase::processStatus() {
 
 				onWifi = true;
 
-				// If we dont have time...
-				if (!onTime) {
-					msgBuff.com = ESP_GET_TIME_COM;
-					ESPqueueMsg(false, true);
-				}
-
 				if (triggerHello) {
 					sckOut(F("Sending MQTT Hello..."));
 					msgBuff.com = ESP_MQTT_HELLOW_COM;
@@ -851,7 +831,6 @@ void SckBase::processStatus() {
 				} else if (ESPpublishPending) {
 					// If there is a publish operation waiting...
 					ESPpublish();
-					// ESPpublishPending = false;
 				}
 				break;
 
@@ -953,6 +932,7 @@ void SckBase::processStatus() {
 			} case ESP_TIME_UPDATED_EVENT: {
 				
 				// Time sync
+				sckOut(F("Asking time to ESP..."));
 				msgBuff.com = ESP_GET_TIME_COM;
 				ESPqueueMsg(false, false);
 				break;
@@ -1101,7 +1081,7 @@ void SckBase::sckIn(String strIn) {
 			break;
 
 		} case EXTCOM_ESP_SERIAL_DEBUG_ON: {
-			if (ESPon) {
+			if (!digitalRead(POWER_WIFI)) {
 				msgBuff.com = ESP_SERIAL_DEBUG_ON;
 				espSerialDebug = true;
 				ESPqueueMsg(false);
@@ -1111,7 +1091,7 @@ void SckBase::sckIn(String strIn) {
 			break;
 
 		} case EXTCOM_ESP_SERIAL_DEBUG_OFF: {
-			if (ESPon) {
+			if (!digitalRead(POWER_WIFI)) {
 				msgBuff.com = ESP_SERIAL_DEBUG_OFF;
 				espSerialDebug = false;
 				ESPqueueMsg(false);
@@ -2324,7 +2304,7 @@ void SckBase::writeCurrent(int current) {
 
 bool SckBase::USBConnected() {
 
-	if (getCharger() > 4000){
+	if (getCharger() > 1000){
 		// USB is connected
 
 		USBDevice.init();
@@ -2604,8 +2584,6 @@ bool SckBase::timerRun() {
 				// Check for action to execute
 				switch(timers[i].action) {
 					case ACTION_CLEAR_ESP_BOOTING:{
-						ESPbooting = false;
-						ESPon = true;
 						sckOut(F("ESP ready!!!"));
 						timerSet(ACTION_GET_ESP_STATUS, statusPoolingInterval, true);
 						break;
@@ -2619,7 +2597,7 @@ bool SckBase::timerRun() {
 						break;
 
 					} case ACTION_GET_ESP_STATUS: {
-						getStatus();
+						if (!digitalRead(POWER_WIFI)) getStatus();
 						break;
 					
 					} case ACTION_LONG_PRESS: {

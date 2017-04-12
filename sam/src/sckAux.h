@@ -3,9 +3,16 @@
 
 // Include the necessary libraries for the auxiliary sensor to be used
 #include <Wire.h>
+
+// INA219 libs
 #include <Adafruit_INA219.h>
+
+// AlphaDelta libs
 #include "Adafruit_SHT31.h"
 #include <MCP3424.h>
+
+// Groove_OLED libs
+#include <U8g2lib.h>
 
 #include <Sensors.h>
 
@@ -14,6 +21,8 @@ class AuxBoards {
 public:
 	void setup();
 	float getReading(SensorType wichSensor);
+	void print(SensorType wichSensor, String payload);
+	void displayReading(String title, String reading, String unit, String time);
 
 private:
 };
@@ -80,6 +89,18 @@ public:
 	Adafruit_INA219 ada_ina219 = Adafruit_INA219(0x41);		// Select the right I2C Address
 	bool begin();
 	float getReading(typeOfReading wichReading=CURRENT);
+
+private:
+};
+
+class Groove_OLED {
+public:
+
+	U8G2_SSD1327_SEEED_96X96_F_HW_I2C U8g2_oled = U8G2_SSD1327_SEEED_96X96_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL, SDA);
+
+	bool begin();
+	void print(String payload);
+	void displayReading(String title, String reading, String unit, String time);
 
 private:
 };

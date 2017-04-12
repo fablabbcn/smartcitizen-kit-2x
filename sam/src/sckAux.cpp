@@ -3,6 +3,7 @@
 AlphaDelta		alphaDelta;
 GrooveI2C_ADC	grooveI2C_ADC;
 INA219			ina219;
+Groove_OLED		groove_OLED;
 
 void AuxBoards::setup() {
 
@@ -10,6 +11,7 @@ void AuxBoards::setup() {
 	alphaDelta.begin();
 	grooveI2C_ADC.begin();
 	ina219.begin();
+	groove_OLED.begin();
 }
 
 float AuxBoards::getReading(SensorType wichSensor) {
@@ -31,6 +33,14 @@ float AuxBoards::getReading(SensorType wichSensor) {
 	}
 }
 
+void AuxBoards::print(SensorType wichSensor, String payload) {
+	groove_OLED.print(payload);
+}
+
+void AuxBoards::displayReading(String title, String reading, String unit, String time) {
+	groove_OLED.displayReading(title, reading, unit, time);
+}
+
 MCP3424 adc_Slot_1_2(0x68);
 MCP3424 adc_Slot_3(0x69);
 
@@ -46,12 +56,12 @@ bool AlphaDelta::begin() {
 	SampleRate 	mySampleRate 	= SR18B;		// Posible Samplerates: SR12B, SR14B, SR16B, SR18B
 
 	adc_Slot_1_2.creg[CH1].bits = { myGain, mySampleRate, ONE_SHOT, CH1, 1 };
-    adc_Slot_1_2.creg[CH2].bits = { myGain, mySampleRate, ONE_SHOT, CH2, 1 };
-    adc_Slot_1_2.creg[CH3].bits = { myGain, mySampleRate, ONE_SHOT, CH3, 1 };
+	adc_Slot_1_2.creg[CH2].bits = { myGain, mySampleRate, ONE_SHOT, CH2, 1 };
+	adc_Slot_1_2.creg[CH3].bits = { myGain, mySampleRate, ONE_SHOT, CH3, 1 };
 	adc_Slot_1_2.creg[CH4].bits = { myGain, mySampleRate, ONE_SHOT, CH4, 1 };
 
 	adc_Slot_3.creg[CH1].bits = { myGain, mySampleRate, ONE_SHOT, CH1, 1 };
-    adc_Slot_3.creg[CH2].bits = { myGain, mySampleRate, ONE_SHOT, CH2, 1 };
+	adc_Slot_3.creg[CH2].bits = { myGain, mySampleRate, ONE_SHOT, CH2, 1 };
 
 	return true;
 }
@@ -186,4 +196,71 @@ float INA219::getReading(typeOfReading wichReading) {
 
 		}
 	}
+}
+
+bool Groove_OLED::begin() {
+	U8g2_oled.begin();
+}
+
+void Groove_OLED::print(String payload) {
+
+	// uint8_t length = payload.length();
+	char charPayload[payload.length()];
+	payload.toCharArray(charPayload, payload.length()+1);
+
+	U8g2_oled.firstPage();
+
+	do {
+		U8g2_oled.setFont(u8g2_font_ncenB14_tr);
+		U8g2_oled.drawStr(0,24, charPayload);
+	} while (U8g2_oled.nextPage());
+}
+
+void Groove_OLED::displayReading(String title, String reading, String unit, String time) {
+
+	// Reading
+	uint8_t ll = reading.length();
+	char Creading[ll];
+	reading.toCharArray(Creading, ll+1);
+
+	// Unit
+	ll = unit.length();
+	char Cunit[ll];
+	unit.toCharArray(Cunit, ll+1);
+
+	// Date
+	String date = time.substring(8,10) + "/" + time.substring(5,7) + "/" + time.substring(2,4);
+	char Cdate[9];
+	date.toCharArray(Cdate, 9);
+
+	SerialUSB.println(Cdate);
+
+	// Time
+	String hours = time.substring(11,19);
+	char Chour[9];
+	hours.toCharArray(Chour, 9);
+
+	// 2017-04-11T15:24:50Z
+
+	U8g2_oled.firstPage();
+	do {
+		// Reading Left aligned
+		U8g2_oled.setFont(u8g2_font_helvB24_tf);
+		U8g2_oled.drawStr(0,40, Creading);
+
+		U8g2_oled.setFont(u8g2_font_helvB14_tf);
+		U8g2_oled.drawStr(0,62, Cunit);
+
+		// Clock icon
+		U8g2_oled.setFont(u8g2_font_unifont_t_symbols);
+		U8g2_oled.drawGlyph(80, 70, 0x23f2);
+
+		// Date
+		U8g2_oled.setFont(u8g2_font_helvB10_tf);
+		U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(Cdate),83,Cdate);
+
+		// Time
+		U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(Chour),96,Chour);
+
+	} while (U8g2_oled.nextPage());
 }

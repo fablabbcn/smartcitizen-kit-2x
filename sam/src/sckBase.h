@@ -304,8 +304,12 @@ public:
 		EXTCOM_ENABLE_SENSOR,
 		EXTCOM_DISABLE_SENSOR,
 
-		// Sey Alpha POT's (TODO remove from here and find a more modular solution)
+		// Set Alpha POT's (TODO remove from here and find a more modular solution)
 		EXTCOM_ALPHADELTA_POT,
+
+		// Print String to u8g2_oled screen
+		EXTCOM_U8G_PRINT,			// @params: String to be printed
+		EXTCOM_U8G_PRINT_SENSOR,	// @params: Sensor to be printed
 
 		// Other
 		EXTCOM_GET_CHAN0,

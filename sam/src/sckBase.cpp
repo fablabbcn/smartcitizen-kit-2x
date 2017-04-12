@@ -179,8 +179,12 @@ void SckBase::setup() {
 	comTitles[EXTCOM_ENABLE_SENSOR]		=	"enable";		// @ params wichSensor
 	comTitles[EXTCOM_DISABLE_SENSOR]	=	"disable";		// @params wichSensor
 
-	// Sey Alpha POT's (TODO remove from here and find a more modular solution)
+	// Set Alpha POT's (TODO remove from here and find a more modular solution)
 	comTitles[EXTCOM_ALPHADELTA_POT]	=	"set alpha";				// @ params: wichpot (AE1, WE1, AE2...), value (0-100,000)
+
+	// U8g_OLED commands
+	comTitles[EXTCOM_U8G_PRINT]			=	"u8g print";				// @params: String to be printed
+	comTitles[EXTCOM_U8G_PRINT_SENSOR]	=	"u8g sensor";				// @params: Sensor to be printed
 
 	comTitles[EXTCOM_GET_CHAN0]			=	"get chann0";
 	comTitles[EXTCOM_GET_CHAN1]			=	"get chann1";
@@ -276,7 +280,6 @@ void SckBase::setup() {
 	sensors[SENSOR_CO].enabled 			= false;				// Disabled for now
 	sensors[SENSOR_NO2].enabled			= false;				// Disabled for now
 	sensors[SENSOR_VOLTIN].enabled 		= false;				// Disabled for now
-
 
 	// Check if USB connected and enable-disable Serial communication
 	USBConnected();
@@ -1469,7 +1472,48 @@ void SckBase::sckIn(String strIn) {
 
 				headersChanged = true;
 			}
+			break;
 
+		} case EXTCOM_U8G_PRINT: {
+
+			auxBoards.print(SENSOR_GROOVE_OLED, strIn);
+			break;
+
+		} case EXTCOM_U8G_PRINT_SENSOR: {
+
+			SensorType thisType = SENSOR_COUNT;
+
+			// Get sensor type
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
+				thisType = static_cast<SensorType>(i);
+
+				// Makes comparison lower case and not strict (sensor title only have to contain command)
+				String titleCompare = sensors[thisType].title;
+				titleCompare.toLowerCase();
+				strIn.toLowerCase();
+
+				if (titleCompare.indexOf(strIn) > -1) break;
+				thisType = SENSOR_COUNT;
+			}
+
+			// Failed to found your sensor
+			if (thisType == SENSOR_COUNT) {
+				sckOut(F("Can't find that sensor!!!"));
+			} else {
+
+				getReading(thisType);
+
+				OneSensor *thisSensor = &sensors[thisType];
+				String Stitle = thisSensor->title;
+				String Sreading = String(thisSensor->reading, 1);
+				String Sunit = thisSensor->unit;
+				auxBoards.displayReading(Stitle, Sreading, Sunit, ISOtime());
+
+				sckOut(String F("Printing ") + Stitle);
+
+				headersChanged = true;
+			}
 
 			break;
 

@@ -45,6 +45,9 @@ enum SensorType {
 	SENSOR_INA219_CURRENT,
 	SENSOR_INA219_LOADVOLT,
 
+	// Actuators (This is temp)
+	SENSOR_GROOVE_OLED,
+
 	SENSOR_COUNT	
 };
 
@@ -117,7 +120,11 @@ public:
 		OneSensor { BOARD_AUX,			SENSOR_INA219_BUSVOLT,				"ina219 busVoltage",		0,			"V"},
 		OneSensor { BOARD_AUX,			SENSOR_INA219_SHUNT,				"ina219 shuntVoltage",		0,			"mV"},
 		OneSensor { BOARD_AUX,			SENSOR_INA219_CURRENT,				"ina219 current",			0,			"mA"},
-		OneSensor { BOARD_AUX,			SENSOR_INA219_LOADVOLT,				"ina219 loadVoltage",		0,			"V"}
+		OneSensor { BOARD_AUX,			SENSOR_INA219_LOADVOLT,				"ina219 loadVoltage",		0,			"V"},
+
+		// Later this will be moved to a Actuators.h file
+		// Groove I2C Oled Display 96x96
+		OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,					"Groove OLED",				0,			}
 
 		//-----------------------
 		// Add New Sensor Here!!!

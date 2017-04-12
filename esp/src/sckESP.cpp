@@ -231,6 +231,12 @@ bool SckESP::processMsg() {
 			break;
 
 	 	} case ESP_START_AP_COM: {
+
+			// ACK
+			msgOut.com = ESP_START_AP_COM;
+			clearParam();
+			SAMsendMsg();
+
 	 		startAP();
 	 		break;
 
@@ -293,6 +299,7 @@ bool SckESP::processMsg() {
 
 			// ACK response
 			msgOut.com = ESP_SYNC_HTTP_TIME_COM;
+			clearParam();
 			SAMsendMsg();
 			getHttpTime();
 			break;

@@ -372,9 +372,9 @@ public:
 	BUS_Serial msgIn;
 	BUS_Serial msgOut;
 	BUS_Serial msgBuff;
-	BUS_Serial BUS_queue[4];
+	BUS_Serial BUS_queue[8];
 	const uint16_t answerTimeout = 250;
-	int BUS_queueIndex = -1;
+	int BUS_queueCount = 0;
 	bool espSerialDebug = false;
 	float espLastOn;
 	float espTotalOnTime = 0;

@@ -526,6 +526,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 				closeFiles();
 				sckOut(F("Turning off ESP..."));
 				timerClear(ACTION_GET_ESP_STATUS);
+				BUS_queueCount = 0;
 				onWifi = false;
 				espSerialDebug = false;
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
@@ -587,19 +588,19 @@ void SckBase::ESPbusUpdate() {
 	if (BUS_in.receiveData()) ESPprocessMsg();
 
 	// If there are pending messages to send
-	if (BUS_queueIndex >= 0) {
+	if (BUS_queueCount > 0) {
 
 		// Send first message in queue
-		msgOut.com = BUS_queue[0].com;
-		strncpy(msgOut.param, BUS_queue[0].param, 240);
-		msgOut.waitAnswer = BUS_queue[0].waitAnswer;
+		msgOut.com = BUS_queue[1].com;
+		strncpy(msgOut.param, BUS_queue[1].param, 240);
+		msgOut.waitAnswer = BUS_queue[1].waitAnswer;
 		BUS_out.sendData();
 
 		// If we need to wait for confirmation
-		bool waitAnswer = BUS_queue[0].waitAnswer;
+		bool waitAnswer = BUS_queue[1].waitAnswer;
 		bool mesgReceived = false;
 		if (waitAnswer) {
-			float millisNow = millis();
+			uint32_t millisNow = millis();
 			while (millis() - millisNow < answerTimeout) {
 				if (BUS_in.receiveData()) {
 					if (msgIn.com == msgOut.com) mesgReceived = true;
@@ -607,18 +608,21 @@ void SckBase::ESPbusUpdate() {
 					if (mesgReceived) break;
 				}
 			}
+			if (!mesgReceived) sckOut("Timeout: ESP is not responding!!!");
 		}
 		// Asume message sent and received
 		if (!waitAnswer || mesgReceived) {
-			// Remove first message from queue and move the rest
-			for (uint8_t i=1; i<=BUS_queueIndex; i++){
-				BUS_queue[i-1].com = BUS_queue[i].com;
-				strncpy(BUS_queue[i-1].param, BUS_queue[i].param, 240);
-				BUS_queue[i-1].waitAnswer = BUS_queue[i].waitAnswer;
+			// If we have more than one message, remove first one and move the rest
+			if (BUS_queueCount > 1) {
+				for (uint8_t i=2; i<=BUS_queueCount; i++){
+					BUS_queue[i-1].com = BUS_queue[i].com;
+					strncpy(BUS_queue[i-1].param, BUS_queue[i].param, 240);
+					BUS_queue[i-1].waitAnswer = BUS_queue[i].waitAnswer;
+				}
 			}
 		
 			// Update queue index
-			BUS_queueIndex--;
+			BUS_queueCount--;
 		}
 	}
 }
@@ -627,18 +631,28 @@ void SckBase::ESPqueueMsg(bool sendParam, bool waitAnswer) {
 
 	ESPcontrol(ESP_ON);
 
-	BUS_queueIndex++;
+	bool alreadyQueued = false;
 
-	// Put command message buffer in queue
-	BUS_queue[BUS_queueIndex].com = msgBuff.com;
+	// Don't accept message if its already on queue
+	for (uint8_t i=1; i<=BUS_queueCount; i++){
+		if (BUS_queue[i].com == msgBuff.com) alreadyQueued = true;
+	}
 
-	// Do we need to wait answer for this message??
-	if (waitAnswer) BUS_queue[BUS_queueIndex].waitAnswer = true;
-	else BUS_queue[BUS_queueIndex].waitAnswer = false;
+	if (!alreadyQueued) {
 
-	// If no need to send params
-	if (!sendParam) strncpy(BUS_queue[BUS_queueIndex].param, "", 240);
-	else strncpy(BUS_queue[BUS_queueIndex].param, msgBuff.param, 240);	
+		BUS_queueCount++;
+
+		// Put command message buffer in queue
+		BUS_queue[BUS_queueCount].com = msgBuff.com;
+
+		// Do we need to wait answer for this message??
+		if (waitAnswer) BUS_queue[BUS_queueCount].waitAnswer = true;
+		else BUS_queue[BUS_queueCount].waitAnswer = false;
+
+		// If no need to send params
+		if (!sendParam) strncpy(BUS_queue[BUS_queueCount].param, "", 240);
+		else strncpy(BUS_queue[BUS_queueCount].param, msgBuff.param, 240);
+	}
 }
 
 void SckBase::ESPprocessMsg() {

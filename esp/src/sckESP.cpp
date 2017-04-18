@@ -71,9 +71,9 @@ void SckESP::update() {
 			stopAP();
 
 			// Time setup (it doesn't work with access point mode on)
-			Udp.begin(8888);
-			setSyncProvider(ntpProvider);
-			setSyncInterval(300);
+			// Udp.begin(8888);
+			// setSyncProvider(ntpProvider);
+			// setSyncInterval(300);
 
 			startWebServer();	// CHECK if it doesnt mess with NTP
 
@@ -285,7 +285,15 @@ bool SckESP::processMsg() {
 	 		break;
 
 	 	} case ESP_GET_TIME_COM: {
-	 		
+
+			// Update time
+			debugOUT(F("Trying NTP Sync..."));
+			Udp.begin(8888);
+			setSyncProvider(ntpProvider);
+			setSyncInterval(300);
+
+			// Send time
+			debugOUT(F("Sending time to SAM..."));
 			String epochSTR = String(now());
 			clearParam();
 			epochSTR.toCharArray(msgOut.param, 240);
@@ -313,6 +321,7 @@ bool SckESP::processMsg() {
 
 	 		if (mqttHellow()) espStatus.mqtt = ESP_MQTT_HELLO_OK_EVENT;
 	 		else espStatus.mqtt = ESP_MQTT_ERROR_EVENT;
+			sendStatus();
 
 	 		break;
 
@@ -1100,7 +1109,7 @@ bool SckESP::mqttStart() {
 };
 bool SckESP::mqttHellow() {
 
-	debugOUT("Trying MQTT Hello...");
+	debugOUT(F("Trying MQTT Hello..."));
 
 	if (!MQTTclient.connected()) {
     	mqttStart();
@@ -1117,13 +1126,16 @@ bool SckESP::mqttHellow() {
 	debugOUT(String(ht));
 	debugOUT(String(pl));
 
-	if (MQTTclient.publish(ht, pl)) return true;
-
+	if (MQTTclient.publish(ht, pl)) {
+		debugOUT(F("MQTT Hello published OK !!!"));
+		return true;
+	}
+	debugOUT(F("MQTT Hello ERROR !!!"));
 	return false;
 };
 bool SckESP::mqttPublish(){
 
-	debugOUT("Trying MQTT publish...");
+	debugOUT(F("Trying MQTT publish..."));
 
 	if (!MQTTclient.connected()) {
     	mqttStart();
@@ -1194,8 +1206,11 @@ bool SckESP::mqttPublish(){
 	debugOUT(String(charPl));
 
 	
-	if (MQTTclient.publish(ht, charPl)) return true;
-
+	if (MQTTclient.publish(ht, charPl)) {
+		return true;
+		debugOUT(F("MQTT readings published OK !!!"));
+	}
+	debugOUT(F("MQTT readings ERROR !!!"));
 	return false;
 }
 bool SckESP::mqttSend(String payload) {

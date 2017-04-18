@@ -608,7 +608,7 @@ void SckBase::ESPbusUpdate() {
 					if (mesgReceived) break;
 				}
 			}
-			if (!mesgReceived) sckOut("Timeout: ESP is not responding!!!");
+			if (!mesgReceived) sckOut("*", PRIO_MED, false);
 		}
 		// Asume message sent and received
 		if (!waitAnswer || mesgReceived) {
@@ -837,15 +837,25 @@ void SckBase::processStatus() {
 
 				onWifi = true;
 
-				if (triggerHello) {
-					sckOut(F("Sending MQTT Hello..."));
-					msgBuff.com = ESP_MQTT_HELLOW_COM;
-					ESPqueueMsg(false, false);
-					triggerHello = false;
-				} else if (ESPpublishPending) {
+				// Send MQTT Hello
+				sckOut(F("Sending MQTT Hello..."));
+				msgBuff.com = ESP_MQTT_HELLOW_COM;
+				ESPqueueMsg(false, true);
+				triggerHello = false;
+
+				// Forced Time sync
+				if (!rtc.isConfigured() || rtc.getYear() < 17) {
+					sckOut(F("OUT OF TIME, Asking time to ESP..."));
+					msgBuff.com = ESP_GET_TIME_COM;
+					ESPqueueMsg(false, true);
+				}
+
+				// TODO manage multiple publish operation...
+				if (ESPpublishPending) {
 					// If there is a publish operation waiting...
 					ESPpublish();
 				}
+
 				break;
 
 			} case ESP_WIFI_ERROR_EVENT: {
@@ -913,7 +923,7 @@ void SckBase::processStatus() {
 				sckOut(F("MQTT Hello OK!!"));
 
 				// Go to network mode
-				changeMode(MODE_NET);
+				if(mode != MODE_NET) changeMode(MODE_NET);
 				break;
 
 			} case ESP_MQTT_ERROR_EVENT: {

@@ -220,7 +220,7 @@ public:
 	Configuration configuration;
 	void saveConf();
 	void setReadInterval(uint32_t newReadInterval);		// in seconds
-	const uint16_t defaultReadInterval = 15;
+	const uint16_t defaultReadInterval = 30;
 
 	// Flags
 	bool onWifi = false;

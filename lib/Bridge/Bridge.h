@@ -28,6 +28,7 @@ enum EspCommand {
 	ESP_START_WEB_COM,
 	ESP_STOP_WEB_COM,
 	ESP_DEEP_SLEEP_COM,
+	ESP_GET_VERSION_COM,
 	//						------ Get data
 	ESP_GET_APCOUNT_COM,
 	ESP_GET_APLIST_COM,		// @return String apList (json formatted)

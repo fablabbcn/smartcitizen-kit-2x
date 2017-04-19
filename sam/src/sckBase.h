@@ -209,7 +209,11 @@ public:
 	uint32_t StartedPublishTime;
 
 	// Configuration
-	String version = "SCK-1.5_0.1-";
+	String hardwareVer 	= "1.5";
+	String SAMversion	= "0.2.0";
+	String SAMbuildDate = String(__DATE__) + '-' + String(__TIME__);
+	String ESPversion 	= "null";
+	String ESPbuildDate = "null";
 	Credentials credentials;
 	bool triggerHello = false;
 	void sendNetwork();

@@ -52,6 +52,8 @@ public:
 	void SAMlistSavedNetworks();
 
 	// Configuration Management
+	String ESPversion = "0.2.0";
+	String ESPbuildDate = String(__DATE__) + '-' + String(__TIME__);
 	bool saveConf();
 	bool loadConf();
 	Configuration configuration;

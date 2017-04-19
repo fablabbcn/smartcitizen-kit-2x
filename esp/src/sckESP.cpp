@@ -410,6 +410,17 @@ bool SckESP::processMsg() {
 	 		SAMsendMsg();
 	 		break;
 
+		} case ESP_GET_VERSION_COM: {
+			msgOut.com = ESP_GET_VERSION_COM;
+
+			StaticJsonBuffer<240> jsonBuffer;
+			JsonObject& jsonVer = jsonBuffer.createObject();
+			jsonVer["ver"] 	= ESPversion;
+			jsonVer["date"]	= ESPbuildDate;
+			clearParam();
+			jsonVer.printTo(msgOut.param, 240);
+			SAMsendMsg();
+			break;
 	 	}
 	}
 

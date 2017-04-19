@@ -98,9 +98,9 @@ void SckBase::setup() {
 	timerClear(ACTION_CLEAR_ESP_BOOTING);
 
 	// Version
-	String buildDate = __DATE__;
-	buildDate.replace(' ', '-');
-	version += buildDate + '-' + String(__TIME__) + "-ALPHA";
+	// String buildDate = __DATE__;
+	// buildDate.replace(' ', '-');
+	// version += buildDate + '-' + String(__TIME__) + "-ALPHA";
 
 	// MODE TITLES
 	modeTitles[MODE_AP]			= 	"ap";
@@ -757,6 +757,17 @@ void SckBase::ESPprocessMsg() {
 			prompt();
 			break;
 
+		} case ESP_GET_VERSION_COM: {
+
+			StaticJsonBuffer<240> jsonBuffer;
+			JsonObject& jsonVer = jsonBuffer.parseObject(msgIn.param);
+			String ESPv = jsonVer["ver"];
+			ESPversion = ESPv;
+			String ESPbd = jsonVer["date"];
+			ESPbuildDate = ESPbd;
+			sckOut(String F("ESP version:\t\t") + ESPversion + F(" (") + ESPbuildDate + F(")"));
+			break;
+
 		} case ESP_GET_APLIST_COM: {
 
 			StaticJsonBuffer<240> jsonBuffer;
@@ -838,10 +849,12 @@ void SckBase::processStatus() {
 				onWifi = true;
 
 				// Send MQTT Hello
-				sckOut(F("Sending MQTT Hello..."));
-				msgBuff.com = ESP_MQTT_HELLOW_COM;
-				ESPqueueMsg(false, true);
-				triggerHello = false;
+				if (triggerHello) {
+					sckOut(F("Sending MQTT Hello..."));
+					msgBuff.com = ESP_MQTT_HELLOW_COM;
+					ESPqueueMsg(false, true);
+					triggerHello = false;
+				}
 
 				// Forced Time sync
 				if (!rtc.isConfigured() || rtc.getYear() < 17) {
@@ -923,7 +936,7 @@ void SckBase::processStatus() {
 				sckOut(F("MQTT Hello OK!!"));
 
 				// Go to network mode
-				if(mode != MODE_NET) changeMode(MODE_NET);
+				if(mode != MODE_NET && triggerHello) changeMode(MODE_NET);
 				break;
 
 			} case ESP_MQTT_ERROR_EVENT: {
@@ -1187,7 +1200,13 @@ void SckBase::sckIn(String strIn) {
 			break;
 
 		} case EXTCOM_GET_VERSION: {
-			sckOut(version);
+			msgBuff.com = ESP_GET_VERSION_COM;
+			ESPqueueMsg(false, true);
+
+			prompt();
+			sckOut(String F("Hardware version:\t") + hardwareVer);
+			prompt();
+			sckOut(String F("SAM version:\t\t") + SAMversion + F(" (") + SAMbuildDate + F(")"));
 			break;
 
 		} case EXTCOM_SYNC_CONFIG: {

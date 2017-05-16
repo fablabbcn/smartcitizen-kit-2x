@@ -260,6 +260,7 @@ public:
 		EXTCOM_ESP_LED_ON,
 		EXTCOM_ESP_LED_OFF,
 		EXTCOM_ESP_MQTT_HELLO,
+		EXTCOM_ESP_GET_FREEHEAP,
 
 		// Configuration commands
 		EXTCOM_SET_WIFI,
@@ -299,7 +300,6 @@ public:
 
 		// SD card
 		EXTCOM_SD_PRESENT,
-		EXTCOM_SD_OPEN_FILE,		// For development purposes
 
 		// Sensors
 		EXTCOM_GET_SENSOR,
@@ -318,7 +318,7 @@ public:
 		EXTCOM_GET_CHAN1,
 		EXTCOM_GET_CHARGER,
 		EXTCOM_GET_BATTVOLT,
-		EXTCOM_GET_FREEHEAP,
+
 		EXTCOM_HELP,
 
 		// Count

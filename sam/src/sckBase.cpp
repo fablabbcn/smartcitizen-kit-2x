@@ -130,6 +130,7 @@ void SckBase::setup() {
 	comTitles[EXTCOM_ESP_LED_ON]			= 	"esp led on";
 	comTitles[EXTCOM_ESP_LED_OFF]			= 	"esp led off";
 	comTitles[EXTCOM_ESP_MQTT_HELLO]		=	"mqtt hello";
+	comTitles[EXTCOM_ESP_GET_FREEHEAP]		=	"esp heap";
 
 	// Configuration commands
 	comTitles[EXTCOM_SET_WIFI]			= 	"set wifi";
@@ -169,13 +170,12 @@ void SckBase::setup() {
 
 	// SD card
 	comTitles[EXTCOM_SD_PRESENT]		=	"sd present";
-	comTitles[EXTCOM_SD_OPEN_FILE]		=	"sd open file";
 
 	// Sensors
 	comTitles[EXTCOM_GET_SENSOR]		=	"read";			// @params sensor Title
 	comTitles[EXTCOM_PUBLISH]			= 	"publish";
 	comTitles[EXTCOM_LIST_SENSORS]		=	"list sensors";
-	comTitles[EXTCOM_ENABLE_SENSOR]		=	"enable";		// @ params wichSensor
+	comTitles[EXTCOM_ENABLE_SENSOR]		=	"enable";		// @params wichSensor
 	comTitles[EXTCOM_DISABLE_SENSOR]	=	"disable";		// @params wichSensor
 	comTitles[EXTCOM_CONTROL_SENSOR]	=	"control";		// @params wichSensor wichCommand
 
@@ -183,14 +183,13 @@ void SckBase::setup() {
 	comTitles[EXTCOM_U8G_PRINT]			=	"u8g print";				// @params: String to be printed
 	comTitles[EXTCOM_U8G_PRINT_SENSOR]	=	"u8g sensor";				// @params: Sensor to be printed
 
+	// Other
 	comTitles[EXTCOM_GET_CHAN0]			=	"get chann0";
 	comTitles[EXTCOM_GET_CHAN1]			=	"get chann1";
 	comTitles[EXTCOM_GET_CHARGER]		=	"get charger";
 	comTitles[EXTCOM_GET_BATTVOLT]		=	"get battvolt";
-	
-	// Other
-	comTitles[EXTCOM_GET_FREEHEAP]	=	"get heap";
-	comTitles[EXTCOM_HELP]			= 	"help";
+
+	comTitles[EXTCOM_HELP]				= 	"help";
 
 
 	// I2C Configuration
@@ -264,7 +263,7 @@ void SckBase::setup() {
 		// Only enable base board sensors
 		if (sensors[wichSensor].location == BOARD_BASE) {
 			sensors[wichSensor].enabled 	= true;
-			sensors[wichSensor].interval 	= configuration.readInterval;	
+			sensors[wichSensor].interval 	= configuration.readInterval;
 		// Enable urban board sensors if it has been found
 		} else if (urbanPresent && sensors[wichSensor].location == BOARD_URBAN) {
 			sensors[wichSensor].enabled 	= true;
@@ -289,7 +288,7 @@ void SckBase::setup() {
 	sensors[SENSOR_VOLTIN].enabled 					= false;				// Disabled for now
 
 	// Check if USB connected and enable-disable Serial communication
-	USBConnected();
+	// USBConnected();
 
 	// For debugging purposes only (comment for production)
 	// timerSet(ACTION_DEBUG_LOG, 5000, true);
@@ -1226,6 +1225,7 @@ void SckBase::sckIn(String strIn) {
 			break;
 
 		} case EXTCOM_SET_CONFIG: {
+
 			// TODO poner los params en el help			
 			if (strIn.startsWith("readint")) {
 				strIn.replace("readint", "");
@@ -1313,6 +1313,8 @@ void SckBase::sckIn(String strIn) {
 		} case EXTCOM_SET_LED: {
 			if (strIn.startsWith("off")) {
 				led.off();
+			} else if (strIn.startsWith("white")) {
+				led.reading();
 			}
 			break;
 
@@ -1370,18 +1372,6 @@ void SckBase::sckIn(String strIn) {
 		// SD card
 		} case EXTCOM_SD_PRESENT: {
 			if (sdPresent()) sckOut(F("Sdcard ready!!!"));
-			break;
-
-		} case EXTCOM_SD_OPEN_FILE: {
-	
-			sdPresent();
-			sd.begin(CS_SDCARD);
-			sckOut(F("writing file that is not opened..."));
-			publishFile.println("probando...");
-			sckOut(F("paso!!!"));
-			// publishFile = sd.open("POST001.CSV", FILE_WRITE); // Leave the file open to provoque corruption
-			// if (publishFile) sckOut(F("Sucsesfully opened file!!! leaving it open... be carefull"));
-
 			break;
 
 		} case EXTCOM_GET_SENSOR: {
@@ -1520,13 +1510,13 @@ void SckBase::sckIn(String strIn) {
 			publish();
 			break;
 
-		} case EXTCOM_GET_FREEHEAP: {
+		} case EXTCOM_ESP_GET_FREEHEAP: {
 
 			// Get ESP free heap
 			msgBuff.com = ESP_GET_FREE_HEAP_COM;
 			ESPqueueMsg(false);
 
-			// TODO get SAM free
+			// TODO get SAM free heap
 
 			break;
 
@@ -2254,7 +2244,7 @@ void SckBase::goToSleep(bool wakeToCheck) {
 	USB->DEVICE.CTRLA.bit.SWRST = 1;
   	while (USB->DEVICE.SYNCBUSY.bit.SWRST | (USB->DEVICE.CTRLA.bit.SWRST == 1));
 
-	USBDevice.detach();
+	// USBDevice.detach();
 
 	// Turn off Serial leds
 	digitalWrite(SERIAL_TX_LED, HIGH);
@@ -2265,8 +2255,8 @@ void SckBase::goToSleep(bool wakeToCheck) {
 
 void SckBase::wakeUp() {
 
-	USBDevice.init();
-	USBDevice.attach();
+	// USBDevice.init();
+	// USBDevice.attach();
 	sckOut(F("Waked up!!!"));
 	if (prevMode != MODE_OFF) changeMode(prevMode);
 	else changeMode(MODE_AP);

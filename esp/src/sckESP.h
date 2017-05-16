@@ -5,7 +5,6 @@
 #include <TimeLib.h>
 #include <ArduinoJson.h>
 #include "FS.h"
-#include "serialcomm.h"
 #include <WiFiUdp.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266SSDP.h>

@@ -1378,38 +1378,25 @@ void SckBase::sckIn(String strIn) {
 
 		} case EXTCOM_GET_SENSOR: {
 
-			SensorType thisType = SENSOR_COUNT;
+			// prepare string for matching
+			strIn.toLowerCase();
 
-			// Get sensor type
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-
-				thisType = static_cast<SensorType>(i);
-				
-				// Makes comparison lower case and not strict (sensor title only have to contain command)
-				String titleCompare = sensors[thisType].title;
-				titleCompare.toLowerCase();
-				strIn.toLowerCase();
-				
-				if (titleCompare.indexOf(strIn) > -1) break;
-				thisType = SENSOR_COUNT;
-			}
+			// fin out wich sensor is
+			SensorType wichSensor = getSensorFromString(strIn);
 
 			// Failed to found your sensor
-			if (thisType == SENSOR_COUNT) {
-				sckOut(F("Can't find that sensor!!!"));
-			} else {
-
+			if (wichSensor < SENSOR_COUNT) {
 				
 				// Get reading
-				if (getReading(thisType)) {
+				if (getReading(wichSensor)) {
 					
-					OneSensor *thisSensor = &sensors[thisType];
+					OneSensor *thisSensor = &sensors[wichSensor];
 					sckOut(thisSensor->title + ": " + String(thisSensor->reading) + " " + thisSensor->unit);
 				
 				} else {
 					
 					// Exception for Networks readings because it is async... it will output when its finished.
-					if (thisType == SENSOR_NETWORKS) break;
+					if (wichSensor == SENSOR_NETWORKS) break;
 
 					sckOut(F("Failed getting reading!!!"));
 				}
@@ -1434,30 +1421,17 @@ void SckBase::sckIn(String strIn) {
 
 		} case EXTCOM_ENABLE_SENSOR: {
 
-			SensorType thisType = SENSOR_COUNT;
+			// prepare string for matching
+			strIn.toLowerCase();
 
-			// Get sensor type
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			// fin out wich sensor is
+			SensorType wichSensor = getSensorFromString(strIn);
 
-				thisType = static_cast<SensorType>(i);
-				
-				// Makes comparison lower case and not strict (sensor title only have to contain command)
-				String titleCompare = sensors[thisType].title;
-				titleCompare.toLowerCase();
-				strIn.toLowerCase();
-				
-				if (titleCompare.indexOf(strIn) > -1) break;
-				thisType = SENSOR_COUNT;
-			}
+			if (wichSensor < SENSOR_COUNT) {
 
-			// Failed to found your sensor
-			if (thisType == SENSOR_COUNT) {
-				sckOut(F("Can't find that sensor!!!"));
-			} else {
-				
-				OneSensor *thisSensor = &sensors[thisType];
+				OneSensor *thisSensor = &sensors[wichSensor];
 				sckOut(String F("Enabling ") + thisSensor->title);
-				sensors[thisType].enabled = true;
+				sensors[wichSensor].enabled = true;
 
 				headersChanged = true;
 			}
@@ -1466,30 +1440,17 @@ void SckBase::sckIn(String strIn) {
 
 		} case EXTCOM_DISABLE_SENSOR: {
 
-			SensorType thisType = SENSOR_COUNT;
+			// prepare string for matching
+			strIn.toLowerCase();
 
-			// Get sensor type
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			// fin out wich sensor is
+			SensorType wichSensor = getSensorFromString(strIn);
 
-				thisType = static_cast<SensorType>(i);
-				
-				// Makes comparison lower case and not strict (sensor title only have to contain command)
-				String titleCompare = sensors[thisType].title;
-				titleCompare.toLowerCase();
-				strIn.toLowerCase();
-				
-				if (titleCompare.indexOf(strIn) > -1) break;
-				thisType = SENSOR_COUNT;
-			}
+			if (wichSensor < SENSOR_COUNT) {
 
-			// Failed to found your sensor
-			if (thisType == SENSOR_COUNT) {
-				sckOut(F("Can't find that sensor!!!"));
-			} else {
-				
-				OneSensor *thisSensor = &sensors[thisType];
+				OneSensor *thisSensor = &sensors[wichSensor];
 				sckOut(String F("Disabling ") + thisSensor->title);
-				sensors[thisType].enabled = false;
+				sensors[wichSensor].enabled = false;
 
 				headersChanged = true;
 			}
@@ -1502,38 +1463,23 @@ void SckBase::sckIn(String strIn) {
 
 		} case EXTCOM_U8G_PRINT_SENSOR: {
 
-			SensorType thisType = SENSOR_COUNT;
+			// prepare string for matching
+			strIn.toLowerCase();
 
-			// Get sensor type
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			// fin out wich sensor is
+			SensorType wichSensor = getSensorFromString(strIn);
 
-				thisType = static_cast<SensorType>(i);
+			if (wichSensor < SENSOR_COUNT) {
 
-				// Makes comparison lower case and not strict (sensor title only have to contain command)
-				String titleCompare = sensors[thisType].title;
-				titleCompare.toLowerCase();
-				strIn.toLowerCase();
+				getReading(wichSensor);
 
-				if (titleCompare.indexOf(strIn) > -1) break;
-				thisType = SENSOR_COUNT;
-			}
-
-			// Failed to found your sensor
-			if (thisType == SENSOR_COUNT) {
-				sckOut(F("Can't find that sensor!!!"));
-			} else {
-
-				getReading(thisType);
-
-				OneSensor *thisSensor = &sensors[thisType];
+				OneSensor *thisSensor = &sensors[wichSensor];
 				String Stitle = thisSensor->title;
 				String Sreading = String(thisSensor->reading, 1);
 				String Sunit = thisSensor->unit;
 				auxBoards.displayReading(Stitle, Sreading, Sunit, ISOtime());
 
 				sckOut(String F("Printing ") + Stitle);
-
-				headersChanged = true;
 			}
 
 			break;
@@ -1603,6 +1549,32 @@ void SckBase::sckIn(String strIn) {
 	}
 }
 
+SensorType SckBase::getSensorFromString(String strIn) {
+	SensorType wichSensor = SENSOR_COUNT;
+	uint8_t maxWordsFound = 0;
+
+	// Get sensor type
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
+		SensorType thisSensor = static_cast<SensorType>(i);
+
+		// Makes comparison lower case and not strict
+		String titleCompare = sensors[thisSensor].title;
+		titleCompare.toLowerCase();
+		strIn.toLowerCase();
+
+		// How many words match in Sensor title
+		uint8_t matchedWords = countMatchedWords(titleCompare, strIn);
+
+		if (matchedWords > maxWordsFound) {
+			maxWordsFound = matchedWords;
+			wichSensor = thisSensor;
+		}
+
+	}
+	if (wichSensor == SENSOR_COUNT) sckOut(F("Can't find that sensor!!!"));
+	return wichSensor;
+}
 
 /* Text outputs
  *
@@ -2878,7 +2850,56 @@ String leadingZeros(String original, int decimalNumber) {
 	return original;
 }
 
+uint8_t countMatchedWords(String baseString, String input) {
+	
+	uint8_t foundedCount = 0;
+	String word;
+	
+	while (input.length() > 0) {
 
+		// Get next word
+		if (input.indexOf(" ") > -1) word = input.substring(0, input.indexOf(" "));
+		// Or there is only one left
+		else word = input;
+
+		// If we found one
+		if (baseString.indexOf(word) > -1) foundedCount += 1;
+		// If next word is not part of the title we asume the rest of the input is a command or something else
+		else break;
+
+		// remove what we tested
+		input.replace(word, "");
+		input.trim();
+	}
+
+	return foundedCount;
+}
+
+String cleanInput(String toRemove, String original) {
+
+	String word;
+	String checking = original;
+	bool finished = false;
+
+	while (!finished) {
+		// word to check
+		if (checking.indexOf(" ") > -1)  {
+			word = checking.substring(0, checking.indexOf(" ")+1);
+		} else {
+			word = checking;
+			finished = true;
+		}
+
+		String wordNoSpaces = word;
+		wordNoSpaces.trim();
+
+		if (toRemove.indexOf(wordNoSpaces) > -1) original.replace(word, "");
+		else finished = true;
+			
+		checking.replace(word, "");
+	}
+	return original;
+}
 
 
 /*

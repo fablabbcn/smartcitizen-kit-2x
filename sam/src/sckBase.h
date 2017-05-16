@@ -334,6 +334,7 @@ public:
 	float baudrate = 115200;
 	void inputUpdate();
 	void sckIn(String strIn);
+	SensorType getSensorFromString(String strIn);
 	enum OutLevels {
 		OUT_SILENT,
 		OUT_NORMAL,
@@ -452,6 +453,8 @@ private:
 
 // Utility functions
 String leadingZeros(String original, int decimalNumber);
+uint8_t countMatchedWords(String title, String tested);
+String cleanInput(String toRemove, String original);
 
 // Hardware timers
 void configureTimer5(uint16_t periodMS);

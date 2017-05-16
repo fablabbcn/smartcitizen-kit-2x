@@ -26,7 +26,17 @@ enum SensorType {
 	SENSOR_TEMPERATURE,
 	SENSOR_LIGHT,
 	SENSOR_CO,
+	SENSOR_CO_HEAT_TIME,
+	SENSOR_CO_HEAT_CURRENT,
+	SENSOR_CO_HEAT_SUPPLY_VOLTAGE,
+	SENSOR_CO_HEAT_DROP_VOLTAGE,
+	SENSOR_CO_LOAD_RESISTANCE,
 	SENSOR_NO2,
+	SENSOR_NO2_HEAT_TIME,
+	SENSOR_NO2_HEAT_CURRENT,
+	SENSOR_NO2_HEAT_SUPPLY_VOLTAGE,
+	SENSOR_NO2_HEAT_DROP_VOLTAGE,
+	SENSOR_NO2_LOAD_RESISTANCE,
 
 	// I2C Auxiliary Sensors
 	SENSOR_ALPHADELTA_AE1,
@@ -102,7 +112,18 @@ public:
 		OneSensor {	BOARD_URBAN, 		SENSOR_TEMPERATURE, 				"Temperature", 							12,			false,			"C"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_LIGHT, 						"Light", 								14,			false,			"Lux"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_CO, 							"Carbon monoxide", 						16,			true,			"kOhm/ppm"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 				"Carbon monoxide heat time",			0,			false,			"sec"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_CURRENT, 			"Carbon monoxide heat current",			0,			false,			"mA"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_SUPPLY_VOLTAGE, 		"Carbon monoxide heat supply voltage",	0,			false,			"mV"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_DROP_VOLTAGE, 		"Carbon monoxide heat drop voltage",	0,			false,			"mV"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_CO_LOAD_RESISTANCE, 			"Carbon monoxide load resistance",		0,			false,			"Ohms"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_NO2, 						"Nitrogen dioxide",						15,			true,			"kOhm/ppm"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 				"Nitrogen dioxide heat time",			0,			false,			"sec"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_CURRENT, 			"Nitrogen dioxide heat current",		0,			false,			"mA"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_SUPPLY_VOLTAGE, 	"Nitrogen dioxide heat supply voltage",	0,			false,			"mV"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_DROP_VOLTAGE, 		"Nitrogen dioxide heat drop voltage",	0,			false,			"mV"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_NO2_LOAD_RESISTANCE, 		"Nitrogen dioxide load resistance",		0,			false,			"Ohms"},
+
 		// I2C Auxiliary Sensors
 		// Alphasense Delta board (3 Gas sensor Slots, + SHT31 Temp-Humidity)
 		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE1, 				"AlphaDelta AE1",						0,			true,			},

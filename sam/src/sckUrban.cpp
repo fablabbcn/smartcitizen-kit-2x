@@ -1,35 +1,16 @@
 #include "sckUrban.h"
 
-
-// MICS OLD CODE TO BE PORTED
-#define CO_SENSOR 0x02
-#define NO2_SENSOR 0x03
-
-#define  Rc0  10. //Ohm  Resistencia medida de corriente en el sensor CO sensor
-#define  Rc1  39. //Ohm Resistencia medida de corriente en el sensor NO2 sensor
-#define  R2  24000. //Ohm Resistencia de los reguladores
-#define  kr  392.1568     //Constante de conversion a resistencia de potenciometrosen ohmios
-
-#define  VCC   3300. //mV 
-//-------------------
-
 uint8_t pot_6_db_preset[] = {0,  7, 26, 96, 255};
 uint8_t pot_7_db_preset[] = {0, 17, 97, 255, 255};
 
 void SckUrban::setup() {
 
-	pinMode(IO0, OUTPUT);
-	pinMode(IO1, OUTPUT);
+	// Gases
+	gasSetup(SENSOR_CO);
+	gasSetup(SENSOR_NO2);
 
-	// GasSetup();
-
-	// code to be ported
-	// MICSini();
-	//-------------
-	GasOFF();
-
+	// Sound
 	ADCini();
-
 	ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV16;       // clock prescaler to 16
 	ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1024 |   // 1024 samples for averaging
 											 ADC_AVGCTRL_ADJRES(0x4ul);   // Adjusting result by 4
@@ -43,26 +24,64 @@ float SckUrban::getReading(SensorType wichSensor) {
 		case SENSOR_HUMIDITY: return getHumidity(); break;
 		case SENSOR_TEMPERATURE: return getTemperature(); break;
 		case SENSOR_LIGHT: return getLight(); break;
+		case SENSOR_CO: return gasRead(SENSOR_CO); 	break;
+		case SENSOR_CO_HEAT_TIME: return gasHeatingTime(SENSOR_CO); break;
+		case SENSOR_CO_HEAT_CURRENT: return gasGetHeaterCurrent(SENSOR_CO); break;
+		case SENSOR_CO_HEAT_SUPPLY_VOLTAGE: return gasGetRegulatorVoltage(SENSOR_CO); break;
+		case SENSOR_CO_HEAT_DROP_VOLTAGE: return (SENSOR_CO); break;
+		case SENSOR_CO_LOAD_RESISTANCE: return gasGetLoadResistance(SENSOR_CO); break;
+		case SENSOR_NO2: return gasRead(SENSOR_NO2); break;
+		case SENSOR_NO2_HEAT_TIME: return gasHeatingTime(SENSOR_NO2); break;
+		case SENSOR_NO2_HEAT_CURRENT: return gasGetHeaterCurrent(SENSOR_NO2); break;
+		case SENSOR_NO2_HEAT_SUPPLY_VOLTAGE: return gasGetRegulatorVoltage(SENSOR_NO2); break;
+		case SENSOR_NO2_HEAT_DROP_VOLTAGE: return (SENSOR_NO2); break;
+		case SENSOR_NO2_LOAD_RESISTANCE: return gasGetLoadResistance(SENSOR_NO2); break;
+	}
+}
+
+String SckUrban::control(SensorType wichSensor, String command) {
+	 switch (wichSensor) {
+		case SENSOR_NO2:
 		case SENSOR_CO: {
 
-			float gasCO;
-			getMICS_CO(&gasCO);
-			return gasCO;
+			if (command.startsWith("set on")) {
+				gasOn(wichSensor);
+				return F("Starting sensor...");
 
-			// return getCO(); 
-			break;
-		}
-		case SENSOR_NO2: {
+			} else if (command.startsWith("set off")) {
+				gasOff(wichSensor);
+				return F("Shuting off heater...");
 
-			float gasNO2;
-			getMICS_NO2(&gasNO2);
-			return gasNO2;
+			} else if (command.startsWith("set current")) {
+				command.replace("set current", "");
+				command.trim();
+				int wichValue = command.toInt();
+				gasHeat(wichSensor, wichValue);
+				return String F("Setting current to: ") + String(wichValue) + F(" mA\n\rActual value: ") + String(gasGetHeaterCurrent(wichSensor)) + F(" mA");
 
-			// return getNO2(); 
+			} else if (command.startsWith("set voltage")) {
+				command.replace("set voltage", "");
+				command.trim();
+				int wichValue = command.toInt();
+				gasSetRegulatorVoltage(wichSensor, wichValue);
+				return String F("Setting heater voltage to: ") + String(wichValue) + F(" mV\n\rActual value: ") + String(gasGetRegulatorVoltage(wichSensor)) + F(" mV");
+
+			} else if (command.startsWith("correct current")) {
+				gasCorrectHeaterCurrent(wichSensor);
+				return String F("Actual value: ") + String(gasGetHeaterCurrent(wichSensor)) + F(" mA\n\rCorrecting current\n\rActual value: ") + String(gasGetHeaterCurrent(wichSensor)) + F(" mA");
+
+			} else if (command.startsWith("help")) {
+				return F("Available commands for this sensor:\n\r* set on - set off\n\r* set current\n\r* set voltage");
+
+			} else {
+				return F("Unrecognized command!! please try again...");
+			}
+
 			break;
 		}
 	}
 }
+
 
 // Noise sensor
 float SckUrban::getNoise() {
@@ -145,6 +164,7 @@ void SckUrban::gainChange(uint8_t value) {
 }
 
 float SckUrban::getsound() {
+
 		return ((float)(analogRead(S4)) + 1) / RESOLUTION_ANALOG * VCC;
 }
 
@@ -202,10 +222,12 @@ uint16_t SckUrban::readSHT(uint8_t type){
 }
 	
 float SckUrban::getHumidity() {
+
 	return (-6 + (125*(readSHT(0xE5)/65536.0)));
 }
 
 float SckUrban::getTemperature() {
+
 	return (-46.85 + (175.72*(readSHT(0xE3)/65536.0)));
 }
 
@@ -254,45 +276,280 @@ float SckUrban::getLight() {
 	return Lx;
 }
 
+// Gas sensors
+void SckUrban::gasSetup(SensorType wichSensor) {
 
-// Gas sensor
-void SckUrban::GasSetup() {
+	if (wichSensor == SENSOR_CO) {
+		// Voltage regulator setup
+		pinMode(SHUTDOWN_CONTROL_REGULATOR_CO_SENSOR_HEATER_PIN, OUTPUT);
+		digitalWrite(SHUTDOWN_CONTROL_REGULATOR_CO_SENSOR_HEATER_PIN, LOW);		// Turn off regulator
 
-	// Turn off both sensor heaters
-	digitalWrite(IO0, LOW);
-	digitalWrite(IO1, LOW);
+		// Load resistor setup (minimal safe value is 820)
+		setPot(POT_CO_LOAD_RESISTOR, 50000);
+		gasCOheaterState = false;
+
+	} else if (wichSensor == SENSOR_NO2) {
+
+		// Voltage regulator setup
+		pinMode(SHUTDOWN_CONTROL_REGULATOR_NO2_SENSOR_HEATER_PIN, OUTPUT);
+		digitalWrite(SHUTDOWN_CONTROL_REGULATOR_NO2_SENSOR_HEATER_PIN, LOW);		// Turn off regulator
+
+		// Load resistor setup (minimal safe value is 820)
+		setPot(POT_NO2_LOAD_RESISTOR, 50000);
+		gasNO2heaterState = false;
+	}
+}
+
+void SckUrban::gasOn(SensorType wichSensor) {
+
+	if (wichSensor == SENSOR_CO) {
+		
+		// Load resistor setup (minimal safe value is 820)
+		setPot(POT_CO_LOAD_RESISTOR, 100000);
+		
+		gasHeat(wichSensor, CO_HEATING_CURRENT);
+		// TODO do i need to correct current here???
+
+	} else if (wichSensor == SENSOR_NO2) {
+
+		// Load resistor setup (minimal safe value is 820)
+		setPot(POT_NO2_LOAD_RESISTOR, 100000);
+		
+		gasHeat(wichSensor, NO2_HEATING_CURRENT);
+	}
+}
+
+void SckUrban::gasOff(SensorType wichSensor) {
+
+	if (wichSensor == SENSOR_CO) {
+		// Turn off regulator
+		digitalWrite(SHUTDOWN_CONTROL_REGULATOR_CO_SENSOR_HEATER_PIN, LOW);
+
+		// Load resistor setup (minimal safe value is 820)
+		setPot(POT_CO_LOAD_RESISTOR, 100000);
+
+		gasCOheaterState = false;
+
+	} else if (wichSensor == SENSOR_NO2) {
+		// Turn off regulator
+		digitalWrite(SHUTDOWN_CONTROL_REGULATOR_NO2_SENSOR_HEATER_PIN, LOW);
+
+		// Load resistor setup (minimal safe value is 820)
+		setPot(POT_NO2_LOAD_RESISTOR, 100000);
+
+		gasNO2heaterState = false;
+	}
+}
+
+void SckUrban::gasHeat(SensorType wichSensor, uint32_t wichCurrent) {
+
+	if (wichSensor == SENSOR_CO) {
+
+		// store requested current
+		// TODO Save this current in eprom for persistence
+		CO_HEATING_CURRENT = wichCurrent;				
+
+		// Calculate required voltage for requested current
+		uint32_t calculatedRegulatorVoltage = (CO_HEATER_RESISTANCE * CO_HEATING_CURRENT) + (CO_HEATER_RESISTOR * CO_HEATING_CURRENT);
+
+		// Start on the low side and wait for current correction
+		calculatedRegulatorVoltage -= 500;
+
+		// Set voltage to functional value
+		gasSetRegulatorVoltage(wichSensor, calculatedRegulatorVoltage);
+
+		// Turn on regulator
+		digitalWrite(SHUTDOWN_CONTROL_REGULATOR_CO_SENSOR_HEATER_PIN, HIGH);
+
+		startHeaterTime_CO = millis();
+		gasCOheaterState = true;
+
+		// Correct current
+		gasCorrectHeaterCurrent(wichSensor);
+
+	} else if (wichSensor == SENSOR_NO2) {
+
+		// store requested current
+		// Save this current in eprom for persistence
+		NO2_HEATING_CURRENT = wichCurrent;
+
+		// Calculate required voltage for requested current
+		uint32_t calculatedRegulatorVoltage = (NO2_HEATER_RESISTANCE * NO2_HEATING_CURRENT) + (NO2_HEATER_RESISTOR * NO2_HEATING_CURRENT);
+
+		// Start on the low side and wait for current correction
+		calculatedRegulatorVoltage -= 500;
+		
+		// Set voltage to functional value
+		gasSetRegulatorVoltage(wichSensor, calculatedRegulatorVoltage);
+
+		// Turn on regulator
+		digitalWrite(SHUTDOWN_CONTROL_REGULATOR_NO2_SENSOR_HEATER_PIN, HIGH);
+
+		startHeaterTime_NO2 = millis();
+		gasNO2heaterState = true;
+
+		// Correct current
+		gasCorrectHeaterCurrent(wichSensor);
+	}
+}
+
+float SckUrban::gasGetRegulatorVoltage(SensorType wichSensor) {
+
+	// Get actual variable resistor value (for selected sensor)
+	uint32_t actualPOTvalue = 0;
+	if (wichSensor == SENSOR_CO) actualPOTvalue = getPot(POT_CO_REGULATOR);
+	else if (wichSensor == SENSOR_NO2) actualPOTvalue = getPot(POT_NO2_REGULATOR);
+
+	// Calculate actual regulator voltage TODO check calculation
+	float regulatorVoltage = (((float)actualPOTvalue / HEATER_REGULATOR_RESISTOR) + 1) * 800.0;
+
+	return regulatorVoltage;
+}
+
+float SckUrban::gasGetDropVoltage(SensorType wichSensor) {
+	if (wichSensor == SENSOR_CO) return ((float)average(CO_HEATER_VOLTAGE_PIN) * VCC) / RESOLUTION_ANALOG; 			// (mV) Measure voltage
+	else if (wichSensor == SENSOR_NO2) return ((float)average(NO2_HEATER_VOLTAGE_PIN) * VCC) / RESOLUTION_ANALOG; 	// (mV) Measure voltage
+}
+
+void SckUrban::gasSetRegulatorVoltage(SensorType wichSensor, uint32_t wichVoltage) {
+
+	// each step is around 13 mV
+
+	// Minimal value (800 mV)
+	if (wichVoltage < 800) wichVoltage = 800;
+
+	// Calculate required variable resistor for desired voltage
+	float desiredPOTvalue = ((wichVoltage / 800.0) - 1) * HEATER_REGULATOR_RESISTOR;
+
+	// Set new variable resistor value
+	if (wichSensor == SENSOR_CO) {
+		setPot(POT_CO_REGULATOR, (uint32_t)desiredPOTvalue);
+	} else if (wichSensor == SENSOR_NO2) {
+		setPot(POT_NO2_REGULATOR, (uint32_t)desiredPOTvalue);
+	}
+}
+
+float SckUrban::gasGetHeaterCurrent(SensorType wichSensor) {
+	float measuredVoltage = gasGetDropVoltage(wichSensor);
+	if (wichSensor == SENSOR_CO) return measuredVoltage / CO_HEATER_RESISTOR;			// (mA) Calculates current
+	else if (wichSensor == SENSOR_NO2) return measuredVoltage / NO2_HEATER_RESISTOR;		// (mA) Calculates current
+}
+
+void SckUrban::gasCorrectHeaterCurrent(SensorType wichSensor) {
+
+	// New current value depends on sensor
+	float desiredCurrent = 0;
+	if (wichSensor == SENSOR_CO) desiredCurrent = CO_HEATING_CURRENT;
+	else if (wichSensor == SENSOR_NO2) desiredCurrent = NO2_HEATING_CURRENT;
+
+	// HeaterCurrent = HeaterVoltage / HEATER_RESISTOR
+	float heaterVoltage = gasGetDropVoltage(wichSensor); 											// (mV) Measure voltage
+	float heaterCurrent = 0;
+	if (wichSensor == SENSOR_CO) heaterCurrent = heaterVoltage / CO_HEATER_RESISTOR;				// (mA) Calculates current
+	else if (wichSensor == SENSOR_NO2) heaterCurrent = heaterVoltage / NO2_HEATER_RESISTOR;			// (mA) Calculates current
+
+	while (desiredCurrent - heaterCurrent > 0) {
+
+		// HeaterCurrent = HeaterVoltage / HEATER_RESISTOR
+		heaterVoltage = gasGetDropVoltage(wichSensor); 											// (mV) Measure voltage
+		if (wichSensor == SENSOR_CO) heaterCurrent = heaterVoltage / CO_HEATER_RESISTOR;			// (mA) Calculates current
+		else if (wichSensor == SENSOR_NO2) heaterCurrent = heaterVoltage / NO2_HEATER_RESISTOR;		// (mA) Calculates current
+
+		// HeaterResistance = (RegulatorVoltage - HeaterVoltage) / HeaterCurrent;
+		float regulatorVoltage = gasGetRegulatorVoltage(wichSensor);
+		float heaterResistance = (regulatorVoltage - heaterVoltage) / heaterCurrent;				// (Ohms)
+
+		// RegulatorVoltage = HeaterCurrent * (HeaterResistance + HEATER_RESISTOR)
+		float newRegulatorVoltage = 0;
+		if (wichSensor == SENSOR_CO) newRegulatorVoltage = desiredCurrent * (heaterResistance + CO_HEATER_RESISTOR);		// Calculates new voltage for desired current
+		else if (wichSensor == SENSOR_NO2) newRegulatorVoltage = desiredCurrent * (heaterResistance + NO2_HEATER_RESISTOR);	// Calculates new voltage for desired current
+
+		// Increase at least one step of the regulator POT (one step is +/- 13 mV)
+		if (newRegulatorVoltage - regulatorVoltage < 20) newRegulatorVoltage += 20;
+
+		gasSetRegulatorVoltage(wichSensor, newRegulatorVoltage);										// Sets calculated voltage
+
+		heaterCurrent = gasGetHeaterCurrent(wichSensor);
+	}
+
+
+}
+
+float SckUrban::gasGetSensorResistance(SensorType wichSensor) {
+
+	float sensorVoltage = 0;
 	
-	// Setup load sensor resistors (minimal safe value is 820);
-	setPot(POT_CO_LOAD_RESISTOR, 100000);
-	setPot(POT_NO2_LOAD_RESISTOR, 100000);
+	if (wichSensor == SENSOR_CO) sensorVoltage = ((float)average(CO_SENSOR_VOLTAGE_PIN) * VCC) / RESOLUTION_ANALOG; 	// (mV)	Measure sensor Voltage
+	else if (wichSensor == SENSOR_NO2) sensorVoltage = ((float)average(NO2_SENSOR_VOLTAGE_PIN) * VCC) / RESOLUTION_ANALOG; 	// (mV)	Measure sensor Voltage
 
+	if (sensorVoltage > VCC) sensorVoltage = VCC;
+	float sensorResistance = ((VCC - sensorVoltage) / sensorVoltage) * gasGetLoadResistance(wichSensor); 		// (Ohms) calculate sensor resistance
+
+	return sensorResistance;
 }
 
-void SckUrban::GasOFF() {
+uint32_t SckUrban::gasHeatingTime(SensorType wichSensor) {
+	
+	if (wichSensor == SENSOR_CO && gasCOheaterState) {
 
-	// Setup load sensor resistors (minimal safe value is 820);
-	setPot(POT_CO_LOAD_RESISTOR, 100000);
-	setPot(POT_NO2_LOAD_RESISTOR, 100000);
+		return (millis() - startHeaterTime_CO) / 1000;
 
-	// Turn off both sensor heaters
-	digitalWrite(IO0, LOW);
-	digitalWrite(IO1, LOW);
+	} else if (wichSensor == SENSOR_NO2 && gasNO2heaterState) {
+	
+		return (millis() - startHeaterTime_NO2) / 1000;
 
+	// If the sensors are off
+	} else {
+		return 0;
+	}
 }
 
-void SckUrban::GasON() {
-
+uint32_t SckUrban::gasGetLoadResistance(SensorType wichSensor) {
+	if (wichSensor == SENSOR_CO) return getPot(POT_CO_LOAD_RESISTOR);
+	else if (wichSensor == SENSOR_NO2) return getPot(POT_NO2_LOAD_RESISTOR);
 }
 
-float SckUrban::getCO() {
-	return 0;
+float SckUrban::gasRead(SensorType wichSensor) {
+
+	// Turn on heater if it isn't
+	if (wichSensor == SENSOR_CO && !gasCOheaterState) gasHeat(SENSOR_CO, CO_HEATING_CURRENT);
+	else if (wichSensor == SENSOR_NO2 && !gasNO2heaterState) gasHeat(SENSOR_NO2, NO2_HEATING_CURRENT);
+
+	Resistor wichResistor;
+	if (wichSensor == SENSOR_CO) {
+		wichResistor.deviceAddress = POT_CO_LOAD_RESISTOR.deviceAddress;
+		wichResistor.resistorAddress = POT_CO_LOAD_RESISTOR.resistorAddress;
+	} else if (wichSensor == SENSOR_NO2) {
+		wichResistor.deviceAddress = POT_NO2_LOAD_RESISTOR.deviceAddress;
+		wichResistor.resistorAddress = POT_NO2_LOAD_RESISTOR.resistorAddress;
+	}
+
+	// Get value from both resistors
+	float loadResistor = getPot(wichResistor);							// (Ohms)
+	float sensorResistance = gasGetSensorResistance(wichSensor);		// (Ohms)
+
+	// Adjust range max 5 times
+	uint8_t cycles = 5;
+	for (uint8_t i=0; i<cycles; ++i)	{
+		if (abs(loadResistor - sensorResistance) > 1000) {				// If difference between result and POT load resistor is graeter than 1000, try to improve resolution
+			if (sensorResistance < 2000) setPot(wichResistor, 2000);	// Set POT to minimal value in 2000
+			else if (sensorResistance > 100000) {
+				setPot(wichResistor, 100000); 							// Set POT to maximum value
+				break;													// Dont keep going if result resitance is greater than max POT value
+			}
+			else setPot(wichResistor, sensorResistance);				// Set POT to the same value as the result
+			delay(10);
+
+			loadResistor = getPot(wichResistor);
+			sensorResistance = gasGetSensorResistance(wichSensor);
+
+		} else break;
+	}
+	return sensorResistance / 1000;
 }
 
-float SckUrban::getNO2() {
-	return 0;
-}
 
-
+// Utility functions
 void SckUrban::ADCini() {
 	byte temp = readI2C(ADC_DIR,0)&B00000000;
 	writeI2C(ADC_DIR, 0, temp);
@@ -303,9 +560,6 @@ void SckUrban::ADCoff() {
 	writeI2C(ADC_DIR, 0, temp);
 }
 
-
-
-// Utility functions
 void SckUrban::setPot(Resistor wichPot, uint32_t value) {
 
 	// Check minimal safe value for Gas sensor (820)
@@ -340,139 +594,14 @@ uint32_t SckUrban::getPot(Resistor wichPot) {
 	return data*ohmsPerStep;
 }
 
+float SckUrban::average(uint8_t wichPin) {
 
-// MICS OLD CODE TO BE PORTED
-void SckUrban::MICSini() {       
-	currentHeat(CO_SENSOR, 32); //Corriente en mA
-	currentHeat(NO2_SENSOR, 26); //Corriente en mA  
-	digitalWrite(IO0, HIGH); //VH_CO SENSOR
-	digitalWrite(IO1, HIGH); //VH_NO2 SENSOR 
-	writeResistor(CO_SENSOR + 2, 100000); //Inicializacion de la carga del CO SENSOR
-	writeResistor(NO2_SENSOR + 2, 100000); //Inicializacion de la carga del NO2 SENSOR
-}
-
-void SckUrban::currentHeat(byte device, int current) {
-    float Rc=Rc0;
-    byte Sensor = S2;
-    if (device == NO2_SENSOR) { Rc=Rc1; Sensor = S3;}
-
-    float Vc = (float)average(Sensor)*VCC/RESOLUTION_ANALOG; //mV 
-    float current_measure = Vc/Rc; //mA
-    float Rh = (readVH(device)- Vc)/current_measure;
-    float Vh = (Rh + Rc)*current;
-    writeVH(device, Vh);
-}
-
-float SckUrban::average(int anaPin) {
-	int lecturas = 100;
+	uint32_t numReadings = 100;
 	long total = 0;
 	float average = 0;
-	for(int i=0; i<lecturas; i++)
-	{
-	//delay(1);
-	total = total + analogRead(anaPin);
+	for(uint32_t i=0; i<numReadings; i++) {
+		total = total + analogRead(wichPin);
 	}
-	average = (float)total / lecturas;  
-	return(average);
-}
-
-float SckUrban::readResistor(byte resistor ) {
-   byte POT = POT1;
-   byte ADDR = resistor;
-   if ((resistor==2)||(resistor==3))
-     {
-       POT = POT2;
-       ADDR = resistor - 2;
-     }
-   else if ((resistor==4)||(resistor==5))
-     {
-       POT = POT3;
-       ADDR = resistor - 4;
-     }
-   else if ((resistor==6)||(resistor==7))
-     {
-       POT = POT4;
-       ADDR = resistor - 6;
-     }
-   return readI2C(POT, ADDR)*kr;
-}   
-
-void SckUrban::writeResistor(byte resistor, float value ) {
-	byte POT = POT1;
-	byte ADDR = resistor;
-	int data=0x00;
-	if (value>100000) value = 100000;
-	data = (int)(value/kr);
-	if ((resistor==2)||(resistor==3))
-	 {
-	   POT = POT2;
-	   ADDR = resistor - 2;
-	 }
-	else if ((resistor==4)||(resistor==5))
-	 {
-	   POT = POT3;
-	   ADDR = resistor - 4;
-	 }
-	else if ((resistor==6)||(resistor==7))
-	 {
-	   POT = POT4;
-	   ADDR = resistor - 6;
-	 }
-	writeI2C(POT, ADDR, data);
-}
-
-float SckUrban::readRs(byte device) {
-     byte Sensor = S0;
-     if (device == NO2_SENSOR) {Sensor = S1; }
-     float RL = readResistor(device + 2); //Ohm
-     float VL = ((float)average(Sensor)*VCC)/RESOLUTION_ANALOG; //mV
-     if (VL > VCC) VL = VCC;
-     float Rs = ((VCC-VL)/VL)*RL; //Ohm
-     return Rs;
-}
-
-float SckUrban::readVH(byte device) {
-    float resistor = readResistor(device);
-    float voltage = ((resistor/R2) + 1)*800;
-    return(voltage);
-}
-
-void SckUrban::writeVH(byte device, long voltage ) {
-    float resistor = ((voltage/800.)-1)*R2;
-    writeResistor(device, resistor);
-}
-
-float SckUrban::readMICS(byte device) {
-
-      float Rs = readRs(device);
-      float RL = readResistor(device + 2); //Ohm
-      /*Correccion de impedancia de carga*/
-      if ((Rs <= (RL - 1000))||(Rs >= (RL + 1000)))
-      {
-        if (Rs < 2000) writeResistor(device + 2, 2000);
-        else writeResistor(device + 2, Rs);
-        delay(100);
-        Rs = readRs(device);
-      }
-       return Rs;
-}
-
-void SckUrban::getMICS(float* __RsCO, float* __RsNO2){          
-        /*Correccion de la corriente del Heather*/
-        currentHeat(CO_SENSOR, 32); //Corriente en mA
-        currentHeat(NO2_SENSOR, 26); //Corriente en mA
-        
-        *__RsCO = readMICS(CO_SENSOR);
-        *__RsNO2 = readMICS(NO2_SENSOR);
-         
-}
-
-void SckUrban::getMICS_CO(float* __RsCO) {
-	 currentHeat(CO_SENSOR, 32); //Corriente en mA
-	 *__RsCO = readMICS(CO_SENSOR);
-}
-
-void SckUrban::getMICS_NO2(float* __RsNO2) {
-	currentHeat(NO2_SENSOR, 26); //Corriente en mA
-	*__RsNO2 = readMICS(NO2_SENSOR);
+	average = (float)total / numReadings;  
+	return average;
 }

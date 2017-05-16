@@ -273,10 +273,20 @@ void SckBase::setup() {
 	}
 
 	// Temporary disabled
-	sensors[SENSOR_NETWORKS].enabled 	= false;
-	sensors[SENSOR_CO].enabled 			= false;				// Disabled for now
-	sensors[SENSOR_NO2].enabled			= false;				// Disabled for now
-	sensors[SENSOR_VOLTIN].enabled 		= false;				// Disabled for now
+	sensors[SENSOR_NETWORKS].enabled 				= false;
+	sensors[SENSOR_CO].enabled 						= true;				// Disabled for now
+	sensors[SENSOR_CO_HEAT_TIME].enabled 			= false;				// Disabled for now
+	sensors[SENSOR_CO_HEAT_CURRENT].enabled 		= false;				// Disabled for now
+	sensors[SENSOR_CO_HEAT_SUPPLY_VOLTAGE].enabled 	= false;				// Disabled for now
+	sensors[SENSOR_CO_HEAT_DROP_VOLTAGE].enabled 	= false;				// Disabled for now
+	sensors[SENSOR_CO_LOAD_RESISTANCE].enabled 		= false;				// Disabled for now
+	sensors[SENSOR_NO2].enabled 					= true;				// Disabled for now
+	sensors[SENSOR_NO2_HEAT_TIME].enabled 			= false;				// Disabled for now
+	sensors[SENSOR_NO2_HEAT_CURRENT].enabled 		= false;				// Disabled for now
+	sensors[SENSOR_NO2_HEAT_SUPPLY_VOLTAGE].enabled = false;				// Disabled for now
+	sensors[SENSOR_NO2_HEAT_DROP_VOLTAGE].enabled 	= false;				// Disabled for now
+	sensors[SENSOR_NO2_LOAD_RESISTANCE].enabled 	= false;				// Disabled for now
+	sensors[SENSOR_VOLTIN].enabled 					= false;				// Disabled for now
 
 	// Check if USB connected and enable-disable Serial communication
 	USBConnected();

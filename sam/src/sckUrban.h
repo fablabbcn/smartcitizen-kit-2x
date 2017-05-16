@@ -19,6 +19,7 @@ public:
 	void setup();
 
 	float getReading(SensorType wichSensor);
+	String control(SensorType wichSensor, String command);
 
 	// Noise
 	float getNoise();
@@ -37,84 +38,62 @@ public:
 	float getLight();
 
 	// Gases
+	const float HEATER_REGULATOR_RESISTOR = 24000;					// (Ohm) Heater voltage regulators resistor
+	void gasSetup(SensorType wichSensor);
+	void gasOn(SensorType wichSensor);
+	void gasOff(SensorType wichSensor);
+	void gasHeat(SensorType wichSensor, uint32_t wichCurrent);
+	float gasGetRegulatorVoltage(SensorType wichSensor);
+	float gasGetDropVoltage(SensorType wichSensor);
+	void gasSetRegulatorVoltage(SensorType wichSensor, uint32_t wichVoltage);
+	float gasGetHeaterCurrent(SensorType wichSensor);
+	void gasCorrectHeaterCurrent(SensorType wichSensor);
+	uint32_t gasHeatingTime(SensorType wichSensor);						// @return time since sensor heater started in seconds.
+	uint32_t gasGetLoadResistance(SensorType wichSensor);
+	float gasGetSensorResistance(SensorType wichSensor);
+	float gasRead(SensorType wichSensor);
+	/* Notes
+		HeaterCurrent = HeaterVoltage / HEATER_RESISTOR
+		HeaterResistance = (RegulatorVoltage - HeaterVoltage) / HeaterCurrent
+		RegulatorVoltage = HeaterCurrent * (HeaterResistance + HEATER_RESISTOR)
+	*/
+
+	// Carbon Monoxide
+	const uint8_t SHUTDOWN_CONTROL_REGULATOR_CO_SENSOR_HEATER_PIN = 9;		// (pin) 9-PA7 -- Low disables sensor heater
+	const uint8_t CO_HEATER_VOLTAGE_PIN = 15;								// (pin) A1-PB8 -- CO Current Sensor
+	const uint8_t CO_SENSOR_VOLTAGE_PIN = 17;								// (pin) A3-PA4 -- CO Sensor
 	Resistor POT_CO_LOAD_RESISTOR = {POT3, 0x00};
+	Resistor POT_CO_REGULATOR = {POT2, 0x00};
+	const uint8_t CO_HEATER_RESISTOR = 10; 									// (Ohm) RDRED Resistencia en el sensor CO sensor
+	uint32_t CO_HEATING_CURRENT = 32;										// (mA) Normal operational current
+	uint32_t CO_HEATER_RESISTANCE = 74;									// (Ohm) Heating resistance at nominal power 
+	bool gasCOheaterState = false;
+	uint32_t startHeaterTime_CO = 0;
+
+	// Nitrogen Dioxide
+	const uint8_t SHUTDOWN_CONTROL_REGULATOR_NO2_SENSOR_HEATER_PIN = 8;		// (pin) 8-PA6 Low disables sensor heater
+	const uint8_t NO2_HEATER_VOLTAGE_PIN = 16;								// (pin) A2-PB9 -- CO Current Sensor
+	const uint8_t NO2_SENSOR_VOLTAGE_PIN = 18;								// (pin) A4-PA5 -- CO Sensor
 	Resistor POT_NO2_LOAD_RESISTOR = {POT3, 0x01};
-	Resistor POT_CO_HEATER = {POT2, 0x00};
-	Resistor POT_NO2_HEATER = {POT2, 0x01};
-
-	const float Rc0 = 10; // Ohm Resistencia en el sensor CO sensor
-	const float Rc1 = 39; // Ohm Resistencia en el sensor NO2 sensor
-
-	void GasSetup();
-	void GasOFF();
-	void GasON();
-	float getCO();
-	float getNO2();
+	Resistor POT_NO2_REGULATOR = {POT2, 0x01};
+	const uint8_t NO2_HEATER_RESISTOR = 39; 								// (Ohm) Resistencia en el sensor NO2 sensor
+	uint32_t NO2_HEATING_CURRENT = 26;										// (mA) Normal operational current
+	uint32_t NO2_HEATER_RESISTANCE = 66;									// (Ohm) Heating resistance at nominal power
+	bool gasNO2heaterState = false;
+	uint32_t startHeaterTime_NO2 = 0;
 
 	// Utility functions
 	void setPot(Resistor wichPot, uint32_t value);
 	uint32_t getPot(Resistor wichPot);
-
-
 	void writeI2C(byte deviceaddress, byte address, byte data );
 	byte readI2C(int deviceaddress, byte address);
 	void ADCini();
 	void ADCoff();
-
-
-	// TO BE PORTED
-	void MICSini();
-	void currentHeat(byte device, int current);
-	float average(int anaPin);
-	float readResistor(byte resistor );
-	void writeResistor(byte resistor, float value );
-	float readRs(byte device);
-	float readVH(byte device);
-	void writeVH(byte device, long voltage );
-	float readMICS(byte device);
-	void getMICS(float* __RsCO, float* __RsNO2);
-	void getMICS_CO(float* __RsCO);
-	void getMICS_NO2(float* __RsNO2);
+	float average(uint8_t wichPin);
 
 private:
 };
 
-/* MICS notes
-
-	* RED (reducing gases) sensor resistance decreases in the presence of CO and hydrocarbons.
-		* The nominal power for the RED sensor is PH = 76 mW
-		* The resulting temperature of the sensing layer for RED is about 340 °C (In air at 20 °C)
-
-    * OX (oxidising gases) sensor resistance increases in the presence of NO2
-    	* The nominal power for the OX sensor is PH = 43 mW.
-		* The resulting temperature of the sensing layer for RED is about 220 °C (In air at 20 °C)
-
-	* Pinout:
-		A Rh1 OX 		(NO2 heater S3)
-		B Rs1 OX 		(NO2 sensor S1)
-		C Rh1 RED 		(CO heater S2)
-		D Rs1 RED 		(CO sensor S0)
-		E NC 
-		F Rh2 RED 		(CO heater) controlado por ADJ_0 (debe ser channel 0 del POT2)
-		G Rs2 RED 		V_MICS
-		H Rh2 OX 		(NO2 heater) controlado por ADJ_1 (debe ser channel 1 del POT2)
-		J Rs2 OX 		V_MICS
-		K NC
-
-	* Heaters
-		* IO0	Controls CO Sensor Heather (LOW = off)
-		* IO1	Controls NO2 Sensor Heater (LOW = off)
-
-	* Load sensor resistors (must be 820 ohms at the lowest in order not to damage the sensitive layer)
-		* POT3 channel 0 is CO sensitive load load resitor (S0R)
-		* POT3 channel 1 is NO2 sensitive load load resitor (S1R)
-	
-	* Steps for measuring:
-		1. Preheat	(30 sg at higher voltages than operational)
-		2. Take reading 
-
-	http://www.sgxsensortech.com/content/uploads/2014/08/AN-0172-SGX-Metal-Oxide-Gas-Sensors-V1.pdf
-*/
 
 
 /*

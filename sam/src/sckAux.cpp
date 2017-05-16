@@ -33,6 +33,48 @@ float AuxBoards::getReading(SensorType wichSensor) {
 	}
 }
 
+String AuxBoards::control(SensorType wichSensor, String command) {
+	switch(wichSensor) {
+		case SENSOR_ALPHADELTA_AE1:
+		case SENSOR_ALPHADELTA_WE1:
+		case SENSOR_ALPHADELTA_AE2:
+		case SENSOR_ALPHADELTA_WE2:
+		case SENSOR_ALPHADELTA_AE3:
+		case SENSOR_ALPHADELTA_WE3: {
+
+			if (command.startsWith("set pot")) {
+
+				Resistor wichPot;
+
+				switch(wichSensor) {
+					case SENSOR_ALPHADELTA_AE1: wichPot = alphaDelta.POT_AE1;
+					case SENSOR_ALPHADELTA_WE1: wichPot = alphaDelta.POT_WE1;
+					case SENSOR_ALPHADELTA_AE2: wichPot = alphaDelta.POT_AE2;
+					case SENSOR_ALPHADELTA_WE2: wichPot = alphaDelta.POT_WE2;
+					case SENSOR_ALPHADELTA_AE3: wichPot = alphaDelta.POT_AE3;
+					case SENSOR_ALPHADELTA_WE3: wichPot = alphaDelta.POT_WE3;
+				}
+				
+				command.replace("set pot", "");
+				command.trim();
+				int wichValue = command.toInt();
+				alphaDelta.setPot(wichPot, wichValue);
+				return String F("Setting pot to: ") + String(wichValue) + F(" Ohms\n\rActual value: ") + String(alphaDelta.getPot(wichPot)) + F(" Ohms");
+
+			} else if (command.startsWith("help")) {
+				return F("Available commands for this sensor:\n\r* set pot ");
+
+			} else {
+
+				return F("Unrecognized command!! please try again...");
+
+			}
+			
+			break;
+		}
+	}
+}
+
 void AuxBoards::print(SensorType wichSensor, String payload) {
 	groove_OLED.print(payload);
 }

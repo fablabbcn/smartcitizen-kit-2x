@@ -17,10 +17,17 @@
 #include <Sensors.h>
 
 
+struct Resistor {
+	byte deviceAddress;
+	byte resistorAddress;
+};
+
+
 class AuxBoards {
 public:
 	void setup();
 	float getReading(SensorType wichSensor);
+	String control(SensorType wichSensor, String command);
 	void print(SensorType wichSensor, String payload);
 	void displayReading(String title, String reading, String unit, String time);
 
@@ -30,10 +37,6 @@ private:
 class AlphaDelta {
 public:
 
-	struct Resistor {
-		byte deviceAddress;
-		byte resistorAddress;
-	};
 	
 	bool begin();
 	

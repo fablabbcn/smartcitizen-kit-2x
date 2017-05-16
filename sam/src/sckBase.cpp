@@ -177,9 +177,7 @@ void SckBase::setup() {
 	comTitles[EXTCOM_LIST_SENSORS]		=	"list sensors";
 	comTitles[EXTCOM_ENABLE_SENSOR]		=	"enable";		// @ params wichSensor
 	comTitles[EXTCOM_DISABLE_SENSOR]	=	"disable";		// @params wichSensor
-
-	// Set Alpha POT's (TODO remove from here and find a more modular solution)
-	comTitles[EXTCOM_ALPHADELTA_POT]	=	"set alpha";				// @ params: wichpot (AE1, WE1, AE2...), value (0-100,000)
+	comTitles[EXTCOM_CONTROL_SENSOR]	=	"control";		// @params wichSensor wichCommand
 
 	// U8g_OLED commands
 	comTitles[EXTCOM_U8G_PRINT]			=	"u8g print";				// @params: String to be printed
@@ -1520,6 +1518,49 @@ void SckBase::sckIn(String strIn) {
 
 			// TODO get SAM free
 
+			break;
+
+		} case EXTCOM_CONTROL_SENSOR: {
+
+			// prepare string for matching
+			strIn.toLowerCase();
+
+			// fin out wich sensor is
+			SensorType wichSensor = getSensorFromString(strIn);
+
+			if (wichSensor < SENSOR_COUNT) {
+			
+				if (strIn.length() < 1) {
+					sckOut(F("No command received!! please try again..."));
+					break;
+				}
+
+				if (sensors[wichSensor].controllable)  {
+
+					// Remove title so only command is left in input string
+					String titleCompare = sensors[wichSensor].title;
+					titleCompare.toLowerCase();
+					strIn = cleanInput(titleCompare, strIn);
+					
+					// Print sensor title
+					sckOut(sensors[wichSensor].title + ": " + strIn);
+
+					switch (sensors[wichSensor].location) {
+						case BOARD_URBAN: {
+							sckOut(urban.control(wichSensor, strIn));
+							break;
+
+						} case BOARD_AUX: {
+							sckOut(auxBoards.control(wichSensor, strIn));
+							break;
+							
+						}
+					}
+
+				} else {
+					sckOut(String F("No configured command found for ") + sensors[wichSensor].title + F(" sensor!!!"));
+				}
+			}
 			break;
 
 		// Help

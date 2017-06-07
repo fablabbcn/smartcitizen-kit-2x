@@ -52,6 +52,7 @@ String SckUrban::control(SensorType wichSensor, String command) {
 				gasOff(wichSensor);
 				return F("Shuting off heater...");
 
+			// This value should be saved to eeprom
 			} else if (command.startsWith("set current")) {
 				command.replace("set current", "");
 				command.trim();
@@ -471,8 +472,6 @@ void SckUrban::gasCorrectHeaterCurrent(SensorType wichSensor) {
 
 		heaterCurrent = gasGetHeaterCurrent(wichSensor);
 	}
-
-
 }
 
 float SckUrban::gasGetSensorResistance(SensorType wichSensor) {

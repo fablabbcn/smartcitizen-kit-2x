@@ -1,6 +1,7 @@
 #pragma once
 
 #include <EasyTransfer.h>
+#include <Sensors.h>
 #define ONE_DAY_IN_SECONDS 86400
 
 enum EspCommand {
@@ -105,15 +106,6 @@ struct Credentials {
 };
 
 struct ESPstatus {
-	// uint8_t wifi = ESP_NULL;
-	// uint8_t net = ESP_NULL;
-	// uint8_t mqtt = ESP_NULL;
-	// uint8_t time = ESP_NULL;
-	// uint8_t ap = ESP_NULL;
-	// uint8_t web = ESP_NULL;
-	// uint8_t conf = ESP_NULL;
-
-	// VERSION SENCILLA
 	uint8_t wifi = 0;
 	uint8_t net  = 0;
 	uint8_t mqtt = 0;
@@ -123,6 +115,28 @@ struct ESPstatus {
 	uint8_t conf = 0;
 };
 
+enum SCKmodes {
+	MODE_SETUP,
+	MODE_NET,
+	MODE_SD,
+	MODE_FLASH,
+	MODE_BRIDGE,
+	MODE_OFF,
+	MODE_COUNT
+};
+const uint32_t minimal_publish_interval = 60;
+const uint32_t default_publish_interval = 600;
+const uint32_t max_publish_interval = 86400;		// One day 
+
+struct SensorConfig {
+	bool enabled;
+	uint32_t interval;
+};
+
 struct Configuration {
-	uint32_t readInterval = 30;		// in seconds
+	bool valid = false;
+	SCKmodes mode;
+	SCKmodes persistentMode;						// This mode only changes on user configuration, it can only be MODE_SD or MODE_NET
+	uint32_t publishInterval = default_publish_interval;	// in seconds
+	SensorConfig sensor[SENSOR_COUNT];
 };

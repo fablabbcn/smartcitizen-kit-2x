@@ -7,7 +7,7 @@ sleep 3
 
 # Ask for flash mode (bridge Serial ports)
 echo "** Asking for ESP flash mode... **"
-echo "set mode esp flash" >> /dev/ttyACM0
+echo "set config mode esp flash" >> /dev/ttyACM0
 
 # Build ESP code
 cd ../esp

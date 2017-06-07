@@ -15,8 +15,6 @@ ESP8266WebServer webServer(80);
 // DNS for captive portal
 DNSServer dnsServer;
 
-
-
 // 	-----------------
 //	|	General 	|
 //	-----------------
@@ -46,7 +44,16 @@ void SckESP::setup() {
 	WiFi.persistent(false);		 		// Only write to flash credentials when changed (for protecting flash from wearing out)
 	readNetwork();
 	readToken();
-	startAP();
+
+	scanAP();
+
+	if (countSavedNetworks() <= 0) {
+		espStatus.wifi = ESP_WIFI_ERROR_EVENT;
+		ledBlink(ledRight, 100);
+		startAP();
+	} else {
+		tryConnection();
+	}
 };
 void SckESP::update() {
 
@@ -55,8 +62,8 @@ void SckESP::update() {
 	actualWIFIStatus = WiFi.status();
 
 	if (espStatus.web == ESP_WEB_ON_EVENT)	{
-		webServer.handleClient();
 		dnsServer.processNextRequest();
+		webServer.handleClient();
 	}
 	
 	// Only take actions when status has changed
@@ -105,14 +112,16 @@ void SckESP::update() {
 
 			// If you have configured at least one net AND it appears in the scan 
 			// TODO hacer un conteo de retrys por red ASI COMO ESTA SE QUEDA EN UN LOOP
-			if (countSavedNetworks() > 0 && selectBestNetwork() >= 0) { 
+			if (countSavedNetworks() > 1 && selectBestNetwork() >= 0 && connectionRetrys < 1) { 
 			
+				connectionRetrys++;
 				tryConnection();
 			
 			} else {
 			
 				// NO network available: Enter Ap mode
 				ledBlink(ledRight, 100);
+				startAP();
 			}
 		}
 		prevWIFIStatus = WiFi.status();
@@ -259,8 +268,8 @@ bool SckESP::processMsg() {
 
 	 	} case ESP_GET_APCOUNT_COM: {
 	 		
-	 		int n = scanAP();
-			String sn = String(n);
+	 		scanAP();
+			String sn = String(netNumber);
 			clearParam();
 			sn.toCharArray(msgOut.param, 240);
 			msgOut.com = ESP_GET_APCOUNT_COM;
@@ -270,9 +279,9 @@ bool SckESP::processMsg() {
 	 	} case ESP_GET_APLIST_COM: {
 	 		msgOut.com = ESP_GET_APLIST_COM;
 	 		
-	 		int netNum = scanAP();
+	 		scanAP();
 
-			for (int i=0; i<netNum; i++) {
+			for (int i=0; i<netNumber; i++) {
 				StaticJsonBuffer<240> jsonBuffer;
 				JsonObject& jsonNet = jsonBuffer.createObject();
 				jsonNet["n"] = i;
@@ -341,12 +350,9 @@ bool SckESP::processMsg() {
 				// Check if sensor exists in SAM readings (we asume that missing sensors are disabled)
 				if (jsonSensors.containsKey(String(i))) {
 
-					if (wichSensor == SENSOR_TIME) {
-						sensors[wichSensor].lastReadingTime = jsonSensors[String(i)];
-					} else {
-						sensors[wichSensor].reading = jsonSensors[String(i)];
-					}
+					sensors[wichSensor].reading = jsonSensors[String(i)];
 					sensors[wichSensor].enabled = true;
+
 				} else {
 					sensors[wichSensor].enabled = false;
 				}
@@ -545,8 +551,8 @@ void SckESP::startAP(){
 	uint8_t macAddr[6];
 	WiFi.softAPmacAddress(macAddr);
 
-	String base = "SmartCitizen[";
-	String completo = base + String(macAddr[5]) + "]";
+	String base = "SmartCitizen";
+	String completo = base + String(macAddr[5]);
 
 	char ssidName[18];
 	completo.toCharArray(ssidName, 18);
@@ -557,13 +563,15 @@ void SckESP::startAP(){
 	IPAddress myIP(192, 168, 1, 1);
 
 	// Start Soft AP
+	WiFi.mode(WIFI_AP);
 	WiFi.softAPConfig(myIP, myIP, IPAddress(255, 255, 255, 0));
-	WiFi.softAP(ssidName);
+	WiFi.softAP((const char *)completo.c_str());
 	espStatus.ap = ESP_AP_ON_EVENT;
 
 	// DNS stuff (captive portal)
 	dnsServer.start(DNS_PORT, "*", myIP);
 
+	delay(100);
 	startWebServer();
 };
 void SckESP::stopAP() {
@@ -594,29 +602,29 @@ void SckESP::startWebServer() {
 	webServer.on("/conf", extShow);
 
 	// Handle APlist request
-	webServer.on("/aplist", [](){
+	// webServer.on("/aplist", [](){
 
-   		String json = "{\"nets\":[";
+ //   		String json = "{\"nets\":[";
 
-   		int netNum = WiFi.scanNetworks();
-		for (int i=0; i<netNum; i++) {
-			json += "{\"ssid\":\"" + String(WiFi.SSID(i));
-			json += "\",\"ch\":" + String(WiFi.channel(i));
-			json += ",\"rssi\":" + String(WiFi.RSSI(i)) + "}";
-			if (i < (netNum - 1)) json += ",";
-		}
+ //   		// int netNum = WiFi.scanNetworks();
+ //   		int
+	// 	for (int i=0; i<netnumber2; i++) {
+	// 		json += "{\"ssid\":\"" + String(WiFi.SSID(i));
+	// 		json += "\",\"ch\":" + String(WiFi.channel(i));
+	// 		json += ",\"rssi\":" + String(WiFi.RSSI(i)) + "}";
+	// 		if (i < (netNumber - 1)) json += ",";
+	// 	}
 
-		json += "]}";
-		webServer.send(200, "text/json", json);
-		json = String();
+	// 	json += "]}";
+	// 	webServer.send(200, "text/json", json);
+	// 	json = String();
     	
-	});
+	// });
 
 	// Handle SSDP
 	webServer.on("/description.xml", HTTP_GET, [](){
     	SSDP.schema(webServer.client());
 	});
-
 
 	// mDNS
 	if (!MDNS.begin("smartcitizen")) {
@@ -652,14 +660,6 @@ void SckESP::webRoot() {
 	// Scan for wifi network async
 	int netNum = WiFi.scanComplete();
 
-	// If no scan has been started, start one...
-	if (netNum == -2) WiFi.scanNetworks();
-
-	// // Wait for (ONLY) first scan...
-	while (WiFi.scanComplete() == -2) {
-		;
-	}
-
 	// Create list of scanned wifi netowrks
 	String webSelect;
 	for (int i=0; i<netNum; i++) {
@@ -670,11 +670,12 @@ void SckESP::webRoot() {
 	// Assemble html page
 	htmlPage += webSelect;
 	htmlPage += htmlPage2;
+
 	webServer.send(200, "text/html", htmlPage);
 };
 void SckESP::webSet() {
 
-	uint8_t score = 0;
+	// uint8_t score = 0;
 	
 	String response = "<!DOCTYPE html><html><head><meta name=viewport content=width=device-width, initial-scale=1><style>body {color: #434343;font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif;font-size: 22px;line-height: 1.1;padding: 20px;}</style></head><body>";
 
@@ -700,16 +701,16 @@ void SckESP::webSet() {
 
 			if (addNetwork()) somethingChanged = true;
 
-			// response += String(F("Success: New net added: ")) + tssid + " - " + tpass + "<br/>";
+			response += String(F("Success: New net added: ")) + tssid + " - " + tpass + "<br/>";
 
-			score ++;
+			// score ++;
 			
 		} else {
-			// response += String(F("Error: wrong ssid or password!!<br/>"));
+			response += String(F("Error: wrong ssid or password!!<br/>"));
 		}
 	
 	} else {
-		// response += String(F("Warning: can't find ssid or password!!<br/>"));
+		response += String(F("Warning: can't find ssid or password!!<br/>"));
 	}
 
 	// If we found the token
@@ -719,15 +720,15 @@ void SckESP::webSet() {
 			ttoken.toCharArray(token, 8);
 			saveToken();
 			somethingChanged = true;
-			// response += String(F("Success: New token added: ")) + ttoken + "<br/>";
+			response += String(F("Success: New token added: ")) + ttoken + "<br/>";
 
-			score ++;
+			// score ++;
 
 		} else {
-			// response += String(F("Error: token must have 6 chars!!<br/>"));
+			response += String(F("Error: token must have 6 chars!!<br/>"));
 		}
 	} else {
-		// response += String(F("Warning: no token received<br/>"));
+		response += String(F("Warning: no token received<br/>"));
 	}
 
 	// If we found new time
@@ -742,13 +743,21 @@ void SckESP::webSet() {
        		espStatus.time = ESP_TIME_UPDATED_EVENT;
        		somethingChanged = true;
       		debugOUT(F("Time updated from apmode web!!!"));
-       		// response += String(F("Success: Time synced: ")) + ISOtime() + "<br/>";
+
+      		debugOUT(F("Sending time to SAM..."));
+			String epochSTR = String(now());
+			clearParam();
+			epochSTR.toCharArray(msgOut.param, 240);
+			msgOut.com = ESP_GET_TIME_COM;
+			SAMsendMsg();
+
+       		response += String(F("Success: Time synced: ")) + ISOtime() + "<br/>";
 		} else {
-			// response += String(F("Error: received time is not valid!!<br/>"));
+			response += String(F("Error: received time is not valid!!<br/>"));
 		}
 
 	} else {
-		// response += String(F("Warning: no time received to sync<br/>"));
+		response += String(F("Warning: no time received to sync<br/>"));
 	}
 
 	// Interval is in seconds
@@ -758,25 +767,30 @@ void SckESP::webSet() {
 		uint32_t intTinterval = tinterval.toInt();
 
 		// 86400 one day in seconds
-		if (intTinterval > 0 && intTinterval < ONE_DAY_IN_SECONDS) {
-			configuration.readInterval = intTinterval;
-			espStatus.conf = ESP_CONF_CHANGED_EVENT;
-			somethingChanged = true;
-			// response += String(F("Success: New reading interval: ")) + String(intTinterval) + String(F(" seconds"));
-		} else {
-			// response += String(F("Error: received read interval is not valid!!!"));
-		}
+		// if (intTinterval > minimal_sensor_reading_interval && intTinterval < max_sensor_reading_interval) {
+
+		// 	for (uint8_t i=0, i<SENSOR_COUNT, i++) {
+		// 		wichSensor = static_cast<SensorType>(i);
+		// 		config.sensor[wichSensor].interval = intTinterval;
+		// 	}
+
+		// 	espStatus.conf = ESP_CONF_CHANGED_EVENT;
+		// 	somethingChanged = true;
+		// 	response += String(F("Success: New reading interval: ")) + String(intTinterval) + String(F(" seconds"));
+		// } else {
+		// 	response += String(F("Error: received read interval is not valid!!!"));
+		// }
 		
 	} else {
-		// response += String(F("Warning: no new reading interval received"));
+		response += String(F("Warning: no new reading interval received"));
 	}
 	
 	// Custom Making Sense message TEMP
-	if (score == 2) {
-		response += "Thank you<br/>Please finish installing the Smart Citizen Kit on the other screen";
-	} else {
-		response += "Something went wrong!!<br/>Please click kit's button until is red and try again!";
-	}
+	// if (score == 2) {
+	// 	response += "Thank you<br/>Please finish installing the Smart Citizen Kit on the other screen";
+	// } else {
+	// 	response += "Something went wrong!!<br/>Please click kit's button until is red and try again!";
+	// }
 	
 	response += "</body></html>";
 
@@ -997,7 +1011,7 @@ int8_t SckESP::selectBestNetwork() {
 
 	debugOUT(F("Scanning for known networks..."));
 
-	uint8_t netNumber = scanAP();
+	// uint8_t netNumber = scanAP();
 	uint8_t savedNetNumber = countSavedNetworks();
 
 	String tssid;
@@ -1056,10 +1070,13 @@ void SckESP::setGoodNet(){
 		debugOUT(String(credentials.ssid) + F(" is already the preferred network"));
 	}
 };
-int SckESP::scanAP() {
-	int n = WiFi.scanNetworks();
-	debugOUT(String(n) + F(" networks found"));
-	return n;
+void SckESP::scanAP() {
+	netNumber = WiFi.scanNetworks();
+	// Wait for scan...
+	while (WiFi.scanComplete() == -2) {
+		;
+	}
+	debugOUT(String(netNumber) + F(" networks found"));
 };
 
 
@@ -1184,7 +1201,7 @@ bool SckESP::mqttPublish(){
 	JsonObject& jsonThisTime = jsonData.createNestedObject();
 
 	// Add time
-	jsonThisTime["recorded_at"] = (epoch2iso(sensors[SENSOR_TIME].lastReadingTime));
+	jsonThisTime["recorded_at"] = (epoch2iso(sensors[SENSOR_BATTERY].lastReadingTime));		// temp,
 
 	// Sensors array
 	JsonArray& jsonSensors = jsonThisTime.createNestedArray("sensors");

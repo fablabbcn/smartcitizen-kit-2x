@@ -69,9 +69,6 @@ SckUrban urban;
 // Auxiliary I2C devices
 AuxBoards auxBoards;
 
-// Sleepy dog
-WatchdogSAMD wdt;
-
 // Sdcard
 SdFat sd;
 File publishFile;
@@ -2333,7 +2330,7 @@ void SckBase::softReset() {
 	// Close files before resseting to avoid corruption
 	closeFiles();
 
- 	wdt.enable(10);
+ 	NVIC_SystemReset();
 }
 
 /* 	-----------------

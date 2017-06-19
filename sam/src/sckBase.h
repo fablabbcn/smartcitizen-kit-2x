@@ -177,6 +177,7 @@ public:
 	uint8_t maxDiffBetweenReadings = minimal_sensor_reading_interval;		// If readings are inside this thime (sec) frame they will be considered simultaneous
 
 	void enableSensor(SensorType wichSensor);
+	void disableSensor(SensorType wichSensor);
 	void updateSensors();
 	bool getReading(SensorType wichSensor);
 	bool RAMstore(SensorType);

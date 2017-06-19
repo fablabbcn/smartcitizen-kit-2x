@@ -1333,15 +1333,8 @@ void SckBase::sckIn(String strIn) {
 			// fin out wich sensor is
 			SensorType wichSensor = getSensorFromString(strIn);
 
-			if (wichSensor < SENSOR_COUNT) {
+			if (wichSensor < SENSOR_COUNT) disableSensor(wichSensor);
 
-				OneSensor *thisSensor = &sensors[wichSensor];
-				sckOut(String F("Disabling ") + thisSensor->title);
-				sensors[wichSensor].enabled = false;
-				saveConfig();
-
-				headersChanged = rtc.getEpoch();
-			}
 			break;
 
 		} case EXTCOM_SET_INTERVAL_SENSOR: {
@@ -1674,6 +1667,22 @@ void SckBase::enableSensor(SensorType wichSensor) {
 
 	// For Sdcard headers
 	headersChanged = rtc.getEpoch();
+}
+
+void SckBase::disableSensor(SensorType wichSensor) {
+
+	if (wichSensor < SENSOR_COUNT) {
+
+		OneSensor *thisSensor = &sensors[wichSensor];
+		sckOut(String F("Disabling ") + thisSensor->title);
+		sensors[wichSensor].enabled = false;
+		saveConfig();
+
+		headersChanged = rtc.getEpoch();
+	}
+
+	// If we are disabling MICS, turn off heater
+	if (wichSensor == SENSOR_CO || wichSensor == SENSOR_NO2) urban.gasOff(wichSensor);
 }
 
 void SckBase::updateSensors() {

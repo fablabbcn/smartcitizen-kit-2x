@@ -39,8 +39,16 @@ void SckESP::setup() {
 
 	ledBlink(ledRight, 350); 			// Heartbeat
 
+	// Create hostname
+	String macAddr = WiFi.softAPmacAddress();
+	macAddr = macAddr.substring(macAddr.length() - 5);
+	macAddr.replace(":", "");
+
+	strncpy(hostname, "Smartcitizen", 20);
+	strncat(hostname, macAddr.c_str(), 4);
+
 	// Wifi settings
-	WiFi.hostname("smartcitizen");
+	WiFi.hostname(hostname);
 	WiFi.persistent(false);		 		// Only write to flash credentials when changed (for protecting flash from wearing out)
 	readNetwork();
 	readToken();
@@ -547,17 +555,7 @@ void SckESP::wifiDisconnect(){
 //
 void SckESP::startAP(){
 
-	// Build SSID name
-	uint8_t macAddr[6];
-	WiFi.softAPmacAddress(macAddr);
-
-	String base = "SmartCitizen";
-	String completo = base + String(macAddr[5]);
-
-	char ssidName[18];
-	completo.toCharArray(ssidName, 18);
-
-	debugOUT(String F("Starting Ap with ssid: ") + String(ssidName));
+	debugOUT(String F("Starting Ap with ssid: ") + String(hostname));
 
 	// IP for DNS
 	IPAddress myIP(192, 168, 1, 1);
@@ -565,7 +563,7 @@ void SckESP::startAP(){
 	// Start Soft AP
 	WiFi.mode(WIFI_AP);
 	WiFi.softAPConfig(myIP, myIP, IPAddress(255, 255, 255, 0));
-	WiFi.softAP((const char *)completo.c_str());
+	WiFi.softAP((const char *)hostname);
 	espStatus.ap = ESP_AP_ON_EVENT;
 
 	// DNS stuff (captive portal)
@@ -627,7 +625,7 @@ void SckESP::startWebServer() {
 	});
 
 	// mDNS
-	if (!MDNS.begin("smartcitizen")) {
+	if (!MDNS.begin(hostname)) {
 		debugOUT(F("ERROR: mDNS service failed to start!!"));
 	}
 

@@ -56,6 +56,7 @@ public:
 	bool saveConf();
 	bool loadConf();
 	Configuration config;
+	char hostname[20];
 
 	// WIFI
 	void tryConnection();

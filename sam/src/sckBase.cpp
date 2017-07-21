@@ -155,7 +155,13 @@ void SckBase::update() {
 
 	// Flash and bridge modes
 	if (config.mode == MODE_FLASH || config.mode == MODE_BRIDGE){
-		if (SerialUSB.available()) Serial1.write(SerialUSB.read());
+		if (SerialUSB.available()) {
+			char buff = SerialUSB.read();
+			serialBuff += buff;
+			if (serialBuff.length() > 4) serialBuff.remove(0);
+			if (serialBuff.startsWith("Bye")) softReset();
+			Serial1.write(buff);
+		}
 		if (Serial1.available()) SerialUSB.write(Serial1.read());
 	} else {
 

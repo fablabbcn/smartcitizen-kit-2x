@@ -5,27 +5,41 @@ import serial, time, sys, glob
 # Upload actions
 #
 
-def before_upload(source, target, env):
-    # print "before_upload"
-	time.sleep(1)
-	myPort = selectPort(serialPorts())
-	ser = serial.Serial(myPort)
-	print("Asking for upload bridge...")
-	ser.write("")
-	time.sleep(1)
-	ser.write("set config mode esp flash\n")
-	ser.close()
-	time.sleep(1)
+portName = False
 
+def before_upload(source, target, env):
+	time.sleep(1)
+	print "\n\nSearching for a Smartcitizen kit..."
+	myPort = selectPort(serialPorts())
+	if myPort:
+		print("Asking for upload bridge...")
+		myPort.write("")
+		time.sleep(1)
+		myPort.write("set config mode esp flash\n")
+		myPort.close()
+		time.sleep(1)
+	env.Replace(UPLOAD_PORT=portName)
 
 def after_upload(source, target, env):
-    print "after_upload"
-    # do some actions
+	print "All good!!!"
+	print "Please click the button or reset your kit..."
+	global portName
+	myPort = serial.Serial(portName)
+	if myPort:
+		print "Reseting your kit..."
+		for i in range(10):
+			myPort.write("Bye")
+		myPort.close()
+		time.sleep(5)
 
 print "Current build targets", map(str, BUILD_TARGETS)
 
 env.AddPreAction("upload", before_upload)
 env.AddPostAction("upload", after_upload)
+
+env.AddPreAction("uploadfs", before_upload)
+env.AddPostAction("uploadfs", after_upload)
+
 
 #
 # Custom actions when building program/firmware
@@ -49,60 +63,53 @@ env.AddPostAction("upload", after_upload)
 
 
 def serialPorts():
-    """Lists serial ports
+	"""Lists serial ports
 
-    :raises EnvironmentError:
-        On unsupported or unknown platforms
-    :returns:
-        A list of available serial ports
-    """
-    if sys.platform.startswith('win'):
-        ports = ['COM' + str(i + 1) for i in range(256)]
+	:raises EnvironmentError:
+		On unsupported or unknown platforms
+	:returns:
+		A list of available serial ports
+	"""
+	if sys.platform.startswith('win'):
+		ports = ['COM' + str(i + 1) for i in range(256)]
 
-    elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
-        # this is to exclude your current terminal "/dev/tty"
-        ports = glob.glob('/dev/tty[A-Za-z]*')
+	elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+		# this is to exclude your current terminal "/dev/tty"
+		ports = glob.glob('/dev/tty[A-Za-z]*')
 
-    elif sys.platform.startswith('darwin'):
-        ports = glob.glob('/dev/tty.*')
+	elif sys.platform.startswith('darwin'):
+		ports = glob.glob('/dev/tty.*')
 
-    else:
-        raise EnvironmentError('Unsupported platform')
+	else:
+		raise EnvironmentError('Unsupported platform')
 
-    result = []
+	result = []
 
-    #TODO validar que quien responde es un SCK
-    for port in ports:
-        try:
-            s = serial.Serial(port)
-            s.close()
-            result.append(port)
-        except (OSError, serial.SerialException):
-            pass
-    return result
+	for port in ports:
+	    try:
+	        s = serial.Serial(port)
+	        s.close()
+	        result.append(port)
+	    except (OSError, serial.SerialException):
+	        pass
+	return result
 
 def selectPort(ports):
-	if len(ports) == 1:
-		print "\nOnly one serial port found, using it! (" + ports[0] + ")"
-		return ports[0]
-	if len(ports) > 0:
-		print "\nSelect a serial port from the list:\n"
-		for p in ports:
-			print "\t" + str(ports.index(p) + 1) + ". " + p
 
-		i = raw_input("\n[" + ports[0] + "]: ")
-
+	for port in ports:
 		try:
-		 	val = int(i)
-		except:
-			if i == "": val = 1
-			else: val = -1
+			s = serial.Serial(port)
+			s.write('\r\n\r\n')
+			time.sleep(0.1)
+			response = s.read(s.in_waiting)
+			if 'SCK' in response:
+				print 'Smartcitizen kit found on ' + port
+				global portName
+				portName = port
+				return s
+			s.close()
+		except (OSError, serial.SerialException):
+			pass
 
-		if val-1 >= len(ports) or val-1 < 0:
-			print "\n*** please input the port number! ***"
-		 	return False
-		else:
-			return ports[val -1]
-	else:
-		print "No serial port available, bye!"
-		sys.exit()
+	print 'No Smartcitizen kit found, please check your USB connection'
+	sys.exit()

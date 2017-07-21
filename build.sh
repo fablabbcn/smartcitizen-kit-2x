@@ -1,11 +1,11 @@
 # Build and upload SAM code
+echo " *** Uploading SAM firmware *** "
 cd sam
 pio run -t upload
 
 # Build and upload ESP code
 cd ../esp
+echo " *** Uploading ESP firmware *** "
 pio run -t upload
-# pio run -t uploadfs
-
-echo "** Remember you have to reset your kit after uploading firmwares!!! **"
-echo "Try clicking the button..."
+echo " *** Uploading ESP firmware *** "
+pio run -t uploadfs

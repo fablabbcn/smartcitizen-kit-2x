@@ -7,5 +7,7 @@ pio run -t upload
 cd ../esp
 echo " *** Uploading ESP firmware *** "
 pio run -t upload
-echo " *** Uploading ESP firmware *** "
+
+# Build and upload ESP flash filesystem
+echo " *** Uploading ESP file system *** "
 pio run -t uploadfs

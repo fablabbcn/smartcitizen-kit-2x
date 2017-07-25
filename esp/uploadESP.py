@@ -8,7 +8,7 @@ import serial, time, sys, glob
 portName = False
 
 def before_upload(source, target, env):
-	time.sleep(1)
+	time.sleep(6)
 	print "\n\nSearching for a Smartcitizen kit..."
 	myPort = selectPort(serialPorts())
 	if myPort:
@@ -30,7 +30,6 @@ def after_upload(source, target, env):
 		for i in range(10):
 			myPort.write("Bye")
 		myPort.close()
-		time.sleep(5)
 
 print "Current build targets", map(str, BUILD_TARGETS)
 
@@ -99,14 +98,15 @@ def selectPort(ports):
 	for port in ports:
 		try:
 			s = serial.Serial(port)
-			s.write('\r\n\r\n')
-			time.sleep(0.1)
-			response = s.read(s.in_waiting)
-			if 'SCK' in response:
-				print 'Smartcitizen kit found on ' + port
-				global portName
-				portName = port
-				return s
+			for i in range(3):
+				s.write('\r\n\r\n')
+				time.sleep(0.2)
+				response = s.read(s.in_waiting)
+				if 'SCK' in response or 'Sdcard' in response:
+					print 'Smartcitizen kit found on ' + port
+					global portName
+					portName = port
+					return s
 			s.close()
 		except (OSError, serial.SerialException):
 			pass

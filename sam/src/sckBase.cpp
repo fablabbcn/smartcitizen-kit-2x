@@ -130,9 +130,6 @@ void SckBase::setup() {
 		urban.setup();
 	}
 
-	// Auxiliary boards
-	auxBoards.setup();
-
 	// Output level
 	outputLevel = OUT_NORMAL;
 
@@ -142,15 +139,42 @@ void SckBase::setup() {
 	// Configuration
 	loadConfig();
 
+	// Detect and enable auxiliary boards
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		
+		SensorType wichSensor = static_cast<SensorType>(i);
+
+		// Only try to find auxiliary sensors
+		if (sensors[wichSensor].location == BOARD_AUX) {
+
+			sprintf(outBuff, "Detecting: %s", sensors[wichSensor].title);
+			sckOut();
+			
+			if (auxBoards.begin(wichSensor)) {
+
+				if (!sensors[wichSensor].enabled) {
+					sprintf(outBuff, "Found %s!!!", sensors[wichSensor].title);
+					sckOut();
+					enableSensor(wichSensor);
+				} else {
+					sprintf(outBuff, "Found %s, already enabled!!!", sensors[wichSensor].title);
+					sckOut();
+				} 
+
+			} else {
+				if (sensors[wichSensor].enabled) {
+					sprintf(outBuff, "Cant find %s!!!", sensors[wichSensor].title);
+					sckOut();
+					disableSensor(wichSensor);
+				}
+			}
+		}
+	}
+
 	// Check if USB connected and charging status
 	updatePower();
 	timerSet(ACTION_UPDATE_POWER, 500, true);
-
-	// For debugging purposes only (comment for production)
-	// changeMode(MODE_SD);
-	// timerSet(ACTION_DEBUG_LOG, 5000, true);
 };
-
 void SckBase::update() {
 
 	// Flash and bridge modes

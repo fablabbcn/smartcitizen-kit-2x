@@ -42,13 +42,15 @@
 #define PS 		38					// PA13 -- TPS63001 PS/SYNC
 
 // I2C address
-#define SHT21_I2C_DIR			0x40	// SHT21 Temperature and Humidity sensor
-#define BH1730_I2C_DIR			0x29	// BH1730 Light sensor
-#define ADC_DIR              	0x48    // Direction of the ADC
+#define SHT21_I2C_DIR			0x40	// I2C Address SHT21 Temperature and Humidity sensor
+#define BH1730_I2C_DIR			0x29	// I2C Address BH1730 Light sensor
+#define ADC_DIR              	0x48    // I2C Address of the ADC
 #define POT1                 	0x50
-#define POT2                 	0x51    // I2C Direction of the Potenciometer 2 for MICS heather resistor (Rh) (channel_0 > CO) y (channel_1 > NO2)
-#define POT3                 	0x52    // I2C Direction of the Potenciometer 3 for MICS sensor resistor (Rs)
+#define POT2                 	0x51    // I2C Address of the Potenciometer 2 for MICS heather resistor (Rh) (channel_0 > CO) y (channel_1 > NO2)
+#define POT3                 	0x52    // I2C Address of the Potenciometer 3 for MICS sensor resistor (Rs)
 #define POT4                 	0x53
+//DS2482 DS_bridge 				0x18	// I2C Address of the DS2482 I2C-OneWire bridge
+//OLED Screen 					0x3c	// I2C Address of the Groove OLED Screen
 
-#define RESOLUTION_ANALOG    	4095.   //Resolucion de las entradas analogicas
-#define ohmsPerStep				392.1568     //Constante de conversion a resistencia de potenciometrosen ohmios
+#define RESOLUTION_ANALOG    	4095.   	// Rsolution of the analog inputs
+#define ohmsPerStep				392.1568    // Ohms for each potenciometer step

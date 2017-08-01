@@ -4,6 +4,7 @@ AlphaDelta			alphaDelta;
 GrooveI2C_ADC		grooveI2C_ADC;
 INA219				ina219;
 Groove_OLED			groove_OLED;
+WaterTemp_DS18B20 	waterTemp_DS18B20;
 
 bool I2Cdetect(byte address) {
 
@@ -34,6 +35,7 @@ bool AuxBoards::begin(SensorType wichSensor) {
 		case SENSOR_INA219_LOADVOLT: {
 			return ina219.begin(); break;
 		} case SENSOR_GROOVE_OLED: 				return groove_OLED.begin(); break;
+		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.begin(); break;
 		default: break;
 	}
 
@@ -56,6 +58,13 @@ float AuxBoards::getReading(SensorType wichSensor) {
 		case SENSOR_INA219_SHUNT: 			return ina219.getReading(ina219.SHUNT_VOLT); break;
 		case SENSOR_INA219_CURRENT: 		return ina219.getReading(ina219.CURRENT); break;
 		case SENSOR_INA219_LOADVOLT: 		return ina219.getReading(ina219.LOAD_VOLT); break;
+		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.getReading(); break;
+		default: break;
+	}
+
+	return -9999;
+}
+
 	}
 }
 
@@ -92,21 +101,21 @@ String AuxBoards::control(SensorType wichSensor, String command) {
 				return F("Available commands for this sensor:\n\r* set pot ");
 
 			} else {
-
 				return F("Unrecognized command!! please try again...");
-
 			}
 			
 			break;
-		}
+		} default: return F("Unrecognized sensor!!!");
 	}
 }
 
 void AuxBoards::print(SensorType wichSensor, String payload) {
+
 	groove_OLED.print(payload);
 }
 
 void AuxBoards::displayReading(String title, String reading, String unit, String time) {
+
 	groove_OLED.displayReading(title, reading, unit, time);
 }
 
@@ -280,6 +289,22 @@ bool Groove_OLED::begin() {
 	if (!I2Cdetect(deviceAddress)) return false;
 
 	U8g2_oled.begin();
+
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
+		SensorType thisSensor = static_cast<SensorType>(i);
+		displayable[i].sensor = thisSensor;
+
+		switch(thisSensor) {
+			case SENSOR_BATTERY:
+			case SENSOR_NOISE: {
+				displayable[i].display = true;
+				break;
+				}
+			default: displayable[i].display = false;
+		}
+	}
+	return true;;
 }
 
 void Groove_OLED::print(String payload) {
@@ -344,3 +369,65 @@ void Groove_OLED::displayReading(String title, String reading, String unit, Stri
 
 	} while (U8g2_oled.nextPage());
 }
+
+bool WaterTemp_DS18B20::begin() {
+
+	if (!I2Cdetect(deviceAddress)) return false;
+
+	Wire.begin();
+
+	DS_bridge.reset();
+	DS_bridge.wireReset();
+	DS_bridge.wireSkip();
+	DS_bridge.wireWriteByte(0x44);
+
+	return true;
+}
+
+float WaterTemp_DS18B20::getReading() {
+	
+ 	while ( !DS_bridge.wireSearch(addr)) {
+
+		DS_bridge.wireResetSearch();
+		DS_bridge.wireReset();
+		DS_bridge.selectChannel(0); 			// After reset need to set channel 0 because we are using the version with single channel (DS2482_100)
+		DS_bridge.configure(conf);
+ 		DS_bridge.wireSkip();
+ 		DS_bridge.configure(conf); 				// Set bus on strong pull-up after next write, not only LSB nibble is required
+ 		DS_bridge.wireWriteByte(0x44); 			// Convert temperature on all devices
+ 		DS_bridge.configure(0x01);
+
+	}
+
+	//	Test if device is in reality the DS18B20 Water Temperature
+	if (addr[0]==0x28) {
+
+		// Read temperature data.
+		DS_bridge.wireReset(); 				//DS_bridge.reset();
+		DS_bridge.selectChannel(0); 		//necessary on -800
+		DS_bridge.wireSelect(addr);
+		DS_bridge.wireWriteByte(0xbe);      // Read Scratchpad command
+
+		// We need to read 9 bytes
+		for ( int i = 0; i < 9; i++) data[i] = DS_bridge.wireReadByte();
+
+		// Convert to decimal temperature
+		int LowByte = data[0];
+		int HighByte = data[1];
+		int TReading = (HighByte << 8) + LowByte;
+		int SignBit = TReading & 0x8000;
+
+		// If Temperature is negative
+		if (SignBit) TReading = (TReading ^ 0xffff) + 1;
+		
+		int Tc_100 = (double)TReading * 0.0625 * 10;
+
+		// If the reading is negative make it efective
+		if (SignBit) Tc_100 = 0 - Tc_100;
+		
+		return ((float)(Tc_100) / 10) + 1;
+	}
+
+	return 0;
+}
+

@@ -14,6 +14,9 @@
 // Groove_OLED libs
 #include <U8g2lib.h>
 
+// DS2482 library (I2C-1Wire bridge)
+#include <DS2482.h>
+
 #include <Sensors.h>
 
 
@@ -121,3 +124,34 @@ public:
 
 private:
 };
+
+/*! @class DS2482_100
+ *  @brief class for handling the DS18B20 temperature sensor connected to the I2C port
+ *   through the DS2482-100 board. This was based on an example made by
+ *   <a href="https://github.com/paeaetech/paeae.git">paeae</a>
+ */
+class WaterTemp_DS18B20 {
+	//
+public:
+
+	byte deviceAddress = 0x18;
+
+	DS2482 DS_bridge = DS2482(0);		// This means that we are using 0x18 I2C address
+
+	byte data[8];
+	byte addr[8];
+
+	uint8_t conf =0x05;
+
+	/**
+	 * Start the transmission of data for the DS18B20 trough the DS2482_100 bridge
+	 */
+	bool begin();
+	/**
+	 * Read the temperature of the DS18B20 through the DS2482_100 bridge
+	 * @return Temperature
+	 */
+	float getReading();
+private:
+};
+

@@ -51,6 +51,7 @@ enum SensorType {
 	SENSOR_INA219_CURRENT,
 	SENSOR_INA219_LOADVOLT,
 
+	SENSOR_WATER_TEMP_DS18B20,
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
 
@@ -157,9 +158,11 @@ public:
 		OneSensor { BOARD_AUX,			SENSOR_INA219_CURRENT,				"ina219 current",						0,		false,		false,			"mA"},
 		OneSensor { BOARD_AUX,			SENSOR_INA219_LOADVOLT,				"ina219 loadVoltage",					0,		false,		false,			"V"},
 
+		OneSensor { BOARD_AUX,			SENSOR_WATER_TEMP_DS18B20,			"DS18B20 Water Temperature",			0,		false,		false,			"C"},
 		// Later this will be moved to a Actuators.h file
 		// Groove I2C Oled Display 96x96
 		OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,					"Groove OLED",							0,		false,		false,			}
+
 
 		//-----------------------
 		// Add New Sensor Here!!!

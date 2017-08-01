@@ -1,17 +1,43 @@
 #include "sckAux.h"
 
-AlphaDelta		alphaDelta;
-GrooveI2C_ADC	grooveI2C_ADC;
-INA219			ina219;
-Groove_OLED		groove_OLED;
+AlphaDelta			alphaDelta;
+GrooveI2C_ADC		grooveI2C_ADC;
+INA219				ina219;
+Groove_OLED			groove_OLED;
 
-void AuxBoards::setup() {
+bool I2Cdetect(byte address) {
 
-	// TODO enable or disable auxiliary boards based on response from init
-	alphaDelta.begin();
-	grooveI2C_ADC.begin();
-	ina219.begin();
-	groove_OLED.begin();
+	Wire.beginTransmission(address);
+    byte error = Wire.endTransmission();
+ 
+	if (error == 0) return true;
+	else return false;
+}
+
+bool AuxBoards::begin(SensorType wichSensor) {
+	
+	switch (wichSensor) {
+
+		case SENSOR_ALPHADELTA_AE1:
+		case SENSOR_ALPHADELTA_WE1:
+		case SENSOR_ALPHADELTA_AE2:
+		case SENSOR_ALPHADELTA_WE2:
+		case SENSOR_ALPHADELTA_AE3:
+		case SENSOR_ALPHADELTA_WE3:
+		case SENSOR_ALPHADELTA_HUMIDITY:
+		case SENSOR_ALPHADELTA_TEMPERATURE: {
+			return alphaDelta.begin(); break;
+		} case SENSOR_GROOVE_I2C_ADC: 			return grooveI2C_ADC.begin(); break;
+		case SENSOR_INA219_BUSVOLT: 		
+		case SENSOR_INA219_SHUNT: 			
+		case SENSOR_INA219_CURRENT: 		
+		case SENSOR_INA219_LOADVOLT: {
+			return ina219.begin(); break;
+		} case SENSOR_GROOVE_OLED: 				return groove_OLED.begin(); break;
+		default: break;
+	}
+
+	return false;
 }
 
 float AuxBoards::getReading(SensorType wichSensor) {
@@ -53,6 +79,7 @@ String AuxBoards::control(SensorType wichSensor, String command) {
 					case SENSOR_ALPHADELTA_WE2: wichPot = alphaDelta.POT_WE2;
 					case SENSOR_ALPHADELTA_AE3: wichPot = alphaDelta.POT_AE3;
 					case SENSOR_ALPHADELTA_WE3: wichPot = alphaDelta.POT_WE3;
+					default: break;
 				}
 				
 				command.replace("set pot", "");
@@ -88,7 +115,9 @@ MCP3424 adc_Slot_3(0x69);
 
 bool AlphaDelta::begin() {
 	
-	if (!sht31.begin(0x44)) return false;
+	if (!I2Cdetect(sht31Address)) return false;
+
+	sht31.begin();
 
 	// TODO poner un checkeo para saber si respondieron los adc y si no retornar false
 	adc_Slot_1_2.generalCall(GC_RESET);
@@ -131,6 +160,7 @@ double AlphaDelta::getElectrode(Electrodes wichElectrode) {
 		case WE_2: error = adc_Slot_1_2.read(CH2, value, blocking); break;
 		case AE_3: error = adc_Slot_3.read(CH1, value, blocking); break;
 		case WE_3: error = adc_Slot_3.read(CH2, value, blocking); break;
+		default: error = R_TIMEOUT;
 	}
 
 	if (error != R_OK) return 1;
@@ -169,6 +199,9 @@ uint32_t AlphaDelta::getPot(Resistor wichPot) {
 }
 
 bool GrooveI2C_ADC::begin() {
+
+	if (!I2Cdetect(deviceAddress)) return false;
+
 	Wire.beginTransmission(deviceAddress);		// transmit to device
 	Wire.write(REG_ADDR_CONFIG);				// Configuration Register
 	Wire.write(0x20);
@@ -178,7 +211,7 @@ bool GrooveI2C_ADC::begin() {
 
 float GrooveI2C_ADC::getReading() {
 
-	uint32_t data;
+	uint32_t data = 0;
 
 	Wire.beginTransmission(deviceAddress);		// transmit to device
 	Wire.write(REG_ADDR_RESULT);				// get result
@@ -197,6 +230,8 @@ float GrooveI2C_ADC::getReading() {
 
 bool INA219::begin() {
 
+	if (!I2Cdetect(deviceAddress)) return false;
+
 	ada_ina219.begin();
 
 	// By default the initialization will use the largest range (32V, 2A).  However
@@ -209,8 +244,6 @@ bool INA219::begin() {
 }
 
 float INA219::getReading(typeOfReading wichReading) {
-
-	float thisReading = 0;
 
 	switch(wichReading) {
 		case BUS_VOLT: {
@@ -238,9 +271,14 @@ float INA219::getReading(typeOfReading wichReading) {
 
 		}
 	}
+
+	return 0;
 }
 
 bool Groove_OLED::begin() {
+
+	if (!I2Cdetect(deviceAddress)) return false;
+
 	U8g2_oled.begin();
 }
 

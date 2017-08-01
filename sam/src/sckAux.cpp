@@ -343,4 +343,7 @@ void Groove_OLED::displayReading(String title, String reading, String unit, Stri
 		U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(Chour),96,Chour);
 
 	} while (U8g2_oled.nextPage());
+<<<<<<< HEAD
 }
+=======
+>>>>>>> 6307b663406dde0860bff6f1c73d8d815bc91028

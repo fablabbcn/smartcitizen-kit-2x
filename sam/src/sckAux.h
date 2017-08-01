@@ -26,7 +26,10 @@ bool I2Cdetect(byte address);
 
 class AuxBoards {
 public:
+<<<<<<< HEAD
 	bool begin(SensorType wichSensor);
+=======
+>>>>>>> 6307b663406dde0860bff6f1c73d8d815bc91028
 	float getReading(SensorType wichSensor);
 	String control(SensorType wichSensor, String command);
 	void print(SensorType wichSensor, String payload);
@@ -121,4 +124,3 @@ public:
 
 private:
 };
-private:

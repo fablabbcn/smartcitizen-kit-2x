@@ -36,7 +36,10 @@ float SckUrban::getReading(SensorType wichSensor) {
 		case SENSOR_NO2_HEAT_SUPPLY_VOLTAGE: return gasGetRegulatorVoltage(SENSOR_NO2); break;
 		case SENSOR_NO2_HEAT_DROP_VOLTAGE: return (SENSOR_NO2); break;
 		case SENSOR_NO2_LOAD_RESISTANCE: return gasGetLoadResistance(SENSOR_NO2); break;
+		default: break;
 	}
+
+	return -9999;
 }
 
 String SckUrban::control(SensorType wichSensor, String command) {
@@ -79,10 +82,10 @@ String SckUrban::control(SensorType wichSensor, String command) {
 			}
 
 			break;
-		}
+		} default: break;
 	}
+	return "Sensor not recognized!!";
 }
-
 
 // Noise sensor
 float SckUrban::getNoise() {
@@ -410,6 +413,8 @@ float SckUrban::gasGetRegulatorVoltage(SensorType wichSensor) {
 float SckUrban::gasGetDropVoltage(SensorType wichSensor) {
 	if (wichSensor == SENSOR_CO) return ((float)average(CO_HEATER_VOLTAGE_PIN) * VCC) / RESOLUTION_ANALOG; 			// (mV) Measure voltage
 	else if (wichSensor == SENSOR_NO2) return ((float)average(NO2_HEATER_VOLTAGE_PIN) * VCC) / RESOLUTION_ANALOG; 	// (mV) Measure voltage
+
+	return 0;
 }
 
 void SckUrban::gasSetRegulatorVoltage(SensorType wichSensor, uint32_t wichVoltage) {
@@ -434,6 +439,8 @@ float SckUrban::gasGetHeaterCurrent(SensorType wichSensor) {
 	float measuredVoltage = gasGetDropVoltage(wichSensor);
 	if (wichSensor == SENSOR_CO) return measuredVoltage / CO_HEATER_RESISTOR;			// (mA) Calculates current
 	else if (wichSensor == SENSOR_NO2) return measuredVoltage / NO2_HEATER_RESISTOR;		// (mA) Calculates current
+
+	return 0;
 }
 
 void SckUrban::gasCorrectHeaterCurrent(SensorType wichSensor) {
@@ -506,6 +513,8 @@ uint32_t SckUrban::gasHeatingTime(SensorType wichSensor) {
 uint32_t SckUrban::gasGetLoadResistance(SensorType wichSensor) {
 	if (wichSensor == SENSOR_CO) return getPot(POT_CO_LOAD_RESISTOR);
 	else if (wichSensor == SENSOR_NO2) return getPot(POT_NO2_LOAD_RESISTOR);
+
+	return 0;
 }
 
 float SckUrban::gasRead(SensorType wichSensor) {

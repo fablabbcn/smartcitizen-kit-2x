@@ -190,7 +190,7 @@ void SckBase::update() {
 			Serial1.write(buff);
 		}
 		if (Serial1.available()) SerialUSB.write(Serial1.read());
-	} else {
+	} else if (config.mode != MODE_SHELL) {
 
 		// update ESP communications
 		if (!digitalRead(POWER_WIFI)) ESPbusUpdate();
@@ -205,81 +205,449 @@ void SckBase::update() {
 		// 	MODE_SETUP
 		//----------------------------------------
 		if (config.mode == MODE_SETUP) {
-			// TODO led feedback on CRC OK, wifi OK, ping OK, and MQTT OK
 			if (readLightEnabled) {
 				lightResults = readLight.read();
 				if (lightResults.ok) {
-					
+
 					if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
 						if (lightResults.lines[1].length() > 0) {
-							lightResults.lines[1].toCharArray(credentials.ssid, 64);
-							lightResults.lines[2].toCharArray(credentials.password, 64);
-							credentials.time = rtc.getEpoch();
-							sendNetwork();
+							lightResults.lines[1].toCharArray(config.ssid, 64);
+							lightResults.lines[2].toCharArray(config.pass, 64);
+							wifiSet = true;
+							setESPwifi();
 						}
 					}
 					if (lightResults.lines[0].endsWith(F("auth"))) {
 						if (lightResults.lines[3].length() > 0) {
-							lightResults.lines[3].toCharArray(token, 7);
-							sendToken();
+							lightResults.lines[3].toCharArray(config.token, 8);
+							tokenSet = true;
+							setESPtoken();
 						}
 						if (lightResults.lines[4].toInt() > 0 && lightResults.lines[4].toInt() < ONE_DAY_IN_SECONDS) {
-							config.publishInterval = lightResults.lines[4].toInt();
-							sckOut(String F("New reading interval: ") + String(config.publishInterval));
+							uint32_t receivedInterval = lightResults.lines[4].toInt();
+							if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) {
+								config.publishInterval = receivedInterval;
+								sckOut(String F("New reading interval: ") + String(config.publishInterval));	
+							}
+							
 						}
 					}
-					if (lightResults.lines[0].endsWith(F("time"))) {
-						setTime(lightResults.lines[1]);
-					}
+					if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
+
 					led.configOK();
+					triggerHello = true;
 				 	readLight.reset();
 				 	readLightEnabled = false;
-
-				 	//MQTT Hellow for Onboarding process
-				 	if (onWifi) {
-				 		msgBuff.com = ESP_MQTT_HELLOW_COM;
-						ESPqueueMsg(false, false);
-					} else {
-						// If we are not yet connected queue the MQTT hello
-						triggerHello = true;
-					}
+					if (digitalRead(POWER_WIFI)) ESPcontrol(ESP_ON);
+					saveConfig();
 				}
+			} else if (readSoundEnabled) {
+				readSound.read();
+				sckOut(String(readSound.out));
 			}
 		} 
 	}
 }
 
-void SckBase::sendNetwork() {
 
-	// Prepare json for sending
-	StaticJsonBuffer<240> jsonBuffer;
-	JsonObject& jsonNet = jsonBuffer.createObject();
-	jsonNet["ssid"] = credentials.ssid;
-	jsonNet["pass"] = credentials.password;
-	jsonNet.printTo(msgBuff.param, 240);
-	msgBuff.com = ESP_SET_WIFI_COM;
-	sckOut(String F("Sending wifi settings to ESP: ") + String(msgBuff.param), PRIO_LOW);
-	ESPqueueMsg(true, false);
+/* 		Configuration 		*/
+/*--------------------------*/
+void SckBase::saveWifi(char newSsid[64], char newPass[64]) {
+	sprintf(outBuff, "Saving new credentials: \"%s\" - \"%s\"", newSsid, newPass);
+	sckOut();
+
+	strncpy(config.ssid, newSsid, 64);
+	strncpy(config.pass, newPass, 64);
+	wifiSet = true;
+	saveConfig();
 }
-
-void SckBase::clearNetworks() {
+void SckBase::clearWifi() {
 	
-	sckOut(F("Clearing networks..."));
+	sckOut("Clearing networks...");
+	strncpy(config.ssid, "", 64);
+	strncpy(config.pass, "", 64);
+	wifiSet = false;
+	saveConfig();
 	msgBuff.com = ESP_CLEAR_WIFI_COM;
 	ESPqueueMsg(false, true);
 }
+void SckBase::setESPwifi() {
 
-void SckBase::sendToken() {
-	strncpy(msgBuff.param, token, 64);
-	msgBuff.com = ESP_SET_TOKEN_COM;
+	sckOut("Sending wifi to ESP!!!");
+	// Prepare json for sending
+	StaticJsonBuffer<240> jsonBuffer;
+	JsonObject& jsonNet = jsonBuffer.createObject();
+	jsonNet["ssid"] = config.ssid;
+	jsonNet["pass"] = config.pass;
+	jsonNet.printTo(msgBuff.param, 240);
+	msgBuff.com = ESP_SET_WIFI_COM;
+	sckOut(String F("Sending wifi settings to ESP: ") + String(msgBuff.param), PRIO_LOW);
 	ESPqueueMsg(true, true);
 }
+void SckBase::getESPwifi() {
+	msgBuff.com = ESP_GET_WIFI_COM;
+	ESPqueueMsg(false, true);
+}
+void SckBase::saveToken(char newToken[8]) {
 
+	sprintf(outBuff, "Saving new token: %s", newToken);
+	sckOut();
+	
+	if (String(newToken).length() == 6) {
+		strncpy(config.token, newToken, 8);
+		tokenSet = true;
+		saveConfig();
+	}
+}
 void SckBase::clearToken() {
 
 	sckOut(F("Clearing token..."));
+	strncpy(config.token, "null", 8);
+	saveConfig();
 	msgBuff.com = ESP_CLEAR_TOKEN_COM;
 	ESPqueueMsg(false, true);
+}
+void SckBase::setESPtoken() {
+	sckOut("Sending token to ESP...", PRIO_LOW);
+	strncpy(msgBuff.param, config.token, 8);
+	msgBuff.com = ESP_SET_TOKEN_COM;
+	ESPqueueMsg(true, true);
+}
+void SckBase::getESPtoken() {
+	sckOut("Asking token to ESP...");
+	msgBuff.com = ESP_GET_TOKEN_COM;
+	ESPqueueMsg(false, true);
+}
+void SckBase::loadConfig() {
+
+	sckOut("Loading configuration from eeprom...");
+
+	Configuration savedConf = eepromConfig.read();
+
+	if (savedConf.valid) {
+		
+		config.publishInterval = savedConf.publishInterval;
+		config.persistentMode = savedConf.persistentMode;
+		config.mode = savedConf.mode;
+		strncpy(config.ssid, savedConf.ssid, 64);
+		strncpy(config.pass, savedConf.pass, 64);
+		strncpy(config.token, savedConf.token, 8);
+
+		// Load per sensor config
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
+			sensors[wichSensor].enabled = savedConf.sensor[wichSensor].enabled;
+			sensors[wichSensor].interval = savedConf.sensor[wichSensor].interval;
+		}
+
+		sckOut("Updated configuration from eeprom!!!");
+
+		// Load sdcard config
+		loadSDconfig();
+
+	} else {
+
+		// If there is no sdcard valid config turn to factory defaults
+		if (!loadSDconfig()) {
+			sckOut("Can't find valid configuration!!! loading defaults...");
+			saveConfig(true);
+			loadConfig();
+		} else {
+			saveConfig();
+		}
+	}
+
+	// Check if wifi is already set
+	if (String(config.ssid).length() > 0) wifiSet = true;
+	else {
+		sckOut("Wifi is not configured!!!");
+		wifiSet = false;
+	}
+
+	// Check if token is already set
+	if (String(config.token).length() == 6) tokenSet = true;
+	else {
+		sckOut("No token configured!!");
+		tokenSet = false;
+	}
+
+	changeMode(config.persistentMode);
+}
+bool SckBase::loadSDconfig() {
+
+	sckOut("Loading configuration file from sdcard!");
+
+	// Open file only for reading
+	if (openConfigFile(true)) {
+
+		bool manualConfigDetected = false;
+		
+		// Read all file
+		while (configFile.available()) {
+
+			String lineBuff;
+
+			// Read one line
+			while (true) {
+				char buff = configFile.read();
+				if (buff == 13 || buff == 10) break;	// New line detected
+				lineBuff += buff;
+			}
+
+			lineBuff.replace("\n", "");
+			lineBuff.replace("\r", "");
+			lineBuff.trim();
+			
+
+			// Ignore comments on text file
+			if (!lineBuff.startsWith("#") && lineBuff.length() > 0) {
+
+				// Get mode configuration
+				if (lineBuff.startsWith("mode:")) {
+					lineBuff.replace("mode:", "");
+					for (uint8_t i=0; i<MODE_COUNT; i++) {
+						SCKmodes wichMode = static_cast<SCKmodes>(i);
+						if (lineBuff.equals(modeTitles[wichMode])) {
+							if (wichMode != config.persistentMode) {
+								sprintf(outBuff, "config.txt mode: %s", modeTitles[wichMode]);
+								sckOut();
+								manualConfigDetected = true;
+								config.persistentMode = wichMode;
+							}
+						}
+					}
+
+				// Get publish interval
+				} else if (lineBuff.startsWith("publishInterval:")) {
+					lineBuff.replace("publishInterval:", "");
+					uint32_t newPeriod = lineBuff.toInt();
+					if (newPeriod > minimal_publish_interval && newPeriod < max_publish_interval) {
+						if (newPeriod != config.publishInterval) {
+							sprintf(outBuff, "config.txt publish interval: %lu", newPeriod);
+							sckOut();
+							manualConfigDetected = true;
+							config.publishInterval = newPeriod;	
+						}
+					}
+
+				// Get wifi ssid
+				} else if (lineBuff.startsWith("ssid:")) {
+					lineBuff.replace("ssid:", "");
+					if (lineBuff.length() > 0) {
+						lineBuff.toCharArray(config.ssid, 64);
+						wifiSet = true;
+					}
+
+				// Get wifi pass
+				} else if (lineBuff.startsWith("pass:")) {
+					lineBuff.replace("pass:", "");
+					if (lineBuff.length() > 0) {
+						lineBuff.toCharArray(config.pass, 64);
+					}
+
+				// Get token
+				} else if (lineBuff.startsWith("token:")) {
+					lineBuff.replace("token:", "");
+					if (lineBuff.length() == 6) {
+						lineBuff.toCharArray(config.token, 8);
+						tokenSet = true;
+					}
+
+				// Get sensor settings
+				} else {
+
+					// Get sensor title
+					String sensorString = lineBuff.substring(0, lineBuff.indexOf(":"));
+					lineBuff.replace(sensorString, "");
+					lineBuff.replace(":", "");
+					lineBuff.trim();
+
+					// Prepare string for matching
+					sensorString.toLowerCase();
+
+					// Find out wich sensor is
+					SensorType wichSensor = getSensorFromString(sensorString);
+					
+					if (wichSensor < SENSOR_COUNT) {
+						
+						uint32_t newInterval = lineBuff.toInt();
+
+						// Sensor disabled
+						if (newInterval == 0) {
+							if (sensors[wichSensor].enabled) {
+								sprintf(outBuff, "config.txt %s: disabled", sensors[wichSensor].title);
+								sckOut();
+								manualConfigDetected = true;
+								sensors[wichSensor].enabled = false;
+							}
+
+						// New reading interval
+						} else if (newInterval > minimal_sensor_reading_interval && newInterval < max_sensor_reading_interval) {
+							
+							// Enable sensor if it was disabled
+							if (!sensors[wichSensor].enabled) {
+								sprintf(outBuff, "config.txt: %s enabled", sensors[wichSensor].title);
+								sckOut();
+								manualConfigDetected = true;
+								sensors[wichSensor].enabled = true;
+							}
+							
+							// Change interval if it is different
+							if (sensors[wichSensor].interval != newInterval) {
+								sprintf(outBuff, "config.txt %s reading interval: %lu", sensors[wichSensor].title, newInterval);
+								sckOut();
+								manualConfigDetected = true;
+								sensors[wichSensor].interval = newInterval;
+							}
+
+						} else {
+							sprintf(outBuff, "Wrong value for %s configuration!!", sensors[wichSensor].title);
+							sckOut();
+						}
+					}
+				}
+			}
+		}
+
+		configFile.close();
+
+		// If something has been configured manually
+		if (manualConfigDetected) saveConfig();
+
+	} else {
+		sckOut("Error loading config.txt!!!");
+		return false;
+	}
+
+	sckOut("Updated configuration from sdcard!!!");
+
+	return true;
+}
+void SckBase::saveConfig(bool factory) {
+
+	Configuration toSaveConfig;
+
+	if (!factory) {
+		
+		toSaveConfig.valid = true;
+		toSaveConfig.mode = config.mode;
+		toSaveConfig.persistentMode = config.persistentMode;
+		toSaveConfig.publishInterval = config.publishInterval;
+		strncpy(toSaveConfig.ssid, config.ssid, 64);
+		strncpy(toSaveConfig.pass, config.pass, 64);
+		strncpy(toSaveConfig.token, config.token, 8);
+		
+		// Save per sensor config
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
+			toSaveConfig.sensor[wichSensor].enabled = sensors[wichSensor].enabled;
+			toSaveConfig.sensor[wichSensor].interval = sensors[wichSensor].interval;
+		}
+
+		// Save to eeprom
+		eepromConfig.write(toSaveConfig);
+		sckOut("Saved configuration to eeprom!!!");
+
+		// Strange thigs we have to do to keep ESP alive and use sdcard config.txt
+		// A timer that will check for the right oportunity to save config to sdcard without disrupting too much
+		if (!timerExists(ACTION_SAVE_SD_CONFIG)) timerSet(ACTION_SAVE_SD_CONFIG, 400, true);
+
+	} else {
+
+		sckOut("Reseting to factory defaults...");
+
+		// Default values
+		toSaveConfig.valid = true;
+		toSaveConfig.mode = config.mode = toSaveConfig.persistentMode = config.persistentMode = default_mode;
+		toSaveConfig.publishInterval = config.publishInterval =  default_publish_interval;
+		strncpy(toSaveConfig.ssid, "", 64);
+		strncpy(toSaveConfig.pass, "", 64);
+		strncpy(toSaveConfig.token, "null", 8);
+
+		// Default sensor values
+		AllSensors tempSensors;
+
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
+			toSaveConfig.sensor[wichSensor].enabled = sensors[wichSensor].enabled = tempSensors[wichSensor].enabled;
+			toSaveConfig.sensor[wichSensor].interval = sensors[wichSensor].interval = default_sensor_reading_interval;
+		}
+
+		// Save to eeprom
+		eepromConfig.write(toSaveConfig);
+		sckOut("Saved configuration to eeprom!!!");
+		saveSDconfig();
+	}
+}
+void SckBase::saveSDconfig() {
+
+	sckOut("Trying to save configuration to SDcard...");
+
+	if (sdPresent()) {
+
+		// Remove old sdcard config
+		sd.remove(configFileName);
+
+		// Save to sdcard
+		if (openConfigFile()) {
+
+			char lineBuff[128];
+
+			configFile.println("# -------------------\r\n# General configuration\r\n# -------------------");
+			configFile.println("\r\n# mode:sdcard or network");
+			sprintf(lineBuff, "mode:%s", modeTitles[config.persistentMode]);
+			configFile.println(lineBuff);
+			configFile.println("\r\n# publishInterval:period in seconds");
+			sprintf(lineBuff, "publishInterval:%lu", config.publishInterval);
+			configFile.println(lineBuff);
+
+			configFile.println("\r\n# -------------------\r\n# Network configuration\r\n# -------------------");
+			sprintf(lineBuff, "ssid:%s", config.ssid);
+			configFile.println(lineBuff);
+			sprintf(lineBuff, "pass:%s", config.pass);
+			configFile.println(lineBuff);
+			sprintf(lineBuff, "token:%s", config.token);
+			configFile.println(lineBuff);
+
+			configFile.println("\r\n# -------------------\r\n# Sensor configuration\r\n# ej. sensor name:reading interval or disabled\r\n# -------------------\r\n");
+
+			bool externalTitlePrinted = false;
+
+			// Sensors config
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				SensorType wichSensor = static_cast<SensorType>(i);
+
+				if (!externalTitlePrinted && sensors[wichSensor].location == BOARD_AUX) {
+					configFile.println("\r\n# External sensors (Not included in SCK board)"); 
+					externalTitlePrinted = true;
+				}
+
+				if (sensors[wichSensor].enabled) sprintf(lineBuff, "%s:%lu", sensors[wichSensor].title, sensors[wichSensor].interval);
+				else sprintf(lineBuff, "%s:disabled", sensors[wichSensor].title);
+
+				configFile.println(lineBuff);
+			}
+
+			configFile.close();
+			sckOut("Saved configuration to sdcard!!!");
+		}
+	}
+}
+void SckBase::mqttConfig(bool activate) {
+
+	// Subscribe or unsubscribe to mqtt config topic
+	if (activate) {
+		msgBuff.com = ESP_MQTT_SUBSCRIBE_COM;
+		sprintf(outBuff, "Subscribing ");
+	} else {
+		msgBuff.com = ESP_MQTT_UNSUBSCRIBE_COM;
+		sprintf(outBuff, "Unsubscribing ");
+	}
+
+	sprintf(outBuff, "%sto MQTT config topic", outBuff);
+	sckOut();
+
+	ESPqueueMsg(true, true);
 }
 
 void SckBase::changeMode(SCKmodes newMode) {
@@ -287,10 +655,12 @@ void SckBase::changeMode(SCKmodes newMode) {
 	// Start with a new clear state
 	// --------------------------------------
 
+	// Reset SDcard detection flag
+	sdcardAlreadySearched = false;
+
 	// Clear ALL timers
 	timerClearTasks();
 
-	
 	// Stop searching for light signals (only do it on setup mode)
 	readLightEnabled = false;
 
@@ -304,9 +674,11 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 			sckOut("Entering Setup mode!");
 
-			// Start ESP and ap mode
+			// Start ESP
 			if (digitalRead(POWER_WIFI)) timerSet(ACTION_ESP_ON, 200);
-			
+
+			timerSet(ACTION_MQTT_SUBSCRIBE, 1000);
+
 			// Restart lightread for receiving new data
 			readLightEnabled = true;
 			readLight.reset();
@@ -314,10 +686,6 @@ void SckBase::changeMode(SCKmodes newMode) {
 			break;
 
 		} case MODE_NET: {
-
-			// If we dont have wifi turn off esp (it will be turned on by next publish try)
-			// TODO if we are not on battery esp will be always on
-			ESPcontrol(ESP_OFF);
 
 			sckOut("Entering Network mode!");
 
@@ -344,6 +712,15 @@ void SckBase::changeMode(SCKmodes newMode) {
 			changeOutputLevel(OUT_SILENT);
 			ESPcontrol(ESP_FLASH);
 			break;
+		} case MODE_SHELL: {
+			ESPcontrol(ESP_OFF);
+			for (uint8_t i=0; i<timerSlots; i++) {
+				timers[i].action = ACTION_NULL;
+				timers[i].interval = 0;
+				timers[i].started = 0;
+				timers[i].periodic = false;
+			}
+			break;
 		} default: {
 			;
 		}
@@ -354,9 +731,6 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 	// Set new mode
 	config.mode = newMode;
-
-	// Save new mode to eeprom to recover it after reset.
-	if (config.mode == MODE_OFF || config.mode == MODE_SD || config.mode == MODE_NET) saveConfig();
 
 	// Update led
 	led.update(newMode, 0);
@@ -371,7 +745,7 @@ void SckBase::errorMode() {
 	timerClear(ACTION_UPDATE_SENSORS);
 
 	// Try to recover error every n milliseconds
-	if (!timerExists(ACTION_RECOVER_ERROR)) timerSet(ACTION_RECOVER_ERROR, 500, true);
+	if (!timerExists(ACTION_RECOVER_ERROR)) timerSet(ACTION_RECOVER_ERROR, 1000, true);
 
 	// Give led feedback about the error
 	led.update(config.mode, 2);
@@ -411,7 +785,8 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 		case ESP_OFF:
 			if (!digitalRead(POWER_WIFI) && config.mode != MODE_BRIDGE) {
 				closeFiles();
-				sckOut("Turning off ESP...");
+				sprintf(outBuff, "Turning off ESP: on for %.2f seconds", (millis() - espLastOn)/1000);
+				sckOut();
 				timerClear(ACTION_GET_ESP_STATUS);
 				BUS_queueCount = 0;
 				onWifi = false;
@@ -419,15 +794,9 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
 				digitalWrite(GPIO0, LOW);
 				espTotalOnTime += millis() - espLastOn;
-				sckOut(String F("ESP was on for ") + String(millis() - espLastOn, 0) + F(" milliseconds."));
 
-				espStatus.wifi = ESP_NULL;
-				espStatus.net = ESP_NULL;
-				espStatus.mqtt = ESP_NULL;
-				espStatus.time = ESP_NULL;
-				espStatus.ap = ESP_NULL;
-				espStatus.web = ESP_NULL;
-				espStatus.conf = ESP_NULL;
+				// Clears ESP status values
+				for (uint8_t i=0; i<ESP_STATUS_TYPES_COUNT; i++) espStatus.value[i] = ESP_NULL_EVENT;
 			}
 			break;
 
@@ -495,7 +864,7 @@ void SckBase::ESPbusUpdate() {
 					if (mesgReceived) break;
 				}
 			}
-			if (!mesgReceived) sckOut("*", PRIO_MED, false);
+			if (!mesgReceived) sckOut(".", PRIO_MED, false);
 		}
 		// Asume message sent and received
 		if (!waitAnswer || mesgReceived) {
@@ -540,6 +909,9 @@ void SckBase::ESPqueueMsg(bool sendParam, bool waitAnswer) {
 		if (!sendParam) strncpy(BUS_queue[BUS_queueCount].param, "", 240);
 		else strncpy(BUS_queue[BUS_queueCount].param, msgBuff.param, 240);
 	}
+
+	// If there is an urgent message...
+	if (waitAnswer) ESPbusUpdate();
 }
 
 void SckBase::ESPprocessMsg() {
@@ -558,68 +930,72 @@ void SckBase::ESPprocessMsg() {
 			break;
 
 		} case ESP_SET_WIFI_COM: {
+
 			StaticJsonBuffer<240> jsonBuffer;
 			JsonObject& jsonNet = jsonBuffer.parseObject(msgIn.param);
 
-			int comparison = strcmp(credentials.ssid, jsonNet["s"]);
+			int comparison = strcmp(config.ssid, jsonNet["s"]);
 			if (comparison == 0) {
-				String tssid = jsonNet["s"];
-				String tpass = jsonNet["p"];
-				sckOut(String F("Added network: ") + tssid + F(" - ") + tpass);
-				prompt();
-			} else {
-				sckOut(F("Failed to add network!!!"));
-			}
+				sprintf(outBuff, "New ESP network: %s - %s", config.ssid, config.pass);
+				sckOut();
+			} else setESPwifi();
+			break;
+
+		} case ESP_SET_TOKEN_COM: {
+
+			int comparison = strcmp(config.token, msgIn.param);
+			if (comparison == 0) {
+				sprintf(outBuff, "New ESP token: %s", config.token);
+				sckOut();
+			} else setESPtoken();
 			break;
 
 		} case ESP_CLEAR_WIFI_COM: {
 
 			sckOut(F("Wifi networks deleted!!!"));
+
 			break;
 
 		} case ESP_GET_WIFI_COM: {
+			
 			StaticJsonBuffer<240> jsonBuffer;
 			JsonObject& jsonNet = jsonBuffer.parseObject(msgIn.param);
-			uint8_t number = jsonNet["n"];
 			String tssid = jsonNet["s"];
 			String tpass = jsonNet["p"];
-			if (tssid.equals("none")) {
-				sckOut(F("No network configured!!"));
+
+			
+			if (tssid.length() <= 0) {
+				sckOut("No wifi configured on ESP!!!");
 			} else {
-				sckOut(String(number+1) + F(": ") + tssid + F(" - ") + tpass);	
+				sckOut("Received new Wifi from ESP!!!");
+
+				char newSsid[64];
+				tssid.toCharArray(newSsid, 64);
+
+				char newPass[64];
+				tpass.toCharArray(newPass, 64);
+
+				saveWifi(newSsid, newPass);
 			}
-			prompt();
 			break;
 
-		} case ESP_GET_BEST_WIFI_COM: {
+		} case ESP_GET_NET_INFO_COM: {
 
 			StaticJsonBuffer<240> jsonBuffer;
-			JsonObject& jsonNet = jsonBuffer.parseObject(msgIn.param);
-			uint8_t number = jsonNet["n"];
-			String tssid = jsonNet["s"];
-			String tpass = jsonNet["p"];
-			sckOut(String(number+1) + F(": ") + tssid + F(" - ") + tpass);
+			JsonObject& jsonIP = jsonBuffer.parseObject(msgIn.param);
+			String tip = jsonIP["ip"];
+			String tmac = jsonIP["mac"];
+			String thostname = jsonIP["hn"];
+			sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", thostname.c_str(), tip.c_str(), tmac.c_str());
+			sckOut(PRIO_HIGH);
 			prompt();
-			break;
-
-		} case ESP_GET_IP_COM: {
-			sckOut(String(msgIn.param));
-			break;
-
-		} case ESP_SET_TOKEN_COM: {
-			int comparison = strcmp(token, msgIn.param);
-			if (comparison == 0) {
-				sckOut(String F("New token: ") + String(token));
-				prompt();
-			} else {
-				sckOut(F("Failed to set token!!!"));
-			}
 			break;
 
 		} case ESP_GET_TOKEN_COM: {
-			strncpy(token, msgIn.param, 8);
-			sckOut(String(token));
-			prompt();
+
+			char newToken[8];
+			strncpy(newToken, msgIn.param, 8);
+			saveToken(newToken);
 			break;
 
 		} case ESP_GET_CONF_COM: {
@@ -653,6 +1029,27 @@ void SckBase::ESPprocessMsg() {
 			sckOut(String F("ESP version:\t\t") + ESPversion + F(" (") + ESPbuildDate + F(")"));
 			break;
 
+		} case ESP_CONSOLE_COM: {
+
+			espConsole = true;
+			
+			// Process command
+			sckIn(String(msgIn.param));
+
+			// Publish result
+			// msgBuff.com = ESP_CONSOLE_PUBLISH;
+			// ESPqueueMsg(false, true);
+
+			// espConsole = false;
+			break;
+
+		} case ESP_MQTT_CONSOLE_COM: {
+
+			sprintf(outBuff, "MQTT console: %s", msgIn.param);
+
+			if (config.mode == MODE_SETUP) sckIn(String(msgIn.param));
+			break;
+
 		} case ESP_GET_APLIST_COM: {
 
 			StaticJsonBuffer<240> jsonBuffer;
@@ -670,10 +1067,11 @@ void SckBase::ESPprocessMsg() {
 			break;
 
 		} case ESP_MQTT_PUBLISH_COM: {
-			sckOut(F("ESP sensor readings updated!!!"));
+			sckOut(F("ESP sensor readings updated!!!"), PRIO_LOW);
 			break;
 
 		} case ESP_MQTT_CLEAR_STATUS :{
+			espStatus.mqtt = ESP_NULL_EVENT;
 			sckOut(F("ESP MQTT status cleared!!"), PRIO_LOW);
 			break;
 
@@ -689,7 +1087,7 @@ void SckBase::ESPprocessMsg() {
 		} case ESP_WEB_CONFIG_SUCCESS: {
 
 			sckOut(F("Configuration changed via WebServer!!!"));
-			// led.configOK();
+			led.configOK();
 		 	readLightEnabled = false;
 		 	readLight.reset();
 
@@ -714,13 +1112,14 @@ void SckBase::getStatus() {
 
 void SckBase::processStatus() {
 
-	espStatus.wifi 	= msgIn.param[0];
-	espStatus.net	= msgIn.param[1];
-	espStatus.mqtt	= msgIn.param[2];
-	espStatus.time	= msgIn.param[3];
-	espStatus.ap	= msgIn.param[4];
-	espStatus.web	= msgIn.param[5];
-	espStatus.conf	= msgIn.param[6];
+	espStatusTypes statusReceived = ESP_STATUS_TYPES_COUNT;
+
+	for (uint8_t i=0; i<ESP_STATUS_TYPES_COUNT; i++) {
+
+		statusReceived = static_cast<espStatusTypes>(i);
+		espStatus.value[statusReceived] = static_cast<espStatusEvents>(msgIn.param[i]); 
+
+	}
 
 	// Wifi status has changed
 	if (espStatus.wifi != prevEspStatus.wifi) {
@@ -738,7 +1137,6 @@ void SckBase::processStatus() {
 					sckOut(F("Sending MQTT Hello..."));
 					msgBuff.com = ESP_MQTT_HELLOW_COM;
 					ESPqueueMsg(false, true);
-					triggerHello = false;
 				}
 
 				// Forced Time sync
@@ -748,9 +1146,10 @@ void SckBase::processStatus() {
 					ESPqueueMsg(false, true);
 				}
 
-				if (ESPpublishPending) {
-				// If there is a publish operation waiting...
-				 	publish();
+				if (WaitForWifi) {
+					// If there is a publish operation waiting...
+					WaitForWifi = false;
+				 	ESPpublish();
 				}
 
 				break;
@@ -770,25 +1169,18 @@ void SckBase::processStatus() {
 				onWifi = false;
 				break;
 
-			} 
-		} 
+			} case ESP_WIFI_NOT_CONFIGURED: {
+				if (!wifiSet) sckOut("ESP: Wifi is not configured!!!");
+				else setESPwifi();
+				break;
+
+			} default: break;
+		}
 
 		// If there was ANY wifi error...
 		if (!onWifi) {
-
-			// If we are not expecting setup mode configuration turn ESP off to avoid battery drain
-			if(config.mode != MODE_SETUP && !timerExists(ACTION_GOTO_SETUP)) ESPcontrol(ESP_OFF);
-
-			// If we NEED network give feedback about error
-			// if (config.mode == MODE_NET) led.update(config.mode, 2);
-
-			// If there is a pending publish
-			// if (ESPpublishPending) {
-			// 	ESPcontrol(ESP_OFF);
-			// 	sckOut(F("ERROR: publish failed, saving to SDcard only..."));
-			// 	publishToSD();
-			// 	ESPpublishPending = false;
-			// }
+			// If we NEED network go to error mode
+			if (config.mode == MODE_NET) errorMode();
 		}
 	}
 
@@ -804,31 +1196,43 @@ void SckBase::processStatus() {
 			case ESP_MQTT_PUBLISH_OK_EVENT: {
 				sckOut(F("MQTT publish OK!!"));
 
+				// Clear the published readings
+				RAMreadingsIndex = RAMreadingsIndex - RAMgroups[RAMgroupIndex].numberOfReadings;
+				RAMgroupIndex = RAMgroupIndex - 1;
+
+				msgBuff.com = ESP_MQTT_CLEAR_STATUS;
+				ESPqueueMsg(false, true);
+
+				// Check for more readings pending to be published
+				if (RAMgroupIndex >= 0) publish();
+
+				// If we finish network publish start with sdcard (Can't do it at the same time because of the SPI bug)
+				else publishToSD();
+
 				// Start dimming the led...
 				// if (!onUSB) led.dim = true;
-
-				// ESPcontrol(ESP_OFF);
-				// ESPpublishPending = false;
-				// publishToSD();
 				break;
 
 			} case ESP_MQTT_HELLO_OK_EVENT: {
 				sckOut(F("MQTT Hello OK!!"));
+				triggerHello = false;
 
 				// Go to network mode
-				if(config.mode != MODE_NET && triggerHello) changeMode(MODE_NET);
+				if(config.mode != MODE_NET && config.persistentMode == MODE_NET) changeMode(MODE_NET);
 				break;
 
 			} case ESP_MQTT_ERROR_EVENT: {
 				if (config.mode == MODE_NET) led.update(config.mode, 2);
 				sckOut(F("ERROR: MQTT failed!!"));
-				// ESPcontrol(ESP_OFF);
-				// publishToSD();
+
+				// For now keep them in SD and wait for netx publish...
+				publishToSD();
 				break;
-			}
+
+			} default: break;
 		}
 
-		if (espStatus.mqtt != ESP_NULL) {
+		if (espStatus.mqtt != ESP_NULL_EVENT) {
 			msgBuff.com = ESP_MQTT_CLEAR_STATUS;
 			ESPqueueMsg(false, false);
 		}
@@ -853,7 +1257,7 @@ void SckBase::processStatus() {
 				ESPqueueMsg(false, false);
 				break;
 
-			}
+			} default: break;
 		}
 	}
 
@@ -865,10 +1269,15 @@ void SckBase::processStatus() {
 				break;
 
 			} case ESP_AP_OFF_EVENT: {
-				sckOut(F("Stoped APmode"));
+				if (prevEspStatus.ap == ESP_AP_ON_EVENT) sckOut(F("Stoped APmode"));
 				break;
-			}
+			} default: break;
 		}
+	}
+
+	// Make sure we have AP on in setup mode
+	if (config.mode == MODE_SETUP && espStatus.ap == ESP_AP_OFF_EVENT) {
+		if (!timerExists(ACTION_START_AP_MODE)) timerSet(ACTION_START_AP_MODE, 5000);
 	}
 
 	// WebServer status has changed
@@ -879,25 +1288,59 @@ void SckBase::processStatus() {
 				break;
 
 			} case ESP_WEB_OFF_EVENT: {
-				sckOut(F("Web server stoped"));
+				if (prevEspStatus.web == ESP_WEB_ON_EVENT) sckOut(F("Web server stoped"));
 				break;
 
-			}
+			} default: break;
 		}
 	}
+
+	// Token status has changed
+	if (espStatus.token != prevEspStatus.token) {
+		switch(espStatus.token) {
+			case ESP_TOKEN_ERROR: {
+				sckOut("ESP: No token configured!!");
+				if (tokenSet) setESPtoken();
+				break;
+
+			} case ESP_TOKEN_OK: {
+				sckOut("ESP: Token OK!!", PRIO_LOW);
+				break;
+
+			} default: break;
+		}
+	}
+
+	if (tokenSet && (espStatus.token != ESP_TOKEN_OK)) setESPtoken();
 
 	// Conf status has changed
 	if (espStatus.conf != prevEspStatus.conf) {
-		if (espStatus.conf == ESP_CONF_CHANGED_EVENT) {
+		switch(espStatus.conf) {
+			case ESP_CONF_CHANGED_EVENT: {
 
-			sckOut(F("Configuration on ESP has changed!!!"), PRIO_LOW);
-			msgBuff.com = ESP_GET_CONF_COM;
-			ESPqueueMsg(false, false);
-			
-		}
+				sckOut(F("Configuration on ESP has changed!!!"), PRIO_LOW);
+				msgBuff.com = ESP_GET_CONF_COM;
+				ESPqueueMsg(false, false);
+				break;
+
+			} case ESP_CONF_WIFI_UPDATED: {
+
+				sckOut("Wifi has been updated on ESP!!");
+				getESPwifi();
+				break;
+
+			} case ESP_CONF_TOKEN_UPDATED: {
+
+				sckOut("Token has been updated on ESP!!");
+				getESPtoken();
+				break;
+
+			} default: break;
+		} 
 	}
 
-	prevEspStatus = espStatus;
+	// Make a copy of status
+	for (uint8_t i=0; i<ESP_STATUS_TYPES_COUNT; i++) prevEspStatus.value[i] = espStatus.value[i];
 }
 
 
@@ -996,9 +1439,9 @@ void SckBase::sckIn(String strIn) {
 			ESPqueueMsg(false);
 			break;
 
-		} case EXTCOM_ESP_SERIAL_DEBUG_ON: {
+		} case EXTCOM_ESP_SERIAL_DEBUG_TOGGLE: {
 			if (!digitalRead(POWER_WIFI)) {
-				msgBuff.com = ESP_SERIAL_DEBUG_ON;
+				msgBuff.com = ESP_SERIAL_DEBUG_TOGGLE;
 				espSerialDebug = true;
 				ESPqueueMsg(false);
 			} else {
@@ -1006,20 +1449,18 @@ void SckBase::sckIn(String strIn) {
 			}
 			break;
 
-		} case EXTCOM_ESP_SERIAL_DEBUG_OFF: {
-			if (!digitalRead(POWER_WIFI)) {
-				msgBuff.com = ESP_SERIAL_DEBUG_OFF;
-				espSerialDebug = false;
-				ESPqueueMsg(false);
-			} else {
-				sckOut(F("Please start ESP first!"));	
-			}
-			break;
-
 		} case EXTCOM_ESP_MQTT_HELLO: {
 
 			msgBuff.com = ESP_MQTT_HELLOW_COM;
 			ESPqueueMsg(false, true);
+			break;
+
+		} case EXTCOM_ESP_SHOW_STATUS: {
+
+			for (uint8_t i=0; i<ESP_STATUS_TYPES_COUNT; i++) {
+				sprintf(outBuff, "%s: %s", espStatus.name[i], espStatus.eventTitle[espStatus.value[i]]);
+				sckOut();
+			}
 			break;
 
 		// Configuration commands
@@ -1032,49 +1473,61 @@ void SckBase::sckIn(String strIn) {
 			uint8_t third = strIn.indexOf(separator, second + 1);
 			uint8_t fourth = strIn.indexOf(separator, third + 1);
 
-			String newSsid = strIn.substring(first + 1, second);
-			String newPass = strIn.substring(third + 1, fourth);
+			if (strIn.substring(first + 1, second).length() > 0) {
 
-			newSsid.toCharArray(credentials.ssid, 64);
-			newPass.toCharArray(credentials.password, 64);
-			sendNetwork();
+				char newSsid[64];
+				strIn.substring(first + 1, second).toCharArray(newSsid, 64);
 
+				char newPass[64];
+				strIn.substring(third + 1, fourth).toCharArray(newPass, 64);
+
+				saveWifi(newSsid, newPass);
+				setESPwifi();
+
+			} else {
+				sckOut("Error setting wifi, please try again!!!");
+			}
 			break;
 
 		} case EXTCOM_GET_WIFI: {
-			msgBuff.com = ESP_GET_WIFI_COM;
-			ESPqueueMsg(false, false);
+
+			if (wifiSet) {
+				sprintf(outBuff, "SSID: %s\r\nPASS: %s", config.ssid, config.pass);
+				sckOut();
+			} else {
+				sckOut("No network configured!!!");
+			}
 			break;
 
-		} case EXTCOM_GET_BEST_WIFI: {
-			msgBuff.com = ESP_GET_BEST_WIFI_COM;
-			ESPqueueMsg(false);
-			break;
+		// } case EXTCOM_GET_BEST_WIFI: {
+		// 	msgBuff.com = ESP_GET_BEST_WIFI_COM;
+		// 	ESPqueueMsg(false);
+		// 	break;
 
 		} case EXTCOM_CLEAR_WIFI: {
-			clearNetworks();
+			clearWifi();
 			break;
 
-		} case EXTCOM_GET_IP: {
-			msgBuff.com = ESP_GET_IP_COM;
-			ESPqueueMsg(false, false);
+		} case EXTCOM_GET_NET_INFO: {
+			sckOut("Asking ESP for network info...");
+			msgBuff.com = ESP_GET_NET_INFO_COM;
+			ESPqueueMsg(false, true);
 			break;
 
 		} case EXTCOM_SET_TOKEN: {
 			if (strIn.length() != 6) {
 				sckOut(F("Token should have 6 characters!!!"), PRIO_HIGH);
 			} else {
-				strIn.toCharArray(token, 64);
-				sendToken();
+				char newToken[8];
+				strIn.toCharArray(newToken, 8);
+				saveToken(newToken);
+				sprintf(outBuff, "New token: %s", config.token);
+				sckOut();
 			}
 			break;
 		
-		} case EXTCOM_GET_TOKEN: {
-			msgBuff.com = ESP_GET_TOKEN_COM;
-			ESPqueueMsg(false, true);
-			break;
-
 		} case EXTCOM_CLEAR_TOKEN: {
+
 			clearToken();
 			break;
 
@@ -1103,9 +1556,8 @@ void SckBase::sckIn(String strIn) {
 			// TODO poner los params en el help
 			if (strIn.startsWith("factory"))  {
 
-				sckOut(String F("Saving factory defaults, reseting in 5 seconds ..."), PRIO_HIGH);
-				saveConfig(true);
-				timerSet(ACTION_RESET, 5000);
+				sckOut(String F("Saving factory defaults, reseting in 1 second..."), PRIO_HIGH);
+				factoryReset();
 
 			} else if (strIn.startsWith("publish interval")) {
 				strIn.replace("publish interval", "");
@@ -1139,10 +1591,9 @@ void SckBase::sckIn(String strIn) {
 			break;
 
 		} case EXTCOM_GET_CONFIG: {
-			sckOut(String F("Current mode: ") + modeTitles[config.persistentMode] + F(" mode"));
-			// sckOut(String F("Persistent mode: ") + modeTitles[config.persistentMode] + F(" mode"));
-			sckOut(String F("Publish interval: ") + config.publishInterval);
 
+			sprintf(outBuff, "Token: %s\r\nCurrent mode: %s\r\nPublish Interval: %ld", config.token, modeTitles[config.persistentMode], config.publishInterval);
+			sckOut();
 			break;
 
 		// Mode commands
@@ -1223,7 +1674,7 @@ void SckBase::sckIn(String strIn) {
 			readLightEnabled = true;
 			break;
 
-		} case EXTCOM_READLIGHT_TOGGLE_DEBUG:{
+		} case EXTCOM_READLIGHT_TOGGLE_DEBUG: {
 
 			readLight.debugFlag = !readLight.debugFlag;
 			sckOut(F("Readlight debug flag: "), PRIO_MED, false);
@@ -1231,9 +1682,19 @@ void SckBase::sckIn(String strIn) {
 			else sckOut(F("false"));
 			break;
 
+		} case EXTCOM_MQTT_CONFIG: {
+
+			if (strIn.startsWith("on")) mqttConfig(true);
+			else if (strIn.startsWith("off")) mqttConfig(false);
+			break;
+
 		// Time configuration
 		} case EXTCOM_SET_TIME: {
 			setTime(strIn);
+
+			strncpy(msgBuff.param, strIn.c_str(), 64);
+			msgBuff.com = ESP_SET_TIME_COM;
+			ESPqueueMsg(true, true);
 			break;
 
 		} case EXTCOM_GET_TIME: {
@@ -1277,7 +1738,8 @@ void SckBase::sckIn(String strIn) {
 					sckOut(String(thisSensor->title) + ": " + String(thisSensor->reading) + " " + thisSensor->unit);
 				
 				} else {
-					sckOut("Failed getting reading!!!");
+					retrySensor = wichSensor;
+					timerSet(ACTION_RETRY_READ_SENSOR, 200);
 				}
 			}
 			break;
@@ -1480,8 +1942,8 @@ void SckBase::sckIn(String strIn) {
 
 			SensorType thisType = SENSOR_COUNT;
 
-			sckOut(F("\nEnabled"));
-			sckOut(F("----------"));
+			sprintf(outBuff, "\r\nEnabled\r\n----------");
+			sckOut();
 			// Get sensor type
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				thisType = static_cast<SensorType>(i);
@@ -1489,8 +1951,8 @@ void SckBase::sckIn(String strIn) {
 				if (sensors[thisType].enabled) sckOut(String(sensors[thisType].title) + " (" + String(sensors[thisType].interval) + " sec)");
 			}
 
-			sckOut(F("\nDisabled"));
-			sckOut(F("----------"));
+			sprintf(outBuff, "\r\nDisabled\r\n----------");
+			sckOut();
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				thisType = static_cast<SensorType>(i);
 
@@ -1519,6 +1981,17 @@ void SckBase::sckIn(String strIn) {
 			sckOut(String(freeRAM()));
 			break;
 
+		} case EXTCOM_LIST_TIMERS: {
+
+			for (uint8_t i=0; i<timerSlots; i++){
+				if (timers[i].action > 0) {
+					sprintf(outBuff, "Timer action: %i, every %lu milliseconds", timers[i].action, timers[i].interval);
+					if (timers[i].periodic) sprintf(outBuff, "%s running periodically", outBuff);
+					sckOut();
+				}
+			}
+			break;
+
 		// Help
 		} case EXTCOM_HELP: {
 			sckOut("", PRIO_HIGH);
@@ -1543,6 +2016,13 @@ void SckBase::sckIn(String strIn) {
 			sckOut(F("Unrecognized command, try help!"), PRIO_HIGH);
 			break;
 		}
+	}
+
+	// If the esp web console is waiting for an answer...
+	if (espConsole) {
+		msgBuff.com = ESP_CONSOLE_PUBLISH;
+		ESPqueueMsg(false, true);
+		espConsole = false;
 	}
 }
 
@@ -1584,34 +2064,26 @@ SensorType SckBase::getSensorFromString(String strIn) {
  */
 void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine) {
 
-	if (onUSB) {
-		if (outputLevel + priority > 1) {
-			SerialUSB.print(strOut);
-			if (newLine) SerialUSB.println();
-		}
-	}
-
-	// TODO FIX THIS algo no le gusta y no inicia
-	// if (priority == PRIO_HIGH || priority == PRIO_MED) {
-		// if (openLogFile()) {
-			// logFile.print(strOut);
-			// if (newLine) logFile.println();
-			// logFile.close();
-		// }
-	// }
+	strOut.toCharArray(outBuff, strOut.length()+1);
+	sckOut(priority, newLine);
 }
 
 void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine) {
 
-	if (onUSB) {
-		if (outputLevel + priority > 1) {
-			SerialUSB.print(strOut);
-			if (newLine) SerialUSB.println();
-		}
-	}
+	strncpy(outBuff, strOut, 240);
+	sckOut(priority, newLine);
 }
 
 void SckBase::sckOut(PrioLevels priority, bool newLine) {
+
+	if (espConsole) {
+		if (outputLevel + priority > 1) {
+			strncpy(msgBuff.param, outBuff, 240);
+			msgBuff.com = ESP_CONSOLE_COM;
+			ESPqueueMsg(true, false);
+		}
+	}
+
 	if (onUSB) {
 		if (outputLevel + priority > 1) {
 			SerialUSB.print(outBuff);
@@ -1629,7 +2101,7 @@ void SckBase::prompt() {
 
 
 /* 	-------------
- 	|	Timer   |
+ 	|	Time   |
  	-------------
 */
 bool SckBase::setTime(String epoch) {
@@ -1641,7 +2113,6 @@ bool SckBase::setTime(String epoch) {
 		ISOtime();
 		sckOut(ISOtimeBuff);
 		prompt();
-		if (config.mode != MODE_SETUP) changeMode(config.mode);
 		return true;
 	}
 	else sckOut("RTC update failed!!");
@@ -1724,9 +2195,19 @@ void SckBase::updateSensors() {
 
 	// Don't take readings if RTC is not updated
 	if (!onTime) {
+		sckOut("RTC is not updated!!!");
 		errorMode();
 		return;
 	}
+
+	// In network mode don't take readings if token is not configured
+	if (config.mode == MODE_NET && !tokenSet) {
+		errorMode();
+		return;
+	}
+
+	// If there is a publish running wait 
+	if (publishRuning) return;
 
 	// Only update sensor readings if we are in network or sdcard modes
 	if (config.mode == MODE_NET || config.mode == MODE_SD) {
@@ -1737,19 +2218,17 @@ void SckBase::updateSensors() {
 				if (rtc.getEpoch() - sensors[wichSensor].lastReadingTime >= sensors[wichSensor].interval) {
 					led.dim = false;
 					led.brightnessFactor = 1;
-					sprintf(outBuff, "%s: ", sensors[wichSensor].title);
-					sckOut(PRIO_HIGH, false);
-					getReading(wichSensor);
-					RAMstore(wichSensor);
-					sprintf(outBuff, "%.2f %s", sensors[wichSensor].reading, sensors[wichSensor].unit);
-					sckOut(PRIO_HIGH);
+					if (getReading(wichSensor)) {
+						RAMstore(wichSensor);
+						sprintf(outBuff, " (RAM) + %s: %.2f %s", sensors[wichSensor].title, sensors[wichSensor].reading, sensors[wichSensor].unit);
+						sckOut(PRIO_HIGH);
+					}
 				}
 			}
 		}
 
+		// Call publish if we reached the interval
 		if (rtc.getEpoch() - lastPublishTime > config.publishInterval) publish();
-
-		// if (!onUSB) led.dim = true;
 	}
 }
 
@@ -1820,6 +2299,8 @@ bool SckBase::RAMstore(SensorType wichSensor) {
 		RAMgroups[RAMgroupIndex].readingStartIndex = RAMreadingsIndex + 1;
 		RAMgroups[RAMgroupIndex].numberOfReadings = 1;
 
+		// Add to the sd index (parallel count for storing sdcard readings in network mode)
+		sdIndex ++;
 	}
 
 	// Store reading
@@ -1838,8 +2319,6 @@ bool SckBase::RAMstore(SensorType wichSensor) {
 
 bool SckBase::RAMgetGroup(int groupIndex) {
 
-	if (RAMreadingsIndex < 0 || groupIndex > RAMgroupIndex) return false;
-
 	groupBuffer.time = RAMgroups[groupIndex].time;
 	groupBuffer.numberOfReadings = RAMgroups[groupIndex].numberOfReadings;
 
@@ -1854,12 +2333,26 @@ bool SckBase::RAMgetGroup(int groupIndex) {
 	return true;
 }
 
-bool SckBase::publish() {
+void SckBase::publish() {
 
-	if (config.mode == MODE_NET && ESPpublishPending) return false;
-	if (RAMreadingsIndex < 0) return false;
+	// Check if there are some readings to publish
+	if (RAMgroupIndex < 0) {
+		sckOut("No readings yet!!!", PRIO_LOW);
+		return;
+	}
+
+	// Check for another publish waiting for wifi  
+	if (WaitForWifi && !onWifi) {
+		sckOut("Waiting for wifi...");
+		// Make sure ESP is on
+		ESPcontrol(ESP_ON);
+		return;
+	}
 
 	sckOut("Starting publish...");
+
+	// Remembar at wich time we publish
+	lastPublishTime = rtc.getEpoch();
 
 	// Turn on led
 	led.brightnessFactor = 1;
@@ -1870,38 +2363,38 @@ bool SckBase::publish() {
 		// Start Wifi
 		ESPcontrol(ESP_ON);
 		if (onWifi) {
-			if (ESPpublish()) {
-				publishToSD();
-				return true;
-			}
+			WaitForWifi = false;
+			publishRuning = true;
+			ESPpublish();
 		} else {
-			ESPpublishPending = true;
+			sckOut("Waiting for Wifi...");
+			WaitForWifi = true;
 		}
 		
 	} else if (config.mode == MODE_SD) {
 
-		if (publishToSD()) {
-			return true;
-		}
-	}
+		publishToSD();
 
-	return false;
+	}
 }
 
 bool SckBase::publishToSD() {
+
+	if (sdIndex < 0) return false;
 
 	sckOut("Publishing to SDcard...");
 
 	if (openPublishFile()) {
 
 		// Write one line for time-group
-		for (uint16_t i=0; i<=RAMgroupIndex; ++i) {
+		for (uint16_t i=0; i<=sdIndex; ++i) {
 
+			sckOut(String("Asking ram group ") + String(i));
 			// Get data from RAM
 			RAMgetGroup(i);
 
 			// rewrite headers if there is a change on enabled sensors
-			if(headersChanged != 0 && groupBuffer.time > headersChanged) {
+			if (headersChanged != 0 && groupBuffer.time > headersChanged) {
 				publishFile.close();
 				openPublishFile(true);
 				headersChanged = 0;
@@ -1936,22 +2429,31 @@ bool SckBase::publishToSD() {
 
 			// Write new line char
 			publishFile.println("");
+
+			// Console output
+			sprintf(outBuff, "%s: %i sensor readings saved to SD.", tmpTime, groupBuffer.numberOfReadings);
+			sckOut();
+
 		}
 		// Close file
 		publishFile.close();
 		lastPublishTime = rtc.getEpoch();
-		// if (!onUSB) led.dim = true;
 		
-		// Clear RAM
-		RAMgroupIndex = -1;
-		RAMreadingsIndex = -1;
+		// Restart the sd card index
+		sdIndex = -1;
 
-		sckOut(F("Readings saved to SD!!"));
+		// If we are on SD_MODE mode also restart the ram index (because ESPpublish wont restart it)
+		if (config.mode == MODE_SD) {
+			RAMgroupIndex = -1;
+			RAMreadingsIndex = -1;
+		}
 
+		publishRuning = false;
 		return true;
 	}
 
-	sckOut(F("ERROR: Cant' open publish file!!!"));
+	publishRuning = false;
+	sckOut(F("Cant' open publish file!!!"));
 	lastPublishTime = rtc.getEpoch();
 	return false;
 }
@@ -1960,42 +2462,45 @@ bool SckBase::ESPpublish()  {
 	
 	sckOut("Publishing to platform...");
 
-	// for (uint16_t i=0; i<=RAMgroupIndex; ++i) {
+	// Get last readings group from RAM
+	RAMgetGroup(RAMgroupIndex);
 
+	// Prepare json for sending
+	StaticJsonBuffer<240> jsonBuffer;
+	JsonObject& jsonSensors = jsonBuffer.createObject();
+	
+	// Epoch time of the grouped readings
+	jsonSensors["t"] = groupBuffer.time;
 
-	// }
+	for (uint8_t sensorIndex=0; sensorIndex<SENSOR_COUNT; sensorIndex++) {
+
+		SensorType wichSensor = static_cast<SensorType>(sensorIndex);
+
+		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
+
+			// Write data sensor by sensor
+			for (uint8_t ii=0; ii<groupBuffer.numberOfReadings; ii++) {
+
+				// Write sensor reading
+				if (groupBuffer.data[ii].sensor == wichSensor) {
+					jsonSensors[String(wichSensor)] = String(groupBuffer.data[ii].reading, 2);
+					break;
+				}
+			}
+		}
+	}
+
+	char tmpTime[20];
+	epoch2iso(groupBuffer.time, tmpTime);
+	sprintf(outBuff, "%s: %i sensor readings on the go to platform...", tmpTime, groupBuffer.numberOfReadings);
+	sckOut();
+
+	jsonSensors.printTo(msgBuff.param, 240);
+	msgBuff.com = ESP_MQTT_PUBLISH_COM;
+	ESPqueueMsg(true, true);
 
 	return true;
 }
-
-// void SckBase::ESPpublish() {
-
-// 	// Prepare json for sending
-// 	StaticJsonBuffer<240> jsonBuffer;
-// 	JsonObject& jsonSensors = jsonBuffer.createObject();
-
-// 	// TODO Falta el time que ya no es sensor!!!!!
-// 	jsonSensors["t"] = double_with_n_digits(sensors[wichSensor].reading, 2);
-
-// 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-
-// 		SensorType wichSensor = static_cast<SensorType>(i);
-		
-// 		// Only send enabled sensors
-// 		if (sensors[wichSensor].enabled) {
-
-// 			jsonSensors[String(i)] = double_with_n_digits(sensors[wichSensor].reading, 2);
-// 		}
-// 	}
-
-// 	jsonSensors.printTo(msgBuff.param, 240);
-
-// 	msgBuff.com = ESP_MQTT_PUBLISH_COM;
-// 	sckOut(String F("Sending readings to ESP..."));
-// 	sckOut((msgBuff.param), PRIO_LOW);
-
-// 	ESPqueueMsg(true, true);
-// }
 
 bool SckBase::sdLogADC(){
 
@@ -2041,261 +2546,6 @@ bool SckBase::sdLogADC(){
 	return false;
 }
 
-void SckBase::saveConfig(bool factory) {
-
-	Configuration toSaveConfig;
-
-	if (!factory) {
-		
-		toSaveConfig.valid = true;
-		toSaveConfig.mode = config.mode;
-		toSaveConfig.persistentMode = config.persistentMode;
-		toSaveConfig.publishInterval = config.publishInterval;
-
-		// Save per sensor config
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
-			toSaveConfig.sensor[wichSensor].enabled = sensors[wichSensor].enabled;
-			toSaveConfig.sensor[wichSensor].interval = sensors[wichSensor].interval;
-		}
-
-	} else {
-
-		// Default values
-		toSaveConfig.valid = true;
-		toSaveConfig.mode = default_mode;
-		toSaveConfig.persistentMode = MODE_SD;
-		toSaveConfig.publishInterval = default_publish_interval;
-
-		// Default sensor values
-		AllSensors tempSensors;
-
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
-			toSaveConfig.sensor[wichSensor].enabled = tempSensors[wichSensor].enabled;
-			toSaveConfig.sensor[wichSensor].interval = default_sensor_reading_interval;
-		}
-
-	}
-
-	// Save to eeprom
-	eepromConfig.write(toSaveConfig);
-
-	// Remove old sdcard config
-	sd.remove(configFileName);
-
-	// Save to sdcard
-	if (openConfigFile()) {
-
-		char lineBuff[128];
-
-		configFile.println("# -------------------\r\n# General configuration\r\n# -------------------");
-		// configFile.println("\r\n# mode:sdcard, network, setup");
-		// sprintf(lineBuff, "mode:%s", modeTitles[toSaveConfig.mode]);
-		// configFile.println(lineBuff);
-		configFile.println("\r\n# mode:sdcard or network");
-		sprintf(lineBuff, "mode:%s", modeTitles[toSaveConfig.persistentMode]);
-		configFile.println(lineBuff);
-		configFile.println("\r\n# publishInterval:period in seconds");
-		sprintf(lineBuff, "publishInterval:%lu", toSaveConfig.publishInterval);
-		configFile.println(lineBuff);
-
-		configFile.println("\r\n# -------------------\r\n# Sensor configuration\r\n# ej. sensor name:reading interval or disabled\r\n# -------------------\r\n");
-
-		bool externalTitlePrinted = false;
-
-		// Sensors config
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
-
-			if (!externalTitlePrinted && sensors[wichSensor].location == BOARD_AUX) {
-				configFile.println("\r\n# External sensors (Not included in SCK board)"); 
-				externalTitlePrinted = true;
-			}
-
-			if (sensors[wichSensor].enabled) sprintf(lineBuff, "%s:%lu", sensors[wichSensor].title, sensors[wichSensor].interval);
-			else sprintf(lineBuff, "%s:disabled", sensors[wichSensor].title);
-
-			configFile.println(lineBuff);
-		}
-
-		configFile.close();
-	}
-}
-
-void SckBase::loadConfig() {
-
-	Configuration savedConf = eepromConfig.read();
-
-	if (savedConf.valid) {
-		
-		config.publishInterval = savedConf.publishInterval;
-		config.persistentMode = savedConf.persistentMode;
-		config.mode = savedConf.mode;
-
-		// Load per sensor config
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
-			sensors[wichSensor].enabled = savedConf.sensor[wichSensor].enabled;
-			sensors[wichSensor].interval = savedConf.sensor[wichSensor].interval;
-		}
-
-		// Load sdcard config
-		loadSDconfig();
-
-	} else {
-
-		// If there is no sdcard valid config turn to factory defaults
-		if (!loadSDconfig()) {
-			sckOut("Error loading config.txt!!!");
-			saveConfig(true);
-			loadConfig();
-		} else {
-			saveConfig();
-		}
-	}
-	changeMode(config.persistentMode);
-}
-
-bool SckBase::loadSDconfig() {
-
-	// Open file only for reading
-	if (openConfigFile(true)) {
-
-		sckOut("Loading config file from sdcard!");
-
-		bool manualConfigDetected = false;
-		
-		// Read all file
-		while (configFile.available()) {
-
-			String lineBuff;
-
-			// Read one line
-			while (true) {
-				char buff = configFile.read();
-				if (buff == 13 || buff == 10) break;	// New line detected
-				lineBuff += buff;
-			}
-
-			lineBuff.replace("\n", "");
-			lineBuff.replace("\r", "");
-			lineBuff.trim();
-			
-
-			// Ignore comments
-			if (!lineBuff.startsWith("#") && lineBuff.length() > 0) {
-
-				// Get mode configuration
-				if (lineBuff.startsWith("mode:")) {
-					lineBuff.replace("mode:", "");
-					for (uint8_t i=0; i<MODE_COUNT; i++) {
-						SCKmodes wichMode = static_cast<SCKmodes>(i);
-						if (lineBuff.equals(modeTitles[wichMode])) {
-							if (wichMode != config.persistentMode) {
-								sprintf(outBuff, "config.txt mode: %s", modeTitles[wichMode]);
-								sckOut();
-								manualConfigDetected = true;
-								config.persistentMode = wichMode;
-							}
-						}
-					}
-
-				// Get persistent mode configuration
-				// } else if (lineBuff.startsWith("persistentMode:")) {
-				// 	lineBuff.replace("persistentMode:", "");
-				// 	if (lineBuff.equals(modeTitles[MODE_SD])) {
-				// 		if (config.persistentMode != MODE_SD) {
-				// 			sckOut("config.txt persistent mode: sdcard");
-				// 			manualConfigDetected = true;
-				// 			config.persistentMode = MODE_SD;	
-				// 		}
-				// 	} else if (lineBuff.equals(modeTitles[MODE_NET])) {
-				// 		if (config.persistentMode != MODE_NET) {
-				// 			sckOut("config.txt persistent mode: network");
-				// 			manualConfigDetected = true;
-				// 			config.persistentMode = MODE_NET;
-				// 		}
-				// 	}
-				
-				// Get publish interval
-				} else if (lineBuff.startsWith("publishInterval:")) {
-					lineBuff.replace("publishInterval:", "");
-					uint32_t newPeriod = lineBuff.toInt();
-					if (newPeriod > minimal_publish_interval && newPeriod < max_publish_interval) {
-						if (newPeriod != config.publishInterval) {
-							sprintf(outBuff, "config.txt publish interval: %lu", newPeriod);
-							sckOut();
-							manualConfigDetected = true;
-							config.publishInterval = newPeriod;	
-						}
-					}
-
-				// Get sensor settings
-				} else {
-
-					// Get sensor title
-					String sensorString = lineBuff.substring(0, lineBuff.indexOf(":"));
-					lineBuff.replace(sensorString, "");
-					lineBuff.replace(":", "");
-					lineBuff.trim();
-
-					// Prepare string for matching
-					sensorString.toLowerCase();
-
-					// Find out wich sensor is
-					SensorType wichSensor = getSensorFromString(sensorString);
-					
-					if (wichSensor < SENSOR_COUNT) {
-						
-						uint32_t newInterval = lineBuff.toInt();
-
-						// Sensor disabled
-						if (newInterval == 0) {
-							if (sensors[wichSensor].enabled) {
-								sprintf(outBuff, "config.txt %s: disabled", sensors[wichSensor].title);
-								sckOut();
-								manualConfigDetected = true;
-								sensors[wichSensor].enabled = false;
-							}
-
-						// New reading interval
-						} else if (newInterval > minimal_sensor_reading_interval && newInterval < max_sensor_reading_interval) {
-							
-							// Enable sensor if it was disabled
-							if (!sensors[wichSensor].enabled) {
-								sprintf(outBuff, "config.txt: %s enabled", sensors[wichSensor].title);
-								sckOut();
-								manualConfigDetected = true;
-								sensors[wichSensor].enabled = true;
-							}
-							
-							// Change interval if it is different
-							if (sensors[wichSensor].interval != newInterval) {
-								sprintf(outBuff, "config.txt %s reading interval: %lu", sensors[wichSensor].title, newInterval);
-								sckOut();
-								manualConfigDetected = true;
-								sensors[wichSensor].interval = newInterval;
-							}
-
-						} else {
-							sprintf(outBuff, "Wrong value for %s configuration!!", sensors[wichSensor].title);
-							sckOut();
-						}
-					}
-				}
-			}
-		}
-
-		configFile.close();
-
-		// If something has been configured manually
-		if (manualConfigDetected) saveConfig();
-
-	} else return false;
-
-	return true;
-}
 
 /* 	--------------
  	|	Button   |
@@ -2334,11 +2584,7 @@ void SckBase::buttonDown() {
 	sckOut(F("buttonDown"), PRIO_LOW);
 
 	switch (config.mode) {
-		case MODE_OFF: {
-			wakeUp();
-			break;
-
-		} case MODE_FLASH: {
+		case MODE_FLASH: {
 			softReset();
 			break;
 
@@ -2354,6 +2600,7 @@ void SckBase::buttonDown() {
 void SckBase::buttonUp() {
 	
 	sckOut(F("Button up"), PRIO_LOW);
+	// changeMode(MODE_OFF);
 }
 
 void SckBase::veryLongPress() {
@@ -2387,6 +2634,8 @@ void SckBase::softReset() {
 */
 bool SckBase::sdPresent() {
 
+	if (sdcardAlreadySearched) return false;
+
 	ESPcontrol(ESP_OFF);
 	digitalWrite(CH_PD, LOW);		// Do this here to avoid wifi led current drain but provide sd card access
 
@@ -2394,13 +2643,12 @@ bool SckBase::sdPresent() {
 	closeFiles();
 
 	if (sd.cardBegin(CS_SDCARD, SPI_HALF_SPEED)) {
-		sckOut(F("Sdcard ready!!"));
+		sckOut(F("Sdcard ready!!"), PRIO_LOW);
 		return true;
 	} else {
 		sckOut(F("Sdcard not found!!"));
-		if (config.mode == MODE_SD) {
-			errorMode();
-		}
+		if (config.mode == MODE_SD) errorMode();
+		sdcardAlreadySearched = true;
 		return false;
 	}
 }
@@ -2408,8 +2656,6 @@ bool SckBase::sdPresent() {
 bool SckBase::openPublishFile(bool writeHeader) {
 
 	char charFileName[publishFileName.length()];
-
-	sckOut(F("Opening publish file..."));
 
 	if (sdPresent()) {
 
@@ -2466,7 +2712,6 @@ bool SckBase::openPublishFile(bool writeHeader) {
 			}
 		}
 	}
-	sckOut(F("Error opening file in SD card!!!"));
 	return false;
 }
 
@@ -2502,8 +2747,8 @@ bool SckBase::openLogFile() {
 bool SckBase::openConfigFile(bool onlyRead) {
 
 	if (sdPresent()) {
-		sd.begin(CS_SDCARD);
 
+		sd.begin(CS_SDCARD);
 		
 		if (onlyRead) {
 			// Open file only for reading
@@ -2729,11 +2974,11 @@ void SckBase::updatePower() {
 	else led.lowBatt = false;
 
 	// Charging battery led feedback
-	if (charging && config.mode != MODE_SETUP) led.charging = true;
+	if (charging) led.charging = true;
 	else led.charging = false;
 
 	// Finished charging led feedback
-	if (!charging && onUSB && config.mode != MODE_SETUP) led.finishedCharging = true;
+	if (!charging && onUSB) led.finishedCharging = true;
 	else led.finishedCharging = false;
 }
 
@@ -2809,6 +3054,9 @@ void Led::update(SCKmodes newMode, uint8_t newPulseMode) {
 			ledRGBcolor = offRGB;
 			pulseMode = PULSE_STATIC;
 			break;
+		} case MODE_SHELL: {
+			ledRGBcolor = altBlueRGB;
+			pulseMode = PULSE_STATIC;
 		} default: {
 			;
 		}
@@ -3086,17 +3334,59 @@ bool SckBase::timerRun() {
 						if (config.persistentMode == MODE_SD) {
 
 							if (onTime && sdPresent()) {
-								changeMode(MODE_SD);
 								timerClear(ACTION_RECOVER_ERROR);
+								changeMode(MODE_SD);
 							}
 						
 						} else if (config.persistentMode == MODE_NET) {
 
-							//if (onWifi && tokenConfigured) changeMode(MODE_NET);
-							timerClear(ACTION_RECOVER_ERROR);
+							if (digitalRead(POWER_WIFI)) ESPcontrol(ESP_ON);
+
+							if (onTime && onWifi && tokenSet) {
+								timerClear(ACTION_RECOVER_ERROR);
+								timerClear(ACTION_START_AP_MODE);
+								changeMode(MODE_NET);
+							}
 						}
 
 						break;
+
+					} case ACTION_START_AP_MODE: {
+
+						msgBuff.com = ESP_START_AP_COM;
+						ESPqueueMsg(false, false);
+						break;
+
+					} case ACTION_SAVE_SD_CONFIG: {
+						
+						// How much time for next publish...
+						uint32_t timeToNextPublish = rtc.getEpoch() - lastPublishTime;
+
+						// If there is no message on queue and publish time is at least 5 seconds away
+						if (BUS_queueCount == 0 && timeToNextPublish > 5 && !triggerHello) {
+							
+							// Save sd config (esp off)
+							saveSDconfig();
+
+							// Start esp again
+							if (digitalRead(POWER_WIFI)) ESPcontrol(ESP_ON);
+
+							// Clear timer
+							timerClear(ACTION_SAVE_SD_CONFIG);
+						}
+						break;
+
+					} case ACTION_MQTT_SUBSCRIBE: {
+
+						if (onWifi)	mqttConfig(true);
+						else timerSet(ACTION_MQTT_SUBSCRIBE, 1000);
+						break;
+
+					} case ACTION_RETRY_READ_SENSOR: {
+
+						sckIn(String("read ") + String(sensors[retrySensor].title));
+						break;
+
 					} default: {
 						;
 					}
@@ -3136,7 +3426,10 @@ void SckBase::timerSet(TimerAction action, uint32_t interval, bool isPeriodic) {
 		}
 	}
 
-	if (!slotsFree) sckOut(F("We need more Timer slots!!!"), PRIO_HIGH);
+	if (!slotsFree) {
+		sckOut(F("We need more Timer slots!!!"), PRIO_HIGH);
+		for (uint8_t i=0; i<timerSlots; i++) sckOut(String(timers[i].action));
+	}
 }
 
 bool SckBase::timerClear(TimerAction action) {
@@ -3153,7 +3446,7 @@ bool SckBase::timerClear(TimerAction action) {
 	return false;
 }
 
-void SckBase::timerClearTasks() {
+void SckBase::timerClearTasks(bool clearAll) {
 
 	for (uint8_t i=0; i<timerSlots; i++) {
 
@@ -3161,7 +3454,9 @@ void SckBase::timerClearTasks() {
 			timers[i].action != ACTION_VERY_LONG_PRESS && 
 			timers[i].action != ACTION_GET_ESP_STATUS && 
 			timers[i].action != ACTION_UPDATE_POWER &&
-			timers[i].action != ACTION_RECOVER_ERROR) {
+			timers[i].action != ACTION_RECOVER_ERROR &&
+			timers[i].action != ACTION_SAVE_SD_CONFIG ||
+			clearAll) {
 
 			timers[i].action = ACTION_NULL;
 			timers[i].interval = 0;

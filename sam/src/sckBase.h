@@ -75,6 +75,7 @@ public:
 	RGBcolor redRGB 		= {250,	4,		6};
 	RGBcolor greenRGB 		= {0,	254,	0};
 	RGBcolor blueRGB 		= {0,	29,		225};
+	RGBcolor altBlueRGB 	= {0,	60,		254};
 	RGBcolor pinkRGB 		= {129,	12,		112};
 	RGBcolor yellowRGB 		= {154,	100,	0};
 	RGBcolor orangeRGB 		= {235,	30,		0};
@@ -132,21 +133,25 @@ public:
 	// Timer
 	bool timerRun();
 	enum TimerAction { 
-		ACTION_NULL, 
-		ACTION_CLEAR_ESP_BOOTING,
-		ACTION_ESP_ON,
-		ACTION_ESP_REBOOT,
-		ACTION_GET_ESP_STATUS, 
-		ACTION_LONG_PRESS,
-		ACTION_VERY_LONG_PRESS, 
-		ACTION_RESET,
-		ACTION_UPDATE_SENSORS,
-		ACTION_UPDATE_POWER,
-		ACTION_CHECK_ESP_PUBLISH_TIMEOUT,
-		ACTION_READ_NETWORKS,
-		ACTION_DEBUG_LOG,
-		ACTION_GOTO_SETUP,
-		ACTION_RECOVER_ERROR
+		ACTION_NULL,						// 0
+		ACTION_CLEAR_ESP_BOOTING,			// 1
+		ACTION_ESP_ON,						// 2
+		ACTION_ESP_REBOOT,					// 3
+		ACTION_GET_ESP_STATUS,				// 4
+		ACTION_LONG_PRESS,					// 5
+		ACTION_VERY_LONG_PRESS,				// 6
+		ACTION_RESET,						// 7
+		ACTION_UPDATE_SENSORS,				// 8
+		ACTION_UPDATE_POWER,				// 9
+		ACTION_CHECK_ESP_PUBLISH_TIMEOUT,	// 10
+		ACTION_READ_NETWORKS,				// 11
+		ACTION_DEBUG_LOG,					// 12
+		ACTION_GOTO_SETUP,					// 13
+		ACTION_RECOVER_ERROR,				// 14
+		ACTION_START_AP_MODE,				// 15
+		ACTION_SAVE_SD_CONFIG,				// 16
+		ACTION_MQTT_SUBSCRIBE,				// 17
+		ACTION_RETRY_READ_SENSOR			// 18
 	};
 	struct OneTimer	{
 		TimerAction action = ACTION_NULL;
@@ -158,7 +163,7 @@ public:
 	OneTimer timers[timerSlots];
 	void timerSet(TimerAction action, uint32_t interval, bool isPeriodic=false);		// interval is in milliseconds
 	bool timerClear(TimerAction action);
-	void timerClearTasks();
+	void timerClearTasks(bool clearAll=false);
 	bool timerExists(TimerAction action);
 	const uint8_t MAX_PUBLISH_FAILS_ALLOWED = 5;
 
@@ -174,7 +179,8 @@ public:
 	// Single readings
 	int RAMreadingsIndex = -1;
 	SingleSensorReading RAMreadings[ram_max_readings];
-	uint8_t maxDiffBetweenReadings = minimal_sensor_reading_interval;		// If readings are inside this thime (sec) frame they will be considered simultaneous
+	uint8_t maxDiffBetweenReadings = minimal_sensor_reading_interval - 5;		// If readings are inside this thime (sec) frame they will be considered simultaneous
+	SensorType retrySensor;
 
 	void enableSensor(SensorType wichSensor);
 	void disableSensor(SensorType wichSensor);
@@ -183,17 +189,14 @@ public:
 	bool RAMstore(SensorType);
 	uint16_t closestReading;		// in seconds
 	bool RAMgetGroup(int groupIndex);
-	bool publish();
+	void publish();
 	bool publishToSD();
+	int sdIndex = -1;
 	bool ESPpublish();
 	uint32_t lastPublishTime = 0;
-	
-
-	// REVISAR DE ESTO QUE SE NECESITA REALMENTE BAJO EL NUEVO MODELO
-	const uint8_t READING_MAX_TIME = 10;			// In seconds
-	bool ESPpublishPending = false;
-	const uint16_t ESP_publish_timeout_interval = 25000;	// In ms
-
+	bool publishRuning = false;
+	bool WaitForWifi = false;
+	uint8_t sensorDisplayIndex = 0;
 
 	// Configuration ----------
 	String hardwareVer 	= "1.5";
@@ -201,17 +204,24 @@ public:
 	String SAMbuildDate = String(__DATE__) + '-' + String(__TIME__);
 	String ESPversion 	= "null";
 	String ESPbuildDate = "null";
-	Credentials credentials;
+	// Credentials credentials;
 	bool triggerHello = false;
-	void sendNetwork();
-	void clearNetworks();
-	char token[8];
-	void sendToken();
+	void saveWifi(char newSsid[64], char newPass[64]);
+	void clearWifi();
+	void setESPwifi();
+	void getESPwifi();
+	bool wifiSet = false;
+	void saveToken(char newToken[8]);
 	void clearToken();
+	void setESPtoken();
+	void getESPtoken();
+	bool tokenSet = false;
 	Configuration config;
 	void loadConfig();
 	bool loadSDconfig();
 	void saveConfig(bool factory=false);
+	void saveSDconfig();
+	void mqttConfig(bool activate);
 
 	// Flags
 	bool onWifi = false;
@@ -224,8 +234,8 @@ public:
 	// Modes
 	void changeMode(SCKmodes newMode);
 	void errorMode();
-	SCKmodes prevMode = MODE_SD;
-	SCKmodes default_mode = MODE_SD;
+	SCKmodes prevMode = MODE_NET;
+	SCKmodes default_mode = MODE_NET;
 
 	const char *modeTitles[MODE_COUNT] PROGMEM = {
 		"setup",		// modeTitles[MODE_SETUP]
@@ -249,21 +259,19 @@ public:
 		EXTCOM_ESP_SLEEP,
 		EXTCOM_ESP_WAKEUP,
 		EXTCOM_GET_APLIST,
-		EXTCOM_ESP_SERIAL_DEBUG_ON,
-		EXTCOM_ESP_SERIAL_DEBUG_OFF,
+		EXTCOM_ESP_SERIAL_DEBUG_TOGGLE,
 		EXTCOM_ESP_LED_ON,
 		EXTCOM_ESP_LED_OFF,
 		EXTCOM_ESP_MQTT_HELLO,
 		EXTCOM_ESP_GET_FREEHEAP,
+		EXTCOM_ESP_SHOW_STATUS,
 
 		// Configuration commands
 		EXTCOM_SET_WIFI,
 		EXTCOM_GET_WIFI,
-		EXTCOM_GET_BEST_WIFI,
 		EXTCOM_CLEAR_WIFI,
-		EXTCOM_GET_IP,
+		EXTCOM_GET_NET_INFO,
 		EXTCOM_SET_TOKEN,
-		EXTCOM_GET_TOKEN,
 		EXTCOM_CLEAR_TOKEN,
 		EXTCOM_GET_VERSION,
 		EXTCOM_SYNC_CONFIG,
@@ -283,6 +291,7 @@ public:
 		EXTCOM_READLIGHT_OFF,
 		EXTCOM_READLIGHT_RESET,
 		EXTCOM_READLIGHT_TOGGLE_DEBUG,
+		EXTCOM_MQTT_CONFIG,			// @params: on/off
 
 		// Time configuration
 		EXTCOM_GET_TIME,			// @params: iso (default), epoch
@@ -312,6 +321,7 @@ public:
 		EXTCOM_SET_CHARGER_CURRENT,
 		EXTCOM_RESET_CAUSE,
 		EXTCOM_GET_FREE_RAM,
+		EXTCOM_LIST_TIMERS,
 
 		EXTCOM_HELP,
 
@@ -334,21 +344,20 @@ public:
 	"esp sleep",			// 	EXTCOM_ESP_SLEEP,
 	"esp wakeup",			// 	EXTCOM_ESP_WAKEUP,
 	"get aplist",			// 	EXTCOM_GET_APLIST,
-	"esp debug on",			// 	EXTCOM_ESP_SERIAL_DEBUG_ON,
-	"esp debug off",		// 	EXTCOM_ESP_SERIAL_DEBUG_OFF,
+	"esp debug",			// 	EXTCOM_ESP_SERIAL_DEBUG_TOGGLE,
 	"esp led on",			// 	EXTCOM_ESP_LED_ON,
 	"esp led off",			// 	EXTCOM_ESP_LED_OFF,
 	"mqtt hello",			// 	EXTCOM_ESP_MQTT_HELLO,
 	"esp heap",				// 	EXTCOM_ESP_GET_FREEHEAP,
+	"esp status",			// 	EXTCOM_ESP_SHOW_STATUS,
 
 	// Configuration commands
 	"set wifi",				// EXTCOM_SET_WIFI,
 	"get wifi",				// EXTCOM_GET_WIFI,
-	"get best wifi",		// EXTCOM_GET_BEST_WIFI,
+	// "get best wifi",		// EXTCOM_GET_BEST_WIFI,
 	"clear wifi",			// EXTCOM_CLEAR_WIFI,
-	"get ip",				// EXTCOM_GET_IP,
+	"get netinfo",			// EXTCOM_GET_NET_INFO,
 	"set token",			// EXTCOM_SET_TOKEN,
-	"get token",			// EXTCOM_GET_TOKEN,
 	"clear token",			// EXTCOM_CLEAR_TOKEN,
 	"get version",			// EXTCOM_GET_VERSION,
 	"sync config",			// EXTCOM_SYNC_CONFIG,
@@ -364,10 +373,11 @@ public:
 	"get outlevel",			// EXTCOM_GET_OUTLEVEL,
 	"set led",				// EXTCOM_SET_LED,			@params: off, (to implement: red, blue, green, etc)
 	"urban present",		// EXTCOM_GET_URBAN_PRESENT,
-	"set readlight on",		// EXTCOM_READLIGHT_ON,
-	"set readlight off",	// EXTCOM_READLIGHT_OFF,
-	"set readlight reset",	// EXTCOM_READLIGHT_RESET,
-	"set readlight debug",	// EXTCOM_READLIGHT_TOGGLE_DEBUG,
+	"readlight on",			// EXTCOM_READLIGHT_ON,
+	"readlight off",		// EXTCOM_READLIGHT_OFF,
+	"readlight reset",		// EXTCOM_READLIGHT_RESET,
+	"readlight debug",		// EXTCOM_READLIGHT_TOGGLE_DEBUG,
+	"mqttconfig",			// EXTCOM_MQTT_CONFIG,
 
 	// Time configuration
 	"get time",				// EXTCOM_GET_TIME,			@params: iso (default), epoch
@@ -397,6 +407,7 @@ public:
 	"set charger",			// EXTCOM_SET_CHARGER_CURRENT,
 	"rcause",				// EXTCOM_RESET_CAUSE,
 	"get freeram",			// EXTCOM_GET_FREE_RAM,
+	"list timers",			// EXTCOM_LIST_TIMERS,
 
 	"help",					// EXTCOM_HELP,
 	
@@ -419,7 +430,7 @@ public:
 		"Verbose"
 	};
 	enum PrioLevels {PRIO_LOW, PRIO_MED, PRIO_HIGH};
-	char outBuff[128];
+	char outBuff[240];
 	void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);
 	void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true);
 	void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
@@ -455,9 +466,10 @@ public:
 	BUS_Serial BUS_queue[8];
 	const uint16_t answerTimeout = 250;
 	int BUS_queueCount = 0;
-	bool espSerialDebug = false;
+	bool espSerialDebug = true;
 	float espLastOn;
 	float espTotalOnTime = 0;
+	bool espConsole = false;
 	// --- esp status
 	void getStatus();
 	void processStatus();
@@ -480,6 +492,7 @@ public:
 	String logFileName = "SCK.LOG";
 	String oldLogFileName = "SCK_OLD.LOG";
 	bool sdPresent();
+	bool sdcardAlreadySearched = false;
 	bool openPublishFile(bool writeHeader=false);
 	bool openLogFile();
 	bool openConfigFile(bool onlyRead=false);

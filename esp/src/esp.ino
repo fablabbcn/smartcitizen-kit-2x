@@ -20,12 +20,15 @@ void LedToggleRight() {
 time_t ntpProvider() {
 	return esp.getNtpTime();
 }
-void extRoot() {
-	esp.webRoot();	
-}
 void extSet() {
 	esp.webSet();
 }
-void extShow() {
-	esp.webShow();	
+void extConf() {
+	esp.webConf();
+}
+void extStatus() {
+	esp.webStatus();
+}
+void extRoot(String path) {
+	esp.flashReadFile(path);
 }

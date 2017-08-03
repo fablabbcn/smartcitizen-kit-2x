@@ -66,7 +66,7 @@ public:
 	Resistor POT_CO_REGULATOR = {POT2, 0x00};
 	const uint8_t CO_HEATER_RESISTOR = 10; 									// (Ohm) RDRED Resistencia en el sensor CO sensor
 	uint32_t CO_HEATING_CURRENT = 32;										// (mA) Normal operational current
-	uint32_t CO_HEATER_RESISTANCE = 74;									// (Ohm) Heating resistance at nominal power 
+	uint32_t CO_HEATER_RESISTANCE = 74;										// (Ohm) Heating resistance at nominal power 
 	bool gasCOheaterState = false;
 	uint32_t startHeaterTime_CO = 0;
 

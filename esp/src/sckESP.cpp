@@ -47,16 +47,19 @@ void SckESP::setup() {
 	strncpy(hostname, "Smartcitizen", 20);
 	strncat(hostname, macAddr.c_str(), 4);
 
+	// Starts ESP status values in NULL
+	for (uint8_t i=0; i<ESP_STATUS_TYPES_COUNT; i++) espStatus.value[i] = ESP_NULL_EVENT;
+
 	// Wifi settings
 	WiFi.hostname(hostname);
 	WiFi.persistent(false);		 		// Only write to flash credentials when changed (for protecting flash from wearing out)
 	readNetwork();
-	readToken();
+	loadToken();
 
 	scanAP();
 
 	if (countSavedNetworks() <= 0) {
-		espStatus.wifi = ESP_WIFI_ERROR_EVENT;
+		espStatus.wifi = ESP_WIFI_NOT_CONFIGURED;
 		ledBlink(ledRight, 100);
 		startAP();
 	} else {
@@ -79,28 +82,23 @@ void SckESP::update() {
 
 		// WL_CONNECTED after successful connection is established
 		if (actualWIFIStatus == WL_CONNECTED) {
-			debugOUT(String F("Conected to wifi: ") + String(credentials.ssid) + " - " + String(credentials.password));
+			debugOUT(String F("Conected to wifi: ") + String(config.ssid) + " - " + String(config.pass));
 			espStatus.wifi = ESP_WIFI_CONNECTED_EVENT;
 			ledSet(ledRight, 1);
-			setGoodNet();
+			// setGoodNet();
 			stopAP();
-
-			// Time setup (it doesn't work with access point mode on)
-			// Udp.begin(8888);
-			// setSyncProvider(ntpProvider);
-			// setSyncInterval(300);
 
 			startWebServer();	// CHECK if it doesnt mess with NTP
 
 		// WL_DISCONNECTED if module is not configured in station mode
 		} else if (actualWIFIStatus == WL_DISCONNECTED) {
 
-			tryConnection();
+			// tryConnection();
 		
 		// (NOT) WL_IDLE_STATUS when Wi-Fi is in process of changing between statuses
 		} else if (actualWIFIStatus != WL_IDLE_STATUS) {
 			
-			debugOUT(String F("FAILED Wifi conection: ") + String(credentials.ssid) + " - " + String(credentials.password));
+			debugOUT(String F("FAILED Wifi conection: ") + String(config.ssid) + " - " + String(config.pass));
 			espStatus.wifi == ESP_WIFI_ERROR_EVENT;
 			startAP();
 
@@ -119,8 +117,7 @@ void SckESP::update() {
 			}
 
 			// If you have configured at least one net AND it appears in the scan 
-			// TODO hacer un conteo de retrys por red ASI COMO ESTA SE QUEDA EN UN LOOP
-			if (countSavedNetworks() > 1 && selectBestNetwork() >= 0 && connectionRetrys < 1) { 
+			if (countSavedNetworks() > 0 && connectionRetrys < 1) {
 			
 				connectionRetrys++;
 				tryConnection();
@@ -145,40 +142,37 @@ bool SckESP::processMsg() {
 
 	// debugOUT(F("Processing command from SAM..."));
 	// debugOUT(String F("Epoch time: ") + String(msgIn.time));
-	// debugOUT(String F("Command: ") + String(msgIn.com));
+	if (!String(msgIn.com).startsWith("34")) debugOUT(String F("Command from SAM: ") + String(msgIn.com));
 	// debugOUT(String F("Parameters: ") + String(msgIn.param));
 
 	switch(msgIn.com) {
 		case ESP_SET_WIFI_COM: {
-
 			// Parse input
 			StaticJsonBuffer<240> jsonBuffer;
 			JsonObject& jsonNet = jsonBuffer.parseObject(msgIn.param);
-			strcpy(credentials.ssid, jsonNet["ssid"]);
-			strcpy(credentials.password, jsonNet["pass"]);
-
+			strcpy(config.ssid, jsonNet["ssid"]);
+			strcpy(config.pass, jsonNet["pass"]);
 			if (addNetwork()) {
 				readNetwork();
-				sendNetwork(1, ESP_SET_WIFI_COM);
+				sendNetwork(ESP_SET_WIFI_COM);
 				if (WiFi.status() != WL_CONNECTED) tryConnection();
 			} 
 			break;
 
-		} case ESP_GET_WIFI_COM: {
-			debugOUT(F("Cheking for saved networks..."));
-			SAMlistSavedNetworks();
-			break;
+		} case ESP_SET_TOKEN_COM: {
 
-		} case ESP_GET_BEST_WIFI_COM: {
-			debugOUT(F("Looking for best network..."));
-			int8_t bestNetworkIndex = selectBestNetwork();
-			msgOut.com = ESP_GET_BEST_WIFI_COM;
-			if (bestNetworkIndex >= 0) sendNetwork(bestNetworkIndex);
-			else {
-				clearParam();
-				strncpy(msgOut.param, "None found", 64);
-				SAMsendMsg();
-			}
+	 		strncpy(config.token, msgIn.param, 8);
+	 		espStatus.token = ESP_TOKEN_OK;
+	 		if (saveToken()) {
+	 			loadToken();
+	 			sendToken();
+	 		}
+
+	 		break;
+
+	 	} case ESP_GET_WIFI_COM: {
+			debugOUT(F("Cheking for saved networks..."));
+			sendNetwork(ESP_GET_WIFI_COM);
 			break;
 
 		} case ESP_CLEAR_WIFI_COM: {
@@ -192,13 +186,20 @@ bool SckESP::processMsg() {
 
 			break;
 
-		} case ESP_GET_IP_COM: {
+		} case ESP_GET_NET_INFO_COM: {
 
-			msgOut.com = ESP_GET_IP_COM;
+			msgOut.com = ESP_GET_NET_INFO_COM;
+			
 			String tip = WiFi.localIP().toString();
-			debugOUT(String F("IP Address: ") + tip);
-			clearParam();
-			tip.toCharArray(msgOut.param, 240);
+			String tmac = WiFi.softAPmacAddress();
+
+			StaticJsonBuffer<240> jsonBuffer;
+			JsonObject& jsonIP = jsonBuffer.createObject();
+			jsonIP["hn"] = hostname;
+			jsonIP["ip"] = tip;
+			jsonIP["mac"] = tmac;
+			// clearParam();
+			jsonIP.printTo(msgOut.param, 240);
 			SAMsendMsg();
 			break;
 
@@ -207,41 +208,30 @@ bool SckESP::processMsg() {
 	 		break;
 
 	 	} case ESP_GET_TOKEN_COM: {
-	 		readToken();
 			msgOut.com = ESP_GET_TOKEN_COM;
 			clearParam();
-			strncpy(msgOut.param, token, 8);
+			strncpy(msgOut.param, config.token, 8);
 			SAMsendMsg();
 	 		break;
 
-	 	} case ESP_SET_TOKEN_COM: {
-	 		strncpy(token, msgIn.param, 8);
-			saveToken();
-			readToken();
-			clearParam();
-			strncpy(msgOut.param, token, 8);
-			msgOut.com = ESP_SET_TOKEN_COM;
-			SAMsendMsg();
-	 		break;
+	 	} case ESP_CLEAR_TOKEN_COM: {
 
-		} case ESP_CLEAR_TOKEN_COM: {
-
-			strncpy(token, "-null-", 8);
-			saveToken();
-
-			// ACK
+	 		// ACK
 			msgOut.com = ESP_CLEAR_TOKEN_COM;
 			clearParam();
 			SAMsendMsg();
 
+			clearToken();
 			break;
 
 	 	} case ESP_GET_CONF_COM: {
+
+	 		// TODO send allconfig
 	 		msgOut.com = ESP_GET_CONF_COM;
 	 		
  			StaticJsonBuffer<240> jsonBuffer;
 			JsonObject& jsonConf = jsonBuffer.createObject();
-			jsonConf["ri"] = configuration.readInterval;
+			jsonConf["ri"] = config.publishInterval;
 			clearParam();
 			jsonConf.printTo(msgOut.param, 240);
 			SAMsendMsg();
@@ -304,10 +294,12 @@ bool SckESP::processMsg() {
 	 	} case ESP_GET_TIME_COM: {
 
 			// Update time
-			debugOUT(F("Trying NTP Sync..."));
-			Udp.begin(8888);
-			setSyncProvider(ntpProvider);
-			setSyncInterval(300);
+			if (espStatus.time != ESP_TIME_UPDATED_EVENT) {
+				debugOUT(F("Trying NTP Sync..."));
+				Udp.begin(8888);
+				setSyncProvider(ntpProvider);
+				setSyncInterval(300);
+			}
 
 			// Send time
 			debugOUT(F("Sending time to SAM..."));
@@ -317,6 +309,24 @@ bool SckESP::processMsg() {
 			msgOut.com = ESP_GET_TIME_COM;
 			SAMsendMsg();
 	 		break;
+
+		} case ESP_SET_TIME_COM: {
+
+			String tepoch = msgIn.param;
+			uint32_t iepoch = tepoch.toInt();
+			const unsigned long DEFAULT_TIME = 1357041600; // Jan 1 2013
+
+			if (iepoch >= DEFAULT_TIME) { 
+
+				setTime(iepoch);
+       			espStatus.time = ESP_TIME_UPDATED_EVENT;
+       			debugOUT(F("Time updated from SAM!!!"));
+
+       			msgOut.com = ESP_SET_TIME_COM;
+       			SAMsendMsg();
+			}
+			break;
+
 
 		} case ESP_SYNC_HTTP_TIME_COM: {
 
@@ -346,6 +356,11 @@ bool SckESP::processMsg() {
 
 	 		debugOUT("Receiving new readings...");
 
+	 		// ACK response
+			msgOut.com = ESP_MQTT_PUBLISH_COM;
+			clearParam();
+			SAMsendMsg();
+
 	 		// Parse input
 			StaticJsonBuffer<240> jsonBuffer;
 			JsonObject& jsonSensors = jsonBuffer.parseObject(msgIn.param);
@@ -355,9 +370,10 @@ bool SckESP::processMsg() {
 
 				SensorType wichSensor = static_cast<SensorType>(i);
 
-				// Check if sensor exists in SAM readings (we asume that missing sensors are disabled)
+				// Check if sensor exists in received readings (we asume that missing sensors are disabled)
 				if (jsonSensors.containsKey(String(i))) {
 
+					sensors[wichSensor].lastReadingTime = jsonSensors["t"];
 					sensors[wichSensor].reading = jsonSensors[String(i)];
 					sensors[wichSensor].enabled = true;
 
@@ -366,18 +382,35 @@ bool SckESP::processMsg() {
 				}
 			}
 
-			// ACK response
-			msgOut.com = ESP_MQTT_PUBLISH_COM;
-			clearParam();
-			SAMsendMsg();
-
 			if (mqttPublish()) espStatus.mqtt = ESP_MQTT_PUBLISH_OK_EVENT;
 			else espStatus.mqtt = ESP_MQTT_ERROR_EVENT;
 	 		break;
 
+	 	} case ESP_MQTT_SUBSCRIBE_COM: {
+
+	 		// ACK response
+			msgOut.com = ESP_MQTT_SUBSCRIBE_COM;
+			clearParam();
+			SAMsendMsg();
+
+			mqttConfigSub(true);
+	 		break;
+
+	 	} case ESP_MQTT_UNSUBSCRIBE_COM: {
+
+	 		// ACK response
+			msgOut.com = ESP_MQTT_UNSUBSCRIBE_COM;
+			clearParam();
+			SAMsendMsg();
+
+			mqttConfigSub(false);
+	 		break;
+
 	 	} case ESP_MQTT_CLEAR_STATUS: {
 
-	 		espStatus.mqtt = ESP_NULL;
+	 		debugOUT(F("Clearing MQTT status!!!"));
+
+	 		espStatus.mqtt = ESP_NULL_EVENT;
 
 	 		// ACK response
 			msgOut.com = ESP_MQTT_CLEAR_STATUS;
@@ -402,18 +435,20 @@ bool SckESP::processMsg() {
 	 		break;
 
 	 	} case ESP_GET_STATUS_COM: {
+	 		// debugOUT("~");
 	 		sendStatus();
 	 		break;
 
-	 	} case ESP_SERIAL_DEBUG_ON: {
-	 		serialDebug = true;
-	 		debugOUT(F("Turning debug output ON"));
+	 	} case ESP_SERIAL_DEBUG_TOGGLE: {
+	 		if (serialDebug) {
+	 			debugOUT(F("Turning debug output OFF"));
+	 			serialDebug = false;
+	 		} else {
+	 			serialDebug = true;
+	 			debugOUT(F("Turning debug output ON"));
+	 		} 
 	 		break;
 
-	 	} case ESP_SERIAL_DEBUG_OFF: {
-	 		debugOUT(F("Turning debug output OFF"));
-	 		serialDebug = false;
-	 		break;
 	 	} case ESP_GET_FREE_HEAP_COM: {
 
 	 		int f = ESP.getFreeHeap();
@@ -435,9 +470,26 @@ bool SckESP::processMsg() {
 			jsonVer.printTo(msgOut.param, 240);
 			SAMsendMsg();
 			break;
+	 	
+	 	} case ESP_CONSOLE_COM: {
+
+			consoleBuffer += String(msgIn.param);
+	 		break;
+
+	 	} case ESP_CONSOLE_PUBLISH: {
+
+	 		debugOUT("Publishing response to web: " + String(consoleBuffer.length()) + " chars");
+
+	 		// Ack
+	 		msgOut.com = ESP_CONSOLE_PUBLISH;
+			clearParam();
+			SAMsendMsg();
+
+	 		webServer.send(200, "text/plain", consoleBuffer);
+	 		consoleBuffer = "";
+	 		break;
 	 	}
 	}
-
 	// Clear msg
 	msgIn.com = 0;
 	strncpy(msgIn.param, "", 240);
@@ -463,13 +515,14 @@ void SckESP::sendStatus() {
 
 	clearParam();
 
-	msgOut.param[0] = espStatus.wifi;
-	msgOut.param[1]	= espStatus.net;
-	msgOut.param[2]	= espStatus.mqtt;
-	msgOut.param[3]	= espStatus.time;
-	msgOut.param[4]	= espStatus.ap;
-	msgOut.param[5]	= espStatus.web;
-	msgOut.param[6]	= espStatus.conf;
+	espStatusTypes statusToSend = ESP_STATUS_TYPES_COUNT;
+
+	for (uint8_t i=0; i<ESP_STATUS_TYPES_COUNT; i++) {
+
+		statusToSend = static_cast<espStatusTypes>(i);
+		msgOut.param[i] = espStatus.value[statusToSend];
+
+	}
 
 	msgOut.com = ESP_GET_STATUS_COM;
 	SAMsendMsg();
@@ -478,43 +531,18 @@ void SckESP::clearParam() {
 
 	memset(msgOut.param, 0, sizeof(msgOut.param));
 };
-void SckESP::sendNetwork(uint8_t index, EspCommand comm) {
+void SckESP::sendNetwork(EspCommand comm) {
 
 	// Prepare json for sending
 	StaticJsonBuffer<240> jsonBuffer;
 	JsonObject& jsonNet = jsonBuffer.createObject();
-	jsonNet["n"] = index;
-	jsonNet["s"] = credentials.ssid;
-	jsonNet["p"] = credentials.password;
+	jsonNet["s"] = config.ssid;
+	jsonNet["p"] = config.pass;
 	msgOut.com = comm;
 	clearParam();
 	jsonNet.printTo(msgOut.param, 240);
 	SAMsendMsg();
 };
-void SckESP::SAMlistSavedNetworks() {
-
-	int netCount = countSavedNetworks();
-
-	if (netCount > 0) {
-
-		for (int8_t i=0;  i<netCount; i++) {
-			readNetwork(i);
-			delay(5);
-			sendNetwork(i);
-		}
-	} else {
-		StaticJsonBuffer<240> jsonBuffer;
-		JsonObject& jsonNet = jsonBuffer.createObject();
-		jsonNet["s"] = "none";
-		jsonNet["p"] = "";
-		msgOut.com = ESP_GET_WIFI_COM;
-		clearParam();
-		jsonNet.printTo(msgOut.param, 240);
-		SAMsendMsg();
-		debugOUT(F("No network configured yet!"));
-	}
-};
-
 
 // 	---------------------
 //	|	Configuration 	|
@@ -534,20 +562,17 @@ void SckESP::tryConnection() {
 
 	if (WiFi.status() != WL_CONNECTED) {
 
-		debugOUT(String F("Trying connection to wifi: ") + String(credentials.ssid) + " - " + String(credentials.password));
+		debugOUT(String F("Trying connection to wifi: ") + String(config.ssid) + " - " + String(config.pass));
 
-		String tp = String(credentials.password);
+		String tp = String(config.pass);
 
-		if (tp.length() == 0) WiFi.begin(credentials.ssid);
-		else WiFi.begin(credentials.ssid, credentials.password);
+		if (tp.length() == 0) WiFi.begin(config.ssid);
+		else WiFi.begin(config.ssid, config.pass);
 
 	} else {
 		debugOUT(String F("Already connected to wifi: ") + String(WiFi.SSID()));
 	}
 };
-void SckESP::wifiDisconnect(){
-};
-
 
 // 	-----------------------------
 //	|	APmode and WebServer 	|
@@ -577,63 +602,81 @@ void SckESP::stopAP() {
 	dnsServer.stop();
 	WiFi.softAPdisconnect(true);
 	espStatus.ap = ESP_AP_OFF_EVENT;
-
-	stopWebserver();
 };
 void SckESP::startWebServer() {
-
-	// Handle root
-	webServer.on("/", HTTP_GET, extRoot);
-	
-	// TODO a veces no va... parece que es porque esta scaning....
-
-	// For captive portal complex address
-	webServer.onNotFound(extRoot);
-
-	webServer.on("/", HTTP_POST, extSet);
 
 	// Handle set 
 	// /set?ssid=value1&password=value2&token=value3&epoch=value
 	webServer.on("/set", extSet);
 
+	// Console
+	// /console?com=get sensors
+	webServer.on("/console", [&](){
+
+		debugOUT(F("Received web console request."));
+		
+		clearParam();
+		strncpy(msgOut.param, webServer.arg(0).c_str(), 240); 
+		msgOut.com = ESP_CONSOLE_COM;
+		SAMsendMsg();
+
+	});
+
 	// Handle saved configuration list
-	webServer.on("/conf", extShow);
+	webServer.on("/conf", extConf);
+
+	// Handle status request
+	webServer.on("/status", extStatus);
+
+	// Handle ping request
+	webServer.on("/ping", [&](){
+
+		debugOUT(F("Received web ping request."));
+
+		webServer.send(200, "text/plain", "");
+	});
 
 	// Handle APlist request
-	// webServer.on("/aplist", [](){
+	webServer.on("/aplist", [&](){
 
- //   		String json = "{\"nets\":[";
+		debugOUT(F("Received web Access point request."));
 
- //   		// int netNum = WiFi.scanNetworks();
- //   		int
-	// 	for (int i=0; i<netnumber2; i++) {
-	// 		json += "{\"ssid\":\"" + String(WiFi.SSID(i));
-	// 		json += "\",\"ch\":" + String(WiFi.channel(i));
-	// 		json += ",\"rssi\":" + String(WiFi.RSSI(i)) + "}";
-	// 		if (i < (netNumber - 1)) json += ",";
-	// 	}
+   		String json = "{\"nets\":[";
 
-	// 	json += "]}";
-	// 	webServer.send(200, "text/json", json);
-	// 	json = String();
-    	
-	// });
+   		// int netNum = WiFi.scanNetworks();
+		for (int i=0; i<netNumber; i++) {
+			json += "{\"ssid\":\"" + String(WiFi.SSID(i));
+			json += "\",\"ch\":" + String(WiFi.channel(i));
+			json += ",\"rssi\":" + String(WiFi.RSSI(i)) + "}";
+			if (i < (netNumber - 1)) json += ",";
+		}
+
+		json += "]}";
+		webServer.send(200, "text/json", json);
+		json = String();
+	});
 
 	// Handle SSDP
 	webServer.on("/description.xml", HTTP_GET, [](){
     	SSDP.schema(webServer.client());
 	});
 
+	// Handle files from flash
+	webServer.onNotFound([&](){
+		extRoot(webServer.uri());
+		// webServer.send(404, "text/plain", "404 - File Not Found");
+	});
+
 	// mDNS
 	if (!MDNS.begin(hostname)) {
 		debugOUT(F("ERROR: mDNS service failed to start!!"));
+	} else {
+		debugOUT(F("mDNS service started!!"));
 	}
-
-	// The rest
-	webServer.onNotFound(extRoot);
 
 	webServer.begin();
 	espStatus.web = ESP_WEB_ON_EVENT;
+	debugOUT("Started Webserver!!!");
 
 	// SSDP description
 	SSDP.setSchemaURL("description.xml");
@@ -651,27 +694,9 @@ void SckESP::stopWebserver() {
 	espStatus.web = ESP_WEB_OFF_EVENT;
 	webServer.stop();
 };
-void SckESP::webRoot() {
-
-	String htmlPage = htmlPage1;
-	
-	// Scan for wifi network async
-	int netNum = WiFi.scanComplete();
-
-	// Create list of scanned wifi netowrks
-	String webSelect;
-	for (int i=0; i<netNum; i++) {
-		String wSSID = WiFi.SSID(i); 
-		webSelect += String(F("<option value=\"")) + wSSID + String(F("\">")) + wSSID + String(F("</option>"));
-	}
-
-	// Assemble html page
-	htmlPage += webSelect;
-	htmlPage += htmlPage2;
-
-	webServer.send(200, "text/html", htmlPage);
-};
 void SckESP::webSet() {
+
+	debugOUT(F("Received web configuration request."));
 
 	// uint8_t score = 0;
 	
@@ -694,10 +719,13 @@ void SckESP::webSet() {
 		// If ssid is no zero chars
 		if (tssid.length() > 0) {
 
-			tssid.toCharArray(credentials.ssid, 64);
-			tpass.toCharArray(credentials.password, 64);
+			tssid.toCharArray(config.ssid, 64);
+			tpass.toCharArray(config.pass, 64);
 
-			if (addNetwork()) somethingChanged = true;
+			if (addNetwork()) {
+				somethingChanged = true;
+				espStatus.conf = ESP_CONF_WIFI_UPDATED;
+			}
 
 			response += String(F("Success: New net added: ")) + tssid + " - " + tpass + "<br/>";
 
@@ -713,12 +741,12 @@ void SckESP::webSet() {
 
 	// If we found the token
 	if (webServer.hasArg("token")) {
-		String ttoken = webServer.arg("token");
-		if (ttoken.length() == 6) {
-			ttoken.toCharArray(token, 8);
-			saveToken();
+		String stringToken = webServer.arg("token");
+		if (stringToken.length() == 6) {
+			stringToken.toCharArray(config.token, 8);
+			espStatus.token = ESP_CONF_TOKEN_UPDATED;
 			somethingChanged = true;
-			response += String(F("Success: New token added: ")) + ttoken + "<br/>";
+			response += String(F("Success: New token added: ")) + stringToken + "<br/>";
 
 			// score ++;
 
@@ -783,13 +811,6 @@ void SckESP::webSet() {
 		response += String(F("Warning: no new reading interval received"));
 	}
 	
-	// Custom Making Sense message TEMP
-	// if (score == 2) {
-	// 	response += "Thank you<br/>Please finish installing the Smart Citizen Kit on the other screen";
-	// } else {
-	// 	response += "Something went wrong!!<br/>Please click kit's button until is red and try again!";
-	// }
-	
 	response += "</body></html>";
 
 	webServer.send(200, "text/html", response);
@@ -802,17 +823,17 @@ void SckESP::webSet() {
 		SAMsendMsg();
 	}
 };
-void SckESP::webShow() {
+void SckESP::webConf() {
+
+	debugOUT(F("Received web info request."));
 	
-	readToken();
+	String json = "{\"token\":\"" + String(config.token) + "\",\"nets\":[";
 
-	String json = "{\"token\":\"" + String(token) + "\",\"nets\":[";
-
-		int netNum = countSavedNetworks();
+	int netNum = countSavedNetworks();
 	for (int i=0; i<netNum; i++) {
-		readNetwork(i);
-		json += "{\"ssid\":\"" + String(credentials.ssid);
-		json += "\",\"password\":\"" + String(credentials.password) + "\"}";
+		readNetwork();
+		json += "{\"ssid\":\"" + String(config.ssid);
+		json += "\",\"password\":\"" + String(config.pass) + "\"}";
 		if (i < (netNum - 1)) json += ",";
 	}
 	json += "]}";
@@ -821,7 +842,49 @@ void SckESP::webShow() {
 
 	json = String();
 };
+void SckESP::webStatus() {
 
+	debugOUT(F("Received web status info request."));
+
+	String json = "{\"status\":[";
+
+		for (uint8_t i=0; i<ESP_STATUS_TYPES_COUNT; i++) {
+			json += "{\"" + String(espStatus.name[i]) + "\":\"" + String(espStatus.eventTitle[espStatus.value[i]]) + "\"}";
+			if (i < (ESP_STATUS_TYPES_COUNT - 1)) json += ",";
+		}
+
+		json += "]}";
+		webServer.send(200, "text/json", json);
+		json = String();
+};
+bool SckESP::flashReadFile(String path){
+	
+	debugOUT("Received file request: " + path);
+	
+	// send index file in case no file is requested
+	if (path.endsWith("/")) path += "index.html";
+
+	// Manage content types
+	String contentType = "text/html";
+
+	if(path.endsWith(".css")) contentType = "text/css";
+	else if(path.endsWith(".js")) contentType = "application/javascript";
+	else if(path.endsWith(".png")) contentType = "image/png";
+	else if(path.endsWith(".gif")) contentType = "image/gif";
+	else if(path.endsWith(".jpg")) contentType = "image/jpeg";
+	else if(path.endsWith(".ico")) contentType = "image/x-icon";
+
+	if (SPIFFS.exists(path)) {
+	  
+		File file = SPIFFS.open(path, "r");
+		size_t sent = webServer.streamFile(file, contentType);
+		file.close();
+
+		return true;
+	}
+	webServer.send(404, "text/plain", "FileNotFound");
+	return false;
+};
 
 // 	---------------------
 //	|	Credentials 	|
@@ -832,87 +895,40 @@ bool SckESP::addNetwork() {
 	// Prepare json for saving
 	StaticJsonBuffer<240> jsonBuffer;
 	JsonObject& jsonNet = jsonBuffer.createObject();
-	jsonNet["ssid"] = credentials.ssid;
-	jsonNet["pass"] = credentials.password;
+	jsonNet["ssid"] = config.ssid;
+	jsonNet["pass"] = config.pass;
 
 	//If there is no credentials file yet, create it
-	if (!SPIFFS.exists(CREDENTIALS_FILE)) {
-		debugOUT(F("Cant find credentials file, creting new..."));
-		File credFile = SPIFFS.open(CREDENTIALS_FILE, "w");
-		credFile.close();
-	} else {
+	// if (!SPIFFS.exists(CREDENTIALS_FILE)) {
+	// 	debugOUT(F("Cant find credentials file, creting new..."));
+	// 	File credFile = SPIFFS.open(CREDENTIALS_FILE, "w");
+	// 	credFile.close();
+	// } else {
 
-		clearDuplicated();
+	// 	// clearDuplicated();
 
-		//If there is more than 8 sets saved, clear the top one.
-		int netCount = countSavedNetworks();
-		while (netCount >= MAX_SAVED_CREDENTIALS) {
-			debugOUT(F("Max wifi allowed, removing oldest one..."));
-			removeNetwork(0);
-			netCount = countSavedNetworks();
-		}	
-	}
+	// 	//If there is more than 8 sets saved, clear the top one.
+	// 	int netCount = countSavedNetworks();
+	// 	while (netCount >= MAX_SAVED_CREDENTIALS) {
+	// 		debugOUT(F("Max wifi allowed, removing oldest one..."));
+	// 		removeNetwork(0);
+	// 		netCount = countSavedNetworks();
+	// 	}	
+	// }
 	
-	File credFile = SPIFFS.open(CREDENTIALS_FILE, "a");
+	// File credFile = SPIFFS.open(CREDENTIALS_FILE, "a");
+
+	File credFile = SPIFFS.open(CREDENTIALS_FILE, "w");
 	
 	if (credFile) {
 		jsonNet.printTo(credFile);
 		credFile.write('\n');
 		credFile.close();
-		debugOUT(String F("Saved network: ") + String(credentials.ssid) + " - " + String(credentials.password));
+		debugOUT(String F("Saved network: ") + String(config.ssid) + " - " + String(config.pass));
 		return true;
 	}
 	debugOUT(F("Error saving network!!!"));
 	return false;
-};
-void SckESP::removeNetwork(int index) {
-
-	if (index >= 0) {
-
-		int netCount = countSavedNetworks();
-
-		if (netCount >= index) {
-
-			char oldFileName[] = "/tmp.txt";
-
-			// Renames original file
-			SPIFFS.rename(CREDENTIALS_FILE, oldFileName);
-			File oldFile = SPIFFS.open(oldFileName, "r");
-
-			// Creates new credentials file
-			File newFile = SPIFFS.open(CREDENTIALS_FILE, "w");
-						
-			if (newFile && oldFile) {
-
-				// Copy previous nets
-				int countedLines = 0;
-				while (countedLines < index) {
-					char b = oldFile.read();
-					newFile.write(b);
-					if (b == 10) countedLines++;
-				}
-
-				// Jumps the one to remove
-				while (!oldFile.find(10)) {
-					;
-				}
-
-				// Copy the rest
-				while (oldFile.available()){
-					char b = oldFile.read();
-					newFile.write(b);
-				}
-
-				oldFile.close();
-				newFile.close();
-
-				// Removes old file
-				SPIFFS.remove(oldFileName);
-
-				debugOUT(String F("Removed network number ") + String(index+1));
-			}
-		}
-	}
 };
 void SckESP::clearNetworks() {
 
@@ -921,20 +937,22 @@ void SckESP::clearNetworks() {
 		msgOut.com = ESP_CLEAR_WIFI_COM;
 		SAMsendMsg();
 	}
+
+	espStatus.wifi = ESP_WIFI_NOT_CONFIGURED;
 };
-bool SckESP::readNetwork(int index) {
+bool SckESP::readNetwork() {
 
 	// If no index specified, load last network
-	if (index < 0) index = (countSavedNetworks() - 1);
+	// if (index < 0) index = (countSavedNetworks() - 1);
 	
 	if (SPIFFS.exists(CREDENTIALS_FILE)) {
 		File credFile = SPIFFS.open(CREDENTIALS_FILE, "r");
 
 		// Go to line Index
-		int countedLines = 0;
-		while (countedLines < index) {
-			if (credFile.find(10)) countedLines++;
-		}
+		// int countedLines = 0;
+		// while (countedLines < index) {
+		// 	if (credFile.find(10)) countedLines++;
+		// }
 
 		// Read line
 		String jbuffer;
@@ -949,9 +967,9 @@ bool SckESP::readNetwork(int index) {
 		// Parse json credentials
 		StaticJsonBuffer<240> jsonBuffer;
 		JsonObject& jsonNet = jsonBuffer.parseObject(jbuffer);
-		strcpy(credentials.ssid, jsonNet["ssid"]);
-		strcpy(credentials.password, jsonNet["pass"]);
-		debugOUT(String(index+1) + F(": ") + String(credentials.ssid) + F(" - ") + String(credentials.password));
+		strcpy(config.ssid, jsonNet["ssid"]);
+		strcpy(config.pass, jsonNet["pass"]);
+		debugOUT(String(config.ssid) + F(" - ") + String(config.pass));
 		return true;
 	}
 	
@@ -972,108 +990,19 @@ int SckESP::countSavedNetworks() {
 		}
 	}
 	
+	espStatus.wifi = ESP_WIFI_NOT_CONFIGURED;
 	return -1;
 };
-void SckESP::clearDuplicated() {
-
-	// Temporary store original credentials
-	char checkingSSID[64];
-	char checkingPASS[64];
-	strncpy(checkingSSID, credentials.ssid, 64);
-	strncpy(checkingPASS, credentials.password, 64);
-
-	int netCount = countSavedNetworks();
-	if (netCount > 0) {
-
-		// Iterate over all saved networks
-		for (int i=0;  i<netCount; i++) {
-
-			if (readNetwork(i)) {
-			
-				int comparison = strcmp(checkingSSID, credentials.ssid);
-
-				// If duplicated net found
-				if (comparison == 0) {
-					debugOUT(F("Removing duplicated network..."));
-					removeNetwork(i);
-					break;
-				}
-			}
-		}
-	}
-	// Load again original credentials
-	strncpy(credentials.ssid, checkingSSID, 64);
-	strncpy(credentials.password, checkingPASS, 64);
-};
-int8_t SckESP::selectBestNetwork() {
-
-	debugOUT(F("Scanning for known networks..."));
-
-	// uint8_t netNumber = scanAP();
-	uint8_t savedNetNumber = countSavedNetworks();
-
-	String tssid;
-	int32_t trssi = -9999;
-	int8_t theBest = -1;
-
-	if (savedNetNumber > 1) {
-		for (int i=0; i<savedNetNumber; i++){
-			readNetwork(i);
-			for (int ii=0; ii<netNumber; ii++){
-				char WIFIssid[64];
-				int32_t WIFIrssi = WiFi.RSSI(ii);
-				WiFi.SSID(ii).toCharArray(WIFIssid, 64);
-				int comparison = strcmp(credentials.ssid, WIFIssid);
-				if (comparison == 0 && WIFIrssi > trssi) {
-					theBest = i;
-					tssid = WIFIssid;
-					trssi = WiFi.RSSI(ii);
-				}
-			}
-		}
-	}
-	if (theBest >= 0) {
-		debugOUT(String F("The best network is: ") + tssid);
-		readNetwork(theBest);
-	} else {
-		debugOUT(F("Cant' find any saved network online, no best net!!!"));
-	}
-	return theBest;
-};
-void SckESP::setGoodNet(){
-
-	// This function seems the same as addNetwork(), but only writes the file if its necessary to protect flash from wearing out.
-
-	// Remeber actual net
-	char goodSSID[64];
-	char goodPASS[64];
-	strncpy(goodSSID, credentials.ssid, 64);
-	strncpy(goodPASS, credentials.password, 64);
-
-	// Read last network
-	readNetwork();
-
-	// Only if best network is not in the last position, we move it
-	int comparison = strcmp(goodSSID, credentials.ssid);
-	if (comparison != 0) {
-
-		strncpy(credentials.ssid, goodSSID, 64);
-		strncpy(credentials.password, goodPASS, 64);
-
-		debugOUT(String F("Setting ") + String(credentials.ssid) + F(" as preferred network"));
-
-		addNetwork();
-
-	} else {
-		debugOUT(String(credentials.ssid) + F(" is already the preferred network"));
-	}
-};
 void SckESP::scanAP() {
+
+	debugOUT(F("Scaning Wifi networks..."));
+
 	netNumber = WiFi.scanNetworks();
 	// Wait for scan...
 	while (WiFi.scanComplete() == -2) {
 		;
 	}
+
 	debugOUT(String(netNumber) + F(" networks found"));
 };
 
@@ -1082,48 +1011,83 @@ void SckESP::scanAP() {
 //	|	Token 	|
 //	-------------
 //
-void SckESP::saveToken() {
-	
+bool SckESP::saveToken() {
+
+	// Open token flash file
 	File tokenFile = SPIFFS.open(TOKEN_FILE, "w");
-	if (tokenFile) {
-		tokenFile.print(token);
-		tokenFile.close();
+
+	// Check if file opened OK
+	if (!tokenFile) {
+		return false;
+		debugOUT(F("Failed to save token!!!"));
 	}
+		
+	// Write the token
+	tokenFile.println(config.token);
+	tokenFile.close();
+
+	debugOUT(F("Token saved!!!"));
+	return true;
 };
-void SckESP::readToken() {
+bool SckESP::loadToken() {
+
+	// Check if file exists
 	if (!SPIFFS.exists(TOKEN_FILE)) {
-		File tokenFile = SPIFFS.open(TOKEN_FILE, "w");
-		if (tokenFile) {
-			tokenFile.print("null");
-			tokenFile.close();
-		}
+		debugOUT(F("Failed to load token!!!"));
+		espStatus.token = ESP_TOKEN_ERROR;
+		return false;
 	}
 
+	// Open token flash file
 	File tokenFile = SPIFFS.open(TOKEN_FILE, "r");
-	if (tokenFile) {
-		// Read line
-		String buffer;
-		while (tokenFile.available()) {
-			char buff = tokenFile.read();
-			buffer += buff;
-		}
-		buffer.toCharArray(token, 8);
-	}
-};
 
+	// Read line
+	String buffer;
+	while (tokenFile.available()) {
+		char buff = tokenFile.read();
+		if (buff == 10) break;
+		buffer += buff;
+	}
+
+	buffer.replace("\r", "");
+	buffer.replace("\n", "");
+
+	tokenFile.close();
+	buffer.toCharArray(config.token, buffer.length()+1);
+
+	espStatus.token = ESP_TOKEN_OK;
+
+	debugOUT(String F("Loaded token: ") + String(config.token));
+	return true;
+};
+void SckESP::clearToken() {
+
+	if (SPIFFS.exists(TOKEN_FILE)) {
+		SPIFFS.remove(TOKEN_FILE);
+	}
+
+	espStatus.token = ESP_TOKEN_ERROR;
+};
+void SckESP::sendToken() {
+	strncpy(msgOut.param, config.token, 8);
+	msgOut.com = ESP_SET_TOKEN_COM;
+	SAMsendMsg();
+};
 
 
 // 	-------------
 //	|	MQTT 	|
 //	-------------
 //
-bool SckESP::mqttStart() {
-	
+bool SckESP::mqttConnect() {
+
+	if (MQTTclient.connected()) return true;
+
 	debugOUT(F("Connecting to MQTT server..."));
 
 	MQTTclient.setServer(MQTT_SERVER_NAME, 1883);
 
-	if (MQTTclient.connect(token)) {
+	if (MQTTclient.connect(config.token)) {
 		debugOUT(F("Established MQTT connection..."));
 		return true;
 	} else {
@@ -1137,109 +1101,131 @@ bool SckESP::mqttHellow() {
 
 	debugOUT(F("Trying MQTT Hello..."));
 
-	if (!MQTTclient.connected()) {
-    	mqttStart();
-  	}
+	if (mqttConnect()) {
 
-	String helloTopic = String F("device/sck/") + String(token) + F("/hello");
-	char ht[helloTopic.length()+1];
-	helloTopic.toCharArray(ht, helloTopic.length()+1);
+		// prepare the topic title
+   		char myTopic[24];
+		sprintf(myTopic, "device/sck/%s/hello", config.token);
 
-	String helloPayload = String(token) + F(":Hello");
-	char pl[helloPayload.length()+1];
-	helloPayload.toCharArray(pl, helloPayload.length()+1);
+   		// Prepare the payload
+   		char myPayload[14];
+   		sprintf(myPayload, "%s:Hello", config.token);
 
-	debugOUT(String(ht));
-	debugOUT(String(pl));
-
-	if (MQTTclient.publish(ht, pl)) {
-		debugOUT(F("MQTT Hello published OK !!!"));
-		return true;
+		if (MQTTclient.publish(myTopic, myPayload)) {
+			debugOUT(F("MQTT Hello published OK !!!"));
+			return true;
+		}
+		debugOUT(F("MQTT Hello ERROR !!!"));
 	}
-	debugOUT(F("MQTT Hello ERROR !!!"));
 	return false;
 };
-bool SckESP::mqttPublish(){
-
+bool SckESP::mqttPublish() {
+	
 	debugOUT(F("Trying MQTT publish..."));
 
-	if (!MQTTclient.connected()) {
-    	mqttStart();
-  	}
+	if (mqttConnect()) {
 
-  	String Publishtopic = String F("device/sck/") + String(token) + F("/readings");
-	char ht[Publishtopic.length()+1];
-	Publishtopic.toCharArray(ht, Publishtopic.length()+1);
+		// /* Example
+		// {	"data":[
+		// 		{"recorded_at":"2017-03-24T13:35:14Z",
+		// 			"sensors":[
+		// 				{"id":29,"value":48.45},
+		// 				{"id":13,"value":66},
+		// 				{"id":12,"value":28},
+		// 				{"id":10,"value":4.45}
+		// 			]
+		// 		}
+		// 	]
+		// }
+		// 	*/
 
-	/* Example
-	{	"data":[
-			{"recorded_at":"2017-03-24T13:35:14Z",
-				"sensors":[
-					{"id":29,"value":48.45},
-					{"id":13,"value":66},
-					{"id":12,"value":28},
-					{"id":10,"value":4.45}
-				]
+		// Prepare the payload
+    	char myPayload[512];
+
+    	// Put time of the first sensor
+    	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    		SensorType wichSensor = static_cast<SensorType>(i);
+    		if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
+    			sprintf(myPayload, "{\"data\":[{\"recorded_at\":\"%s\",\"sensors\":[", epoch2iso(sensors[wichSensor].lastReadingTime).c_str());
+    		}
+    	}
+
+    	// Put the readings
+    	bool putComma = false;
+    	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    		SensorType wichSensor = static_cast<SensorType>(i);
+
+    		// Only send enabled sensors
+			if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
+				if (putComma) sprintf(myPayload, "%s,", myPayload);
+				else putComma = true;
+				sprintf(myPayload, "%s{\"id\":%i,\"value\":%s}", myPayload, sensors[wichSensor].id, String(sensors[wichSensor].reading,2).c_str());
 			}
-		]
-	}
-		*/
+    	}
+    	sprintf(myPayload, "%s]}]}", myPayload);
 
-	// Prepare json for sending (very big buffer)
-	uint16_t bufferSize = 4096;
-	DynamicJsonBuffer jsonBuffer(bufferSize);
-	
-	// Root object
-	JsonObject& jsonPublish = jsonBuffer.createObject();
+    	debugOUT(String(myPayload));
 
-	// Data array
-	JsonArray& jsonData = jsonPublish.createNestedArray("data");
+    	// prepare the topic title
+	   	char pubTopic[27];
+		sprintf(pubTopic, "device/sck/%s/readings", config.token);
 
-	// This time data object
-	JsonObject& jsonThisTime = jsonData.createNestedObject();
+		debugOUT(String(pubTopic));
 
-	// Add time
-	jsonThisTime["recorded_at"] = (epoch2iso(sensors[SENSOR_BATTERY].lastReadingTime));		// temp,
-
-	// Sensors array
-	JsonArray& jsonSensors = jsonThisTime.createNestedArray("sensors");
-
-	// Iterate over sensors, only publish enabled sensors and with a valid id (ID != 0), also dont publish time as a sensor
-	for (uint8_t i=1; i<SENSOR_COUNT; i++) {
-
-		SensorType wichSensor = static_cast<SensorType>(i);
-
-		// Only send enabled sensors
-		if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
-			
-			// Create sensor object
-			JsonObject& jsonThisSensor = jsonSensors.createNestedObject();
-
-			// Add id and value
-			jsonThisSensor["id"] = sensors[wichSensor].id;
-			jsonThisSensor["value"] =  double_with_n_digits(sensors[wichSensor].reading, 2);
+		if (MQTTclient.publish(pubTopic, myPayload)) {
+			debugOUT(F("MQTT readings published OK !!!"));
+			return true;
 		}
 	}
-
-	// To allow big MQTT messages (more than 128 bytes) we had modified PubSubClient.h MQTT_MAX_PACKET_SIZE
-	// If we see any problem with big packet transmission we should implement the stream option of the pubsubclient
-	if (jsonPublish.measureLength() > 128) debugOUT(F("WARNING: MQTT message too big, remember to modify puSubClient library limit!!!"));
-
-	char charPl[jsonPublish.measureLength()+1];
-	jsonPublish.printTo(charPl, jsonPublish.measureLength()+1);
-
-	// String to be published
-	debugOUT(String(charPl));
-
-	
-	if (MQTTclient.publish(ht, charPl)) {
-		return true;
-		debugOUT(F("MQTT readings published OK !!!"));
-	}
-	debugOUT(F("MQTT readings ERROR !!!"));
+	debugOUT(F("MQTT publish ERROR !!!"));
 	return false;
 }
-bool SckESP::mqttSend(String payload) {
+bool SckESP::mqttConfigSub(bool activate) {
+
+
+
+	// if (activate) {
+
+	// 	debugOUT("Subscribing to MQQT config");
+
+	// 	// We need to be disconnected to subscribe...
+	// 	if (mqtt.connected()) mqtt.disconnect();
+		
+	// 	// Create the topic title
+	// 	char newTopic[25];
+	// 	sprintf(newTopic, "device/sck/%s/config", config.token);
+
+	// 	debugOUT(String("Subscribing to: ") + String(newTopic));
+
+	// 	// Change the topic to the new one and subscribe
+	// 	// mqttConfig.topic = newTopic;
+	// 	// mqtt.subscribe(&mqttConfig);
+
+	// 	// Turn on subscribed flag
+	// 	configSubscribed = true;
+	// 	espStatus.mqtt = ESP_MQTT_CONFIG_SUB_EVENT;
+
+	// 	// Reconnect to mqtt broker
+	// 	if (mqttConnect()) {
+
+	// 		// Turn on the left led
+	// 		ledSet(ledLeft, 1);
+	// 	}
+
+	// } else {
+
+	// 	debugOUT("Unsubscribing to MQQT config");
+
+	// 	// unsubscribe
+	// 	// mqtt.unsubscribe(&mqttConfig);
+
+	// 	// Turn off subscribed flag
+	// 	configSubscribed = false;
+	// 	espStatus.mqtt = ESP_MQTT_CONFIG_UNSUB_EVENT;
+
+	// 	// Turn off the left led
+	// 	ledSet(ledLeft, 0);
+	// }
 }
 
 // 	------------
@@ -1254,7 +1240,7 @@ time_t SckESP::getNtpTime() {
 
   sendNTPpacket(ntpServerIP);
   uint32_t beginWait = millis();
-  while (millis() - beginWait < 1500) {
+  while (millis() - beginWait < 200) {
     int size = Udp.parsePacket();
     if (size >= 48) {
       Udp.read(packetBuffer, 48);  // read packet into the buffer

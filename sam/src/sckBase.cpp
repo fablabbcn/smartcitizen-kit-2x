@@ -155,6 +155,9 @@ void SckBase::setup() {
 			
 			if (auxBoards.begin(wichSensor)) {
 
+				// Exception for OLED screen (smallest interval)
+				if (wichSensor == SENSOR_GROOVE_OLED) sensors[wichSensor].interval = 2;
+
 				if (!sensors[wichSensor].enabled) {
 					sprintf(outBuff, "Found %s!!!", sensors[wichSensor].title);
 					sckOut();
@@ -2259,6 +2262,34 @@ bool SckBase::getReading(SensorType wichSensor) {
 			sensors[wichSensor].valid = true;
 			break;
 		} case BOARD_AUX: {
+
+			// Exception for groove oled (instead of read i will write...)
+			if (wichSensor == SENSOR_GROOVE_OLED) {
+
+				SensorType displaySensor = static_cast<SensorType>(sensorDisplayIndex);
+
+				while (!sensors[displaySensor].enabled) {
+					sensorDisplayIndex ++;
+					if (sensorDisplayIndex == SENSOR_COUNT) sensorDisplayIndex = 0;
+					displaySensor = static_cast<SensorType>(sensorDisplayIndex);
+				}
+
+				sensorDisplayIndex ++;
+				if (sensorDisplayIndex == SENSOR_COUNT) sensorDisplayIndex = 0;
+
+				if (displaySensor == SENSOR_GROOVE_OLED) break;
+
+				ISOtime();
+				OneSensor *thisSensor = &sensors[displaySensor];
+				String Stitle = thisSensor->title;
+				String Sreading = String(thisSensor->reading, 1);
+				String Sunit = thisSensor->unit;
+				auxBoards.displayReading(Stitle, Sreading, Sunit, ISOtimeBuff);
+
+				sensors[wichSensor].lastReadingTime = startedTime;
+				break;
+			}
+
 			// Check if the sensor is busy (and ping the sensor to continue working)
 			sensors[wichSensor].busy = auxBoards.getBusyState(wichSensor);
 

@@ -385,49 +385,48 @@ void Groove_OLED::print(String payload) {
 
 void Groove_OLED::displayReading(String title, String reading, String unit, String time) {
 
-	// Reading
-	uint8_t ll = reading.length();
-	char Creading[ll];
-	reading.toCharArray(Creading, ll+1);
+	String date;
+	String hour;
 
-	// Unit
-	ll = unit.length();
-	char Cunit[ll];
-	unit.toCharArray(Cunit, ll+1);
-
-	// Date
-	String date = time.substring(8,10) + "/" + time.substring(5,7) + "/" + time.substring(2,4);
-	char Cdate[9];
-	date.toCharArray(Cdate, 9);
-
-	SerialUSB.println(Cdate);
-
-	// Time
-	String hours = time.substring(11,19);
-	char Chour[9];
-	hours.toCharArray(Chour, 9);
-
-	// 2017-04-11T15:24:50Z
+	if (time.toInt() != 0) {
+		date = time.substring(8,10) + "/" + time.substring(5,7) + "/" + time.substring(2,4);
+		hour = time.substring(11,16);
+	}
 
 	U8g2_oled.firstPage();
 	do {
-		// Reading Left aligned
-		U8g2_oled.setFont(u8g2_font_helvB24_tf);
-		U8g2_oled.drawStr(0,40, Creading);
 
-		U8g2_oled.setFont(u8g2_font_helvB14_tf);
-		U8g2_oled.drawStr(0,62, Cunit);
-
-		// Clock icon
-		U8g2_oled.setFont(u8g2_font_unifont_t_symbols);
-		U8g2_oled.drawGlyph(80, 70, 0x23f2);
-
-		// Date
+		// Title
 		U8g2_oled.setFont(u8g2_font_helvB10_tf);
-		U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(Cdate),83,Cdate);
+		if (U8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) {
+			
+			String first = title.substring(0, title.indexOf(" "));
+			String second = title.substring(title.indexOf(" ")+1);
 
-		// Time
-		U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(Chour),96,Chour);
+			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(first.c_str()))/2,11, first.c_str());
+			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(second.c_str()))/2,23, second.c_str());
+
+		} else U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(title.c_str()))/2,11, title.c_str());
+
+		// Reading
+		U8g2_oled.setFont(u8g2_font_helvB24_tf);
+		if (U8g2_oled.getStrWidth(reading.c_str()) > 96) U8g2_oled.setFont(u8g2_font_helvB18_tf);
+		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(reading.c_str()))/2, 55,  reading.c_str());
+
+		// Unit
+		U8g2_oled.setFont(u8g2_font_helvB12_tf);
+		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str());
+
+		if (time.toInt() != 0) {
+			
+			// Date
+			U8g2_oled.setFont(u8g2_font_helvB10_tf);
+			U8g2_oled.drawStr(0,96,date.c_str());
+
+			// Time
+			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
+			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
+		}
 
 	} while (U8g2_oled.nextPage());
 }

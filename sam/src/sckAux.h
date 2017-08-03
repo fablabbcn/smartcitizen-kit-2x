@@ -31,6 +31,7 @@ class AuxBoards {
 public:
 	bool begin(SensorType wichSensor);
 	float getReading(SensorType wichSensor);
+	bool getBusyState(SensorType wichSensor);
 	String control(SensorType wichSensor, String command);
 	void print(SensorType wichSensor, String payload);
 	void displayReading(String title, String reading, String unit, String time);
@@ -155,3 +156,65 @@ public:
 private:
 };
 
+class Atlas {
+public:
+
+	byte deviceAddress;
+	SensorType atlasType;
+	bool PH = false;
+	bool EC = false;
+	bool DO = false;
+	float newReading;
+	float newReadingB;
+	String atlasResponse;
+	uint32_t lastCommandSent = 0;
+	enum State {
+		REST,
+		TEMP_COMP_SENT,
+		ASKED_READING,
+	};
+	State state = REST;
+	
+	// Constructor varies by sensor type
+	Atlas(SensorType wichSensor) {
+		atlasType = wichSensor;
+
+		switch(atlasType) {
+			case SENSOR_ATLAS_PH: {
+				deviceAddress = 0x63;
+				PH = true;
+				break;
+
+			} case SENSOR_ATLAS_EC:
+			case SENSOR_ATLAS_EC_SG: {
+				deviceAddress = 0x64;
+				EC = true;
+				break;
+
+			} case SENSOR_ATLAS_DO:
+			case SENSOR_ATLAS_DO_SAT: {
+				deviceAddress = 0x61;
+				DO = true;
+				break;				
+
+			} default: break;
+		}
+
+    }
+
+	bool begin();
+	bool beginDone = false;
+	float getReading();
+	bool getBusyState();
+	
+	void goToSleep();
+	bool sendCommand(char* command);
+	bool tempCompensation();
+	uint8_t getResponse();
+	
+	uint16_t longWait = 910; //ms
+	uint16_t mediumWait = 610; //ms
+	uint16_t shortWait = 310; //ms
+
+private:
+};

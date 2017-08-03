@@ -5,6 +5,10 @@ GrooveI2C_ADC		grooveI2C_ADC;
 INA219				ina219;
 Groove_OLED			groove_OLED;
 WaterTemp_DS18B20 	waterTemp_DS18B20;
+Atlas				atlasPH = Atlas(SENSOR_ATLAS_PH);
+Atlas				atlasEC = Atlas(SENSOR_ATLAS_EC);
+Atlas				atlasDO = Atlas(SENSOR_ATLAS_DO);
+
 
 bool I2Cdetect(byte address) {
 
@@ -26,16 +30,19 @@ bool AuxBoards::begin(SensorType wichSensor) {
 		case SENSOR_ALPHADELTA_AE3:
 		case SENSOR_ALPHADELTA_WE3:
 		case SENSOR_ALPHADELTA_HUMIDITY:
-		case SENSOR_ALPHADELTA_TEMPERATURE: {
-			return alphaDelta.begin(); break;
-		} case SENSOR_GROOVE_I2C_ADC: 			return grooveI2C_ADC.begin(); break;
+		case SENSOR_ALPHADELTA_TEMPERATURE: 	return alphaDelta.begin(); break;
+		case SENSOR_GROOVE_I2C_ADC: 			return grooveI2C_ADC.begin(); break;
 		case SENSOR_INA219_BUSVOLT: 		
 		case SENSOR_INA219_SHUNT: 			
 		case SENSOR_INA219_CURRENT: 		
-		case SENSOR_INA219_LOADVOLT: {
-			return ina219.begin(); break;
-		} case SENSOR_GROOVE_OLED: 				return groove_OLED.begin(); break;
-		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.begin(); break;
+		case SENSOR_INA219_LOADVOLT: 			return ina219.begin(); break;
+		case SENSOR_GROOVE_OLED: 				return groove_OLED.begin(); break;
+		case SENSOR_WATER_TEMP_DS18B20:			return waterTemp_DS18B20.begin(); break;
+		case SENSOR_ATLAS_PH:					return atlasPH.begin();
+		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_SG: 				return atlasEC.begin(); break;
+		case SENSOR_ATLAS_DO:
+		case SENSOR_ATLAS_DO_SAT: 				return atlasDO.begin(); break;
 		default: break;
 	}
 
@@ -59,12 +66,27 @@ float AuxBoards::getReading(SensorType wichSensor) {
 		case SENSOR_INA219_CURRENT: 		return ina219.getReading(ina219.CURRENT); break;
 		case SENSOR_INA219_LOADVOLT: 		return ina219.getReading(ina219.LOAD_VOLT); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.getReading(); break;
+		case SENSOR_ATLAS_PH:				return atlasPH.newReading; break;
+		case SENSOR_ATLAS_EC:				return atlasEC.newReading; break;
+		case SENSOR_ATLAS_EC_SG:			return atlasEC.newReadingB; break;
+		case SENSOR_ATLAS_DO:				return atlasDO.newReading; break;
+		case SENSOR_ATLAS_DO_SAT:			return atlasDO.newReadingB; break;
 		default: break;
 	}
 
 	return -9999;
 }
 
+bool AuxBoards::getBusyState(SensorType wichSensor) {
+	
+	switch(wichSensor) {
+		case SENSOR_GROOVE_OLED:	return true; break;
+		case SENSOR_ATLAS_PH: 		return atlasPH.getBusyState(); break;
+		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_SG: 	return atlasEC.getBusyState(); break;
+		case SENSOR_ATLAS_DO:
+		case SENSOR_ATLAS_DO_SAT: 	return atlasDO.getBusyState(); break;
+		default: return false; break;
 	}
 }
 
@@ -105,8 +127,48 @@ String AuxBoards::control(SensorType wichSensor, String command) {
 			}
 			
 			break;
-		} default: return F("Unrecognized sensor!!!");
+
+		} case SENSOR_ATLAS_PH:
+		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_SG:
+		case SENSOR_ATLAS_DO:
+		case SENSOR_ATLAS_DO_SAT: {
+
+			Atlas *thisAtlas;
+
+			if (wichSensor == SENSOR_ATLAS_PH) thisAtlas = &atlasPH;
+			else if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG) thisAtlas = &atlasEC;
+			else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
+
+			// 	 Calibration command options:
+			// 		Atlas PH: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/pH_EZO_datasheet.pdf) page 50
+			// 			* set cal,[mid,low,high] 7.00
+			// 			* set cal,clear
+			// 		Atlas EC: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/EC_EZO_Datasheet.pdf) page 52
+			// 			* set cal,[dry,clear,84]
+			// 			* set cal,low,1413
+			// 			* set cal,high,12,880
+			// 		Atlas DO: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/DO_EZO_Datasheet.pdf) page 50
+			// 			* set cal
+			// 			* set cal,0
+			// 			* set cal,clear
+			if (command.startsWith("com")) {
+
+				command.replace("com", "");
+				command.trim();
+				thisAtlas->sendCommand((char*)command.c_str());
+
+				uint8_t responseCode = thisAtlas->getResponse();
+				if (responseCode == 254) delay(1000); responseCode = thisAtlas->getResponse();
+				if (responseCode == 1) return thisAtlas->atlasResponse;
+				else return String(responseCode);
+
+			}
+			break;
+
+		} default: return "Unrecognized sensor!!!";
 	}
+	return "Unknown error on control command!!!";
 }
 
 void AuxBoards::print(SensorType wichSensor, String payload) {
@@ -431,3 +493,196 @@ float WaterTemp_DS18B20::getReading() {
 	return 0;
 }
 
+bool Atlas::begin() {
+
+	if (!I2Cdetect(deviceAddress)) return false;
+
+	if (beginDone) return true;
+	beginDone = true;
+
+	// Protocol lock
+	if (!sendCommand((char*)"Plock,1")) return false;
+	delay(shortWait);
+
+	// This actions are only for conductivity (EC) sensor
+	if (EC) {
+
+		// Set probe
+		if (!sendCommand((char*)"K,1.0")) return false;
+		delay(shortWait);
+
+		// ----  Set parameters
+		if (sendCommand((char*)"O,?")) {
+			delay(shortWait);
+			if (!atlasResponse.equals("?O,EC,SG")) {
+				const char *parameters[4] = PROGMEM {"O,EC,1", "O,TDS,0", "O,S,0", "O,SG,1"};
+				for (int i = 0; i<4; ++i) {
+					if (!sendCommand((char*)parameters[i])) return false;
+					delay(longWait);
+				}
+			}
+		} else return false;
+
+	} else if (DO) {
+
+		// ---- Set parameters
+		if (sendCommand((char*)"O,?")) {
+			delay(shortWait);
+			if (!atlasResponse.equals((char*)"?O,%,mg")) {
+				if (!sendCommand((char*)"O,%,1")) return false;
+				delay(shortWait);
+				if (!sendCommand((char*)"O,mg,1")) return false;
+				delay(shortWait);
+			}
+		} else return false;
+	}
+
+	goToSleep();
+
+	return true;
+}
+
+float Atlas::getReading() {
+
+	return newReading;
+}
+
+bool Atlas::getBusyState() {
+
+	switch (state) {
+		
+		case REST: {
+			if (tempCompensation()) state = TEMP_COMP_SENT;
+			break;
+
+		} case TEMP_COMP_SENT: {
+			if (millis() - lastCommandSent >= shortWait) {
+				if (sendCommand((char*)"r")) state = ASKED_READING;
+			}
+			break;
+
+		} case ASKED_READING: {
+			if (millis() - lastCommandSent >= longWait) {
+
+				uint8_t code = getResponse();
+
+				if (code == 254) {	
+					// Still working (wait a little more)
+					lastCommandSent = lastCommandSent + 200;
+					break;
+
+				} else if (code == 1) {
+
+					// Reading OK
+					state = REST;
+
+					if (PH)	newReading = atlasResponse.toFloat();
+					if (EC || DO) {
+						String first = atlasResponse.substring(0, atlasResponse.indexOf(","));
+						String second = atlasResponse.substring(atlasResponse.indexOf(",")+1);
+						newReading = first.toFloat();
+						newReadingB = second.toFloat();
+					}
+					goToSleep();
+					return false;
+					break;
+
+				} else {
+					
+					// Error
+					state = REST;
+					newReading = 0;
+					goToSleep();
+					return false;
+					break;
+				}
+			}
+			break;
+		} 
+	}
+	
+	return true;
+}
+
+void Atlas::goToSleep() {
+
+	Wire.beginTransmission(deviceAddress);
+	Wire.write("Sleep");
+	Wire.endTransmission();
+}
+
+bool Atlas::sendCommand(char* command) {
+
+	uint8_t retrys = 5;
+
+	for (uint8_t i=0; i<retrys; ++i) {
+
+		Wire.beginTransmission(deviceAddress);
+		Wire.write(command);
+
+		Wire.requestFrom(deviceAddress, 1, true);
+		uint8_t confirmed = Wire.read();
+		Wire.endTransmission();
+
+		if (confirmed == 1) {
+			lastCommandSent = millis();
+			return true;
+		}
+
+		delay(300);
+	}
+	return false;
+}
+
+bool Atlas::tempCompensation() {
+
+		String stringData;
+		char data[10];
+
+		float temperature = waterTemp_DS18B20.getReading();
+
+		if (temperature == 0) return false;
+
+		sprintf(data,"T,%.2f",temperature);
+
+		if (sendCommand(data)) return true;
+
+		return false;
+}
+
+uint8_t Atlas::getResponse() {
+
+	uint8_t code;
+	
+	Wire.requestFrom(deviceAddress, 20, 1);
+	code = Wire.read();
+
+	atlasResponse = "";
+	
+	switch (code) {
+		case 0: 		// Undefined
+		case 2:			// Error
+		case 255:		// No data sent
+		case 254: {		// Still procesing, not ready
+
+			return code;
+			break;
+
+		} default : {
+			
+			while (Wire.available()) {
+				char buff = Wire.read();
+				atlasResponse += buff;
+			}
+			Wire.endTransmission();
+			
+			goToSleep();
+
+			if (atlasResponse.length() > 0) {
+				return 1;
+			}
+			
+			return 2;
+		}
+    }
+}

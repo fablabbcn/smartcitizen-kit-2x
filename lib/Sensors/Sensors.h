@@ -52,6 +52,12 @@ enum SensorType {
 	SENSOR_INA219_LOADVOLT,
 
 	SENSOR_WATER_TEMP_DS18B20,
+	SENSOR_ATLAS_PH,
+	SENSOR_ATLAS_EC,
+	SENSOR_ATLAS_EC_SG,
+	SENSOR_ATLAS_DO,
+	SENSOR_ATLAS_DO_SAT,
+
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
 
@@ -93,6 +99,7 @@ public:
 	uint8_t id;
 	uint32_t interval;
 	bool enabled;
+	bool busy;
 
 	OneSensor(SensorLocation nLocation, SensorType nType, const char *nTitle, uint8_t nId=0, bool nEnabled=false, bool nControllable=false, const char *nUnit="") {
 		type = nType;
@@ -106,6 +113,7 @@ public:
 		id = nId;
 		interval = default_sensor_reading_interval;
 		enabled = nEnabled;
+		busy = false;
 	}
 };
 
@@ -153,12 +161,18 @@ public:
 		OneSensor { BOARD_AUX,			SENSOR_GROOVE_I2C_ADC,				"Groove ADC",							0,		false,		false,			"V"},
 
 		// Adafruit INA291 High Side DC Current Sensor
-		OneSensor { BOARD_AUX,			SENSOR_INA219_BUSVOLT,				"ina219 busVoltage",					0,		false,		false,			"V"},
-		OneSensor { BOARD_AUX,			SENSOR_INA219_SHUNT,				"ina219 shuntVoltage",					0,		false,		false,			"mV"},
-		OneSensor { BOARD_AUX,			SENSOR_INA219_CURRENT,				"ina219 current",						0,		false,		false,			"mA"},
-		OneSensor { BOARD_AUX,			SENSOR_INA219_LOADVOLT,				"ina219 loadVoltage",					0,		false,		false,			"V"},
+		OneSensor { BOARD_AUX,			SENSOR_INA219_BUSVOLT,				"INA219 Bus voltage",					0,		false,		false,			"V"},
+		OneSensor { BOARD_AUX,			SENSOR_INA219_SHUNT,				"INA219 Shunt voltage",					0,		false,		false,			"mV"},
+		OneSensor { BOARD_AUX,			SENSOR_INA219_CURRENT,				"INA219 Current",						0,		false,		false,			"mA"},
+		OneSensor { BOARD_AUX,			SENSOR_INA219_LOADVOLT,				"INA219 Load voltage",					0,		false,		false,			"V"},
 
-		OneSensor { BOARD_AUX,			SENSOR_WATER_TEMP_DS18B20,			"DS18B20 Water Temperature",			0,		false,		false,			"C"},
+		OneSensor { BOARD_AUX,			SENSOR_WATER_TEMP_DS18B20,			"DS18B20 water temperature",			0,		false,		false,			"C"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_PH,					"Atlas PH",								0,		false,		true,			"pH"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC,					"Atlas conductivity",					0,		false,		true,			"uS/cm"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC_SG,					"Atlas specific gravity",				0,		false,		true,			},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO,					"Atlas Dissolved Oxygen",				0,		false,		true,			"mg/L"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,				"Atlas DO saturation",					0,		false,		true,			"%"},
+
 		// Later this will be moved to a Actuators.h file
 		// Groove I2C Oled Display 96x96
 		OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,					"Groove OLED",							0,		false,		false,			}

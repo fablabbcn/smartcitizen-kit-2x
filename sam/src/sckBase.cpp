@@ -118,6 +118,9 @@ void SckBase::setup() {
  	pinMode(PIN_BUTTON, INPUT_PULLUP);
 	attachInterrupt(PIN_BUTTON, ISR_button, CHANGE);
 
+	// Pause for a moment (for uploading firmware in case of problems)
+	delay(2000);
+
  	// Peripheral setup
  	rtc.begin();
  	if (rtc.isConfigured() && rtc.getYear() >= 17) onTime = true;
@@ -147,8 +150,8 @@ void SckBase::setup() {
 		// Only try to find auxiliary sensors
 		if (sensors[wichSensor].location == BOARD_AUX) {
 
-			sprintf(outBuff, "Detecting: %s", sensors[wichSensor].title);
-			sckOut();
+			sprintf(outBuff, "Detecting: %s... ", sensors[wichSensor].title);
+			sckOut(PRIO_MED, false);
 			
 			if (auxBoards.begin(wichSensor)) {
 
@@ -166,7 +169,7 @@ void SckBase::setup() {
 					sprintf(outBuff, "Cant find %s!!!", sensors[wichSensor].title);
 					sckOut();
 					disableSensor(wichSensor);
-				}
+				} else sckOut("nothing!");
 			}
 		}
 	}
@@ -1777,8 +1780,14 @@ bool SckBase::getReading(SensorType wichSensor) {
 			sensors[wichSensor].valid = true;
 			break;
 		} case BOARD_AUX: {
-			sensors[wichSensor].reading = auxBoards.getReading(wichSensor);
-			sensors[wichSensor].valid = true;
+			// Check if the sensor is busy (and ping the sensor to continue working)
+			sensors[wichSensor].busy = auxBoards.getBusyState(wichSensor);
+
+			if (!sensors[wichSensor].busy){
+				sensors[wichSensor].reading = auxBoards.getReading(wichSensor);
+				sensors[wichSensor].valid = true;
+			}
+			
 			break;
 		} default: {
 			;

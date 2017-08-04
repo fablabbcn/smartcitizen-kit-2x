@@ -166,12 +166,12 @@ public:
 		OneSensor { BOARD_AUX,			SENSOR_INA219_CURRENT,				"INA219 Current",						0,		false,		false,			"mA"},
 		OneSensor { BOARD_AUX,			SENSOR_INA219_LOADVOLT,				"INA219 Load voltage",					0,		false,		false,			"V"},
 
-		OneSensor { BOARD_AUX,			SENSOR_WATER_TEMP_DS18B20,			"DS18B20 Water temperature",			0,		false,		false,			"C"},
-		OneSensor { BOARD_AUX,			SENSOR_ATLAS_PH,					"Atlas PH",								0,		false,		true,			"pH"},
-		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC,					"Atlas Conductivity",					0,		false,		true,			"uS/cm"},
-		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC_SG,					"Atlas Specific gravity",				0,		false,		true,			},
-		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO,					"Atlas Dissolved Oxygen",				0,		false,		true,			"mg/L"},
-		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,				"Atlas DO Saturation",					0,		false,		true,			"%"},
+		OneSensor { BOARD_AUX,			SENSOR_WATER_TEMP_DS18B20,			"DS18B20 Water temperature",			42,		false,		false,			"C"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_PH,					"Atlas PH",								43,		false,		true,			"pH"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC,					"Atlas Conductivity",					45,		false,		true,			"uS/cm"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC_SG,					"Atlas Specific gravity",				46,		false,		true,			},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO,					"Atlas Dissolved Oxygen",				48,		false,		true,			"mg/L"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,				"Atlas DO Saturation",					49,		false,		true,			"%"},
 
 		// Later this will be moved to a Actuators.h file
 		// Groove I2C Oled Display 96x96

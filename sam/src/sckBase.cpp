@@ -1588,6 +1588,9 @@ void SckBase::sckIn(String strIn) {
 							config.persistentMode = requestedMode;
 							changeMode(requestedMode);
 							break;
+						} else if (requestedMode == MODE_FLASH) {
+							changeMode(MODE_FLASH);
+							break;
 						}
 					}
 				}

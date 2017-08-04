@@ -133,13 +133,13 @@ public:
 		OneSensor {	BOARD_URBAN, 		SENSOR_HUMIDITY,					"Humidity", 							13,		true,		false,			"%"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_TEMPERATURE, 				"Temperature", 							12,		true,		false,			"C"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_LIGHT, 						"Light", 								14,		true,		false,			"Lux"},
-		OneSensor {	BOARD_URBAN, 		SENSOR_CO, 							"Carbon monoxide", 						16,		false,		true,			"kOhm/ppm"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_CO, 							"Carbon monoxide", 						16,		true,		true,			"kOhm/ppm"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 				"Carbon monoxide heat time",			0,		false,		false,			"sec"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_CURRENT, 			"Carbon monoxide heat current",			0,		false,		false,			"mA"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_SUPPLY_VOLTAGE, 		"Carbon monoxide heat supply voltage",	0,		false,		false,			"mV"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_DROP_VOLTAGE, 		"Carbon monoxide heat drop voltage",	0,		false,		false,			"mV"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_CO_LOAD_RESISTANCE, 			"Carbon monoxide load resistance",		0,		false,		false,			"Ohms"},
-		OneSensor {	BOARD_URBAN, 		SENSOR_NO2, 						"Nitrogen dioxide",						15,		false,		true,			"kOhm/ppm"},
+		OneSensor {	BOARD_URBAN, 		SENSOR_NO2, 						"Nitrogen dioxide",						15,		true,		true,			"kOhm/ppm"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 				"Nitrogen dioxide heat time",			0,		false,		false,			"sec"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_CURRENT, 			"Nitrogen dioxide heat current",		0,		false,		false,			"mA"},
 		OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_SUPPLY_VOLTAGE, 	"Nitrogen dioxide heat supply voltage",	0,		false,		false,			"mV"},
@@ -166,12 +166,12 @@ public:
 		OneSensor { BOARD_AUX,			SENSOR_INA219_CURRENT,				"INA219 Current",						0,		false,		false,			"mA"},
 		OneSensor { BOARD_AUX,			SENSOR_INA219_LOADVOLT,				"INA219 Load voltage",					0,		false,		false,			"V"},
 
-		OneSensor { BOARD_AUX,			SENSOR_WATER_TEMP_DS18B20,			"DS18B20 water temperature",			0,		false,		false,			"C"},
+		OneSensor { BOARD_AUX,			SENSOR_WATER_TEMP_DS18B20,			"DS18B20 Water temperature",			0,		false,		false,			"C"},
 		OneSensor { BOARD_AUX,			SENSOR_ATLAS_PH,					"Atlas PH",								0,		false,		true,			"pH"},
-		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC,					"Atlas conductivity",					0,		false,		true,			"uS/cm"},
-		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC_SG,					"Atlas specific gravity",				0,		false,		true,			},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC,					"Atlas Conductivity",					0,		false,		true,			"uS/cm"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC_SG,					"Atlas Specific gravity",				0,		false,		true,			},
 		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO,					"Atlas Dissolved Oxygen",				0,		false,		true,			"mg/L"},
-		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,				"Atlas DO saturation",					0,		false,		true,			"%"},
+		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,				"Atlas DO Saturation",					0,		false,		true,			"%"},
 
 		// Later this will be moved to a Actuators.h file
 		// Groove I2C Oled Display 96x96

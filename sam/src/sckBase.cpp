@@ -411,7 +411,7 @@ bool SckBase::loadSDconfig() {
 					for (uint8_t i=0; i<MODE_COUNT; i++) {
 						SCKmodes wichMode = static_cast<SCKmodes>(i);
 						if (lineBuff.equals(modeTitles[wichMode])) {
-							if (wichMode != config.persistentMode) {
+							if ((wichMode == MODE_SD || wichMode == MODE_NET) && wichMode != config.persistentMode) {
 								sprintf(outBuff, "config.txt mode: %s", modeTitles[wichMode]);
 								sckOut();
 								manualConfigDetected = true;
@@ -519,6 +519,7 @@ bool SckBase::loadSDconfig() {
 
 	} else {
 		sckOut("Error loading config.txt!!!");
+		saveSDconfig();
 		return false;
 	}
 
@@ -589,7 +590,7 @@ void SckBase::saveSDconfig() {
 	if (sdPresent()) {
 
 		// Remove old sdcard config
-		sd.remove(configFileName);
+		if (sd.exists(configFileName)) sd.remove(configFileName);
 
 		// Save to sdcard
 		if (openConfigFile()) {
@@ -1583,9 +1584,11 @@ void SckBase::sckIn(String strIn) {
 				for (uint8_t i=0; i < MODE_COUNT; ++i) {
 					if (strIn.startsWith(modeTitles[i])) {
 						requestedMode = static_cast<SCKmodes>(i);
-						config.persistentMode = requestedMode;
-						changeMode(requestedMode);
-						break;
+						if (requestedMode == MODE_SD || requestedMode == MODE_NET) {
+							config.persistentMode = requestedMode;
+							changeMode(requestedMode);
+							break;
+						}
 					}
 				}
 				if (requestedMode == MODE_COUNT) sckOut(F("Unrecognized mode, please try again!"));
@@ -2620,7 +2623,7 @@ void SckBase::buttonDown() {
 			break;
 
 		} case MODE_SETUP: {
-			changeMode(prevMode);
+			changeMode(config.persistentMode);
 			break;
 		} default: {
 			changeMode(MODE_SETUP);
@@ -2780,7 +2783,7 @@ bool SckBase::openConfigFile(bool onlyRead) {
 	if (sdPresent()) {
 
 		sd.begin(CS_SDCARD);
-		
+
 		if (onlyRead) {
 			// Open file only for reading
 			configFile = sd.open(configFileName, FILE_READ);

@@ -351,21 +351,11 @@ bool Groove_OLED::begin() {
 	if (!I2Cdetect(deviceAddress)) return false;
 
 	U8g2_oled.begin();
+	U8g2_oled.clearDisplay();
+	
+	U8g2_oled.firstPage();
+	do { U8g2_oled.drawXBM( 0, 0, 96, 96, scLogo); } while (U8g2_oled.nextPage());
 
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-
-		SensorType thisSensor = static_cast<SensorType>(i);
-		displayable[i].sensor = thisSensor;
-
-		switch(thisSensor) {
-			case SENSOR_BATTERY:
-			case SENSOR_NOISE: {
-				displayable[i].display = true;
-				break;
-				}
-			default: displayable[i].display = false;
-		}
-	}
 	return true;;
 }
 

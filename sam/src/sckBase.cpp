@@ -730,9 +730,12 @@ void SckBase::changeMode(SCKmodes newMode) {
 		}
 	}
 
+	// Save changes
+	if (newMode != prevMode && (newMode == MODE_SD || newMode == MODE_NET)) saveConfig();
+
 	// Keep previous mode
 	if (config.mode == MODE_NET || config.mode == MODE_SD) prevMode = config.mode;
-
+	
 	// Set new mode
 	config.mode = newMode;
 

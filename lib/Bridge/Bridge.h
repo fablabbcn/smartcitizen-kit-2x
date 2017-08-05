@@ -217,7 +217,7 @@ enum SCKmodes {
 	MODE_COUNT
 };
 const uint32_t minimal_publish_interval = 60;
-const uint32_t default_publish_interval = 600;
+const uint32_t default_publish_interval = 60;
 const uint32_t max_publish_interval = 86400;				// One day
 
 struct SensorConfig {

@@ -224,7 +224,7 @@ public:
 	void mqttConfig(bool activate);
 
 	// Flags
-	bool onWifi = false;
+	bool onWifi();
 	bool hostNameSet = false;
 	bool helloPublished = false;
 	bool onTime = false;

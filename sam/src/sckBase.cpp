@@ -796,7 +796,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 				sckOut();
 				timerClear(ACTION_GET_ESP_STATUS);
 				BUS_queueCount = 0;
-				onWifi = false;
 				espSerialDebug = false;
 				digitalWrite(POWER_WIFI, HIGH);		// Turn off ESP
 				digitalWrite(GPIO0, LOW);
@@ -1137,8 +1136,6 @@ void SckBase::processStatus() {
 				// Feedback
 				if (config.mode != MODE_SETUP) led.update(config.mode, 0);
 
-				onWifi = true;
-
 				// Send MQTT Hello
 				if (triggerHello) {
 					sckOut(F("Sending MQTT Hello..."));
@@ -1163,17 +1160,14 @@ void SckBase::processStatus() {
 
 			} case ESP_WIFI_ERROR_EVENT: {
 				sckOut(F("Wifi ERROR: undefined!!"));
-				onWifi = false;
 				break;
 
 			} case ESP_WIFI_ERROR_PASS_EVENT: {
 				sckOut(F("Wifi ERROR: wrong password!!"));
-				onWifi = false;
 				break;
 
 			} case ESP_WIFI_ERROR_AP_EVENT: {
 				sckOut(F("Wifi ERROR: can't find access point!!"));
-				onWifi = false;
 				break;
 
 			} case ESP_WIFI_NOT_CONFIGURED: {
@@ -1185,7 +1179,7 @@ void SckBase::processStatus() {
 		}
 
 		// If there was ANY wifi error...
-		if (!onWifi) {
+		if (!onWifi()) {
 			// If we NEED network go to error mode
 			if (config.mode == MODE_NET) errorMode();
 		}
@@ -1350,6 +1344,11 @@ void SckBase::processStatus() {
 	for (uint8_t i=0; i<ESP_STATUS_TYPES_COUNT; i++) prevEspStatus.value[i] = espStatus.value[i];
 }
 
+bool SckBase::onWifi() {
+
+	if (espStatus.wifi == ESP_WIFI_CONNECTED_EVENT) return true;
+	return false;
+}
 
 /* Process text inputs and executes commands
  *
@@ -2382,8 +2381,11 @@ void SckBase::publish() {
 	}
 
 	// Check for another publish waiting for wifi  
-	if (WaitForWifi && !onWifi) {
+	if (!onWifi()) {
 		sckOut("Waiting for wifi...");
+
+		WaitForWifi = true;
+
 		// Make sure ESP is on
 		ESPcontrol(ESP_ON);
 		return;
@@ -2400,16 +2402,9 @@ void SckBase::publish() {
 
 	if (config.mode == MODE_NET) {
 
-		// Start Wifi
-		ESPcontrol(ESP_ON);
-		if (onWifi) {
-			WaitForWifi = false;
-			publishRuning = true;
-			ESPpublish();
-		} else {
-			sckOut("Waiting for Wifi...");
-			WaitForWifi = true;
-		}
+		WaitForWifi = false;
+		publishRuning = true;
+		ESPpublish();
 		
 	} else if (config.mode == MODE_SD) {
 
@@ -3382,7 +3377,7 @@ bool SckBase::timerRun() {
 
 							if (digitalRead(POWER_WIFI)) ESPcontrol(ESP_ON);
 
-							if (onTime && onWifi && tokenSet) {
+							if (onTime && onWifi() && tokenSet) {
 								timerClear(ACTION_RECOVER_ERROR);
 								timerClear(ACTION_START_AP_MODE);
 								changeMode(MODE_NET);
@@ -3418,7 +3413,7 @@ bool SckBase::timerRun() {
 
 					} case ACTION_MQTT_SUBSCRIBE: {
 
-						if (onWifi)	mqttConfig(true);
+						if (onWifi()) mqttConfig(true);
 						else timerSet(ACTION_MQTT_SUBSCRIBE, 1000);
 						break;
 

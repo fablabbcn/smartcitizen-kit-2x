@@ -27,6 +27,15 @@ app.get('/aplist', function(req, res){
   });
 })
 
+app.get('/conf', function(req, res){
+  fs.readFile(__dirname + "/" + "data.json", "utf8", function(err, data){
+    setTimeout( (function() {
+      res.end(data);
+    }), 900)
+  });
+})
+
+
 app.post('/connectwifi', function(req,res){
   // Wait 1 sec to emulate Wifi connection latency
   console.log(req.body);

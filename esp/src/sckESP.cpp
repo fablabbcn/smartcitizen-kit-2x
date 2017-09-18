@@ -836,7 +836,12 @@ void SckESP::webConf() {
 		json += "\",\"password\":\"" + String(config.pass) + "\"}";
 		if (i < (netNum - 1)) json += ",";
 	}
-	json += "]}";
+
+	String epochSTR = "0";
+	if (timeStatus() == timeSet) epochSTR = String(now());		
+	json += "],\"time\":" + epochSTR;
+
+	json += "}";
 
 	webServer.send(200, "text/json", json);
 

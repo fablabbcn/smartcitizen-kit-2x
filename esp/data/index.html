@@ -152,8 +152,8 @@
 
         <div v-if="setuppath == 'sdcard'" id="sdcard">
           <h2 style="text-align: center">SD CARD</h2>
-          <p class="text-right">Browser time: {{ browsertime }}</p>
-          <p class="text-right">Device time: {{ devicetime }}</p>
+          <p class="text-right font70">Browser time: {{ browsertime }}</p>
+          <p class="text-right font70">Device time: {{ devicetime }}</p>
           <p>TODO: Sync time automatically or with a button?</p>
         </div>
 
@@ -170,7 +170,7 @@ var app = new Vue({
     theUrl: 'http://192.168.1.1/',
     selectedwifi: '',
     appstatus: '(Status of the app)',
-    browsertime: Date.now(),
+    browsertime: Math.floor(Date.now() / 1000),
     devicetime: '',
     currentToken: '',
     currentSSID: '',

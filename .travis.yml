@@ -37,5 +37,5 @@ install:
 
 script:
     - echo '-------------------------'
-    - cd exp; pio run
+    - cd esp; pio run
     - cd sam; pio run

@@ -20,7 +20,7 @@ app.get('/cors', function(req, res, next){
 })
 
 app.get('/aplist', function(req, res){
-  fs.readFile(__dirname + "/" + "data.json", "utf8", function(err, data){
+  fs.readFile(__dirname + "/" + "aplist.json", "utf8", function(err, data){
     setTimeout( (function() {
       res.end(data);
     }), 900)
@@ -28,13 +28,20 @@ app.get('/aplist', function(req, res){
 })
 
 app.get('/conf', function(req, res){
-  fs.readFile(__dirname + "/" + "data.json", "utf8", function(err, data){
+  fs.readFile(__dirname + "/" + "conf.json", "utf8", function(err, data){
     setTimeout( (function() {
       res.end(data);
     }), 900)
   });
 })
 
+app.get('/status', function(req, res){
+  fs.readFile(__dirname + "/" + "status.json", "utf8", function(err, data){
+    setTimeout( (function() {
+      res.end(data);
+    }), 900)
+  });
+})
 
 app.post('/connectwifi', function(req,res){
   // Wait 1 sec to emulate Wifi connection latency

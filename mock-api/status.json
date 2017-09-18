@@ -1,0 +1,35 @@
+{
+  "status": [
+    {
+      "wifi": "ap not found"
+
+    },
+    {
+      "net": "null"
+
+    },
+    {
+      "mqtt": "null"
+
+    },
+    {
+      "time": "null"
+
+    },
+    {
+      "ap": "started"
+
+    },
+    {
+      "web": "started"
+
+    },
+    {
+      "token": "ok"
+
+    },
+    {
+      "conf": "null"
+    }
+  ]
+}

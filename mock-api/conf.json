@@ -1,0 +1,9 @@
+{
+  "token": "123456",
+  "nets": [
+    {
+      "ssid": "IAAC-OFFICE-C",
+      "password": "enteroffice2016"
+    }
+  ]
+}

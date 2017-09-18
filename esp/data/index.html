@@ -51,24 +51,12 @@
                 border-color: #4C669F;
                 outline: 0;
             }
-            .button-container {
-                text-align: center;
-                box-sizing: border-box;
-                clear: both;
-                margin: 1px 0 0;
-                padding: 4px 0;
-                position: relative;
-                width: 100%;
-            }
-            button[type=submit] {
-                box-sizing: border-box;
+            .btn{
                 background: #f5f5f5;
                 border: 1px solid #bdbdbd;
                 border-radius: 2px;
                 color: #434343;
                 cursor: pointer;
-                display: inline-block;
-                font-family: inherit;
                 font-size: 22px;
                 font-variant: normal;
                 font-weight: 400;
@@ -76,8 +64,6 @@
                 margin: 0;
                 padding: 4px 10px;
                 text-decoration: none;
-                vertical-align: baseline;
-                white-space: nowrap;
             }
         </style>
         <script src="vue.min.js" type="text/javascript" charset="utf-8" ></script>
@@ -99,6 +85,7 @@
 
                     </select>
                 </div>
+                <button class="btn" type="button" v-on:click="axiosFetch('aplist')">Refresh wifilist</button>
                 <div class="field-group">
                     <label>Password</label>
                     <input name="password" type="text" v-model='wifipass' length=64>
@@ -111,11 +98,7 @@
                     <label>Reading interval (seconds)</label>
                     <input name="readint" type="text" value="60" length=64>
                 </div>-->
-                <div class="button-container">
-                    <button type="submit">Connect</button>
-                    <button type="button" v-on:click="axiosFetch('aplist')">Refresh wifilist</button>
-                    <button type="button" v-on:click="axiosPost('connectwifi')">Post</button>
-                </div>
+                <button class="btn" type="button" v-on:click="axiosPost('connectwifi')">Connect</button>
                 <ul v-if="errors && errors.length">
                     <li v-for="error of errors">
                         {{error.message}}
@@ -208,6 +191,6 @@
                     }
                 }
             });
-            </script>
-            </body>
+        </script>
+    </body>
 </html>

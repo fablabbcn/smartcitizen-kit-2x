@@ -83,6 +83,9 @@
             .grey{
               background: grey;
             }
+            .text-right{
+              text-align: right;
+            }
         </style>
         <script src="vue.min.js" type="text/javascript" charset="utf-8" ></script>
         <script src="axios.min.js" type="text/javascript" ></script>
@@ -149,8 +152,8 @@
 
         <div v-if="setuppath == 'sdcard'" id="sdcard">
           <h2 style="text-align: center">SD CARD</h2>
-          <p>Browser time: {{ browsertime }}</p>
-          <p>Device time:</p>
+          <p class="text-right">Browser time: {{ browsertime }}</p>
+          <p class="text-right">Device time: {{ devicetime }}</p>
           <p>TODO: Sync time automatically or with a button?</p>
         </div>
 
@@ -168,6 +171,7 @@ var app = new Vue({
     selectedwifi: '',
     appstatus: '(Status of the app)',
     browsertime: Date.now(),
+    devicetime: '',
     currentToken: '',
     currentSSID: '',
     currentPassword: '',
@@ -225,6 +229,7 @@ var app = new Vue({
           if (path == 'conf'){
             this.currentSSID = response.data.nets[0].ssid;
             this.currentToken = response.data.token;
+            this.devicetime = response.data.time;
           }
 
         })

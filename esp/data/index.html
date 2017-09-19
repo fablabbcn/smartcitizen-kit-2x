@@ -8,75 +8,82 @@
   </head>
   <body>
     <div class="container" id="app">
+
       <div class="topnav font70">
-        <img id="toplogo" src="/images/logo.svg">
+        <a href="#" v-on:click="axiosFetch('conf')">
+          <img id="toplogo" src="/images/logo.svg">
+        </a>
         <p class="monospace mt0 p10">
           <b>SSID:</b> {{ currentSSID }} -
           <b>TOKEN:</b> {{ currentToken }}
         </p>
+        <div class="statuswrapper" style="text-align: right">
+          <i id="appstatus" class="" style="text-align:right">{{ appstatus }}</i>
+        </div>
+        <br />
       </div>
-      <img id="logo" src="/images/logo.png">
 
-      <div id="main" class="center">
-        <p class="font70">Select [Network] if the device will connect to the internet, else choose [SD card]</p>
-        <button class="btn" v-bind:class="{ grey: setuppath=='wifi'}" v-on:click="selectPath('wifi')">Network</button>
-        <button class="btn" v-bind:class="{ grey: setuppath=='sdcard'}" v-on:click="selectPath('sdcard')">SD card</button>
-      </div>
-      <hr />
-
-      <div v-if="setuppath == 'wifi'" id="wifisetup">
-        <h2 class="center">Wifi Setup</h2>
-        <form method="post" action="/">
-          <div class="field-group">
-            <input name="epoch" id="epoch" type="hidden" value="" />
-            <label>SSID (Network name)</label>
-            <select v-model="selectedwifi" name="ssid" type="text" length=64>
-              <!-- Here goes the Access point list -->
-              <option disabled value="">Select wifi ({{wifis["nets"].length}})</option>
-              <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}} ({{x.rssi}}, {{x.ch}})</option>
-            </select>
-          </div>
-          <button class="btn" type="button" v-on:click="axiosFetch('aplist')">Refresh Wifi list</button>
-          <div class="field-group">
-            <label>Password</label>
-            <input name="password" type="text" v-model='wifipass' length=64>
-          </div>
-          <div class="field-group">
-            <label>Token</label>
-            <input name="token" type="text" maxlength="6" v-model='usertoken' minlength="6">
-          </div>
-          <!-- <div class="field-group">
-            <label>Reading interval (seconds)</label>
-            <input name="readint" type="text" value="60" length=64>
-            </div>-->
-            <button class="btn" type="button" v-on:click="axiosPost('connectwifi')">Connect</button>
-        </form>
-
-        <div class="font70">
-          <p>Debug, see console:</p>
-          <a href="#" v-on:click="axiosFetch('status')">/status</a>
+      <div class="content">
+        <img id="logo" src="/images/logo.png">
+        <div id="main" class="center">
+          <p class="font70">Select [Network] if the device will connect to the internet, else choose [SD card]</p>
+          <button class="btn" v-bind:class="{ 'btn-grey': setuppath=='wifi'}" v-on:click="selectPath('wifi')">Network</button>
+          <button class="btn" v-bind:class="{ 'btn-grey': setuppath=='sdcard'}" v-on:click="selectPath('sdcard')">SD card</button>
         </div>
 
         <hr />
-        <div id="feedback" class="font80">
-          <ul v-if="errors && errors.length">
-            <li v-for="error of errors">
-              {{error.message}}
-            </li>
-          </ul>
-          <i>{{ appstatus }}</i>
+
+        <div v-if="setuppath == 'wifi'" id="wifisetup">
+          <h2 class="center">Wifi Setup</h2>
+          <form method="post" action="/">
+            <div class="field-group">
+              <label>SSID (Network name)</label>
+              <select v-model="selectedwifi" name="ssid" type="text" length=64>
+                <!-- Here goes the Access point list -->
+                <option disabled value="">Select wifi ({{wifis["nets"].length}})</option>
+                <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}} ({{x.rssi}}, {{x.ch}})</option>
+              </select>
+            </div>
+            <button class="btn" type="button" v-on:click="axiosFetch('aplist')">Refresh Wifi list</button>
+            <div class="field-group">
+              <label>Password</label>
+              <input name="password" type="text" v-model='wifipass' length=64>
+            </div>
+            <div class="field-group">
+              <label>Token</label>
+              <input name="token" type="text" maxlength="6" v-model='usertoken' minlength="6">
+            </div>
+            <!-- <div class="field-group">
+              <label>Reading interval (seconds)</label>
+              <input name="readint" type="text" value="60" length=64>
+              </div>-->
+              <button class="btn" type="button" v-on:click="axiosPost('connectwifi')">Connect</button>
+          </form>
+
+          <div class="font70">
+            <p>Debug, see console:</p>
+            <a href="#" v-on:click="axiosFetch('status')">/status</a>
+          </div>
+
+          <div id="feedback" class="font80">
+            <ul v-if="errors && errors.length">
+              <li v-for="error of errors">
+                {{error.message}}
+              </li>
+            </ul>
+          </div>
+        </div> <!-- end network setup -->
+
+        <div v-if="setuppath == 'sdcard'" id="sdcard">
+          <h2 class="center">SD CARD</h2>
+          <p class="text-right font70">Browser time: {{ browsertime }}</p>
+          <p class="text-right font70">Device time: {{ devicetime }}</p>
+          <p class="text-right font70">Diff: {{ browsertime - devicetime }}</p>
+          <button class="btn" type="button" v-on:click="axiosPost('synctime')">Sync time</button>
+          <p>TODO: Sync time automatically or with a button?</p>
         </div>
-      </div> <!-- end network setup -->
 
-      <div v-if="setuppath == 'sdcard'" id="sdcard">
-        <h2 class="center">SD CARD</h2>
-        <p class="text-right font70">Browser time: {{ browsertime }}</p>
-        <p class="text-right font70">Device time: {{ devicetime }}</p>
-        <p class="text-right font70">Diff: {{ browsertime - devicetime }}</p>
-        <button class="btn" type="button" v-on:click="axiosPost('synctime')">Sync time</button>
-        <p>TODO: Sync time automatically or with a button?</p>
       </div>
-
     </div>
     <script src="main.js" type="text/javascript" charset="utf-8"></script>
   </body>

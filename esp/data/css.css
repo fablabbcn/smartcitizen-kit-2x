@@ -41,7 +41,13 @@ input[type=text]:focus {
   border-color: #4C669F;
   outline: 0;
 }
-/* ids */
+
+#appstatus{
+  margin-right: 10px;
+}
+.statuswrapper{
+  text-align: right;
+}
 #logo{
   margin-top: 10px;
   margin-bottom: 10px;
@@ -54,12 +60,15 @@ input[type=text]:focus {
   margin-top: 10px;
 }
 
-/* classes */
 .btn{
-  background: #f5f5f5;
   border: 1px solid #bdbdbd;
   border-radius: 2px;
+  /*
   color: #434343;
+  background: #f5f5f5;
+  */
+  color: white;
+  background-color: #065063;
   cursor: pointer;
   font-size: 22px;
   font-variant: normal;
@@ -69,8 +78,17 @@ input[type=text]:focus {
   padding: 4px 10px;
   text-decoration: none;
 }
+
+.btn-blue{
+  background-color: #38cef3;
+  color: white;
+}
+
 .center{
   text-align: center;
+}
+.content{
+  padding: 70px 5px 20px;
 }
 .font70{
   font-size: 70%;
@@ -78,8 +96,9 @@ input[type=text]:focus {
 .font80{
   font-size: 80%;
 }
-.grey{
-  background: grey;
+.btn-grey{
+  background: #C8E6ED;
+  color: #8db2ba;
 }
 .monospace{
   font-family: 'monospace';
@@ -97,6 +116,10 @@ input[type=text]:focus {
   color:white;
   background-color: #065063;
   min-height:50px;
+  position: fixed;
+  width: 100%;
+  top:0;
+  bottom:auto;
 }
 .topnav a:visited{
   color:white;

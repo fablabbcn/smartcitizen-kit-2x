@@ -1,7 +1,3 @@
-// TODO: do we need this?
-// Time is also calculated in var 'browsertime'
-document.getElementById("epoch").value = Math.floor((new Date).getTime()/1000);
-
 var app = new Vue({
   el: '#app',
   data: {
@@ -63,13 +59,14 @@ var app = new Vue({
 
           // If this is a call for the Wifi list, populate this.wifis
           if (path == 'aplist'){
-            console.log('network');
             this.wifis = response.data;
+            this.appstatus = 'Wifi list updated.';
           }
           if (path == 'conf'){
             this.currentSSID = response.data.nets[0].ssid;
             this.currentToken = response.data.token;
             this.devicetime = response.data.time;
+            this.appstatus = 'Config info updated.';
           }
 
         })

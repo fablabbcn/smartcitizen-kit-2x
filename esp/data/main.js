@@ -81,9 +81,12 @@ var app = new Vue({
     axiosPost: function(path) {
       this.appstatus = 'Sending data... Please wait!';
       axios.post(this.theUrl + path, {
-        clientWifi: this.selectedwifi,
-        clientPass: this.wifipass,
-        userToken: this.usertoken
+        ssid: this.selectedwifi,
+        password: this.wifipass,
+        token: this.usertoken,
+        epoch: this.browsertime
+        // TODO: also send epoch=value ?
+        // /set?ssid=value1&password=value2&token=value3&epoch=value
       })
       .then(response => {
         console.log(response);

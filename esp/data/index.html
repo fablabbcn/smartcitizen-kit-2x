@@ -9,11 +9,12 @@
   <body>
     <div class="container" id="app">
       <div class="topnav font70">
-        <p><b>SSID:</b> {{ currentSSID }} - <b>TOKEN:</b> {{ currentToken }}
-        <a href="#" v-on:click="axiosFetch('conf')">(Reload /conf)</a>
+        <img id="toplogo" src="/images/logo.svg">
+        <p class="monospace mt0 p10">
+          <b>SSID:</b> {{ currentSSID }} -
+          <b>TOKEN:</b> {{ currentToken }}
         </p>
       </div>
-      <hr />
       <img id="logo" src="/images/logo.png">
 
       <div id="main" class="center">

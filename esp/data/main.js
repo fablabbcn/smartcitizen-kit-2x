@@ -38,7 +38,7 @@ var app = new Vue({
     // When the app is mounted
     console.log('mounted');
     setTimeout (() => this.axiosFetch('aplist'), 300);
-    setTimeout (() => this.axiosFetch('conf'), 400);
+    setTimeout (() => this.axiosFetch('conf'), 900);
   },
   methods: {
     selectPath: function(path){

@@ -93,7 +93,9 @@
     <body>
       <div class="container" id="app">
         <div class="topnav font70">
-          <p><b>SSID:</b> {{ currentSSID }} - <b>TOKEN:</b> {{ currentToken }}</p>
+          <p><b>SSID:</b> {{ currentSSID }} - <b>TOKEN:</b> {{ currentToken }}
+          <a href="#" v-on:click="axiosFetch('conf')">(Reload /conf)</a>
+          </p>
         </div>
         <hr />
         <img id="logo" src="/images/logo.png">
@@ -135,9 +137,10 @@
             <button class="btn" type="button" v-on:click="axiosPost('connectwifi')">Connect</button>
           </form>
 
-          <p>Debug, see console:</p>
-          <button class="btn" type="button" v-on:click="axiosFetch('status')">/status</button>
-          <button class="btn" type="button" v-on:click="axiosFetch('conf')">/conf</button>
+          <div class="font70">
+            <p >Debug, see console:</p>
+            <a href="#" v-on:click="axiosFetch('status')">/status</a>
+          </div>
 
           <hr />
           <div id="feedback" class="font80">

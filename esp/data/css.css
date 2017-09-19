@@ -47,6 +47,8 @@ input[type=text]:focus {
 }
 .statuswrapper{
   text-align: right;
+  padding-top:2px;
+  padding-bottom:5px;
 }
 #logo{
   margin-top: 10px;
@@ -120,15 +122,15 @@ input[type=text]:focus {
   width: 100%;
   top:0;
   bottom:auto;
+  z-index: 100;
 }
-.topnav a:visited{
-  color:white;
-}
-
 #toplogo{
   position: relative;
   left: 7px;
   top: 7px;
+}
+.topnav a:visited{
+  color:white;
 }
 .topnav p{
   margin-left:5px;

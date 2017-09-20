@@ -28,11 +28,12 @@ var app = new Vue({
         "rssi": -89
       }]
     },
+    statusapi: [],
     errors: []
   },
   mounted: function() {
     // When the app is mounted
-    console.log('mounted');
+    console.log(' Vue.js mounted, fetching data at startup');
     setTimeout (() => this.axiosFetch('aplist'), 300);
     setTimeout (() => this.axiosFetch('conf'), 900);
   },
@@ -69,7 +70,8 @@ var app = new Vue({
             this.appstatus = 'Config info updated.';
           }
           if (path == 'status'){
-            this.appstatus = 'Status fetched. (Console)'
+            this.appstatus = 'Status fetched. (Console)';
+            this.statusapi = response.data.status;
           }
 
         })
@@ -79,8 +81,7 @@ var app = new Vue({
       });
     },
     axiosGet: function(path){
-      this.appstatus = 'Get request...';
-      console.log('GET request');
+      this.appstatus = 'Trying to connect online...';
       // /set?ssid=value1&password=value2&token=value3&epoch=value
       axios.get(this.theUrl + path +
           '?ssid=' + this.selectedwifi +
@@ -89,7 +90,7 @@ var app = new Vue({
           '&epoch=' + this.browsertime
       ).then(response => {
         this.appstatus = response.data.statusText;
-        console.log('GET response');
+        console.log('GET response:');
         console.log(response);
       }).catch(e => {
         this.errors.push(e)

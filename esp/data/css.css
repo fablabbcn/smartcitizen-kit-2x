@@ -127,13 +127,12 @@ input[type=text]:focus {
 #toplogo{
   position: relative;
   left: 7px;
-  top: 7px;
+  top: 13px;
 }
 .topnav a:visited{
   color:white;
 }
 .topnav p{
-  margin-left:5px;
   line-height: 24px;
   display: inline;
 }

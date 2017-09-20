@@ -11,7 +11,7 @@
 
       <div class="topnav font70">
         <a href="#" v-on:click="axiosFetch('conf')">
-          <img id="toplogo" src="/images/logo.svg">
+          <img id="toplogo" src="/images/sck30.png">
         </a>
         <p class="monospace mt0 p10">
           <b>SSID:</b> {{ currentSSID }} -
@@ -59,12 +59,18 @@
               <button class="btn" type="button" v-on:click="axiosGet('set')">Connect</button>
           </form>
 
+          <hr />
           <div class="font70">
-            <p>Debug, see console:</p>
-            <a href="#" v-on:click="axiosFetch('status')">/status</a>
+            <p>Debug section:</p>
+            <button class="btn btn-blue" v-on:click="axiosFetch('status')">See /status</button>
+            <ul v-if="statusapi && statusapi.length">
+              <li v-for="value in statusapi">{{value}}</li>
+            </ul>
           </div>
 
+          <hr />
           <div id="feedback" class="font80">
+            <p>Error section:</p>
             <ul v-if="errors && errors.length">
               <li v-for="error of errors">
                 {{error.message}}

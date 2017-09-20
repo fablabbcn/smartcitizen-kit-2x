@@ -68,6 +68,9 @@ var app = new Vue({
             this.devicetime = response.data.time;
             this.appstatus = 'Config info updated.';
           }
+          if (path == 'status'){
+            this.appstatus = 'Status fetched. (Console)'
+          }
 
         })
       .catch(response => {
@@ -75,15 +78,31 @@ var app = new Vue({
         this.errors.push(response);
       });
     },
+    axiosGet: function(path){
+      this.appstatus = 'Get request...';
+      console.log('GET request');
+      // /set?ssid=value1&password=value2&token=value3&epoch=value
+      axios.get(this.theUrl + path +
+          '?ssid=' + this.selectedwifi +
+          '&password=' + this.wifipass +
+          '&token=' + this.usertoken +
+          '&epoch=' + this.browsertime
+      ).then(response => {
+        this.appstatus = response.data.statusText;
+        console.log('GET response');
+        console.log(response);
+      }).catch(e => {
+        this.errors.push(e)
+      });
+    },
     axiosPost: function(path) {
-      this.appstatus = 'Sending data... Please wait!';
+      console.log('POST request');
+      this.appstatus = 'Sending POST data... Please wait!';
       axios.post(this.theUrl + path, {
         ssid: this.selectedwifi,
         password: this.wifipass,
         token: this.usertoken,
         epoch: this.browsertime
-        // TODO: also send epoch=value ?
-        // /set?ssid=value1&password=value2&token=value3&epoch=value
       })
       .then(response => {
         console.log(response);

@@ -43,7 +43,7 @@ app.get('/status', function(req, res){
   });
 })
 
-app.post('/connectwifi', function(req,res){
+app.post('/set', function(req,res){
   // Wait 1 sec to emulate Wifi connection latency
   console.log(req.body);
   setTimeout( (function() {

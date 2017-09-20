@@ -90,7 +90,7 @@ input[type=text]:focus {
   text-align: center;
 }
 .content{
-  padding: 70px 5px 20px;
+  padding: 20px 5px;
 }
 .font70{
   font-size: 70%;
@@ -118,7 +118,7 @@ input[type=text]:focus {
   color:white;
   background-color: #065063;
   min-height:50px;
-  position: fixed;
+  position: sticky;
   width: 100%;
   top:0;
   bottom:auto;

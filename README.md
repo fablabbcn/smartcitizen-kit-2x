@@ -13,4 +13,4 @@ Instead of going offline to talk to the kit via WIFI, there is a /mock-api folde
 
 `npm run start`
 
-And in */esp/data/index.html* change the apiUrl to 'localhost:3000' instead of '192.168.1.1'
+And in */esp/data/main.js* change the apiUrl to 'localhost:3000' instead of '192.168.1.1'

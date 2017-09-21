@@ -19,10 +19,13 @@ app.get('/cors', function(req, res, next){
   res.json({msg: 'This is CORS enabled for all origins!'})
 })
 
+app.get('/set*', function(req, res){
+  console.log(req.query);
+  res.status(200).send({statusText:'Mock API approves user|pass'});
+})
 
 // Try to get a filename of "*.json"
 app.get('/*', function(req, res){
-           console.log(req.params[0])
   fs.readFile(__dirname + "/" +  req.params[0] + ".json", "utf8", function(err, data){
   if (err){
     res.status(404).send({url: req.originalUrl + ' not found'});
@@ -32,24 +35,6 @@ app.get('/*', function(req, res){
     }), 900)
   });
 })
-
-/*
-app.get('/conf', function(req, res){
-  fs.readFile(__dirname + "/" + "conf.json", "utf8", function(err, data){
-    setTimeout( (function() {
-      res.end(data);
-    }), 900)
-  });
-})
-
-app.get('/status', function(req, res){
-  fs.readFile(__dirname + "/" + "status.json", "utf8", function(err, data){
-    setTimeout( (function() {
-      res.end(data);
-    }), 900)
-  });
-})
-*/
 
 app.post('/set', function(req,res){
   // Wait 1 sec to emulate Wifi connection latency
@@ -67,4 +52,4 @@ app.use(function(req, res) {
 
 app.listen(port);
 
-console.log('App started on port: ' + port);
+console.log('Mock API started on port: ' + port);

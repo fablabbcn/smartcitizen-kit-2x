@@ -5,7 +5,7 @@ var app = new Vue({
     //theUrl: 'http://localhost:3000/',
     theUrl: 'http://192.168.1.1/',
     selectedwifi: '',
-    advanced: 'false',
+    advanced: false,
     appstatus: '(Status of the app)',
     browsertime: Math.floor(Date.now() / 1000),
     devicetime: '',

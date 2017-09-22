@@ -45,6 +45,11 @@ var app = new Vue({
     showAdvanced: function(){
       this.advanced = !this.advanced;
     },
+    synctime: function(){
+      // TODO: do we need to do a get request to the device with 'epoch' to re-sync?
+      this.browsertime = Math.floor(Date.now() / 1000);
+      this.appstatus = 'Syncing time (request)..';
+    },
     jsFetch: function (path) {
       // Backup function to fetch with pure javascript
       // (If we cannot use extra libraries due to space issues etc)

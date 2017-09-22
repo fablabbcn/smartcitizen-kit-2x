@@ -32,6 +32,7 @@
 
         <hr />
 
+        <!-- Wifi setup -->
         <div v-if="setuppath == 'wifi'" id="wifisetup">
           <h2 class="center">Wifi Setup</h2>
           <form method="post" action="/">
@@ -52,46 +53,49 @@
               <label>Token</label>
               <input name="token" type="text" maxlength="6" v-model='usertoken' minlength="6">
             </div>
-            <!-- <div class="field-group">
-              <label>Reading interval (seconds)</label>
-              <input name="readint" type="text" value="60" length=64>
-              </div>-->
-              <button class="btn" type="button" v-on:click="axiosGet('set')">Connect</button>
+            <button class="btn" type="button" v-on:click="axiosGet('set')">Connect</button>
           </form>
+        </div> <!-- end network setup -->
+
+        <!-- sdcard setup -->
+        <div v-if="setuppath == 'sdcard'" id="sdcard">
+          <h2 class="center">SD CARD</h2>
+          <p class="text-right font70">Browser time: {{ browsertime }}</p>
+          <p class="text-right font70">Device time: {{ devicetime }}</p>
+          <p class="text-right font70">Diff: {{ browsertime - devicetime }}</p>
+          <p>TODO: Sync time automatically or with a button?</p>
+          <!--
+            <button class="btn" type="button" v-on:click="axiosPost('synctime')">Sync time</button>
+          -->
+          <button class="btn" type="button" v-on:click="synctime()">Sync time</button>
+        </div>
+
+        <hr />
+
+        <!-- advanced -->
+        <button v-bind:class="{ 'btn-blue': advanced}" class="btn " v-on:click="showAdvanced()">Advanced</button>
+        <div v-if="advanced" id="advanced" class="">
+          <div class="font70">
+            <p>Debug section:</p>
+            <button class="btn" v-on:click="axiosFetch('status')">See /status</button>
+            <ul v-if="statusapi && statusapi.length">
+              <li v-for="value in statusapi">{{value}}</li>
+            </ul>
+          </div>
 
           <hr />
-          <button v-bind:class="{ 'btn-blue': advanced}" class="btn " v-on:click="showAdvanced()">Advanced</button>
-          <div v-if="advanced" id="advanced" class="">
-            <div class="font70">
-              <p>Debug section:</p>
-              <button class="btn" v-on:click="axiosFetch('status')">See /status</button>
-              <ul v-if="statusapi && statusapi.length">
-                <li v-for="value in statusapi">{{value}}</li>
-              </ul>
-            </div>
-
-            <hr />
-            <div id="feedback" class="font80">
-              <p>Error section:</p>
-              <ul v-if="errors && errors.length">
-                <li v-for="error of errors">
-                  {{error.message}}
-                </li>
-              </ul>
-            </div>
-          </div> <!-- end network setup -->
-
-          <div v-if="setuppath == 'sdcard'" id="sdcard">
-            <h2 class="center">SD CARD</h2>
-            <p class="text-right font70">Browser time: {{ browsertime }}</p>
-            <p class="text-right font70">Device time: {{ devicetime }}</p>
-            <p class="text-right font70">Diff: {{ browsertime - devicetime }}</p>
-            <button class="btn" type="button" v-on:click="axiosPost('synctime')">Sync time</button>
-            <p>TODO: Sync time automatically or with a button?</p>
+          <div id="feedback" class="font80">
+            <p>Error section:</p>
+            <ul v-if="errors && errors.length">
+              <li v-for="error of errors">
+                {{error.message}}
+              </li>
+            </ul>
           </div>
-        </div> <!-- advanced -->
-      </div>
-    </div>
+        </div> <!-- /advanced -->
+
+      </div><!-- /content -->
+    </div><!-- container -->
     <script src="main.js" type="text/javascript" charset="utf-8"></script>
   </body>
 </html>

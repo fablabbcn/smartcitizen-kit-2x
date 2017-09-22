@@ -5,6 +5,7 @@ var app = new Vue({
     //theUrl: 'http://localhost:3000/',
     theUrl: 'http://192.168.1.1/',
     selectedwifi: '',
+    advanced: 'false',
     appstatus: '(Status of the app)',
     browsertime: Math.floor(Date.now() / 1000),
     devicetime: '',
@@ -40,6 +41,9 @@ var app = new Vue({
   methods: {
     selectPath: function(path){
       this.setuppath = path;
+    },
+    showAdvanced: function(){
+      this.advanced = !this.advanced;
     },
     jsFetch: function (path) {
       // Backup function to fetch with pure javascript

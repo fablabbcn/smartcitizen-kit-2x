@@ -93,7 +93,7 @@ var app = new Vue({
         console.log('GET response:');
         console.log(response);
       }).catch(e => {
-        this.errors.push(e)
+        this.errors.push(e);
       });
     },
     axiosPost: function(path) {
@@ -110,7 +110,7 @@ var app = new Vue({
         this.appstatus = response.data;
       })
       .catch(e => {
-        this.errors.push(e)
+        this.errors.push(e);
       })
     }
 

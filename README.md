@@ -2,6 +2,15 @@
 Developer version of Smart Citizen Kit 1.5 Firmware
 
 
+### Development
+
+To work on the frontend UI (HTML, CSS, JavaScript - Vue.js)
+
+`cd esp/data`
+
+`python -m SimpleHTTPServer`
+
+And visit localhost:8000 in browser
 
 ### The Mock Api (optional development tool)
 

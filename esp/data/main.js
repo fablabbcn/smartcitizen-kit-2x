@@ -3,19 +3,18 @@ var app = new Vue({
   data: {
     // mock API
     //theUrl: 'http://localhost:3000/',
-    theUrl: 'http://192.168.1.1/',
+    theUrl: 'http://192.168.244.1/',
     selectedwifi: '',
     advanced: false,
     appstatus: '(Status of the app)',
     browsertime: Math.floor(Date.now() / 1000),
+    checkSSID: '',
+    checkToken: '',
     devicetime: '',
-    currentToken: '',
-    currentSSID: '',
-    currentPassword: '',
     wifiname: '',
     wifipass: '',
     usertoken: '',
-    setuppath: 'wifi',
+    setuppath: 'online',
     wifis: {
       "nets": [
       {
@@ -36,7 +35,7 @@ var app = new Vue({
     // When the app is mounted
     console.log(' Vue.js mounted, fetching data at startup');
     setTimeout (() => this.axiosFetch('aplist'), 300);
-    setTimeout (() => this.axiosFetch('conf'), 900);
+    setTimeout (() => this.axiosFetch('status'), 900);
   },
   methods: {
     selectPath: function(path){
@@ -44,11 +43,6 @@ var app = new Vue({
     },
     showAdvanced: function(){
       this.advanced = !this.advanced;
-    },
-    synctime: function(){
-      // TODO: do we need to do a get request to the device with 'epoch' to re-sync?
-      this.browsertime = Math.floor(Date.now() / 1000);
-      this.appstatus = 'Syncing time (request)..';
     },
     jsFetch: function (path) {
       // Backup function to fetch with pure javascript
@@ -65,22 +59,26 @@ var app = new Vue({
       axios.get(this.theUrl + path)
         .then(response => {
           this.appstatus = 'Data fetched.';
-          console.log(response.data);
+          //console.log(response.data);
 
           // If this is a call for the Wifi list, populate this.wifis
           if (path == 'aplist'){
             this.wifis = response.data;
             this.appstatus = 'Wifi list updated.';
           }
+          // TODO: depricate
           if (path == 'conf'){
-            this.currentSSID = response.data.nets[0].ssid;
-            this.currentToken = response.data.token;
             this.devicetime = response.data.time;
             this.appstatus = 'Config info updated.';
           }
           if (path == 'status'){
             this.appstatus = 'Status fetched. (Console)';
-            this.statusapi = response.data.status;
+            console.log(1)
+            console.log(response)
+             
+            this.statusapi = response.data;
+            this.checkSSID = this.statusapi.status[0].wifi;
+            this.checkToken = this.statusapi.status[6].token;
           }
 
         })
@@ -89,21 +87,37 @@ var app = new Vue({
         this.errors.push(response);
       });
     },
-    axiosGet: function(path){
-      this.appstatus = 'Trying to connect online...';
+    axiosGet: function(path, purpose){
+      this.browsertime = Math.floor(Date.now() / 1000);
+      // Available parameters:
       // /set?ssid=value1&password=value2&token=value3&epoch=value
-      axios.get(this.theUrl + path +
-          '?ssid=' + this.selectedwifi +
-          '&password=' + this.wifipass +
-          '&token=' + this.usertoken +
-          '&epoch=' + this.browsertime
-      ).then(response => {
-        this.appstatus = response.data.statusText;
-        console.log('GET response:');
-        console.log(response);
-      }).catch(e => {
-        this.errors.push(e);
-      });
+      if (purpose == 'wifi'){
+        this.appstatus = 'Trying to connect online...';
+        axios.get(this.theUrl + path +
+            '?ssid=' + this.selectedwifi +
+            '&password=' + this.wifipass +
+            '&token=' + this.usertoken +
+            '&epoch=' + this.browsertime
+        ).then(response => {
+          this.appstatus = response.data.statusText;
+          console.log('wifi GET response:');
+          console.log(response);
+        }).catch(e => {
+          this.errors.push(e);
+        });
+      }
+      if (purpose == 'synctime'){
+        this.appstatus = 'Syncing time (request)..';
+        axios.get(this.theUrl + path + '?epoch=' + this.browsertime)
+          .then(response => {
+            console.log('synctime GET response:');
+            console.log(response);
+            console.log(response.statusText);
+            this.appstatus = 'Device synced and has started working!'
+          }).catch(e => {
+            this.errors.push(e);
+          });;
+      }
     },
     axiosPost: function(path) {
       console.log('POST request');

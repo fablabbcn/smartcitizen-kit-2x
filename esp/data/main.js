@@ -10,7 +10,7 @@ var app = new Vue({
     browsertime: Math.floor(Date.now() / 1000),
     checkSSID: '',
     checkToken: '',
-    devicetime: '',
+    devicetime: 0,
     wifiname: '',
     wifipass: '',
     usertoken: '',
@@ -34,8 +34,8 @@ var app = new Vue({
   mounted: function() {
     // When the app is mounted
     console.log(' Vue.js mounted, fetching data at startup');
-    setTimeout (() => this.axiosFetch('aplist'), 300);
-    setTimeout (() => this.axiosFetch('status'), 900);
+    setTimeout (() => this.axiosFetch('aplist'), 100);
+    setTimeout (() => this.axiosFetch('status'), 300);
   },
   methods: {
     selectPath: function(path){
@@ -66,16 +66,11 @@ var app = new Vue({
             this.wifis = response.data;
             this.appstatus = 'Wifi list updated.';
           }
-          // TODO: depricate
-          if (path == 'conf'){
-            this.devicetime = response.data.time;
-            this.appstatus = 'Config info updated.';
-          }
           if (path == 'status'){
             this.appstatus = 'Status fetched. (Console)';
-            console.log(1)
-            console.log(response)
-             
+            // TODO: time is wip
+            this.devicetime = response.data.time;
+            console.log(this.devicetime)
             this.statusapi = response.data;
             this.checkSSID = this.statusapi.status[0].wifi;
             this.checkToken = this.statusapi.status[6].token;

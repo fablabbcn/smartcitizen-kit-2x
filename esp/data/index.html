@@ -68,14 +68,13 @@
 
           <!-- advanced -->
           <hr />
-              {{ statusapi }}
           <button v-bind:class="{ 'btn-blue': advanced}" class="btn " v-on:click="showAdvanced()">Advanced</button>
           <div v-if="advanced" id="advanced" class="">
             <div class="font70">
               <p>Debug section:</p>
               <button class="btn" v-on:click="axiosFetch('status')">See /status</button>
-              <ul v-if="statusapi && statusapi.length">
-                <li v-for="value, index in statusapi">{{value}} {{ index }}</li>
+              <ul v-if="statusapi ">
+                <li v-for="value, index in statusapi"><b>{{index}}</b>: {{value}}</li>
               </ul>
             </div>
             <hr />
@@ -91,7 +90,8 @@
           <p class="text-right font70">Device time: {{ devicetime }}</p>
           <p class="text-right font70">Diff: {{ browsertime - devicetime }}</p>
           <br />
-          <p class="font80">When you click 'Sync time' the device will go offline and start working.</p>
+          <p class="font70">When you click 'Sync time' the device will go offline and start working. </p>
+          <p class="font70">(You will loose connection to the device)</p>
           <button class="btn" type="button" v-on:click="axiosGet('set', 'synctime')">Sync time</button>
         </div>
 

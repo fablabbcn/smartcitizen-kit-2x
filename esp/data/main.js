@@ -3,7 +3,7 @@ var app = new Vue({
   data: {
     // mock API
     //theUrl: 'http://localhost:3000/',
-    theUrl: 'http://192.168.244.1/',
+    theUrl: 'http://192.168.1.1/',
     selectedwifi: '',
     advanced: false,
     appstatus: '(Status of the app)',
@@ -68,6 +68,7 @@ var app = new Vue({
           }
           if (path == 'status'){
             this.appstatus = 'Status fetched. (Console)';
+            this.browsertime = Math.floor(Date.now() / 1000);
             // TODO: time is wip
             this.devicetime = response.data.time;
             console.log(this.devicetime)
@@ -86,7 +87,7 @@ var app = new Vue({
       this.browsertime = Math.floor(Date.now() / 1000);
       // Available parameters:
       // /set?ssid=value1&password=value2&token=value3&epoch=value
-      if (purpose == 'wifi'){
+      if (purpose == 'online'){
         this.appstatus = 'Trying to connect online...';
         axios.get(this.theUrl + path +
             '?ssid=' + this.selectedwifi +
@@ -94,7 +95,7 @@ var app = new Vue({
             '&token=' + this.usertoken +
             '&epoch=' + this.browsertime
         ).then(response => {
-          this.appstatus = response.data.statusText;
+          this.appstatus = response.statusText;
           console.log('wifi GET response:');
           console.log(response);
         }).catch(e => {
@@ -116,6 +117,7 @@ var app = new Vue({
     },
     axiosPost: function(path) {
       console.log('POST request');
+      this.browsertime = Math.floor(Date.now() / 1000);
       this.appstatus = 'Sending POST data... Please wait!';
       axios.post(this.theUrl + path, {
         ssid: this.selectedwifi,

@@ -11,7 +11,7 @@
 
       <div class="topnav font70">
         <a href="#" v-on:click="axiosFetch('status')">
-          <img id="toplogo" src="/images/sck30.png">
+          <img id="toplogo" src="/images/sck.png">
         </a>
         <p class="monospace mt0 p10">
           <b>SSID:</b> {{ checkSSID }}
@@ -23,16 +23,16 @@
       </div>
 
       <div class="content">
-        <img id="logo" src="/images/logo.png">
+        <!-- <img id="logo" src="/images/logo.png"> -->
         <div id="main" class="center">
           <button class="btn" v-bind:class="{ 'btn-grey': setuppath=='online'}" v-on:click="selectPath('online')">Online</button>
           <button class="btn" v-bind:class="{ 'btn-grey': setuppath=='offline'}" v-on:click="selectPath('offline')">Offline</button>
         </div>
 
-        <div v-if="errors && errors.length" id="feedback" class="font80">
+        <div v-show="errors && errors.length" id="feedback" class="font80">
           <hr />
           <p>Error section:</p>
-          <ul v-if="errors && errors.length">
+          <ul v-show="errors && errors.length">
             <li v-for="error of errors">
               {{error.message}}
             </li>
@@ -42,7 +42,7 @@
         <hr />
 
         <!-- online setup -->
-        <div v-if="setuppath == 'online'" id="wifisetup">
+        <div v-show="setuppath == 'online'" id="wifisetup">
           <h3 class="center">Setup wifi</h3>
           <p class="font70">Your kit will post data online every minute</p>
           <form method="post" action="/">
@@ -69,11 +69,11 @@
           <!-- advanced -->
           <hr />
           <button v-bind:class="{ 'btn-blue': advanced}" class="btn " v-on:click="showAdvanced()">Advanced</button>
-          <div v-if="advanced" id="advanced" class="">
+          <div v-show="advanced" id="advanced" class="">
             <div class="font70">
               <p>Debug section:</p>
-              <button class="btn" v-on:click="axiosFetch('status')">See /status</button>
-              <ul v-if="statusapi ">
+              <button class="btn" v-on:click="axiosFetch('status')">Refresh /status</button>
+              <ul v-show="statusapi ">
                 <li v-for="value, index in statusapi"><b>{{index}}</b>: {{value}}</li>
               </ul>
             </div>
@@ -83,16 +83,19 @@
         </div> <!-- end network setup -->
 
         <!-- offline setup -->
-        <div v-if="setuppath == 'offline'" id="offline">
+        <div v-show="setuppath == 'offline'" id="offline">
           <h3 class="center">SD CARD</h3>
-          <p class="font70">Your kit will be offline and save data to the SD CARD</p>
-          <p class="text-right font70">Browser time: {{ browsertime }}</p>
-          <p class="text-right font70">Device time: {{ devicetime }}</p>
-          <p class="text-right font70">Diff: {{ browsertime - devicetime }}</p>
-          <br />
-          <p class="font70">When you click 'Sync time' the device will go offline and start working. </p>
+          <p class="font70">Your kit will be offline and save data to the SD CARD.</p>
+
+          <div v-show="browsertime != devicetime" id="timesync">
+            <p class="text-right font70">Browser time: {{ browsertime }}</p>
+            <p class="text-right font70">Device time: {{ devicetime }}</p>
+            <p class="text-right font70">Diff: {{ browsertime - devicetime }}</p>
+          </div>
+
+          <p class="font70">When you click this button the device will go offline and start working. </p>
           <p class="font70">(You will loose connection to the device)</p>
-          <button class="btn" type="button" v-on:click="axiosGet('set', 'synctime')">Sync time</button>
+          <button class="btn" type="button" v-on:click="axiosGet('set', 'synctime')">Start logging on SD Card</button>
         </div>
 
       </div><!-- /content -->

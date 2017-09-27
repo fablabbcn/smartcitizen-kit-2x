@@ -4,12 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha",
     "start": "nodemon server.js"
   },
   "author": "FabLab Barcelona",
   "license": "ISC",
   "devDependencies": {
+    "mocha": "^3.5.3",
     "nodemon": "^1.11.0"
   },
   "dependencies": {

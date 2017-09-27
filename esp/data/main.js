@@ -5,16 +5,17 @@ var app = new Vue({
     //theUrl: 'http://localhost:3000/',
     theUrl: 'http://192.168.1.1/',
     selectedwifi: '',
-    advanced: false,
-    appstatus: '(Status of the app)',
+    advanced: true,
+    notification: '(Status of the app)',
+    apiresponse: '',
     browsertime: Math.floor(Date.now() / 1000),
-    checkSSID: '',
-    checkToken: '',
+    debuginfo: [],
     devicetime: 0,
+    errors: [],
+    setuppath: 'online',
+    usertoken: '',
     wifiname: '',
     wifipass: '',
-    usertoken: '',
-    setuppath: 'online',
     wifis: {
       "nets": [
       {
@@ -28,8 +29,6 @@ var app = new Vue({
         "rssi": -89
       }]
     },
-    statusapi: [],
-    errors: []
   },
   mounted: function() {
     // When the app is mounted
@@ -47,7 +46,7 @@ var app = new Vue({
     jsFetch: function (path) {
       // Backup function to fetch with pure javascript
       // (If we cannot use extra libraries due to space issues etc)
-      this.appstatus = 'Fetching data...';
+      this.notification = 'Fetching data...';
       var xmlHttp = new XMLHttpRequest();
       xmlHttp.open( "GET", this.theUrl + path, false ); // false for synchronous request
       xmlHttp.send( null );
@@ -55,26 +54,22 @@ var app = new Vue({
       this.wifis = myjson;
     },
     axiosFetch: function(path) {
-      this.appstatus = 'Fetching data... /' + path;
+      this.notification = 'Fetching data... /' + path;
       axios.get(this.theUrl + path)
         .then(response => {
-          this.appstatus = 'Data fetched.';
+          this.notification = 'Data fetched.';
           //console.log(response.data);
 
           // If this is a call for the Wifi list, populate this.wifis
           if (path == 'aplist'){
             this.wifis = response.data;
-            this.appstatus = 'Wifi list updated.';
+            this.notification = 'Wifi list updated.';
           }
           if (path == 'status'){
-            this.appstatus = 'Status fetched. (Console)';
+            this.notification = 'Status fetched.';
             this.browsertime = Math.floor(Date.now() / 1000);
-            // TODO: time is wip
             this.devicetime = response.data.time;
-            console.log(this.devicetime)
-            this.statusapi = response.data;
-            this.checkSSID = this.statusapi.status[0].wifi;
-            this.checkToken = this.statusapi.status[6].token;
+            this.debuginfo = response.data;
           }
 
         })
@@ -88,14 +83,14 @@ var app = new Vue({
       // Available parameters:
       // /set?ssid=value1&password=value2&token=value3&epoch=value
       if (purpose == 'online'){
-        this.appstatus = 'Trying to connect online...';
+        this.notification = 'Trying to connect online...';
         axios.get(this.theUrl + path +
             '?ssid=' + this.selectedwifi +
             '&password=' + this.wifipass +
             '&token=' + this.usertoken +
             '&epoch=' + this.browsertime
         ).then(response => {
-          this.appstatus = response.statusText;
+          this.apiresponse = response.data;
           console.log('wifi GET response:');
           console.log(response);
         }).catch(e => {
@@ -103,13 +98,13 @@ var app = new Vue({
         });
       }
       if (purpose == 'synctime'){
-        this.appstatus = 'Syncing time (request)..';
+        this.notification = 'Syncing time (request)..';
         axios.get(this.theUrl + path + '?epoch=' + this.browsertime)
           .then(response => {
             console.log('synctime GET response:');
             console.log(response);
-            console.log(response.statusText);
-            this.appstatus = 'Device synced and has started working!'
+            // TODO: check if we get a 200 from device?
+            this.notification = 'Device synced and has started working!'
           }).catch(e => {
             this.errors.push(e);
           });;
@@ -118,7 +113,7 @@ var app = new Vue({
     axiosPost: function(path) {
       console.log('POST request');
       this.browsertime = Math.floor(Date.now() / 1000);
-      this.appstatus = 'Sending POST data... Please wait!';
+      this.notification = 'Sending POST data... Please wait!';
       axios.post(this.theUrl + path, {
         ssid: this.selectedwifi,
         password: this.wifipass,
@@ -127,7 +122,7 @@ var app = new Vue({
       })
       .then(response => {
         console.log(response);
-        this.appstatus = response.data;
+        this.notification = response.data;
       })
       .catch(e => {
         this.errors.push(e);

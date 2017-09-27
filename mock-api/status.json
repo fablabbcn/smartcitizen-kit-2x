@@ -1,4 +1,6 @@
 {
+  "max": "123",
+  "asdf":"4",
   "status": [
     {
       "wifi": "MOCK ap not found"

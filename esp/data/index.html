@@ -13,12 +13,8 @@
         <a href="#" v-on:click="axiosFetch('status')">
           <img id="toplogo" src="/images/sck.png">
         </a>
-        <p class="monospace mt0 p10">
-          <b>SSID:</b> {{ checkSSID }}
-          <b>TOKEN:</b> {{ checkToken }}
-        </p>
         <div class="statuswrapper" style="text-align: right">
-          <i id="appstatus" class="" style="text-align:right">{{ appstatus }}</i>
+          <i id="" class="" style="text-align:right">{{ notification }}</i>
         </div>
       </div>
 
@@ -70,11 +66,20 @@
           <hr />
           <button v-bind:class="{ 'btn-blue': advanced}" class="btn " v-on:click="showAdvanced()">Advanced</button>
           <div v-show="advanced" id="advanced" class="">
+            <div class="font70" v-if="apiresponse">
+              <p>API Response:</p>
+              <table>
+                <tr v-for="value, index in apiresponse">
+                  <td><b>{{index}}</b></td>
+                  <td>{{value}}</td>
+                </tr>
+              </table>
+            </div>
             <div class="font70">
-              <p>Debug section:</p>
+              <p>Debug info:</p>
               <button class="btn" v-on:click="axiosFetch('status')">Refresh /status</button>
-              <ul v-show="statusapi ">
-                <li v-for="value, index in statusapi"><b>{{index}}</b>: {{value}}</li>
+              <ul v-show="debuginfo">
+                <li v-for="value, index in debuginfo"><b>{{index}}</b>: {{value}}</li>
               </ul>
             </div>
             <hr />

@@ -1,4 +1,7 @@
 //var assert = require('assert');
+//
+// Mocha tests, currently not used
+// We are using casper.js test, see folder casperjs
 
 describe('Array', function() {
   describe('#indexOf()', function() {

@@ -7,32 +7,31 @@ https://fablabbcn.github.io/smartcitizen-kit-15/esp/data/
 
 ### Development
 
-To work on the frontend UI (HTML, CSS, JavaScript - Vue.js)
+The app consists of 3 things
 
-`cd esp/data`
+* The core firmware (C++)
+* Frontend, a mobile web UI for setting up the kit. `localhost:8000`
+* mock-api - for mocking the API of the kit `localhost:3000`
 
-`python -m SimpleHTTPServer`
 
-And visit localhost:8000 in browser
+#### Frontend (HTML, CSS, JavaScript - Vue.js)
 
-### The Mock Api (optional development tool)
+In */esp/data/main.js* change **theUrl** to 'localhost:3000'
 
-Instead of going offline to talk to the kit via WIFI, there is a /mock-api folder where you can start your mock API.
+Inside the /mock-api folder do:
 
-`cd mock-api`
+1. cd mock-api
 
-`npm install`
+2. `npm install`
 
-`npm run start`
+3. `npm run web`
 
-And in */esp/data/main.js* change the apiUrl to 'localhost:3000' instead of '192.168.1.1'
+4. `npm run start`
 
 
 ### TESTING - (Work in progress)
 
 You can run End to End test (for the Web UI) against the current master branch with this command:
-
-Inside `/mock-api`
 
 `npm test`
 
@@ -45,5 +44,5 @@ Add edit tests under `mock-api/casperjs/test`
 TODO:
 
 * We need to run the test against the branch you are working on, not master.
-* So we need to start the service with 'python SimpleHTTPServer' or something on Travis?
+* So we need to start the service with 'npm run api' and 'npm run web' or something on Travis?
 * Also start the mock-api?

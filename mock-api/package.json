@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "autotest": "./node_modules/.bin/supervisor -n exit -w 'casperjs/test.js' --exec npm run test",
     "test": "./node_modules/casperjs/bin/casperjs test casperjs/test.js",
     "start": "nodemon server.js"
   },
@@ -16,7 +17,8 @@
     "karma-chrome-launcher": "^2.2.0",
     "karma-mocha": "^1.3.0",
     "mocha": "^3.5.3",
-    "nodemon": "^1.11.0"
+    "nodemon": "^1.11.0",
+    "supervisor": "^0.12.0"
   },
   "dependencies": {
     "body-parser": "^1.17.2",

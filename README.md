@@ -36,7 +36,11 @@ Inside `/mock-api`
 
 `npm test`
 
-Edit test under `mock-api/casperjs/test`
+If you want the tests to be run automatically everytime you edit `mock-api/casperjs/test` use:
+
+`npm run autotest`
+
+Add edit tests under `mock-api/casperjs/test`
 
 TODO:
 

@@ -9,3 +9,10 @@ describe('Array', function() {
 });
 
 
+describe('Clicking buttons on the web UI', function () {
+  describe('clicking Online button', function(){
+    it('should change the content on the page', function(){
+      // TODO
+    })
+  })
+})

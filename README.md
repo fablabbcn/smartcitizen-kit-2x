@@ -26,3 +26,20 @@ Instead of going offline to talk to the kit via WIFI, there is a /mock-api folde
 `npm run start`
 
 And in */esp/data/main.js* change the apiUrl to 'localhost:3000' instead of '192.168.1.1'
+
+
+### TESTING - (Work in progress)
+
+You can run End to End test (for the Web UI) against the current master branch with this command:
+
+Inside `/mock-api`
+
+`npm test`
+
+Edit test under `mock-api/casperjs/test`
+
+TODO:
+
+* We need to run the test against the branch you are working on, not master.
+* So we need to start the service with 'python SimpleHTTPServer' or something on Travis?
+* Also start the mock-api?

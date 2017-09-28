@@ -59,7 +59,7 @@
               <label>Token</label>
               <input name="token" type="text" maxlength="6" v-model='usertoken' minlength="6">
             </div>
-            <button class="btn" type="button" v-on:click="axiosGet('set','online')">Connect</button>
+            <button class="btn" type="button" id="connect" v-on:click="axiosGet('set','online')">Connect</button>
           </form>
 
           <!-- advanced -->

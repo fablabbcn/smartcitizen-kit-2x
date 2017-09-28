@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "autotest": "./node_modules/.bin/supervisor -n exit -w 'casperjs/test.js' --exec npm run test",
+    "autotest": "./node_modules/.bin/supervisor -q -n exit -w 'casperjs/test.js' --exec npm run test",
     "test": "./node_modules/casperjs/bin/casperjs test casperjs/test.js",
     "start": "nodemon server.js"
   },

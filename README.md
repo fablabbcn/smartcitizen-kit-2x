@@ -14,22 +14,24 @@ The app consists of 3 things
 * mock-api - for mocking the API of the kit `localhost:3000`
 
 
-#### Frontend (HTML, CSS, JavaScript - Vue.js)
+#### Frontend + api setup
+
+All the HTML, CSS, JavaScript (Vue.js) are under *esp/data*
 
 In */esp/data/main.js* change **theUrl** to 'localhost:3000'
 
 Inside the /mock-api folder do:
 
-1. cd mock-api
+1. `cd mock-api`
 
 2. `npm install`
 
-3. `npm run web`
+3. `npm run web`  - Starts frontend on [localhost:8000](localhost:8000)
 
-4. `npm run start`
+4. `npm run api` - Starts api on [localhost:3000](localhost:3000)
 
 
-### TESTING - (Work in progress)
+#### TESTING - (Work in progress)
 
 You can run End to End test (for the Web UI) against the current master branch with this command:
 
@@ -43,6 +45,7 @@ Add edit tests under `mock-api/casperjs/test`
 
 TODO:
 
-* We need to run the test against the branch you are working on, not master.
+* We need to run tests against the branch you are working on, not master like it is currently doing.
 * So we need to start the service with 'npm run api' and 'npm run web' or something on Travis?
 * Also start the mock-api?
+* Move the frontend to /mock-api, and create a process which compiles it + concatinates and puts in esp/data?

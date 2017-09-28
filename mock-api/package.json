@@ -6,7 +6,7 @@
   "scripts": {
     "autotest": "./node_modules/.bin/supervisor -q -n exit -w 'casperjs/test.js' --exec npm run test",
     "test": "./node_modules/casperjs/bin/casperjs test casperjs/test.js",
-    "api": "./node_modules/.bin/json-server -w status.json",
+    "api": "./node_modules/.bin/json-server -w api.json",
     "web": "nodemon server.js"
   },
   "author": "FabLab Barcelona",

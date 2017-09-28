@@ -1,0 +1,84 @@
+{
+    "nets": [
+        {
+            "ssid": "IAAC-WIFI",
+            "ch": 1,
+            "rssi": -64
+        },
+        {
+            "ssid": "ESP_237DBD",
+            "ch": 1,
+            "rssi": -89
+        },
+        {
+            "ssid": "FAB-WIFI",
+            "ch": 1,
+            "rssi": -84
+        },
+        {
+            "ssid": "IAAC-OFFICE-WIFI",
+            "ch": 1,
+            "rssi": -81
+        },
+        {
+            "ssid": "RhinoTeam",
+            "ch": 3,
+            "rssi": -78
+        },
+        {
+            "ssid": "IAAC-OFFICE-B",
+            "ch": 6,
+            "rssi": -55
+        },
+        {
+            "ssid": "IAAC-WIFI",
+            "ch": 6,
+            "rssi": -75
+        },
+        {
+            "ssid": "IAAC-WIFI",
+            "ch": 6,
+            "rssi": -93
+        },
+        {
+            "ssid": "IAAC-OFFICE-C",
+            "ch": 11,
+            "rssi": -61
+        },
+        {
+            "ssid": "MOVISTAR_05A5",
+            "ch": 11,
+            "rssi": -84
+        },
+        {
+            "ssid": "MIWIFI_2G_hYuU",
+            "ch": 11,
+            "rssi": -87
+        },
+        {
+            "ssid": "IAAC-OFFICE-C",
+            "ch": 11,
+            "rssi": -83
+        },
+        {
+            "ssid": "MOVISTAR_CAD3",
+            "ch": 11,
+            "rssi": -89
+        },
+        {
+            "ssid": "IAAC-WIFI",
+            "ch": 13,
+            "rssi": -75
+        },
+        {
+            "ssid": "IAAC-WIFI",
+            "ch": 13,
+            "rssi": -86
+        },
+        {
+            "ssid": "IAAC-WIFI",
+            "ch": 13,
+            "rssi": -94
+        }
+    ]
+}

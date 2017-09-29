@@ -1,9 +1,6 @@
 var app = new Vue({
   el: '#app',
   data: {
-    // mock API
-    //theUrl: 'http://localhost:3000/',
-    //theUrl: 'http://192.168.1.1/',
     theUrl: window.location.href,
     selectedwifi: '',
     advanced: true,
@@ -33,11 +30,27 @@ var app = new Vue({
   },
   mounted: function() {
     // When the app is mounted
+    this.selectApiUrl();
     console.log(' Vue.js mounted, fetching data at startup');
     setTimeout (() => this.axiosFetch('aplist'), 100);
     setTimeout (() => this.axiosFetch('status'), 300);
   },
   methods: {
+    selectApiUrl: function(){
+      // If we are running this from the kit,
+      // the API should be on the same IP and port
+      // Most likely a 192.168.*.1/status
+      console.log('Checking which url to use for the API');
+      this.notification = 'Checking which url to use for the API';
+
+      if (window.location.href.includes('192') ) {
+        this.theUrl = window.location.href;
+      }else{
+        // mock API
+        this.theUrl = 'http://localhost:3000/';
+      }
+      console.log('Using: ' + this.theUrl);
+    },
     selectPath: function(path){
       this.setuppath = path;
     },
@@ -74,9 +87,9 @@ var app = new Vue({
           }
 
         })
-      .catch(response => {
+      .catch(e => {
         // Printing errors to the app output so our users can tell us.
-        this.errors.push(response);
+        this.errors.push(e);
       });
     },
     axiosGet: function(path, purpose){

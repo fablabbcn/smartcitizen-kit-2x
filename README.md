@@ -18,7 +18,6 @@ The app consists of 3 things
 
 All the HTML, CSS, JavaScript (Vue.js) are under *esp/data*
 
-In */esp/data/main.js* change **theUrl** to 'localhost:3000'
 
 Inside the /mock-api folder do:
 
@@ -30,6 +29,7 @@ Inside the /mock-api folder do:
 
 4. `npm run api` - Starts api on [localhost:3000](localhost:3000)
 
+If your mock-api is not responding, see */esp/data/main.js*, **theUrl** should be (your API url:port)
 
 #### TESTING - (Work in progress)
 

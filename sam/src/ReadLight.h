@@ -21,15 +21,15 @@ public:
 private:
 
 	uint8_t BH1730 = 0x29;			// Light sensor I2C address
-	uint8_t TIME0 = 0xF0;
+	uint8_t TIME0 = 0xFA;
 
 	// Variables to manage sensor readings
 	uint32_t readyTimer = 0;
-	uint32_t readyPause = ((2.8/1000.0) * 964 * (float)(256 - TIME0));
 	uint16_t newReading = 0;		// Here we store the light sensor new readings
 	uint16_t OldReading = 0;		// Variable for saving readings between loops
 	uint16_t tolerance = 2;			// Threshold for considering a reading the same as other
-	uint8_t readingRepetitions = 0;		// Whit this we validate readings, we need at least MIN_REP repetitions inside the tolerance
+	uint32_t readingRepetitions = 0;		// Whit this we validate readings, we need at least MIN_REP repetitions inside the tolerance
+	uint32_t sumAverage = 0;
 	const uint8_t MIN_REP = 3;
 
 	// Variables to manage light values (just for calibration)
@@ -42,7 +42,7 @@ private:
 	uint8_t newLevel = 0;				// Stores the new detected level
 	uint8_t oldLevel = -1;				// Variable for storing previous detected level
 	uint8_t lastGoodLevel = 0;			// For storing last used good level
-	uint8_t levelRepetitions = 0;		// Whit this we validate levels, we need at least MIN_REP of the same value
+	uint32_t levelRepetitions = 0;		// Whit this we validate levels, we need at least MIN_REP of the same value
 
 	// String variable
 	String octalString = "0";

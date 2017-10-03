@@ -1,1 +1,4 @@
 bin
+*node_modules
+mock-api/*.png
+npm-debug.log

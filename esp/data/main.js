@@ -1,7 +1,7 @@
 var app = new Vue({
   el: '#app',
   data: {
-    theUrl: window.location.href,
+    theApi: window.location.href,
     selectedwifi: '',
     advanced: true,
     notification: '(Status of the app)',
@@ -10,10 +10,20 @@ var app = new Vue({
     debuginfo: [],
     devicetime: 0,
     errors: [],
+    kitinfo: false,
+    publishinterval: 2,
+    readinginterval: 60,
+    sensors: false,
+    sensor1: false,
+    sensor2: false,
+    sensor3: false,
+    sensor4: false,
     setuppath: 'online',
+    sdlog: false,
     usertoken: '',
     wifiname: '',
     wifipass: '',
+    wifisync: true,
     wifis: {
       "nets": [
       {
@@ -31,7 +41,7 @@ var app = new Vue({
   mounted: function() {
     // When the app is mounted
     this.selectApiUrl();
-    console.log(' Vue.js mounted, fetching data at startup');
+    console.log('Vue.js mounted, fetching data at startup');
     setTimeout (() => this.axiosFetch('aplist'), 100);
     setTimeout (() => this.axiosFetch('status'), 300);
   },
@@ -40,16 +50,18 @@ var app = new Vue({
       // If we are running this from the kit,
       // the API should be on the same IP and port
       // Most likely a 192.168.*.1/status
-      console.log('Checking which url to use for the API');
       this.notification = 'Checking which url to use for the API';
 
-      if (window.location.href.includes('192') ) {
-        this.theUrl = window.location.href;
-      }else{
-        // mock API
-        this.theUrl = 'http://localhost:3000/';
+      // If we are using port 8000, we are in development, and the API should be on port 3000
+      if (window.location.port === '8000' ) {
+        this.theApi = 'http://' + window.location.hostname + ':3000/';
       }
-      console.log('Using: ' + this.theUrl);
+      else{
+        this.theApi = window.location.href;
+      }
+
+      console.log('Using API : ' + this.theApi);
+      this.notification = 'Using: ' + this.theApi;
     },
     selectPath: function(path){
       this.setuppath = path;
@@ -57,19 +69,25 @@ var app = new Vue({
     showAdvanced: function(){
       this.advanced = !this.advanced;
     },
+    showKitinfo: function(){
+      this.kitinfo = !this.kitinfo;
+    },
+    showSensors: function(){
+      this.sensors = !this.sensors;
+    },
     jsFetch: function (path) {
       // Backup function to fetch with pure javascript
       // (If we cannot use extra libraries due to space issues etc)
       this.notification = 'Fetching data...';
       var xmlHttp = new XMLHttpRequest();
-      xmlHttp.open( "GET", this.theUrl + path, false ); // false for synchronous request
+      xmlHttp.open( "GET", this.theApi + path, false ); // false for synchronous request
       xmlHttp.send( null );
       myjson = JSON.parse(xmlHttp.responseText);
       this.wifis = myjson;
     },
     axiosFetch: function(path) {
       this.notification = 'Fetching data... /' + path;
-      axios.get(this.theUrl + path)
+      axios.get(this.theApi + path)
         .then(response => {
           this.notification = 'Data fetched.';
           //console.log(response.data);
@@ -98,7 +116,7 @@ var app = new Vue({
       // /set?ssid=value1&password=value2&token=value3&epoch=value
       if (purpose == 'online'){
         this.notification = 'Trying to connect online...';
-        axios.get(this.theUrl + path +
+        axios.get(this.theApi + path +
             '?ssid=' + this.selectedwifi +
             '&password=' + this.wifipass +
             '&token=' + this.usertoken +
@@ -113,7 +131,7 @@ var app = new Vue({
       }
       if (purpose == 'synctime'){
         this.notification = 'Syncing time (request)..';
-        axios.get(this.theUrl + path + '?epoch=' + this.browsertime)
+        axios.get(this.theApi + path + '?epoch=' + this.browsertime)
           .then(response => {
             console.log('synctime GET response:');
             console.log(response);
@@ -128,7 +146,7 @@ var app = new Vue({
       console.log('POST request');
       this.browsertime = Math.floor(Date.now() / 1000);
       this.notification = 'Sending POST data... Please wait!';
-      axios.post(this.theUrl + path, {
+      axios.post(this.theApi + path, {
         ssid: this.selectedwifi,
         password: this.wifipass,
         token: this.usertoken,

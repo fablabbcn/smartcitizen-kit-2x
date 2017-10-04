@@ -1,4 +1,9 @@
 {
+  "set":{
+    "mock-api": "true",
+    "test": "positive",
+    "todo": "what will real api return here?"
+  },
   "status": {
     "token": "null",
     "ssid": "",

@@ -72,4 +72,16 @@ casper.test.begin("Find elements on our local page", 5, function(test) {
 
 });
 
+var url = 'http://localhost:3000/status'
+casper.test.begin("Find elements on our local page", 0, function(test) {
 
+  casper.start(url);
+
+  casper.then(function(){
+    casper.echo('Testing API');
+    //test.assertTitle('ab');  // No titles on an API?
+    this.debugPage();
+  }).run(function() {
+    test.done();
+  });
+});

@@ -2,17 +2,18 @@ var app = new Vue({
   el: '#app',
   data: {
     theApi: window.location.href,
-    selectedwifi: '',
+    development: false,
     advanced: true,
-    notification: '(Status of the app)',
     apiresponse: '',
     browsertime: Math.floor(Date.now() / 1000),
     debuginfo: [],
     devicetime: 0,
     errors: [],
     kitinfo: false,
+    notification: '(Status of the app)',
     publishinterval: 2,
     readinginterval: 60,
+    selectedwifi: '',
     sensors: false,
     sensor1: false,
     sensor2: false,
@@ -55,6 +56,7 @@ var app = new Vue({
       // If we are using port 8000, we are in development, and the API should be on port 3000
       if (window.location.port === '8000' ) {
         this.theApi = 'http://' + window.location.hostname + ':3000/';
+        this.development = true;
       }
       else{
         this.theApi = window.location.href;

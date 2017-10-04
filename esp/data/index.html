@@ -25,8 +25,8 @@
           <p>Errors:</p>
           <ul v-show="errors && errors.length">
             <li v-for="error of errors" class="font70">
-              {{error.message}} -
-              {{error}}
+              <span v-if="development">{{error.message}} - {{error}}</span>
+              <span v-else>{{error.message}}</span>
             </li>
           </ul>
           <hr />

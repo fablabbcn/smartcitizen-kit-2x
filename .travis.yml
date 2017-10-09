@@ -44,11 +44,17 @@ before_script:
 
 script:
     - echo 'Trying to build esp and sam with pio'
-    - cd esp; pio run; cd ..
-    - cd sam; pio run; cd ..
+    - cd ..
+    - cd esp
+    - pio run
+    - cd ..
+    - cd sam
+    - pio run
+    - cd ..
     - echo 'Running end to end tests with casperjs'
+    - cd mock-api
     - npm -v
     - node -v
     - pwd
     - ls
-    - cd mock-api; npm run test
+    - npm run test

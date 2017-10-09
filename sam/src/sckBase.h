@@ -529,6 +529,11 @@ public:
 	dataLight lightResults;
 	bool readLightEnabled = false;
 
+	// SoundRead
+	ReadSound readSound;
+	dataSound soundResults;
+	bool readSoundEnabled = false;
+
 	// Serial buffers
 	String serialBuff;
 	String espBuff;

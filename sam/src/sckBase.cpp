@@ -254,9 +254,10 @@ void SckBase::update() {
 	}
 }
 
-
-/* 		Configuration 		*/
-/*--------------------------*/
+//	 ---------------------
+// 	 |	Configuration 	 |
+//	 ---------------------
+//
 void SckBase::saveWifi(char newSsid[64], char newPass[64]) {
 	sprintf(outBuff, "Saving new credentials: \"%s\" - \"%s\"", newSsid, newPass);
 	sckOut();
@@ -271,8 +272,10 @@ void SckBase::clearWifi() {
 	sckOut("Clearing networks...");
 	strncpy(config.ssid, "", 64);
 	strncpy(config.pass, "", 64);
+
 	wifiSet = false;
 	saveConfig();
+
 	msgBuff.com = ESP_CLEAR_WIFI_COM;
 	ESPqueueMsg(false, true);
 }
@@ -655,7 +658,6 @@ void SckBase::mqttConfig(bool activate) {
 
 	ESPqueueMsg(true, true);
 }
-
 void SckBase::changeMode(SCKmodes newMode) {
 
 	// Start with a new clear state
@@ -2099,10 +2101,10 @@ void SckBase::prompt() {
 
 
 
-/* 	-------------
- 	|	Time   |
- 	-------------
-*/
+// 	-------------
+// 	|	Time    |
+// 	-------------
+//
 bool SckBase::setTime(String epoch) {
 	// validate time here!!!
 	rtc.setEpoch(epoch.toInt());
@@ -2853,11 +2855,6 @@ void SckBase::factoryReset() {
 
 	msgBuff.com = ESP_LED_OFF;
 	ESPqueueMsg(true);
-
-	strncpy(credentials.ssid, "ssid", 64);
-	strncpy(credentials.password, "password", 64);
-	credentials.time = 0;
-	clearNetworks();
 
 	clearToken();
 

@@ -65,7 +65,7 @@ enum SensorType {
 };
 
 const uint32_t minimal_sensor_reading_interval = 30;
-const uint32_t default_sensor_reading_interval = 60;
+const uint32_t default_sensor_reading_interval = 30;
 const uint32_t max_sensor_reading_interval = 86400;		// One day
 
 // Structs for RAM storing
@@ -126,7 +126,7 @@ public:
 						
 		// Base Sensors						
 		OneSensor {	BOARD_BASE, 		SENSOR_BATTERY, 					"Battery", 								10,		true,		false,			"%"},
-		OneSensor {	BOARD_BASE, 		SENSOR_VOLTIN,						"Input voltage", 						0,		false,		false,			"mV"},
+		OneSensor {	BOARD_BASE, 		SENSOR_VOLTIN,						"Input voltage", 						0,		false,		false,			"V"},
 
 		// Urban Sensors
 		OneSensor {	BOARD_URBAN, 		SENSOR_NOISE, 						"Noise", 								29,		true,		false,			"dBc"},

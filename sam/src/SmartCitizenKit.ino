@@ -8,7 +8,7 @@ void ISR_button() {
 };
 void ISR_alarm() {
 	base.wakeUp();
-}
+};
 // Timer 5 interrupt handler
 void TC5_Handler (void) {
 	base.led.tick();
@@ -26,6 +26,9 @@ uint32_t publish_timer = millis();
 
 void loop() {
 
+	// delay(10);
+	// base.getReading(SENSOR_INA219_CURRENT);
+	// base.sckOut(String(base.sensors[SENSOR_INA219_CURRENT].reading));
 
 	base.update();
 }

@@ -198,13 +198,12 @@ public:
 	bool WaitForWifi = false;
 	uint8_t sensorDisplayIndex = 0;
 
-	// Configuration ----------
+	// Configuration
 	String hardwareVer 	= "1.5";
 	String SAMversion	= "0.2.0";
 	String SAMbuildDate = String(__DATE__) + '-' + String(__TIME__);
 	String ESPversion 	= "null";
 	String ESPbuildDate = "null";
-	// Credentials credentials;
 	bool triggerHello = false;
 	void saveWifi(char newSsid[64], char newPass[64]);
 	void clearWifi();
@@ -316,10 +315,12 @@ public:
 		EXTCOM_U8G_PRINT,			// @params: String to be printed
 		EXTCOM_U8G_PRINT_SENSOR,	// @params: Sensor to be printed
 
-		// Other
+		// Power Management
 		EXTCOM_GET_POWER_STATE,
 		EXTCOM_SET_CHARGER_CURRENT,
 		EXTCOM_RESET_CAUSE,
+
+		// Other
 		EXTCOM_GET_FREE_RAM,
 		EXTCOM_LIST_TIMERS,
 
@@ -402,10 +403,12 @@ public:
 	"u8g print",			// EXTCOM_U8G_PRINT,		@params: String to be printed
 	"u8g sensor",			// EXTCOM_U8G_PRINT_SENSOR,	@params: Sensor to be printed
 
-	// Other
+	// Power Management
 	"get power",			// EXTCOM_GET_POWER_STATE,
 	"set charger",			// EXTCOM_SET_CHARGER_CURRENT,
 	"rcause",				// EXTCOM_RESET_CAUSE,
+	
+	// Other
 	"get freeram",			// EXTCOM_GET_FREE_RAM,
 	"list timers",			// EXTCOM_LIST_TIMERS,
 
@@ -499,8 +502,8 @@ public:
 	void closeFiles();
 	bool sdLogADC();
 
-	// Battery
 	uint16_t getBatteryVoltage();
+	// Power Management
 	float getBatteryPercent();
 	float getVUSB();
 	uint16_t getCHG();

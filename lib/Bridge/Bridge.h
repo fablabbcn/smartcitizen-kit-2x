@@ -163,7 +163,7 @@ struct ESPstatus {
 		"error",
 		"password error",
 		"ap not found",
-		"not configred",
+		"not configured",
 
 		// -- net:	ESP_PING_OK, ESP_PING_ERROR
 		"ok",

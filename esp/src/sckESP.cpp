@@ -65,7 +65,7 @@ void SckESP::setup() {
 	} else {
 		tryConnection();
 	}
-};
+}
 void SckESP::update() {
 
 	if (BUS_in.receiveData()) processMsg();
@@ -131,7 +131,7 @@ void SckESP::update() {
 		}
 		prevWIFIStatus = WiFi.status();
 	}
-};
+}
 
 
 // 	---------------------
@@ -493,7 +493,7 @@ bool SckESP::processMsg() {
 	// Clear msg
 	msgIn.com = 0;
 	strncpy(msgIn.param, "", 240);
-};
+}
 void SckESP::debugOUT(String strOut) {
 
 	if (serialDebug) { 
@@ -501,7 +501,7 @@ void SckESP::debugOUT(String strOut) {
 		strOut.toCharArray(msgOut.param, 240);
 		SAMsendMsg();
 	}
-};
+}
 void SckESP::SAMsendMsg() {
 
 	if (sizeof(msgOut.param) > 240) {
@@ -510,7 +510,7 @@ void SckESP::SAMsendMsg() {
 	}
 
 	BUS_out.sendData();
-};
+}
 void SckESP::sendStatus() {
 
 	clearParam();
@@ -526,11 +526,11 @@ void SckESP::sendStatus() {
 
 	msgOut.com = ESP_GET_STATUS_COM;
 	SAMsendMsg();
-};
+}
 void SckESP::clearParam() {
 
 	memset(msgOut.param, 0, sizeof(msgOut.param));
-};
+}
 void SckESP::sendNetwork(EspCommand comm) {
 
 	// Prepare json for sending
@@ -542,16 +542,16 @@ void SckESP::sendNetwork(EspCommand comm) {
 	clearParam();
 	jsonNet.printTo(msgOut.param, 240);
 	SAMsendMsg();
-};
+}
 
 // 	---------------------
 //	|	Configuration 	|
 //	---------------------
 //
 bool SckESP::saveConf() {
-};
+}
 bool SckESP::loadConf() {
-};
+}
 
 
 // 	-------------
@@ -572,7 +572,7 @@ void SckESP::tryConnection() {
 	} else {
 		debugOUT(String F("Already connected to wifi: ") + String(WiFi.SSID()));
 	}
-};
+}
 
 // 	-----------------------------
 //	|	APmode and WebServer 	|
@@ -596,13 +596,13 @@ void SckESP::startAP(){
 
 	delay(100);
 	startWebServer();
-};
+}
 void SckESP::stopAP() {
 
 	dnsServer.stop();
 	WiFi.softAPdisconnect(true);
 	espStatus.ap = ESP_AP_OFF_EVENT;
-};
+}
 void SckESP::startWebServer() {
 
 	// Handle set 
@@ -688,12 +688,12 @@ void SckESP::startWebServer() {
 
 	// mDNS
 	MDNS.addService("http", "tcp", 80);
-};
+}
 void SckESP::stopWebserver() {
 
 	espStatus.web = ESP_WEB_OFF_EVENT;
 	webServer.stop();
-};
+}
 void SckESP::webSet() {
 
 	debugOUT(F("Received web configuration request."));
@@ -889,7 +889,7 @@ bool SckESP::flashReadFile(String path){
 	}
 	webServer.send(404, "text/plain", "FileNotFound");
 	return false;
-};
+}
 
 // 	---------------------
 //	|	Credentials 	|
@@ -934,7 +934,7 @@ bool SckESP::addNetwork() {
 	}
 	debugOUT(F("Error saving network!!!"));
 	return false;
-};
+}
 void SckESP::clearNetworks() {
 
 	if (SPIFFS.exists(CREDENTIALS_FILE)) {
@@ -944,7 +944,7 @@ void SckESP::clearNetworks() {
 	}
 
 	espStatus.wifi = ESP_WIFI_NOT_CONFIGURED;
-};
+}
 bool SckESP::readNetwork() {
 
 	// If no index specified, load last network
@@ -979,7 +979,7 @@ bool SckESP::readNetwork() {
 	}
 	
 	return false;
-};
+}
 int SckESP::countSavedNetworks() {
 
 	if (SPIFFS.exists(CREDENTIALS_FILE)) {
@@ -997,7 +997,7 @@ int SckESP::countSavedNetworks() {
 	
 	espStatus.wifi = ESP_WIFI_NOT_CONFIGURED;
 	return -1;
-};
+}
 void SckESP::scanAP() {
 
 	debugOUT(F("Scaning Wifi networks..."));
@@ -1009,7 +1009,7 @@ void SckESP::scanAP() {
 	}
 
 	debugOUT(String(netNumber) + F(" networks found"));
-};
+}
 
 
 // 	-------------
@@ -1033,7 +1033,7 @@ bool SckESP::saveToken() {
 
 	debugOUT(F("Token saved!!!"));
 	return true;
-};
+}
 bool SckESP::loadToken() {
 
 	// Check if file exists
@@ -1064,7 +1064,7 @@ bool SckESP::loadToken() {
 
 	debugOUT(String F("Loaded token: ") + String(config.token));
 	return true;
-};
+}
 void SckESP::clearToken() {
 
 	if (SPIFFS.exists(TOKEN_FILE)) {
@@ -1072,12 +1072,12 @@ void SckESP::clearToken() {
 	}
 
 	espStatus.token = ESP_TOKEN_ERROR;
-};
+}
 void SckESP::sendToken() {
 	strncpy(msgOut.param, config.token, 8);
 	msgOut.com = ESP_SET_TOKEN_COM;
 	SAMsendMsg();
-};
+}
 
 
 // 	-------------
@@ -1101,7 +1101,7 @@ bool SckESP::mqttConnect() {
 		espStatus.mqtt = ESP_MQTT_ERROR_EVENT;
 		return false;
 	}
-};
+}
 bool SckESP::mqttHellow() {
 
 	debugOUT(F("Trying MQTT Hello..."));
@@ -1123,7 +1123,7 @@ bool SckESP::mqttHellow() {
 		debugOUT(F("MQTT Hello ERROR !!!"));
 	}
 	return false;
-};
+}
 bool SckESP::mqttPublish() {
 	
 	debugOUT(F("Trying MQTT publish..."));
@@ -1266,7 +1266,7 @@ time_t SckESP::getNtpTime() {
   debugOUT(F("No NTP Response!!!"));
   getHttpTime();
   return 0;
-};
+}
 void SckESP::sendNTPpacket(IPAddress &address) {
   memset(packetBuffer, 0, 48);
 
@@ -1284,7 +1284,7 @@ void SckESP::sendNTPpacket(IPAddress &address) {
   Udp.beginPacket(address, 123);
   Udp.write(packetBuffer, 48);
   Udp.endPacket();
-};
+}
 String SckESP::ISOtime() {
 	// Return string.format("%04d-%02d-%02dT%02d:%02d:%02dZ", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
 	if (timeStatus() == timeSet) {
@@ -1394,15 +1394,12 @@ void SckESP::ledSet(uint8_t wichLed, uint8_t value) {
 	else Rblink.detach();
 	ledValue[wichLed] = abs(value - 1);
 	digitalWrite(ledPin[wichLed], ledValue[wichLed]);
-};
+}
 void SckESP::ledToggle(uint8_t wichLed) {
 	ledValue[wichLed] = abs(ledValue[wichLed] - 1);
 	digitalWrite(ledPin[wichLed], ledValue[wichLed]);
-};
+}
 void SckESP::ledBlink(uint8_t wichLed, float rate) {
 	if (wichLed == ledLeft) Lblink.attach_ms(rate, LedToggleLeft);
 	else if (wichLed == ledRight) Rblink.attach_ms(rate, LedToggleRight);
-};
-
-
-
+}

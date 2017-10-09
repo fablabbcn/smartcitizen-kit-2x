@@ -35,7 +35,10 @@
 #define S5 A0         			// PA2 -- Unused
 
 // SPI Configuration
-#define CS_SDCARD	2				// PA14 -- SPI Select SDcard
+#define CS_SDCARD		2			// PA14 -- SPI Select SDcard
+#define MOSI_SDCARD		23			// PB10 -- SPI MOSI pin
+#define MISO_SDCARD		22			// PA12 -- SPI MISO pin
+#define SCK_SDCARD		24			// PB11 -- SPI SCK pin
 
 // Power Management
 #define VCC 	3300.				// mV

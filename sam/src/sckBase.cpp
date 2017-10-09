@@ -78,9 +78,8 @@ File debugLogFile;
 
 void SckBase::setup() {
 
-	// Serial Ports Configuration
+	// Serial Port Configuration 
 	Serial1.begin(baudrate);
-	SerialUSB.begin(baudrate);
 
 	// SAM <<>> ESP comunication
 	BUS_in.begin(details(msgIn), &Serial1);
@@ -180,18 +179,21 @@ void SckBase::setup() {
 	// Check if USB connected and charging status
 	updatePower();
 	timerSet(ACTION_UPDATE_POWER, 500, true);
-};
+}
 void SckBase::update() {
 
 	// Flash and bridge modes
 	if (config.mode == MODE_FLASH || config.mode == MODE_BRIDGE){
-		if (SerialUSB.available()) {
-			char buff = SerialUSB.read();
-			serialBuff += buff;
-			if (serialBuff.length() > 4) serialBuff.remove(0);
-			if (serialBuff.startsWith("Bye")) softReset();
-			Serial1.write(buff);
-		}
+
+		// IT seems that this sometimes causes errors in data transmission to ESP
+		// if (SerialUSB.available()) {
+		// 	char buff = SerialUSB.read();
+		// 	serialBuff += buff;
+		// 	if (serialBuff.length() > 4) serialBuff.remove(0);
+		// 	if (serialBuff.startsWith("Bye")) softReset();
+		// 	Serial1.write(buff);
+		// }
+		if (SerialUSB.available()) Serial1.write(SerialUSB.read());
 		if (Serial1.available()) SerialUSB.write(Serial1.read());
 	} else if (config.mode != MODE_SHELL) {
 
@@ -248,7 +250,7 @@ void SckBase::update() {
 				readSound.read();
 				sckOut(String(readSound.out));
 			}
-		} 
+		}
 	}
 }
 
@@ -745,7 +747,6 @@ void SckBase::changeMode(SCKmodes newMode) {
 	// After reset it will go to sleep in a clean state
 	if (newMode == MODE_OFF) goToSleep();
 }
-
 void SckBase::errorMode() {
 	
 	// Clear timer for updating sensors 
@@ -764,12 +765,10 @@ void SckBase::errorMode() {
 	// if (digitalRead(POWER_WIFI)) timerSet(ACTION_ESP_ON, 200);
 	if (digitalRead(POWER_WIFI)) ESPcontrol(ESP_ON);
 }
-
 void SckBase::changeOutputLevel(OutLevels newLevel) {
 	prevOutputLevel = outputLevel;
 	outputLevel = newLevel;
 }
-
 void SckBase::inputUpdate() {
 
 	if (onUSB) {
@@ -786,7 +785,6 @@ void SckBase::inputUpdate() {
 		}
 	}
 }
-
 void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 	switch(controlCommand){
 		case ESP_OFF:
@@ -843,7 +841,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			break;
 	}
 }
-
 void SckBase::ESPbusUpdate() {
 
 	// If there is something the ESP want to tell to us
@@ -919,7 +916,6 @@ void SckBase::ESPqueueMsg(bool sendParam, bool waitAnswer) {
 	// If there is an urgent message...
 	if (waitAnswer) ESPbusUpdate();
 }
-
 void SckBase::ESPprocessMsg() {
 
 	sckOut("Processing message from ESP...", PRIO_LOW);
@@ -959,7 +955,6 @@ void SckBase::ESPprocessMsg() {
 		} case ESP_CLEAR_WIFI_COM: {
 
 			sckOut(F("Wifi networks deleted!!!"));
-
 			break;
 
 		} case ESP_GET_WIFI_COM: {
@@ -1108,14 +1103,12 @@ void SckBase::ESPprocessMsg() {
 	msgIn.com = 0;
 	strncpy(msgIn.param, "", 240);
 }
-
 void SckBase::getStatus() {
 
 	msgBuff.com = ESP_GET_STATUS_COM;
 	strncpy(msgBuff.param, "", 240);
 	ESPqueueMsg(false);
 }
-
 void SckBase::processStatus() {
 
 	espStatusTypes statusReceived = ESP_STATUS_TYPES_COUNT;
@@ -1335,7 +1328,6 @@ void SckBase::processStatus() {
 				sckOut("Token has been updated on ESP!!");
 				getESPtoken();
 				break;
-
 			} default: break;
 		} 
 	}
@@ -2036,7 +2028,6 @@ void SckBase::sckIn(String strIn) {
 		espConsole = false;
 	}
 }
-
 SensorType SckBase::getSensorFromString(String strIn) {
 	SensorType wichSensor = SENSOR_COUNT;
 	uint8_t maxWordsFound = 0;
@@ -2078,13 +2069,11 @@ void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine) {
 	strOut.toCharArray(outBuff, strOut.length()+1);
 	sckOut(priority, newLine);
 }
-
 void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine) {
 
 	strncpy(outBuff, strOut, 240);
 	sckOut(priority, newLine);
 }
-
 void SckBase::sckOut(PrioLevels priority, bool newLine) {
 
 	if (espConsole) {
@@ -2103,7 +2092,6 @@ void SckBase::sckOut(PrioLevels priority, bool newLine) {
 	}
 	strncpy(outBuff, "", 128);
 }
-
 void SckBase::prompt() {
 
 	sckOut("SCK > ", PRIO_MED, false);
@@ -2129,7 +2117,6 @@ bool SckBase::setTime(String epoch) {
 	else sckOut("RTC update failed!!");
 	return false;
 }
-
 bool SckBase::ISOtime() {
 
 	if (onTime) {
@@ -2140,7 +2127,6 @@ bool SckBase::ISOtime() {
 		return false;
 	}
 }
-
 void SckBase::epoch2iso(uint32_t toConvert, char* isoTime) {
 
 	time_t tc = toConvert;
@@ -2155,10 +2141,10 @@ void SckBase::epoch2iso(uint32_t toConvert, char* isoTime) {
 		tmp->tm_sec);
 }
 
-/* 	---------------
- 	|	Sensors   |
- 	---------------
-*/
+// 	---------------
+// 	|	Sensors   |
+// 	---------------
+//
 void SckBase::enableSensor(SensorType wichSensor) {
 
 	// Get lastReadingTime from the last updated sensor (this puts de sensor behind the rest of the enabled sensors in terms of time)
@@ -2183,7 +2169,6 @@ void SckBase::enableSensor(SensorType wichSensor) {
 	// For Sdcard headers
 	headersChanged = rtc.getEpoch();
 }
-
 void SckBase::disableSensor(SensorType wichSensor) {
 
 	if (wichSensor < SENSOR_COUNT) {
@@ -2199,7 +2184,6 @@ void SckBase::disableSensor(SensorType wichSensor) {
 	// If we are disabling MICS, turn off heater
 	if (wichSensor == SENSOR_CO || wichSensor == SENSOR_NO2) urban.gasOff(wichSensor);
 }
-
 void SckBase::updateSensors() {
 
 	// TODO force publish before storage is full...
@@ -2242,7 +2226,6 @@ void SckBase::updateSensors() {
 		if (rtc.getEpoch() - lastPublishTime > config.publishInterval) publish();
 	}
 }
-
 bool SckBase::getReading(SensorType wichSensor) {
 
 	// reading is not yet valid...
@@ -2317,7 +2300,6 @@ bool SckBase::getReading(SensorType wichSensor) {
 
 	return sensors[wichSensor].valid;
 }
-
 bool SckBase::RAMstore(SensorType wichSensor) {
 	
 	// If RAM space reserved for readings is full return false
@@ -2355,7 +2337,6 @@ bool SckBase::RAMstore(SensorType wichSensor) {
 
 	return true;
 }
-
 bool SckBase::RAMgetGroup(int groupIndex) {
 
 	groupBuffer.time = RAMgroups[groupIndex].time;
@@ -2371,7 +2352,6 @@ bool SckBase::RAMgetGroup(int groupIndex) {
 
 	return true;
 }
-
 void SckBase::publish() {
 
 	// Check if there are some readings to publish
@@ -2412,7 +2392,6 @@ void SckBase::publish() {
 
 	}
 }
-
 bool SckBase::publishToSD() {
 
 	if (sdIndex < 0) return false;
@@ -2492,7 +2471,6 @@ bool SckBase::publishToSD() {
 	lastPublishTime = rtc.getEpoch();
 	return false;
 }
-
 bool SckBase::ESPpublish()  {
 	
 	sckOut("Publishing to platform...");
@@ -2536,7 +2514,6 @@ bool SckBase::ESPpublish()  {
 
 	return true;
 }
-
 bool SckBase::sdLogADC(){
 
 	bool writeHead = false;
@@ -2582,10 +2559,10 @@ bool SckBase::sdLogADC(){
 }
 
 
-/* 	--------------
- 	|	Button   |
- 	--------------
-*/
+// 	--------------
+// 	|	Button   |
+// 	--------------
+//
 void SckBase::buttonEvent() {
 
 	// if (millis() - butLastEvent < 30) return;
@@ -2631,9 +2608,8 @@ void SckBase::buttonDown() {
 		}
 	}
 }
-
 void SckBase::buttonUp() {
-	
+
 	sckOut(F("Button up"), PRIO_LOW);
 	// changeMode(MODE_OFF);
 }
@@ -2646,7 +2622,6 @@ void SckBase::veryLongPress() {
 		factoryReset();
 	} else buttonEvent();
 }
-
 void SckBase::longPress() {
 	// Make sure we havent released button without noticed it
 	if (!digitalRead(PIN_BUTTON)) {
@@ -2663,10 +2638,10 @@ void SckBase::softReset() {
  	NVIC_SystemReset();
 }
 
-/* 	-----------------
- 	|	 SD card	|
- 	-----------------
-*/
+// 	-----------------
+// 	|	 SD card	|
+// 	-----------------
+//
 bool SckBase::sdPresent() {
 
 	if (sdcardAlreadySearched) return false;
@@ -2687,7 +2662,6 @@ bool SckBase::sdPresent() {
 		return false;
 	}
 }
-
 bool SckBase::openPublishFile(bool writeHeader) {
 
 	char charFileName[publishFileName.length()];
@@ -2749,7 +2723,6 @@ bool SckBase::openPublishFile(bool writeHeader) {
 	}
 	return false;
 }
-
 bool SckBase::openLogFile() {
 
 	char charLogFileName[logFileName.length()];
@@ -2778,7 +2751,6 @@ bool SckBase::openLogFile() {
 	}
 	return false;
 }
-
 bool SckBase::openConfigFile(bool onlyRead) {
 
 	if (sdPresent()) {
@@ -2801,7 +2773,6 @@ bool SckBase::openConfigFile(bool onlyRead) {
 	}
 	return false;
 }
-
 void SckBase::closeFiles() {
 
 	if (publishFile) publishFile.close();
@@ -2897,10 +2868,6 @@ void SckBase::factoryReset() {
 }
 
 
-/* 	-------------
- 	|	 Power management (por ahora es cun copy paste del codigo de miguel, hay que revisarlo y adaptarlo)	|
- 	-------------
-*/
 uint16_t SckBase::getBatteryVoltage() {
 
 	uint8_t readingNumber = 5;
@@ -2911,6 +2878,10 @@ uint16_t SckBase::getBatteryVoltage() {
 	return batVoltage / readingNumber;
 }
 
+// 	-------------------------
+// 	|	Power Management    |
+// 	-------------------------
+//
 float SckBase::getBatteryPercent() {
 
 	uint8_t percent = 0;
@@ -3017,13 +2988,11 @@ void SckBase::updatePower() {
 	else led.finishedCharging = false;
 }
 
-/* 	---------------------
- 	|	 Urban Board 	|
- 	---------------------
-*/
- /*
-  * Detect urban board by changing Audio amplifier resistor value (I2C) and check if it responds OK.
-  */
+
+//	---------------------
+// 	|	 Urban Board 	|
+// 	---------------------
+//
 bool SckBase::urbanBoardDetected() {
 	
 	// Test if digital POT responds 
@@ -3038,20 +3007,16 @@ bool SckBase::urbanBoardDetected() {
 }
 
 
-/* 	-------------
- 	|	 Led	|
- 	-------------
-*/
+// 	-------------
+// 	|	 Led	|
+// 	-------------
+//
 void Led::setup() {
 	off();
 	dir = true;
 	colorIndex = 0;
 	pulseMode = PULSE_STATIC;
 }
-
-/* Call this every time there is an event that changes SCK mode
- *
- */ 
 void Led::update(SCKmodes newMode, uint8_t newPulseMode) {
 
 	switch (newPulseMode) {
@@ -3102,28 +3067,23 @@ void Led::update(SCKmodes newMode, uint8_t newPulseMode) {
 
 	tick();
 }
-
 void Led::reading() {
 	ledRGBcolor = whiteRGB;
 	pulseMode = PULSE_STATIC;
 	timerReading = millis(); //substituir esto por una libreria de timers
 }
-
 void Led::wifiOK() {
 	ledRGBcolor = greenRGB;
 	pulseMode = PULSE_STATIC;
 }
-
 void Led::configOK() {
 	ledRGBcolor = greenRGB;
 	pulseMode = PULSE_STATIC;
 }
-
 void Led::bridge() {
 	ledRGBcolor = whiteRGB;
 	pulseMode = PULSE_STATIC;
 }
-
 void Led::tick() {
 
 	if(pulseMode == PULSE_SOFT) {
@@ -3199,8 +3159,6 @@ void Led::tick() {
 
 	} else if (pulseMode == PULSE_HARD_SLOW) {
 
-		// No dim in this type of pulse (this is for errors)
-
 		if (millis() - hardTimer > slowHard) {
 			hardTimer = millis();
 
@@ -3211,8 +3169,6 @@ void Led::tick() {
 		}
 
 	} else if (pulseMode == PULSE_HARD_FAST) {
-
-		// No dim in this type of pulse (this is for errors)
 
 		if (millis() - hardTimer > fastHard) {
 			hardTimer = millis();
@@ -3233,10 +3189,6 @@ void Led::tick() {
 
 	setRGBColor(ledRGBcolor);
 }
-
-/* Change Led color based on RGB values
- *
- */
 void Led::setRGBColor(RGBcolor myColor) {
 
 	if (myColor.r == 0) {
@@ -3253,11 +3205,7 @@ void Led::setRGBColor(RGBcolor myColor) {
 		pinMode(PIN_LED_BLUE, OUTPUT);
 		digitalWrite(PIN_LED_BLUE, HIGH);
 	} else analogWrite(PIN_LED_BLUE, 255 - myColor.b);
-};
-
-/* Change Led color based on HSI values (Hue, Saturation, Intensity)
- *
- */
+}
 void Led::setHSIColor(float h, float s, float i) {
 	uint8_t r, g, b;
 
@@ -3283,8 +3231,7 @@ void Led::setHSIColor(float h, float s, float i) {
 	}
 
 	setRGBColor({r,g,b});
-};
-
+}
 void Led::off() {
 	disableTimer5();
 	
@@ -3301,10 +3248,10 @@ void Led::off() {
 }
 
 
-/* 	-----------------
- 	|	 Timers 	|
- 	-----------------
-*/
+// 	-----------------
+// 	|	 Timers 	|
+// 	-----------------
+//
 bool SckBase::timerRun() {
 
 	for (uint8_t i=0; i<timerSlots; i++) {
@@ -3445,7 +3392,6 @@ bool SckBase::timerRun() {
 
 	return false;
 }
-
 void SckBase::timerSet(TimerAction action, uint32_t interval, bool isPeriodic) {
 
 	bool slotsFree = false;
@@ -3466,7 +3412,6 @@ void SckBase::timerSet(TimerAction action, uint32_t interval, bool isPeriodic) {
 		for (uint8_t i=0; i<timerSlots; i++) sckOut(String(timers[i].action));
 	}
 }
-
 bool SckBase::timerClear(TimerAction action) {
 
 	for (uint8_t i=0; i<timerSlots; i++) {
@@ -3480,7 +3425,6 @@ bool SckBase::timerClear(TimerAction action) {
 	}
 	return false;
 }
-
 void SckBase::timerClearTasks(bool clearAll) {
 
 	for (uint8_t i=0; i<timerSlots; i++) {
@@ -3500,7 +3444,6 @@ void SckBase::timerClearTasks(bool clearAll) {
 		}
 	}
 }
-
 bool SckBase::timerExists(TimerAction action) {
 	for (uint8_t i=0; i<timerSlots; i++) {
 		if (timers[i].action == action) {
@@ -3511,10 +3454,10 @@ bool SckBase::timerExists(TimerAction action) {
 }
 
 
-/* 	-------------
- 	|	 POT control (por ahora es copy paste del codigo de miguel, hay que revisarlo y adaptarlo)	|
- 	-------------
-*/
+// 	--------------------
+// 	|	 POT control   |
+// 	--------------------
+//
 void SckBase::writeResistor(byte resistor, float value ) {
    byte POT = POT1;
    byte ADDR = resistor;
@@ -3538,7 +3481,6 @@ void SckBase::writeResistor(byte resistor, float value ) {
      }
    writeI2C(POT, ADDR, data);
 }
-
 float SckBase::readResistor(byte resistor) {
    byte POT = POT1;
    byte ADDR = resistor;
@@ -3559,7 +3501,6 @@ float SckBase::readResistor(byte resistor) {
      }
    return readI2C(POT, ADDR)*ohmsPerStep;
 }
-
 void SckBase::writeI2C(byte deviceaddress, byte address, byte data ) {
   Wire.beginTransmission(deviceaddress);
   Wire.write(address);
@@ -3567,7 +3508,6 @@ void SckBase::writeI2C(byte deviceaddress, byte address, byte data ) {
   Wire.endTransmission();
   delay(4);
 }
-
 byte SckBase::readI2C(int deviceaddress, byte address ) {
   byte  data = 0x0000;
   Wire.beginTransmission(deviceaddress);
@@ -3581,17 +3521,16 @@ byte SckBase::readI2C(int deviceaddress, byte address ) {
 }  
 
 
-/* 	-------------------------
- 	|	 Utility functions 	|
- 	-------------------------
-*/
+// 	-------------------------
+// 	|	 Utility functions 	|
+// 	-------------------------
+//
 String leadingZeros(String original, int decimalNumber) {
 	for (uint8_t i=0; i < (decimalNumber - original.length()); ++i)	{
 		original = "0" + original;
 	}
 	return original;
 }
-
 uint8_t countMatchedWords(String baseString, String input) {
 	
 	uint8_t foundedCount = 0;
@@ -3616,7 +3555,6 @@ uint8_t countMatchedWords(String baseString, String input) {
 
 	return foundedCount;
 }
-
 String cleanInput(String toRemove, String original) {
 
 	String word;
@@ -3642,7 +3580,6 @@ String cleanInput(String toRemove, String original) {
 	}
 	return original;
 }
-
 extern "C" char *sbrk(int i);
 size_t freeRAM(void)
 {

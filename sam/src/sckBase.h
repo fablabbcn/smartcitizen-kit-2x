@@ -8,6 +8,7 @@
 #include "SdFat.h"
 #include <ArduinoJson.h>
 #include <FlashStorage.h>
+#include "ArduinoLowPower.h"
 
 #include <Bridge.h>
 #include <Sensors.h>
@@ -58,8 +59,8 @@ public:
 	void wifiOK();
 	void tick();
 	void configOK();
+	void setRGBColor(RGBcolor myColor);
 	float brightnessFactor = 1;
-	bool dim = false;
 
 	// Need a retouch
 	HSIcolor whiteHSI 		= {180,	0.5,	1.0};
@@ -74,6 +75,7 @@ public:
 
 	RGBcolor whiteRGB 		= {254,	254,	254};
 	RGBcolor redRGB 		= {250,	4,		6};
+	RGBcolor lowRedRGB 		= {100,	0,		0};
 	RGBcolor greenRGB 		= {0,	254,	0};
 	RGBcolor blueRGB 		= {0,	29,		225};
 	RGBcolor altBlueRGB 	= {0,	60,		254};
@@ -108,12 +110,9 @@ public:
 private:
 	bool dir;
 	int colorIndex = 0;
-	uint8_t heartBeat = 0;
-	uint8_t dimLoops = 0;
 	RGBcolor ledRGBcolor;
 	const RGBcolor *currentPulse;
 	bool inErrorColor = false;
-	void setRGBColor(RGBcolor myColor);
 	void setHSIColor(float h, float s, float i);
 };
 
@@ -143,16 +142,16 @@ public:
 		ACTION_VERY_LONG_PRESS,				// 6
 		ACTION_RESET,						// 7
 		ACTION_UPDATE_SENSORS,				// 8
-		ACTION_UPDATE_POWER,				// 9
-		ACTION_CHECK_ESP_PUBLISH_TIMEOUT,	// 10
-		ACTION_READ_NETWORKS,				// 11
-		ACTION_DEBUG_LOG,					// 12
-		ACTION_GOTO_SETUP,					// 13
-		ACTION_RECOVER_ERROR,				// 14
-		ACTION_START_AP_MODE,				// 15
-		ACTION_SAVE_SD_CONFIG,				// 16
-		ACTION_MQTT_SUBSCRIBE,				// 17
-		ACTION_RETRY_READ_SENSOR			// 18
+		ACTION_CHECK_ESP_PUBLISH_TIMEOUT,	// 9
+		ACTION_READ_NETWORKS,				// 10
+		ACTION_DEBUG_LOG,					// 11
+		ACTION_GOTO_SETUP,					// 12
+		ACTION_RECOVER_ERROR,				// 13
+		ACTION_START_AP_MODE,				// 14
+		ACTION_SAVE_SD_CONFIG,				// 15
+		ACTION_MQTT_SUBSCRIBE,				// 16
+		ACTION_RETRY_READ_SENSOR,			// 17
+		ACTION_SLEEP						// 18
 	};
 	struct OneTimer	{
 		TimerAction action = ACTION_NULL;
@@ -160,7 +159,7 @@ public:
 		uint32_t interval = 0;
 		uint32_t started = 0;
 	};
-	static const uint8_t timerSlots = 8;
+	static const uint8_t timerSlots = 12;
 	OneTimer timers[timerSlots];
 	void timerSet(TimerAction action, uint32_t interval, bool isPeriodic=false);		// interval is in milliseconds
 	bool timerClear(TimerAction action);
@@ -188,7 +187,7 @@ public:
 	void updateSensors();
 	bool getReading(SensorType wichSensor);
 	bool RAMstore(SensorType);
-	uint16_t closestReading;		// in seconds
+	uint32_t closestAction = 0;		// Time to next action (seconds), it could be a sensor reading or a publish action.
 	bool RAMgetGroup(int groupIndex);
 	void publish();
 	bool publishToSD();
@@ -196,8 +195,9 @@ public:
 	bool ESPpublish();
 	uint32_t lastPublishTime = 0;
 	bool publishRuning = false;
-	bool WaitForWifi = false;
-	uint8_t sensorDisplayIndex = 0;
+	uint32_t publishStarted = 0;
+	uint8_t sensorDisplayIndex = 0;					// For LCD sensor display
+	static const uint8_t publish_timeout = 120;		// Time out for publish (in seconds)
 
 	// Configuration
 	String hardwareVer 	= "1.5";
@@ -222,14 +222,13 @@ public:
 	void saveConfig(bool factory=false);
 	void saveSDconfig();
 	void mqttConfig(bool activate);
+	void factoryReset();
 
 	// Flags
 	bool onWifi();
 	bool hostNameSet = false;
 	bool helloPublished = false;
 	bool onTime = false;
-	bool charging = false;
-	bool onUSB = true;
 
 	// Modes
 	void changeMode(SCKmodes newMode);
@@ -317,6 +316,7 @@ public:
 		EXTCOM_U8G_PRINT_SENSOR,	// @params: Sensor to be printed
 
 		// Power Management
+		EXTCOM_SLEEP,
 		EXTCOM_GET_POWER_STATE,
 		EXTCOM_SET_CHARGER_CURRENT,
 		EXTCOM_RESET_CAUSE,
@@ -405,6 +405,7 @@ public:
 	"u8g sensor",			// EXTCOM_U8G_PRINT_SENSOR,	@params: Sensor to be printed
 
 	// Power Management
+	"sleep",				// EXTCOM_SLEEP,
 	"get power",			// EXTCOM_GET_POWER_STATE,
 	"set charger",			// EXTCOM_SET_CHARGER_CURRENT,
 	"rcause",				// EXTCOM_RESET_CAUSE,
@@ -443,21 +444,6 @@ public:
 	OutLevels prevOutputLevel = OUT_NORMAL;
 	void prompt();
 
-	//BUTTON -- pensar de nuevo como organizar el boton y sus metodos
-	void buttonEvent();
-	void buttonDown();
-	void buttonUp();
-	void longPress();
-	void veryLongPress();
-	void softReset();
-	uint16_t longPressInterval = 5000;
-	uint16_t veryLongPressInterval = 9000;
-	uint32_t butLastEvent = 0;
-	bool butIsDown = false;
-	void checkFactoryReset();
-	void factoryReset();
-
-
 	//ESP8266
 	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
 	void ESPcontrol(ESPcontrols myESPControl);
@@ -480,7 +466,7 @@ public:
 	ESPstatus espStatus;
 	ESPstatus prevEspStatus;
 	float statusPoolingInterval = 500;		// ESP status pooling interval in ms
-	const uint32_t ESP_FLASH_SPEED = 230400;
+	const uint32_t ESP_FLASH_SPEED = 115200;
 
 	// Time
 	bool setTime(String epoch);
@@ -488,6 +474,16 @@ public:
 	char ISOtimeBuff[20];
 	void epoch2iso(uint32_t epochTime, char* isoTime);
 
+	// Button
+	void buttonEvent();
+	void buttonDown();
+	void buttonUp();
+	void longPress();
+	void veryLongPress();
+	uint16_t longPressInterval = 4000;
+	uint16_t veryLongPressInterval = 11000;
+	uint32_t butLastEvent = 0;
+	
 	// SDcard
 	uint32_t FileSizeLimit = 64000000;
 	uint32_t headersChanged = 0;
@@ -503,25 +499,30 @@ public:
 	void closeFiles();
 	bool sdLogADC();
 
-	uint16_t getBatteryVoltage();
 	// Power Management
+	enum ADC_voltage {USB_CHAN, CHG_CHAN, ISET_CHAN, BATT_CHAN};
+	float getVoltage(ADC_voltage wichVoltage);
 	float getBatteryPercent();
-	float getVUSB();
-	uint16_t getCHG();
-	uint16_t getISET();
+	void writeCurrent(int current);
 	const uint16_t batteryMax = 4208;
 	const uint16_t batteryMin = 3000;
-	uint16_t readADC(byte channel);
 	const uint16_t batTable[100] PROGMEM = {3078,3364,3468,3540,3600,3641,3682,3701,3710,3716,3716,3716,3720,3714,3720,3725,3732,3742,3739,3744,3744,3754,3760,3762,3770,3768,3774,3774,3774,3779,3784,3790,3788,3794,3798,3798,3804,3809,3809,3812,3817,3817,3822,3823,3828,3828,3828,3833,3838,3838,3842,3847,3852,3859,3858,3864,3862,3869,3877,3877,3883,3888,3894,3898,3902,3906,3912,3923,3926,3936,3942,3946,3960,3972,3979,3982,3991,3997,4002,4002,4012,4018,4028,4043,4057,4074,4084,4094,4098,4098,4109,4115,4123,4134,4142,4153,4158,4170,4180,4188};
+	static const uint8_t lowBattLimit = 10;				// Percent
+	static const uint8_t lowBattEmergencySleep = 3;		// Percent
+	static const uint32_t minSleepPeriod = 2;			// Sleep if no action programed for the next n seconds
 	void updatePower();
-	uint8_t lowBattLimit = 10;
-	uint8_t lowBattEmergencySleep = 3;
-
+	bool charging = false;
+	bool onUSB = true;
+	bool USBDeviceAttached = true;
+	void goToSleep();
+	uint32_t sleepTime = 0;			// How much time we will sleep (milli seconds)
+	uint32_t userLastAction = 0;	// Time of last user action (seconds)
+	void wakeUp();
+	void softReset();
 
 	//TEMP hay que acomodar
 	void writeResistor(byte resistor, float value );
 	float readResistor(byte resistor);
-	void writeCurrent(int current);
 	byte readI2C(int deviceaddress, byte address );
   	void writeI2C(byte deviceaddress, byte address, byte data );
 
@@ -547,10 +548,6 @@ public:
 	friend class SckUrban;
 	bool urbanBoardDetected();
 	bool urbanPresent = false;
-
-	// Power
-	void goToSleep(bool wakeToCheck = true);
-	void wakeUp();
 
 private:
 };

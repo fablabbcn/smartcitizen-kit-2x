@@ -458,6 +458,8 @@ void SckUrban::gasCorrectHeaterCurrent(SensorType wichSensor) {
 
 	while (desiredCurrent - heaterCurrent > 0) {
 
+		if (ESR) return;
+
 		// HeaterCurrent = HeaterVoltage / HEATER_RESISTOR
 		heaterVoltage = gasGetDropVoltage(wichSensor); 											// (mV) Measure voltage
 		if (wichSensor == SENSOR_CO) heaterCurrent = heaterVoltage / CO_HEATER_RESISTOR;			// (mA) Calculates current
@@ -539,6 +541,9 @@ float SckUrban::gasRead(SensorType wichSensor) {
 	// Adjust range max 5 times
 	uint8_t cycles = 5;
 	for (uint8_t i=0; i<cycles; ++i)	{
+
+		if (ESR) return 0;
+
 		if (abs(loadResistor - sensorResistance) > 1000) {				// If difference between result and POT load resistor is graeter than 1000, try to improve resolution
 			if (sensorResistance < 2000) setPot(wichResistor, 2000);	// Set POT to minimal value in 2000
 			else if (sensorResistance > 100000) {
@@ -608,6 +613,7 @@ float SckUrban::average(uint8_t wichPin) {
 	long total = 0;
 	float average = 0;
 	for(uint32_t i=0; i<numReadings; i++) {
+		if (ESR) return 0;
 		total = total + analogRead(wichPin);
 	}
 	average = (float)total / numReadings;  

@@ -57,6 +57,7 @@ public:
 		HeaterResistance = (RegulatorVoltage - HeaterVoltage) / HeaterCurrent
 		RegulatorVoltage = HeaterCurrent * (HeaterResistance + HEATER_RESISTOR)
 	*/
+	bool ESR = false;	// Emergency Stop Reading
 
 	// Carbon Monoxide
 	const uint8_t SHUTDOWN_CONTROL_REGULATOR_CO_SENSOR_HEATER_PIN = 9;		// (pin) 9-PA7 -- Low disables sensor heater
@@ -69,6 +70,7 @@ public:
 	uint32_t CO_HEATER_RESISTANCE = 74;										// (Ohm) Heating resistance at nominal power 
 	bool gasCOheaterState = false;
 	uint32_t startHeaterTime_CO = 0;
+	static const uint16_t CO_PREHEATING_TIME = 600;							// Seconds needed for the heater to reach the right temperature
 
 	// Nitrogen Dioxide
 	const uint8_t SHUTDOWN_CONTROL_REGULATOR_NO2_SENSOR_HEATER_PIN = 8;		// (pin) 8-PA6 Low disables sensor heater
@@ -81,6 +83,7 @@ public:
 	uint32_t NO2_HEATER_RESISTANCE = 66;									// (Ohm) Heating resistance at nominal power
 	bool gasNO2heaterState = false;
 	uint32_t startHeaterTime_NO2 = 0;
+	static const uint16_t NO2_PREHEATING_TIME = 600;							// Seconds needed for the heater to reach the right temperature
 
 	// Utility functions
 	void setPot(Resistor wichPot, uint32_t value);

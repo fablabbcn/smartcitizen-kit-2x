@@ -97,8 +97,8 @@ void SckBase::setup() {
 	Wire.begin();				// Init wire library
 
 	// Sensor Board Conector
-	pinMode(IO0, OUTPUT);	// PA7 -- CO Sensor Heather
-	pinMode(IO1, OUTPUT);	// PA6 -- NO2 Sensor Heater
+	pinMode(urban.SHUTDOWN_CONTROL_REGULATOR_CO_SENSOR_HEATER_PIN, OUTPUT);	// PA7 -- CO Sensor Heather
+	pinMode(urban.SHUTDOWN_CONTROL_REGULATOR_NO2_SENSOR_HEATER_PIN, OUTPUT);	// PA6 -- NO2 Sensor Heater
 	pinMode(S0, INPUT);		// PA4 -- CO Sensor
 	pinMode(S1, INPUT);		// PA5 -- NO2 Sensor
 	pinMode(S2, INPUT);		// PB8 -- CO Current Sensor
@@ -115,7 +115,8 @@ void SckBase::setup() {
 	
  	// Button
  	pinMode(PIN_BUTTON, INPUT_PULLUP);
-	attachInterrupt(PIN_BUTTON, ISR_button, CHANGE);
+	LowPower.attachInterruptWakeup(PIN_BUTTON, ISR_button, CHANGE);
+	LowPower.attachInterruptWakeup(RTC_ALARM_WAKEUP, ISR_alarm, CHANGE);
 
 	// Pause for a moment (for uploading firmware in case of problems)
 	delay(2000);
@@ -176,9 +177,11 @@ void SckBase::setup() {
 		}
 	}
 
+	// Dont go to sleep until some time has passed
+	userLastAction = rtc.getEpoch();
+
 	// Check if USB connected and charging status
 	updatePower();
-	timerSet(ACTION_UPDATE_POWER, 500, true);
 }
 void SckBase::update() {
 
@@ -205,6 +208,9 @@ void SckBase::update() {
 
 		// Check Serial ports inputs
 		inputUpdate();
+
+		// Power Management
+		updatePower();
 
 		//----------------------------------------
 		// 	MODE_SETUP
@@ -641,6 +647,7 @@ void SckBase::saveSDconfig() {
 			sckOut("Saved configuration to sdcard!!!");
 		}
 	}
+	if (config.mode == MODE_SETUP) ESPcontrol(ESP_ON);
 }
 void SckBase::mqttConfig(bool activate) {
 
@@ -662,11 +669,12 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 	// Start with a new clear state
 	// --------------------------------------
+	closestAction = 0;
 
 	// Reset SDcard detection flag
 	sdcardAlreadySearched = false;
 
-	// Clear ALL timers
+	// Clear timers
 	timerClearTasks();
 
 	// Stop searching for light signals (only do it on setup mode)
@@ -681,6 +689,8 @@ void SckBase::changeMode(SCKmodes newMode) {
 		case MODE_SETUP: {
 
 			sckOut("Entering Setup mode!");
+
+			publishRuning = false;
 
 			// Start ESP
 			if (digitalRead(POWER_WIFI)) timerSet(ACTION_ESP_ON, 200);
@@ -697,7 +707,7 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 			sckOut("Entering Network mode!");
 
-			timerSet(ACTION_UPDATE_SENSORS, 1000, true);
+			timerSet(ACTION_UPDATE_SENSORS, 500, true);
 			sckOut(String F("Publishing every ") + String(config.publishInterval) + F(" seconds"));
 			break;
 
@@ -707,18 +717,20 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 			sckOut("Entering SD card mode!");
 
-			timerSet(ACTION_UPDATE_SENSORS, 1000, true);
+			timerSet(ACTION_UPDATE_SENSORS, 500, true);
 			sckOut(String F("Publishing every ") + String(config.publishInterval) + " seconds");
 			break;
 
 		} case MODE_BRIDGE: {
 			ESPcontrol(ESP_ON);
 			changeOutputLevel(OUT_SILENT);
+			publishRuning = false;
 			break;
 
 		} case MODE_FLASH: {
 			changeOutputLevel(OUT_SILENT);
 			ESPcontrol(ESP_FLASH);
+			publishRuning = false;
 			break;
 		} case MODE_SHELL: {
 			ESPcontrol(ESP_OFF);
@@ -728,6 +740,25 @@ void SckBase::changeMode(SCKmodes newMode) {
 				timers[i].started = 0;
 				timers[i].periodic = false;
 			}
+			publishRuning = false;
+			break;
+		} case MODE_OFF: {
+
+			sckOut(F("Entering off mode..."));
+
+			// Dont turn off ESP yet, only turn off its leds...
+			if (!digitalRead(POWER_WIFI)) {
+				msgBuff.com = ESP_LED_OFF;
+				ESPqueueMsg(false, true);
+			}
+			
+			// Turn off leds
+			digitalWrite(SERIAL_TX_LED, HIGH);
+			digitalWrite(SERIAL_RX_LED, HIGH);
+			led.off();
+			
+			timerClear(ACTION_RECOVER_ERROR);
+
 			break;
 		} default: {
 			;
@@ -745,9 +776,6 @@ void SckBase::changeMode(SCKmodes newMode) {
 
 	// Update led
 	led.update(newMode, 0);
-
-	// After reset it will go to sleep in a clean state
-	if (newMode == MODE_OFF) goToSleep();
 }
 void SckBase::errorMode() {
 	
@@ -764,7 +792,6 @@ void SckBase::errorMode() {
 	if (!timerExists(ACTION_GOTO_SETUP)) timerSet(ACTION_GOTO_SETUP, 5000);
 
 	// Start ESP to try time Sync
-	// if (digitalRead(POWER_WIFI)) timerSet(ACTION_ESP_ON, 200);
 	if (digitalRead(POWER_WIFI)) ESPcontrol(ESP_ON);
 }
 void SckBase::changeOutputLevel(OutLevels newLevel) {
@@ -1124,6 +1151,9 @@ void SckBase::processStatus() {
 
 	// Wifi status has changed
 	if (espStatus.wifi != prevEspStatus.wifi) {
+
+		bool wasError = false;
+
 		switch (espStatus.wifi) {
 			case ESP_WIFI_CONNECTED_EVENT: {
 				sckOut(F("Conected to wifi!!"));
@@ -1144,37 +1174,34 @@ void SckBase::processStatus() {
 					msgBuff.com = ESP_GET_TIME_COM;
 					ESPqueueMsg(false, true);
 				}
-
-				if (WaitForWifi) {
-					// If there is a publish operation waiting...
-					WaitForWifi = false;
-				 	ESPpublish();
-				}
-
 				break;
 
 			} case ESP_WIFI_ERROR_EVENT: {
 				sckOut(F("Wifi ERROR: undefined!!"));
+				wasError = true;
 				break;
 
 			} case ESP_WIFI_ERROR_PASS_EVENT: {
 				sckOut(F("Wifi ERROR: wrong password!!"));
+				wasError = true;
 				break;
 
 			} case ESP_WIFI_ERROR_AP_EVENT: {
 				sckOut(F("Wifi ERROR: can't find access point!!"));
+				wasError = true;
 				break;
 
 			} case ESP_WIFI_NOT_CONFIGURED: {
 				if (!wifiSet) sckOut("ESP: Wifi is not configured!!!");
 				else setESPwifi();
+				wasError = true;
 				break;
 
 			} default: break;
 		}
 
 		// If there was ANY wifi error...
-		if (!onWifi()) {
+		if (wasError) {
 			// If we NEED network go to error mode
 			if (config.mode == MODE_NET) errorMode();
 		}
@@ -1188,25 +1215,38 @@ void SckBase::processStatus() {
 	// Mqtt status has changed
 	if (espStatus.mqtt != prevEspStatus.mqtt) {
 
+		if (espStatus.mqtt != ESP_NULL_EVENT) {
+
+			// Clear mqtt status on queue
+			msgBuff.com = ESP_MQTT_CLEAR_STATUS;
+			ESPqueueMsg(false, false);
+			
+			// Get status on queue
+			msgBuff.com = ESP_GET_STATUS_COM;
+			strncpy(msgBuff.param, "", 240);
+			ESPqueueMsg(false, true);
+		}
+
 		switch (espStatus.mqtt) {
 			case ESP_MQTT_PUBLISH_OK_EVENT: {
 				sckOut(F("MQTT publish OK!!"));
+
+				// Remember at wich time we publish
+				lastPublishTime = rtc.getEpoch();
 
 				// Clear the published readings
 				RAMreadingsIndex = RAMreadingsIndex - RAMgroups[RAMgroupIndex].numberOfReadings;
 				RAMgroupIndex = RAMgroupIndex - 1;
 
-				msgBuff.com = ESP_MQTT_CLEAR_STATUS;
-				ESPqueueMsg(false, true);
-
 				// Check for more readings pending to be published
-				if (RAMgroupIndex >= 0) publish();
+				if (RAMgroupIndex >= 0) {
+					publishRuning = false;
+					publish();
+				}
 
 				// If we finish network publish start with sdcard (Can't do it at the same time because of the SPI bug)
 				else publishToSD();
 
-				// Start dimming the led...
-				// if (!onUSB) led.dim = true;
 				break;
 
 			} case ESP_MQTT_HELLO_OK_EVENT: {
@@ -1221,8 +1261,12 @@ void SckBase::processStatus() {
 				if (config.mode == MODE_NET) led.update(config.mode, 2);
 				sckOut(F("ERROR: MQTT failed!!"));
 
-				// For now keep them in SD and wait for netx publish...
+				// For now keep them in SD and wait for next publish...
 				publishToSD();
+				break;
+
+			} case ESP_NULL_EVENT: {
+				sckOut("MQTT status cleared!!!");
 				break;
 
 			} default: break;
@@ -1337,7 +1381,6 @@ void SckBase::processStatus() {
 	// Make a copy of status
 	for (uint8_t i=0; i<ESP_STATUS_TYPES_COUNT; i++) prevEspStatus.value[i] = espStatus.value[i];
 }
-
 bool SckBase::onWifi() {
 
 	if (espStatus.wifi == ESP_WIFI_CONNECTED_EVENT) return true;
@@ -1785,16 +1828,25 @@ void SckBase::sckIn(String strIn) {
 
 		} case EXTCOM_GET_POWER_STATE: {
 
-			sprintf(outBuff,   "CHG:  %u mV\r\nISET:  %u mV\r\nVUSB:  %.0f mV\r\nBatt volt:  %i mV\r\nBatt:  %.0f %%\r\nOn USB:  %i\r\nCharging:  %i",
-								getCHG(),
-								getISET(),
-								getVUSB(),
-								getBatteryVoltage(),
+			sprintf(outBuff,   "CHG:  %0.2f v\r\nISET:  %0.2f v\r\nVUSB:  %0.2f v\r\nBatt volt:  %0.2f v\r\nBatt:  %0.2f %%\r\nOn USB:  %i\r\nCharging:  %i",
+								getVoltage(CHG_CHAN),
+								// getCHG(),
+								getVoltage(ISET_CHAN),
+								// getISET(),
+								getVoltage(USB_CHAN),
+								// getUSBvoltage(),
+								getVoltage(BATT_CHAN),
+								// getBatteryVoltage(),
 								getBatteryPercent(),
 								onUSB,
 								charging
 					);
 			sckOut();
+			break;
+
+		} case EXTCOM_SLEEP: {
+
+			goToSleep();
 			break;
 
 		} case EXTCOM_SET_CHARGER_CURRENT: {
@@ -2111,6 +2163,7 @@ bool SckBase::setTime(String epoch) {
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		sckOut("RTC updated!!!");
 		onTime = true;
+		userLastAction = rtc.getEpoch();		// Restart las action to avoid comparations with wrong time
 		ISOtime();
 		sckOut(ISOtimeBuff);
 		prompt();
@@ -2188,8 +2241,6 @@ void SckBase::disableSensor(SensorType wichSensor) {
 }
 void SckBase::updateSensors() {
 
-	// TODO force publish before storage is full...
-
 	// Don't take readings if RTC is not updated
 	if (!onTime) {
 		sckOut("RTC is not updated!!!");
@@ -2203,29 +2254,49 @@ void SckBase::updateSensors() {
 		return;
 	}
 
-	// If there is a publish running wait 
-	if (publishRuning) return;
+	if (config.mode == MODE_SD && !sdPresent()) {
+		errorMode();
+		return;
+	}
 
 	// Only update sensor readings if we are in network or sdcard modes
 	if (config.mode == MODE_NET || config.mode == MODE_SD) {
 
+		uint32_t nextReadingTime = 0;
+
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled) {
-				if (rtc.getEpoch() - sensors[wichSensor].lastReadingTime >= sensors[wichSensor].interval) {
-					led.dim = false;
+				
+				uint32_t elapsed = rtc.getEpoch() - sensors[wichSensor].lastReadingTime;
+				if (elapsed >= sensors[wichSensor].interval) {
+					// Time to read sensor!!
 					led.brightnessFactor = 1;
 					if (getReading(wichSensor)) {
 						RAMstore(wichSensor);
 						sprintf(outBuff, " (RAM) + %s: %.2f %s", sensors[wichSensor].title, sensors[wichSensor].reading, sensors[wichSensor].unit);
 						sckOut(PRIO_HIGH);
 					}
+					nextReadingTime = sensors[wichSensor].interval;
+				} else {
+					nextReadingTime = sensors[wichSensor].interval - elapsed;
 				}
 			}
 		}
 
 		// Call publish if we reached the interval
-		if (rtc.getEpoch() - lastPublishTime > config.publishInterval) publish();
+		uint32_t elapsed = rtc.getEpoch() - lastPublishTime;
+		uint32_t nextPublishTime = config.publishInterval;
+
+		if (elapsed >= config.publishInterval) {
+			// Time to publish!!
+			publish();
+		} else {
+			nextPublishTime = config.publishInterval - elapsed;
+		}
+
+		if (nextReadingTime != 0 && nextReadingTime < nextPublishTime) closestAction = nextReadingTime;
+		else closestAction = nextPublishTime;
 	}
 }
 bool SckBase::getReading(SensorType wichSensor) {
@@ -2244,7 +2315,8 @@ bool SckBase::getReading(SensorType wichSensor) {
 
 			switch (wichSensor) {
 				case SENSOR_BATTERY: tempReading = getBatteryPercent(); break;
-				case SENSOR_VOLTIN: tempReading = getVUSB(); break;
+				// case SENSOR_VOLTIN: tempReading = getUSBvoltage(); break;
+				case SENSOR_VOLTIN: tempReading = getVoltage(USB_CHAN); break;
 				default: ;
 			}
 			sensors[wichSensor].reading = tempReading;
@@ -2252,7 +2324,7 @@ bool SckBase::getReading(SensorType wichSensor) {
 			break;
 		} case BOARD_URBAN: {
 			sensors[wichSensor].reading = urban.getReading(wichSensor);
-			sensors[wichSensor].valid = true;
+			if (!urban.ESR) sensors[wichSensor].valid = true;
 			break;
 		} case BOARD_AUX: {
 
@@ -2358,45 +2430,53 @@ void SckBase::publish() {
 
 	// Check if there are some readings to publish
 	if (RAMgroupIndex < 0) {
-		sckOut("No readings yet!!!", PRIO_LOW);
+		sckOut("Can't publish... no readings yet!!!", PRIO_LOW);
 		return;
 	}
-
-	// Check for another publish waiting for wifi  
-	if (!onWifi()) {
-		sckOut("Waiting for wifi...");
-
-		WaitForWifi = true;
-
-		// Make sure ESP is on
-		ESPcontrol(ESP_ON);
-		return;
-	}
-
-	sckOut("Starting publish...");
-
-	// Remembar at wich time we publish
-	lastPublishTime = rtc.getEpoch();
-
-	// Turn on led
-	led.brightnessFactor = 1;
-	led.dim = false;
 
 	if (config.mode == MODE_NET) {
 
-		WaitForWifi = false;
-		publishRuning = true;
-		ESPpublish();
+		// If there is a publish running
+		if (publishRuning) {
+			
+			// Give up on this publish try and reset to try to clear errors
+			if (rtc.getEpoch() - publishStarted > publish_timeout) {
+	 			sckOut("Publish is taking too much time...\n Saving to SD card and resetting!!!");
+	 			publishToSD();
+				softReset();
+			}
+
+			// Check for Wifi
+			if (!onWifi()) {
+				sckOut("Waiting for wifi for publishing...", PRIO_LOW);
+				return;
+			}
+
+		} else {
+
+			// If ESP is OFF turn it on
+			if (digitalRead(POWER_WIFI)) ESPcontrol(ESP_ON);
+
+			publishStarted = rtc.getEpoch();
+			publishRuning = true;
+			ESPpublish();
+
+		}
 		
 	} else if (config.mode == MODE_SD) {
 
+		publishStarted = rtc.getEpoch();
+		publishRuning = true;
 		publishToSD();
 
 	}
 }
 bool SckBase::publishToSD() {
 
-	if (sdIndex < 0) return false;
+	if (sdIndex < 0) {
+		publishRuning = false;
+		return false;
+	}
 
 	sckOut("Publishing to SDcard...");
 
@@ -2405,7 +2485,6 @@ bool SckBase::publishToSD() {
 		// Write one line for time-group
 		for (uint16_t i=0; i<=sdIndex; ++i) {
 
-			sckOut(String("Asking ram group ") + String(i));
 			// Get data from RAM
 			RAMgetGroup(i);
 
@@ -2453,7 +2532,6 @@ bool SckBase::publishToSD() {
 		}
 		// Close file
 		publishFile.close();
-		lastPublishTime = rtc.getEpoch();
 		
 		// Restart the sd card index
 		sdIndex = -1;
@@ -2462,6 +2540,9 @@ bool SckBase::publishToSD() {
 		if (config.mode == MODE_SD) {
 			RAMgroupIndex = -1;
 			RAMreadingsIndex = -1;
+
+			// Remember at wich time we publish
+			lastPublishTime = rtc.getEpoch();
 		}
 
 		publishRuning = false;
@@ -2470,7 +2551,6 @@ bool SckBase::publishToSD() {
 
 	publishRuning = false;
 	sckOut(F("Cant' open publish file!!!"));
-	lastPublishTime = rtc.getEpoch();
 	return false;
 }
 bool SckBase::ESPpublish()  {
@@ -2537,13 +2617,13 @@ bool SckBase::sdLogADC(){
 		// Write header
 		if (writeHead) debugLogFile.println(F("chann0,chann1,charger,battvolt,battPercent,onUSB,charging"));
 
-		debugLogFile.print(getCHG());
+		debugLogFile.print(getVoltage(CHG_CHAN));
 		debugLogFile.print(",");
-		debugLogFile.print(getISET());
+		debugLogFile.print(getVoltage(ISET_CHAN));
 		debugLogFile.print(",");
-		debugLogFile.print(getVUSB());
+		debugLogFile.print(getVoltage(USB_CHAN));
 		debugLogFile.print(",");
-		debugLogFile.print(getBatteryVoltage());
+		debugLogFile.print(getVoltage(BATT_CHAN));
 		debugLogFile.print(",");
 		debugLogFile.print(getBatteryPercent());
 		debugLogFile.print(",");
@@ -2567,12 +2647,12 @@ bool SckBase::sdLogADC(){
 //
 void SckBase::buttonEvent() {
 
-	// if (millis() - butLastEvent < 30) return;
+	userLastAction = rtc.getEpoch();
 
 	if (!digitalRead(PIN_BUTTON)) {
 
-		butIsDown = true;
-		led.dim = false;
+		urban.ESR = true;
+
 		butLastEvent = millis();
 
 		timerSet(ACTION_LONG_PRESS, longPressInterval);
@@ -2582,17 +2662,21 @@ void SckBase::buttonEvent() {
 
 	} else {
 
-		butIsDown = false;
-		// if (config.mode == MODE_NET || config.mode == MODE_SD && !onUSB) led.dim = true;
-		butLastEvent = millis();		
+		butLastEvent = millis();
 		
 		timerClear(ACTION_LONG_PRESS);
 		timerClear(ACTION_VERY_LONG_PRESS);
 
 		buttonUp();
 	}
-}
 
+	if (onUSB && !USBDeviceAttached) {
+		USBDevice.init();
+		USBDevice.attach();
+		USBDeviceAttached = true;
+		prompt();
+	}
+}
 void SckBase::buttonDown() {
 
 	sckOut(F("buttonDown"), PRIO_LOW);
@@ -2605,6 +2689,12 @@ void SckBase::buttonDown() {
 		} case MODE_SETUP: {
 			changeMode(config.persistentMode);
 			break;
+
+		} case MODE_OFF: {
+
+			wakeUp();
+			break;
+
 		} default: {
 			changeMode(MODE_SETUP);
 		}
@@ -2613,31 +2703,31 @@ void SckBase::buttonDown() {
 void SckBase::buttonUp() {
 
 	sckOut(F("Button up"), PRIO_LOW);
-	// changeMode(MODE_OFF);
-}
 
-void SckBase::veryLongPress() {
-	// Make sure we havent released button without noticed it
-	if (!digitalRead(PIN_BUTTON)) {
-		sckOut(String F("Button very long press: ") + String(millis() - butLastEvent), PRIO_MED);
-		// Factory reset
-		factoryReset();
-	} else buttonEvent();
+	if (config.mode == MODE_OFF) {
+		sckOut("Sleeping!!");
+		timerSet(ACTION_SLEEP, 500);
+	} else urban.ESR = false;
 }
 void SckBase::longPress() {
+
 	// Make sure we havent released button without noticed it
 	if (!digitalRead(PIN_BUTTON)) {
+	
 		sckOut(String F("Button long press: ") + String(millis() - butLastEvent), PRIO_MED);
 		changeMode(MODE_OFF);
+	
 	} else buttonEvent();
 }
+void SckBase::veryLongPress() {
 
-void SckBase::softReset() {
+	// Make sure we havent released button without noticed it
+	if (!digitalRead(PIN_BUTTON)) {
+	
+		sckOut(String F("Button very long press: ") + String(millis() - butLastEvent), PRIO_MED);
+		factoryReset();
 
-	// Close files before resseting to avoid corruption
-	closeFiles();
-
- 	NVIC_SystemReset();
+	} else buttonEvent();
 }
 
 // 	-----------------
@@ -2781,99 +2871,14 @@ void SckBase::closeFiles() {
 	if (debugLogFile) debugLogFile.close();
 	if (logFile) logFile.close();
 }
-
-void SckBase::goToSleep(bool wakeToCheck) {
-
-	// Wake up in veryLongPressInterval - longPressInterval and if button still down execute reset factory
-	// if (wakeToCheck){
-	// 	sckOut(F("Waking in a moment to check for factory reset..."));
-	// if (ISOtime().equals("0")) {
-	// 	rtc.setTime(0, 0, 0);
- //  		rtc.setDate(1, 1, 17);
-	// }
-
-	// 	// rtc.setAlarmSeconds((veryLongPressInterval - longPressInterval ) / 1000);
-	// rtc.setAlarmSeconds(10);
-	// rtc.enableAlarm(rtc.MATCH_SS);
-	// rtc.attachInterrupt(ISR_alarm);
-	// }
-
-
-	// rtc.setAlarmSeconds(5000);
-	// para implementar periodos de sleep:
-	// habra que hacer una seleccion del match (y de la funcion correspondiente segun el periodo solicitado)
-	// MATCH_OFF          = RTC_MODE2_MASK_SEL_OFF_Val,          // Never
- //    MATCH_SS           = RTC_MODE2_MASK_SEL_SS_Val,           // Every Minute
- //    MATCH_MMSS         = RTC_MODE2_MASK_SEL_MMSS_Val,         // Every Hour
- //    MATCH_HHMMSS       = RTC_MODE2_MASK_SEL_HHMMSS_Val,       // Every Day
- //    MATCH_DHHMMSS      = RTC_MODE2_MASK_SEL_DDHHMMSS_Val,     // Every Month
-	// MATCH_MMDDHHMMSS = RTC_MODE2_MASK_SEL_MMDDHHMMSS_Val, // Every Year
-  	// rtc.enableAlarm(rtc.MATCH_SS);
-
-  	// Timer interrupt for wake up
-  	// rtc.attachInterrupt(wakeUp);
-
-	// SYSCTRL->VREG.bit.RUNSTDBY = 1;
- //  	SYSCTRL->DFLLCTRL.bit.RUNSTDBY = 1;
-
-	sckOut(F("Going to sleep..."));
-
-	closeFiles();
-
-	ESPcontrol(ESP_OFF);
-
-	USB->DEVICE.CTRLA.bit.SWRST = 1;
-  	while (USB->DEVICE.SYNCBUSY.bit.SWRST | (USB->DEVICE.CTRLA.bit.SWRST == 1));
-
-	// USBDevice.detach();
-
-	// Turn off Serial leds
-	digitalWrite(SERIAL_TX_LED, HIGH);
-	digitalWrite(SERIAL_RX_LED, HIGH);
-
-	// rtc.standbyMode();
-}
-
-void SckBase::wakeUp() {
-
-	// USBDevice.init();
-	// USBDevice.attach();
-	sckOut(F("Waked up!!!"));
-	changeMode(MODE_SETUP);
-}
-
-void SckBase::checkFactoryReset() {
-	if (!digitalRead(PIN_BUTTON)) {
-		// wakeUp();
-		factoryReset();
-	} else {
-		goToSleep();
-	}
-}
-
 void SckBase::factoryReset() {
 
-	msgBuff.com = ESP_LED_OFF;
-	ESPqueueMsg(true);
-
+	clearWifi();
 	clearToken();
-
 	saveConfig(true);
-
-	// Set a periodic timer for reset when ESP comunication (clear wifi and token) is complete
-	timerSet(ACTION_RESET, 1000);
+	softReset();
 }
 
-
-uint16_t SckBase::getBatteryVoltage() {
-
-	uint8_t readingNumber = 5;
-	uint32_t batVoltage = 0;
-
-	for(uint8_t i=0; i<readingNumber; i++) batVoltage += (2*(readADC(3))*VCC/RESOLUTION_ANALOG);
-
-	return batVoltage / readingNumber;
-}
 
 // 	-------------------------
 // 	|	Power Management    |
@@ -2882,7 +2887,7 @@ uint16_t SckBase::getBatteryVoltage() {
 float SckBase::getBatteryPercent() {
 
 	uint8_t percent = 0;
-	uint16_t voltage = (uint16_t)getBatteryVoltage();
+	uint16_t voltage = (uint16_t)(getVoltage(BATT_CHAN) * 1000);
 
 	for(uint8_t i = 0; i < 100; i++) {
     	if(voltage < batTable[i]) {
@@ -2900,89 +2905,216 @@ float SckBase::getBatteryPercent() {
 
 	return (float)percent;
 }
+float SckBase::getVoltage(ADC_voltage wichVoltage) {
 
-float SckBase::getVUSB() {
-  	float chargerVoltage = 2*(readADC(2))*VCC/RESOLUTION_ANALOG;
-	return chargerVoltage;
+	byte add = 0;
+	byte dir[4] = {2,4,6,8};
+
+	switch(wichVoltage) {
+		case BATT_CHAN: add = 3; break;
+		case USB_CHAN: 	add = 2; break;
+		case CHG_CHAN: 	add = 0; break;
+		case ISET_CHAN: add = 1; break;
+	}
+
+	byte ask = B11000000 + add;
+
+	uint32_t result = 0;
+
+	uint8_t numberOfSamples = 5;
+
+	// Average 5 samples
+	for (uint8_t i=0; i<numberOfSamples; i++) {
+		writeI2C(ADC_DIR, 0, ask);
+		writeI2C(ADC_DIR, 0, ask);
+
+		result += (readI2C(ADC_DIR, dir[add])<<4) + (readI2C(ADC_DIR, dir[add] + 1)>>4);
+	}
+
+	float resultInVoltage = 2 * (result / numberOfSamples) * VCC / RESOLUTION_ANALOG / 1000;
+
+	return resultInVoltage;
 }
-
-uint16_t SckBase::getCHG() {
-  uint16_t temp = 2*(readADC(0))*VCC/RESOLUTION_ANALOG;
-  return temp;
-}
-
-uint16_t SckBase::getISET() {
-  uint16_t temp = 2*(readADC(1))*VCC/RESOLUTION_ANALOG;
-  return temp;
-}
-
-uint16_t SckBase::readADC(byte channel) {
-  byte dir[4] = {2,4,6,8};
-  byte temp = B11000000 + channel;
-  writeI2C(ADC_DIR, 0, temp);
-  writeI2C(ADC_DIR, 0, temp);
-  uint16_t data = (readI2C(ADC_DIR, dir[channel])<<4) + (readI2C(ADC_DIR, dir[channel] + 1)>>4);
-  return data;
-}
-
 void SckBase::writeCurrent(int current) {
     int resistor = (4000000/current)-96-3300;
     writeResistor(0, resistor);
 }
-
 void SckBase::updatePower() {
-	
-	if (getVUSB() > 3000){
-		// USB is connected
-		if (!onUSB) sckOut("USB connected!");
+
+	if (millis() % 500 != 0) return;
+
+	if (getVoltage(USB_CHAN) > 3.0){
+
+		// USB is JUST connected
+		if (!onUSB) {
+			sckOut("USB connected!");
+			USBDevice.init();
+			USBDevice.attach();
+			USBDeviceAttached = true;
+		}
 		onUSB = true;
 
-		// USBDevice.init();
-		// USBDevice.attach();
-		// SerialUSB.begin(baudrate);
-
-		// Led feedback always ON
-		led.dim = false;
-
-		if (getCHG() < 3000) { 
+		// Check if we are chanrging the battery
+		if (getVoltage(CHG_CHAN) < 3.0) { 
 			if (!charging) sckOut("Charging battery!");
 			charging = true;
-		} else charging = false;					// In this case battery should be full
+		} else charging = false;					// In this case battery should be full or not conected
+
+		// Led feedback
+		led.lowBatt = false;
+		if (!charging) {
+			led.charging = false;
+			led.finishedCharging = true;
+		} else {
+			led.charging = true; 
+			led.finishedCharging = false;
+		}
 
 	} else {
+
 		// USB is not connected
-		if (onUSB) sckOut("USB disconnected!");
+		if (onUSB) {
+			sckOut("USB disconnected!");
+			USBDevice.detach();
+			USBDeviceAttached = false;
+		}
 		onUSB = false;
 
-		// Minimal led Feedback
-		if (config.mode == MODE_SD || config.mode == MODE_NET) led.dim = true;
-		else led.dim = false;
+		// There is no way of charging without USB
+		charging = false;
 
-		// USBDevice.init();
-		// USBDevice.detach();
-		// SerialUSB.end();
+		// Led feedback
+		led.charging = false;
+
+		// Make sure we are not wating power on ESP if it is not necessary
+		if (config.mode != MODE_SETUP && !publishRuning && !timerExists(ACTION_RECOVER_ERROR)) ESPcontrol(ESP_OFF);
 
 		//Turn off Serial leds
 		digitalWrite(SERIAL_TX_LED, HIGH);
 		digitalWrite(SERIAL_RX_LED, HIGH);
 
-		// There is no way of charging without USB
-		charging = false;
+		uint8_t tmpBattPercent = (uint8_t)getBatteryPercent();
+
+		if (tmpBattPercent < lowBattLimit) led.lowBatt = true;
+		if (tmpBattPercent < lowBattEmergencySleep) {
+			
+			// If battery is extremely low go to sleep to keep RTC time and wakeup every minute to check if we are connected
+
+			while (getVoltage(USB_CHAN) < 3.0) {
+
+				// Fast triple red led flash
+				for (uint8_t i=0; i < 2; ++i) {
+					led.setRGBColor(led.lowRedRGB);
+					delay(40);
+					led.off();
+					delay(40);
+				}
+
+				sleepTime = 60000;	// 60,000 ms = 1 minute
+				goToSleep();
+				led.off();
+			}
+
+			wakeUp();
+
+		// Enter sleep mode
+		} else if (	(closestAction > minSleepPeriod) && 						// Still some time before next action
+					(rtc.getEpoch() - userLastAction > 20) && 					// At least 10 seconds after the las user action (button)
+					(config.mode == MODE_SD || config.mode == MODE_NET) && 		// Only in network an sdcard modes
+					!publishRuning) {											// If we are not publishing
+
+			uint32_t NOW = rtc.getEpoch();
+			uint32_t wakeupTime = NOW + closestAction - 1;					// Wakeup 1 second before next action
+			if (wakeupTime - NOW > 120) wakeupTime = NOW + 120;				// Wake up at least every 2 minutes to check if something is pending
+
+			// Sleep but wake up for a micro flash every 10 seconds
+			while ((NOW < wakeupTime) && (NOW - userLastAction > 20)) {
+
+				sleepTime = minSleepPeriod * 1000;
+				goToSleep();
+
+				if (config.mode == MODE_NET) led.setRGBColor(led.blueRGB);
+				else if (config.mode == MODE_SD) led.setRGBColor(led.pinkRGB);
+				delay(10);
+
+				NOW = rtc.getEpoch();
+			}
+
+			closestAction = 0;
+			wakeUp();
+		}
+	}
+}
+void SckBase::goToSleep() {
+
+	if (sleepTime > 0) sprintf(outBuff, "Sleeping for %lu seconds", (sleepTime) / 1000);
+	else sprintf(outBuff, "Sleeping forever!!! (until a button click)");
+	sckOut();
+
+	if (config.mode != MODE_OFF) changeMode(MODE_OFF);
+
+	// Needed for avoid ESP current leak
+	sdPresent();
+	SPI.end();
+
+	// Turn off ESP
+	ESPcontrol(ESP_OFF);
+
+	// ESP control pins savings
+	digitalWrite(CH_PD, LOW);
+	digitalWrite(GPIO0, LOW);
+	digitalWrite(CS_ESP, LOW);
+	digitalWrite(0, LOW);
+	digitalWrite(1, LOW);
+
+	// Put ADC to sleep
+	byte payload = B00000000;						
+	for (int i=0; i<4; ++i)	{
+		Wire.beginTransmission(0x48);
+		Wire.write(payload + i);
+		Wire.endTransmission();
+		delay(4);
+	}
+	
+	// MICS heaters saving
+
+	uint32_t nextReadingCO = sensors[SENSOR_CO].lastReadingTime + sensors[SENSOR_CO].interval;
+	if (sensors[SENSOR_CO].enabled && (nextReadingCO - rtc.getEpoch() < urban.CO_PREHEATING_TIME)) {		// If next reading is in less than preheating_time turn it on
+		urban.gasOn(SENSOR_CO);
+	} else {
+		urban.gasOff(SENSOR_CO);
 	}
 
-	// LED feedback status
+	uint32_t nextReadingNO2 = sensors[SENSOR_NO2].lastReadingTime + sensors[SENSOR_NO2].interval;
+	if (sensors[SENSOR_NO2].enabled && (nextReadingNO2 - rtc.getEpoch() < urban.NO2_PREHEATING_TIME)) {		// If next reading is in less than 10 minutes turn it on
+		urban.gasOn(SENSOR_NO2);
+	} else {
+		urban.gasOff(SENSOR_NO2);
+	}
 
-	// Low battery led warning
-	if (getBatteryPercent() < lowBattLimit && !charging) led.lowBatt = true;
-	else led.lowBatt = false;
+	// Power Suply in low power mode
+	digitalWrite(PS, LOW);
 
-	// Charging battery led feedback
-	if (charging) led.charging = true;
-	else led.charging = false;
+	// Disconnect USB
+	USBDevice.detach();
+	USBDeviceAttached = false;
 
-	// Finished charging led feedback
-	if (!charging && onUSB) led.finishedCharging = true;
-	else led.finishedCharging = false;
+	uint32_t localSleepTime = sleepTime;
+	sleepTime = 0;
+
+	if (localSleepTime > 0) LowPower.deepSleep(localSleepTime);
+	else LowPower.deepSleep();
+}
+void SckBase::wakeUp() {
+	sckOut("Waked up!!!");
+	changeMode(config.persistentMode);
+}
+void SckBase::softReset() {
+
+	// Close files before resseting to avoid corruption
+	closeFiles();
+
+ 	NVIC_SystemReset();
 }
 
 
@@ -3100,40 +3232,6 @@ void Led::tick() {
 				dir = true;
 			}
 		}
-
-		
-		if (dim) {
-
-			uint8_t waitLoops = 8;
-			
-			// Count loops after dim count started
-			if (colorIndex == 0) {
-			
-				dimLoops++;
-
-				// If enough time has passed turn brightness down
-				if (dimLoops == waitLoops) {
-					brightnessFactor = 0;
-					heartBeat = 0;
-				}
-			}
-
-			// Only led spikes after some time when on battery
-			if (dimLoops > waitLoops) {
-				if (colorIndex == 24) {
-					ledRGBcolor = *(currentPulse + 18);
-			 		brightnessFactor = 1;
-				} else {
-					brightnessFactor = 0;
-				}
-			}
-
-		} else {
-			// Restart dim loops counter
-			dimLoops = 0;
-			brightnessFactor = 1;
-		}
-
 
 		if (charging) {
 			if (colorIndex >= 0 && colorIndex <= 2) {
@@ -3271,7 +3369,9 @@ bool SckBase::timerRun() {
 						break;
 
 					} case ACTION_GET_ESP_STATUS: {
-						if (!digitalRead(POWER_WIFI)) getStatus();
+						if (!readLightEnabled) {
+							if (!digitalRead(POWER_WIFI)) getStatus();
+						}
 						break;
 					
 					} case ACTION_LONG_PRESS: {
@@ -3292,14 +3392,8 @@ bool SckBase::timerRun() {
 						updateSensors();
 						break;
 
-					} case ACTION_UPDATE_POWER:{
-
-						updatePower();
-						break;
-
 					} case ACTION_DEBUG_LOG: {
 
-						updatePower();
 						sdLogADC();
 						break;
 
@@ -3347,9 +3441,6 @@ bool SckBase::timerRun() {
 							// Save sd config (esp off)
 							saveSDconfig();
 
-							// Start esp again
-							if (digitalRead(POWER_WIFI)) ESPcontrol(ESP_ON);
-
 							// Clear timer
 							timerClear(ACTION_SAVE_SD_CONFIG);
 						}
@@ -3364,6 +3455,11 @@ bool SckBase::timerRun() {
 					} case ACTION_RETRY_READ_SENSOR: {
 
 						sckIn(String("read ") + String(sensors[retrySensor].title));
+						break;
+
+					} case ACTION_SLEEP :{
+
+						goToSleep();
 						break;
 
 					} default: {
@@ -3426,18 +3522,16 @@ void SckBase::timerClearTasks(bool clearAll) {
 
 	for (uint8_t i=0; i<timerSlots; i++) {
 
-		if (timers[i].action != ACTION_LONG_PRESS && 
+		if ((timers[i].action != ACTION_LONG_PRESS &&
 			timers[i].action != ACTION_VERY_LONG_PRESS && 
 			timers[i].action != ACTION_GET_ESP_STATUS && 
-			timers[i].action != ACTION_UPDATE_POWER &&
 			timers[i].action != ACTION_RECOVER_ERROR &&
-			timers[i].action != ACTION_SAVE_SD_CONFIG ||
-			clearAll) {
+			timers[i].action != ACTION_SAVE_SD_CONFIG) || clearAll) {
 
-			timers[i].action = ACTION_NULL;
-			timers[i].interval = 0;
-			timers[i].started = 0;
-			timers[i].periodic = false;
+				timers[i].action = ACTION_NULL;
+				timers[i].interval = 0;
+				timers[i].started = 0;
+				timers[i].periodic = false;
 		}
 	}
 }
@@ -3505,15 +3599,13 @@ void SckBase::writeI2C(byte deviceaddress, byte address, byte data ) {
   Wire.endTransmission();
   delay(4);
 }
-byte SckBase::readI2C(int deviceaddress, byte address ) {
-  byte  data = 0x0000;
+byte SckBase::readI2C(int deviceaddress, byte address) {
   Wire.beginTransmission(deviceaddress);
   Wire.write(address);
   Wire.endTransmission();
   Wire.requestFrom(deviceaddress,1);
-  unsigned long time = millis();
-  while (!Wire.available()) if ((millis() - time)>500) return 0x00;
-  data = Wire.read(); 
+  if (Wire.available() != 1) return 0x00;
+  byte data = Wire.read();
   return data;
 }  
 
@@ -3578,8 +3670,7 @@ String cleanInput(String toRemove, String original) {
 	return original;
 }
 extern "C" char *sbrk(int i);
-size_t freeRAM(void)
-{
-char stack_dummy = 0;
-return(&stack_dummy - sbrk(0));
+size_t freeRAM(void) {
+	char stack_dummy = 0;
+	return(&stack_dummy - sbrk(0));
 }

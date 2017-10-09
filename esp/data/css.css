@@ -85,12 +85,18 @@ input[type=text]:focus {
   background-color: #38cef3;
   color: white;
 }
+.btn-red{
+  background-color: rgb(244,67,54);
+}
+.color-red{
+  color: rgb(244,67,54);
+}
 
 .center{
   text-align: center;
 }
 .content{
-  padding: 20px 5px;
+  padding: 10px 5px;
 }
 .font70{
   font-size: 70%;
@@ -136,3 +142,28 @@ input[type=text]:focus {
   line-height: 24px;
   display: inline;
 }
+
+#advanced{
+}
+
+
+input[type=checkbox] {
+  width: 30px;
+  height: 30px;
+  -webkit-border-radius: 22px; -moz-border-radius: 22px; border-radius: 22px;
+  border: 1px solid #bbb;
+}
+
+
+input[type=range] {
+   width: 95%;
+}
+.check-sensor{
+  clear:both;
+  margin-bottom:30px;
+}
+.check-sensor input{
+  float:right;
+}
+
+

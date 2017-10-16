@@ -5,6 +5,9 @@ uint8_t pot_7_db_preset[] = {0, 17, 97, 255, 255};
 
 void SckUrban::setup() {
 
+	// Temperature and Humidity
+	sht21Begin();
+
 	// Gases
 	gasSetup(SENSOR_CO);
 	gasSetup(SENSOR_NO2);
@@ -210,31 +213,22 @@ byte SckUrban::readI2C(int deviceaddress, byte address ) {
 }
 
 // Temperature sensor
-uint16_t SckUrban::readSHT(uint8_t type){
-			uint16_t DATA = 0;
-			Wire.beginTransmission(SHT21_I2C_DIR);
-			Wire.write(type);
-			Wire.endTransmission();
-			Wire.requestFrom(SHT21_I2C_DIR,3);
-			unsigned long time = millis();
-			while (!Wire.available()) if ((millis() - time)>500) return 0x00;
-			DATA = Wire.read()<<8; 
-			DATA += Wire.read(); 
-			Wire.read();
-			DATA &= ~0x0003; 
-			return DATA;
-}
-	
-float SckUrban::getHumidity() {
-
-	return (-6 + (125*(readSHT(0xE5)/65536.0)));
+bool SckUrban::sht21Begin() {
+	if (!sht21.begin()) return false;
+	return true;
 }
 
 float SckUrban::getTemperature() {
 
-	return (-46.85 + (175.72*(readSHT(0xE3)/65536.0)));
+	return sht21.readTemperature();
 }
 
+float SckUrban::getHumidity() {
+
+	return sht21.readHumidity();
+}
+
+// Light sensor
 float SckUrban::getLight() {
 
 	uint8_t TIME0  = 0xDA;

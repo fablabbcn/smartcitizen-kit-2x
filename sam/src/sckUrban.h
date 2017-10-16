@@ -5,7 +5,7 @@
 
 #include "Constants.h"
 #include <Sensors.h>
-
+#include "Adafruit_HTU21DF.h"
 
 
 class SckUrban {
@@ -30,10 +30,12 @@ public:
 	float sounddB = 0;
 	
 	// Temp and humidity
-	uint16_t readSHT(uint8_t type);
-	float getHumidity();
+	const byte sht21Address = 0x40;
+	Adafruit_HTU21DF sht21 = Adafruit_HTU21DF();
+	bool sht21Begin();
 	float getTemperature();
-	
+	float getHumidity();
+
 	// Light
 	float getLight();
 
@@ -52,6 +54,7 @@ public:
 	uint32_t gasGetLoadResistance(SensorType wichSensor);
 	float gasGetSensorResistance(SensorType wichSensor);
 	float gasRead(SensorType wichSensor);
+
 	/* Notes
 		HeaterCurrent = HeaterVoltage / HEATER_RESISTOR
 		HeaterResistance = (RegulatorVoltage - HeaterVoltage) / HeaterCurrent

@@ -159,18 +159,16 @@ void SckBase::setup() {
 				if (wichSensor == SENSOR_GROOVE_OLED) sensors[wichSensor].interval = 2;
 
 				if (!sensors[wichSensor].enabled) {
-					sprintf(outBuff, "Found %s!!!", sensors[wichSensor].title);
-					sckOut();
+					sckOut("found!!!");
 					enableSensor(wichSensor);
 				} else {
-					sprintf(outBuff, "Found %s, already enabled!!!", sensors[wichSensor].title);
+					sckOut("found, already enabled!!!");
 					sckOut();
 				} 
 
 			} else {
 				if (sensors[wichSensor].enabled) {
-					sprintf(outBuff, "Cant find %s!!!", sensors[wichSensor].title);
-					sckOut();
+					sckOut("not found!!!");
 					disableSensor(wichSensor);
 				} else sckOut("nothing!");
 			}

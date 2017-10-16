@@ -9,6 +9,8 @@ Atlas				atlasPH = Atlas(SENSOR_ATLAS_PH);
 Atlas				atlasEC = Atlas(SENSOR_ATLAS_EC);
 Atlas				atlasDO = Atlas(SENSOR_ATLAS_DO);
 
+// Eeprom flash emulation to store I2C address
+// FlashStorage(eepromAuxI2Caddress, Configuration);
 
 bool I2Cdetect(byte address) {
 
@@ -23,12 +25,12 @@ bool AuxBoards::begin(SensorType wichSensor) {
 	
 	switch (wichSensor) {
 
-		case SENSOR_ALPHADELTA_AE1:
-		case SENSOR_ALPHADELTA_WE1:
-		case SENSOR_ALPHADELTA_AE2:
-		case SENSOR_ALPHADELTA_WE2:
-		case SENSOR_ALPHADELTA_AE3:
-		case SENSOR_ALPHADELTA_WE3:
+		case SENSOR_ALPHADELTA_SLOT_1A:
+		case SENSOR_ALPHADELTA_SLOT_1W:
+		case SENSOR_ALPHADELTA_SLOT_2A:
+		case SENSOR_ALPHADELTA_SLOT_2W:
+		case SENSOR_ALPHADELTA_SLOT_3A:
+		case SENSOR_ALPHADELTA_SLOT_3W:
 		case SENSOR_ALPHADELTA_HUMIDITY:
 		case SENSOR_ALPHADELTA_TEMPERATURE: 	return alphaDelta.begin(); break;
 		case SENSOR_GROOVE_I2C_ADC: 			return grooveI2C_ADC.begin(); break;
@@ -52,12 +54,12 @@ bool AuxBoards::begin(SensorType wichSensor) {
 float AuxBoards::getReading(SensorType wichSensor) {
 	
 	switch (wichSensor) {
-		case SENSOR_ALPHADELTA_AE1: 		return alphaDelta.getElectrode(alphaDelta.AE_1); break;
-		case SENSOR_ALPHADELTA_WE1: 		return alphaDelta.getElectrode(alphaDelta.WE_1); break;
-		case SENSOR_ALPHADELTA_AE2: 		return alphaDelta.getElectrode(alphaDelta.AE_2); break;
-		case SENSOR_ALPHADELTA_WE2: 		return alphaDelta.getElectrode(alphaDelta.WE_2); break;
-		case SENSOR_ALPHADELTA_AE3: 		return alphaDelta.getElectrode(alphaDelta.AE_3); break;
-		case SENSOR_ALPHADELTA_WE3: 		return alphaDelta.getElectrode(alphaDelta.WE_3); break;
+		case SENSOR_ALPHADELTA_SLOT_1A:	 	return alphaDelta.getElectrode(alphaDelta.Slot1.electrode_A); break;
+		case SENSOR_ALPHADELTA_SLOT_1W: 	return alphaDelta.getElectrode(alphaDelta.Slot1.electrode_W); break;
+		case SENSOR_ALPHADELTA_SLOT_2A: 	return alphaDelta.getElectrode(alphaDelta.Slot2.electrode_A); break;
+		case SENSOR_ALPHADELTA_SLOT_2W: 	return alphaDelta.getElectrode(alphaDelta.Slot2.electrode_W); break;
+		case SENSOR_ALPHADELTA_SLOT_3A: 	return alphaDelta.getElectrode(alphaDelta.Slot3.electrode_A); break;
+		case SENSOR_ALPHADELTA_SLOT_3W: 	return alphaDelta.getElectrode(alphaDelta.Slot3.electrode_W); break;
 		case SENSOR_ALPHADELTA_HUMIDITY: 	return alphaDelta.getHumidity(); break;
 		case SENSOR_ALPHADELTA_TEMPERATURE: return alphaDelta.getTemperature(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.getReading(); break;
@@ -92,32 +94,32 @@ bool AuxBoards::getBusyState(SensorType wichSensor) {
 
 String AuxBoards::control(SensorType wichSensor, String command) {
 	switch(wichSensor) {
-		case SENSOR_ALPHADELTA_AE1:
-		case SENSOR_ALPHADELTA_WE1:
-		case SENSOR_ALPHADELTA_AE2:
-		case SENSOR_ALPHADELTA_WE2:
-		case SENSOR_ALPHADELTA_AE3:
-		case SENSOR_ALPHADELTA_WE3: {
+		case SENSOR_ALPHADELTA_SLOT_1A: 
+		case SENSOR_ALPHADELTA_SLOT_1W:
+		case SENSOR_ALPHADELTA_SLOT_2A:
+		case SENSOR_ALPHADELTA_SLOT_2W:
+		case SENSOR_ALPHADELTA_SLOT_3A:
+		case SENSOR_ALPHADELTA_SLOT_3W: {
 
 			if (command.startsWith("set pot")) {
 
-				Resistor wichPot;
+				Electrode wichElectrode;
 
 				switch(wichSensor) {
-					case SENSOR_ALPHADELTA_AE1: wichPot = alphaDelta.POT_AE1;
-					case SENSOR_ALPHADELTA_WE1: wichPot = alphaDelta.POT_WE1;
-					case SENSOR_ALPHADELTA_AE2: wichPot = alphaDelta.POT_AE2;
-					case SENSOR_ALPHADELTA_WE2: wichPot = alphaDelta.POT_WE2;
-					case SENSOR_ALPHADELTA_AE3: wichPot = alphaDelta.POT_AE3;
-					case SENSOR_ALPHADELTA_WE3: wichPot = alphaDelta.POT_WE3;
+					case SENSOR_ALPHADELTA_SLOT_1A: wichElectrode = alphaDelta.Slot1.electrode_A;
+					case SENSOR_ALPHADELTA_SLOT_1W: wichElectrode = alphaDelta.Slot1.electrode_W;
+					case SENSOR_ALPHADELTA_SLOT_2A: wichElectrode = alphaDelta.Slot2.electrode_A;
+					case SENSOR_ALPHADELTA_SLOT_2W: wichElectrode = alphaDelta.Slot2.electrode_W;
+					case SENSOR_ALPHADELTA_SLOT_3A: wichElectrode = alphaDelta.Slot3.electrode_A;
+					case SENSOR_ALPHADELTA_SLOT_3W: wichElectrode = alphaDelta.Slot3.electrode_W;
 					default: break;
 				}
 				
 				command.replace("set pot", "");
 				command.trim();
 				int wichValue = command.toInt();
-				alphaDelta.setPot(wichPot, wichValue);
-				return String F("Setting pot to: ") + String(wichValue) + F(" Ohms\n\rActual value: ") + String(alphaDelta.getPot(wichPot)) + F(" Ohms");
+				alphaDelta.setPot(wichElectrode, wichValue);
+				return String F("Setting pot to: ") + String(wichValue) + F(" Ohms\n\rActual value: ") + String(alphaDelta.getPot(wichElectrode)) + F(" Ohms");
 
 			} else if (command.startsWith("help")) {
 				return F("Available commands for this sensor:\n\r* set pot ");
@@ -128,7 +130,8 @@ String AuxBoards::control(SensorType wichSensor, String command) {
 			
 			break;
 
-		} case SENSOR_ATLAS_PH:
+		} 
+		case SENSOR_ATLAS_PH:
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_SG:
 		case SENSOR_ATLAS_DO:
@@ -179,94 +182,6 @@ void AuxBoards::print(SensorType wichSensor, String payload) {
 void AuxBoards::displayReading(String title, String reading, String unit, String time) {
 
 	groove_OLED.displayReading(title, reading, unit, time);
-}
-
-MCP3424 adc_Slot_1_2(0x68);
-MCP3424 adc_Slot_3(0x69);
-
-bool AlphaDelta::begin() {
-	
-	if (!I2Cdetect(sht31Address)) return false;
-
-	sht31.begin();
-
-	// TODO poner un checkeo para saber si respondieron los adc y si no retornar false
-	adc_Slot_1_2.generalCall(GC_RESET);
-	adc_Slot_3.generalCall(GC_RESET);
-
-	Gain 		myGain			= GAINx8;		// Posible gains: GAINx1, GAINx2, GAINx4, GAINx8
-	SampleRate 	mySampleRate 	= SR18B;		// Posible Samplerates: SR12B, SR14B, SR16B, SR18B
-
-	adc_Slot_1_2.creg[CH1].bits = { myGain, mySampleRate, ONE_SHOT, CH1, 1 };
-	adc_Slot_1_2.creg[CH2].bits = { myGain, mySampleRate, ONE_SHOT, CH2, 1 };
-	adc_Slot_1_2.creg[CH3].bits = { myGain, mySampleRate, ONE_SHOT, CH3, 1 };
-	adc_Slot_1_2.creg[CH4].bits = { myGain, mySampleRate, ONE_SHOT, CH4, 1 };
-
-	adc_Slot_3.creg[CH1].bits = { myGain, mySampleRate, ONE_SHOT, CH1, 1 };
-	adc_Slot_3.creg[CH2].bits = { myGain, mySampleRate, ONE_SHOT, CH2, 1 };
-
-	return true;
-}
-
-float AlphaDelta::getTemperature() {
-
-	return sht31.readTemperature();
-}
-
-float AlphaDelta::getHumidity() {
-
-	return sht31.readHumidity();
-}
-
-double AlphaDelta::getElectrode(Electrodes wichElectrode) {
-
-	double value;
-	bool blocking = true;
-	ConvStatus error;
-
-	switch(wichElectrode) {
-		case AE_1: error = adc_Slot_1_2.read(CH3, value, blocking); break;
-		case WE_1: error = adc_Slot_1_2.read(CH4, value, blocking); break;
-		case AE_2: error = adc_Slot_1_2.read(CH1, value, blocking); break;
-		case WE_2: error = adc_Slot_1_2.read(CH2, value, blocking); break;
-		case AE_3: error = adc_Slot_3.read(CH1, value, blocking); break;
-		case WE_3: error = adc_Slot_3.read(CH2, value, blocking); break;
-		default: error = R_TIMEOUT;
-	}
-
-	if (error != R_OK) return 1;
-	else return value;
-}
-
-void AlphaDelta::setPot(Resistor wichPot, uint32_t value) {
-
-	// Data to be writen
-	int data=0x00;
-	if (value>100000) value = 100000;
-	data = (int)(value/ohmsPerStep);
-	
-	Wire.beginTransmission(wichPot.deviceAddress);
-	Wire.write(wichPot.resistorAddress);
-	Wire.write(data);
-	Wire.endTransmission();
-	delay(4);
-}
-
-uint32_t AlphaDelta::getPot(Resistor wichPot) {
-
-  byte data = 0x0000;
-
-  Wire.beginTransmission(wichPot.deviceAddress);
-  Wire.write(wichPot.resistorAddress);
-  Wire.endTransmission();
-  Wire.requestFrom(wichPot.deviceAddress,1);
-  
-  // Wait for answer with a timeout
-  uint16_t waitTimeout = 500;
-  uint32_t time = millis();
-  while (!Wire.available()) if ((millis() - time) > waitTimeout) return 0x00;
-  data = Wire.read();
-  return data*ohmsPerStep;
 }
 
 bool GrooveI2C_ADC::begin() {
@@ -674,4 +589,23 @@ uint8_t Atlas::getResponse() {
 			return 2;
 		}
     }
+}
+
+void writeI2C(byte deviceaddress, byte instruction, byte data ) {
+  Wire.beginTransmission(deviceaddress);
+  Wire.write(instruction);
+  Wire.write(data);
+  Wire.endTransmission();
+}
+
+byte readI2C(byte deviceaddress, byte instruction) {
+  byte  data = 0x0000;
+  Wire.beginTransmission(deviceaddress);
+  Wire.write(instruction);
+  Wire.endTransmission();
+  Wire.requestFrom(deviceaddress,1);
+  unsigned long time = millis();
+  while (!Wire.available()) if ((millis() - time)>500) return 0x00;
+  data = Wire.read();
+  return data;
 }

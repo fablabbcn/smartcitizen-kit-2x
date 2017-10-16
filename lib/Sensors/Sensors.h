@@ -35,12 +35,12 @@ enum SensorType {
 	SENSOR_NO2_LOAD_RESISTANCE,
 
 	// I2C Auxiliary Sensors
-	SENSOR_ALPHADELTA_AE1,
-	SENSOR_ALPHADELTA_WE1,
-	SENSOR_ALPHADELTA_AE2,
-	SENSOR_ALPHADELTA_WE2,
-	SENSOR_ALPHADELTA_AE3,
-	SENSOR_ALPHADELTA_WE3,
+	SENSOR_ALPHADELTA_SLOT_1A,
+	SENSOR_ALPHADELTA_SLOT_1W,
+	SENSOR_ALPHADELTA_SLOT_2A,
+	SENSOR_ALPHADELTA_SLOT_2W,
+	SENSOR_ALPHADELTA_SLOT_3A,
+	SENSOR_ALPHADELTA_SLOT_3W,
 	SENSOR_ALPHADELTA_TEMPERATURE,
 	SENSOR_ALPHADELTA_HUMIDITY,
 
@@ -148,12 +148,12 @@ public:
 
 		// I2C Auxiliary Sensors
 		// Alphasense Delta board (3 Gas sensor Slots, + SHT31 Temp-Humidity)
-		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE1, 				"AlphaDelta AE1",						0,		false,		true,			},
-		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE1, 				"AlphaDelta WE1",						0,		false,		true,			},
-		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE2, 				"AlphaDelta AE2",						0,		false,		true,			},
-		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE2, 				"AlphaDelta WE2",						0,		false,		true,			},
-		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_AE3, 				"AlphaDelta AE3",						0,		false,		true,			},
-		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_WE3, 				"AlphaDelta WE3",						0,		false,		true,			},
+		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1A,			"AlphaDelta 1A",						0,		false,		true,			},
+		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1W,			"AlphaDelta 1W",						0,		false,		true,			},
+		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2A,	 		"AlphaDelta 2A",						0,		false,		true,			},
+		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2W, 			"AlphaDelta 2W",						0,		false,		true,			},
+		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3A, 			"AlphaDelta 3A",						0,		false,		true,			},
+		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3W, 			"AlphaDelta 3W",						0,		false,		true,			},
 		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_TEMPERATURE, 		"AlphaDelta Temperature", 				0,		false,		false,			"C"},
 		OneSensor {	BOARD_AUX, 			SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity",					0,		false,		false,			"%"},
 	

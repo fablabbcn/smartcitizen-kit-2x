@@ -49,7 +49,7 @@
                 <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}} ({{x.rssi}}, {{x.ch}})</option>
               </select>
             </div>
-            <button class="btn"  id="refreshbtn" type="button" v-on:click="axiosFetch('aplist')">Refresh Wifi list</button>
+            <button class="btn" id="refreshbtn" type="button" v-on:click="jsGet('aplist')">Refresh Wifi list</button>
             <div class="field-group">
               <label>Password</label>
               <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password">

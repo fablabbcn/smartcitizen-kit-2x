@@ -82,19 +82,24 @@ var app = new Vue({
     selectPath: function (path) {
       this.setuppath = path;
     },
-    jsFetch: function (path) {
+    jsGet: function (path) {
       // Backup function to fetch with pure javascript
       // (If we cannot use extra libraries due to space issues etc)
+      var that = this;
+
       var xmlHttp = new XMLHttpRequest();
       xmlHttp.open("GET", this.theApi + path, false); // false for synchronous request
       xmlHttp.send(null);
-      myjson = JSON.parse(xmlHttp.responseText);
-      this.wifis = myjson;
+
+      if (path = 'online') {
+        that.wifis = JSON.parse(xmlHttp.responseText);
+        that.notification = 'JS Fetching wifi list';
+      }
     },
     axiosFetch: function (path) {
       var that = this;
       that.notification = 'Fetching...';
-      this.errors.push('fetching')
+      this.errors.push('Axios Fetching')
       axios.get(this.theApi + path)
         .then(function(response)  {
           //console.log(response.data);

@@ -47,7 +47,7 @@ casper.test.begin("Find elements on our local page", 5, function(test) {
     test.assertTitleMatch(/^SCK/i, 'The page title starts with SCK');
     test.assertTitle('SCK Setup', 'The page title is exactly SCK Setup');
     test.assertExists('#refreshbtn', '#refreshbtn exists - (Refresh Wifi button)');
-    test.assertSelectorHasText('#advancedbtn', 'Advanced');
+    test.assertExists('#id-advanced', 'Checkbox for advanced exists');
 
     this.waitForSelector('form', function(){
       this.fill('form', {
@@ -80,7 +80,7 @@ casper.test.begin("Find elements on our local page", 0, function(test) {
   casper.then(function(){
     casper.echo('Testing API');
     //test.assertTitle('ab');  // No titles on an API?
-    this.debugPage();
+    //this.debugPage();
   }).run(function() {
     test.done();
   });

@@ -58,7 +58,8 @@
 
            <!-- advanced -->
            <hr />
-           <button type="button"  id="advancedbtn" class="btn " v-bind:class="{ 'btn-blue': advanced}" v-on:click="showAdvanced()">Advanced</button>
+           <input type="checkbox" name="" id="id-advanced" value="" v-model="advanced"/>
+           <label for="id-advanced">Show advanced</label>
 
            <div v-show="advanced" id="advanced" class="">
 
@@ -80,29 +81,6 @@
              </div>
 
              <br />
-             <button type="button"  id="sensorsbtn" class="btn " v-bind:class="{ 'btn-blue': sensors}" v-on:click="showSensors()">Show sensors</button>
-
-             <div id="sensors" v-if="sensors">
-               <h5>Sensors</h5>
-               <p class="font70">The new SCK allows you to configure each sensor independently.</p>
-               <div class="check-sensor">
-                 <label for="sensorlight">Light</label>
-                 <input type="checkbox" name="sensor1" id="sensorlight" value="" v-model="sensor1" />
-               </div>
-               <div class="check-sensor">
-                 <label for="sensormic">Microphone</label>
-                 <input type="checkbox" name="sensor2" id="sensormic" value="" v-model="sensor2" />
-               </div>
-               <div class="check-sensor">
-                 <label for="sensorco2">CO2</label>
-                 <input type="checkbox" name="sensor3" id="sensorco2" value="" v-model="sensor3" />
-               </div>
-               <div class="check-sensor">
-                 <label for="sensorthermo">Thermometer</label>
-                 <input type="checkbox" name="sensor4" id="sensorthermo" value="" v-model="sensor4" />
-               </div>
-             </div><!-- /sensors -->
-
              <div id="sdcard">
 
                <hr />
@@ -138,7 +116,10 @@
              </div> <!-- /sd card -->
 
              <hr />
-             <button type="button"  id="kitinfobtn"  class="btn " v-bind:class="{ 'btn-blue': kitinfo}"  v-on:click="showKitinfo()">Show kit info</button>
+
+             <input type="checkbox" name="" id="id-showkit" value="" v-model="kitinfo" />
+             <label for="id-showkit">Show kit info</label>
+
              <div id="kitinfo"  v-if="kitinfo" class="font70">
                <p>Kit info:</p>
                <ul v-show="debuginfo">
@@ -148,7 +129,32 @@
              </div>
 
              <hr />
-             <button type="button"  id="advancedbtn2" class="btn " v-bind:class="{ 'btn-blue': advanced}" v-on:click="showAdvanced()">Exit Advanced</button>
+             <input type="checkbox" name="" id="id-show-sensors" value="" v-model="sensors"/>
+             <label for="id-show-sensors">
+               Show sensors
+             </label>
+
+             <div id="sensors" v-show="sensors">
+               <h5>Sensors</h5>
+               <p class="font70">The new SCK allows you to configure each sensor independently.</p>
+               <div class="check-sensor">
+                 <label for="sensorlight">Light</label>
+                 <input type="checkbox" name="sensor1" id="sensorlight" value="" v-model="sensor1" />
+               </div>
+               <div class="check-sensor">
+                 <label for="sensormic">Microphone</label>
+                 <input type="checkbox" name="sensor2" id="sensormic" value="" v-model="sensor2" />
+               </div>
+               <div class="check-sensor">
+                 <label for="sensorco2">CO2</label>
+                 <input type="checkbox" name="sensor3" id="sensorco2" value="" v-model="sensor3" />
+               </div>
+               <div class="check-sensor">
+                 <label for="sensorthermo">Thermometer</label>
+                 <input type="checkbox" name="sensor4" id="sensorthermo" value="" v-model="sensor4" />
+               </div>
+             </div><!-- /sensors -->
+
            </div> <!-- /advanced -->
 
           </form>

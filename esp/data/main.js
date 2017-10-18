@@ -68,6 +68,7 @@ var app = new Vue({
       // the API should be on the same IP and port
       // Most likely a 192.168.*.1/status
 
+      this.errors.push('Select API url')
       // If we are using port 8000, we are in development, and the API should be on port 3000
       if (window.location.port === '8000') {
         this.theApi = 'http://' + window.location.hostname + ':3000/';
@@ -80,9 +81,6 @@ var app = new Vue({
     },
     selectPath: function (path) {
       this.setuppath = path;
-    },
-    showAdvanced: function () {
-      this.advanced = !this.advanced;
     },
     jsFetch: function (path) {
       // Backup function to fetch with pure javascript

@@ -3,17 +3,17 @@ var app = new Vue({
   data: {
     theApi: window.location.href,
     development: false,
-    advanced: true,
-    apiresponse: '',
+    advanced: false,
     browsertime: Math.floor(Date.now() / 1000),
     debuginfo: [],
     devicetime: 0,
     errors: [],
+    intervals: false,
     kitinfo: false,
-    notification: '(Status of the app)',
+    notification: '',
     publishinterval: 2,
     readinginterval: 60,
-    selectedwifi: '',
+    selectedWifi: '',
     sensors: false,
     sensor1: false,
     sensor2: false,
@@ -26,150 +26,139 @@ var app = new Vue({
     wifipass: '',
     wifisync: true,
     wifis: {
-      "nets": [
-      {
+      "nets": [{
         "ssid": "Fake-WIFI-1",
         "ch": 1,
         "rssi": -64
-      },
-      {
+      }, {
         "ssid": "Fake-Wifi-2",
         "ch": 1,
         "rssi": -89
       }]
-    },
+    }
   },
-  mounted: function() {
+  mounted: function () {
     // When the app is mounted
     this.selectApiUrl();
+    var that = this;
     console.log('Vue.js mounted, fetching data at startup');
-    setTimeout (() => this.axiosFetch('aplist'), 100);
-    setTimeout (() => this.axiosFetch('status'), 300);
+
+    setTimeout(function() {
+      return that.axiosFetch('aplist');
+    }, 500);
+
+    // This checks if connection to the kit has been lost, every 5 sec
+    this.every5sec();
   },
   methods: {
-    selectApiUrl: function(){
+    every5sec: function () {
+      var that = this;
+
+      axios.get(this.theApi + 'status').then(function(response) {
+      }).catch(function(e) {
+        //that.errors.push(e);
+      });
+
+      setTimeout(function(){
+        return that.every5sec();
+      }, 5000);
+    },
+    selectApiUrl: function () {
       // If we are running this from the kit,
       // the API should be on the same IP and port
       // Most likely a 192.168.*.1/status
-      this.notification = 'Checking which url to use for the API';
 
       // If we are using port 8000, we are in development, and the API should be on port 3000
-      if (window.location.port === '8000' ) {
+      if (window.location.port === '8000') {
         this.theApi = 'http://' + window.location.hostname + ':3000/';
         this.development = true;
-      }
-      else{
+      } else {
         this.theApi = window.location.href;
       }
 
       console.log('Using API : ' + this.theApi);
-      this.notification = 'Using: ' + this.theApi;
     },
-    selectPath: function(path){
+    selectPath: function (path) {
       this.setuppath = path;
     },
-    showAdvanced: function(){
+    showAdvanced: function () {
       this.advanced = !this.advanced;
-    },
-    showKitinfo: function(){
-      this.kitinfo = !this.kitinfo;
-    },
-    showSensors: function(){
-      this.sensors = !this.sensors;
     },
     jsFetch: function (path) {
       // Backup function to fetch with pure javascript
       // (If we cannot use extra libraries due to space issues etc)
-      this.notification = 'Fetching data...';
       var xmlHttp = new XMLHttpRequest();
-      xmlHttp.open( "GET", this.theApi + path, false ); // false for synchronous request
-      xmlHttp.send( null );
+      xmlHttp.open("GET", this.theApi + path, false); // false for synchronous request
+      xmlHttp.send(null);
       myjson = JSON.parse(xmlHttp.responseText);
       this.wifis = myjson;
     },
-    axiosFetch: function(path) {
-      this.notification = 'Fetching data... /' + path;
+    axiosFetch: function (path) {
+      var that = this;
+      that.notification = 'Fetching...';
+      this.errors.push('fetching')
       axios.get(this.theApi + path)
-        .then(response => {
-          this.notification = 'Data fetched.';
+        .then(function(response)  {
           //console.log(response.data);
+          that.errors.push('fetch inside')
 
           // If this is a call for the Wifi list, populate this.wifis
           if (path == 'aplist'){
-            this.wifis = response.data;
-            this.notification = 'Wifi list updated.';
+            that.errors.push('wifi list')
+            that.wifis = response.data;
+            that.notification = 'Fetching wifi list';
           }
           if (path == 'status'){
-            this.notification = 'Status fetched.';
-            this.browsertime = Math.floor(Date.now() / 1000);
-            this.devicetime = response.data.time;
-            this.debuginfo = response.data;
+            that.browsertime = Math.floor(Date.now() / 1000);
+            that.devicetime = response.data.time;
+            that.debuginfo = response.data;
+            that.notification = 'Fetching status';
           }
 
         })
-      .catch(e => {
+      .catch(function(e) {
         // Printing errors to the app output so our users can tell us.
-        this.errors.push(e);
+        //that.errors.push(e);
+        that.notification = 'Error';
+        that.errors.push('fetch error')
       });
     },
     axiosGet: function(path, purpose){
       this.browsertime = Math.floor(Date.now() / 1000);
+      var that = this;
       // Available parameters:
       // /set?ssid=value1&password=value2&token=value3&epoch=value
       if (purpose == 'online'){
-        this.notification = 'Trying to connect online...';
-        axios.get(this.theApi + path +
-            '?ssid=' + this.selectedwifi +
-            '&password=' + this.wifipass +
-            '&token=' + this.usertoken +
-            '&epoch=' + this.browsertime
-        ).then(response => {
-          this.apiresponse = response.data;
-          console.log('wifi GET response:');
+        axios.get(that.theApi + path +
+            '?ssid=' + that.selectedWifi +
+            '&password=' + that.wifipass +
+            '&token=' + that.usertoken +
+            '&epoch=' + that.browsertime
+        ).then(function(response) {
           console.log(response);
-        }).catch(e => {
-          this.errors.push(e);
+        }).catch(function(e) {
+          that.errors.push(e);
         });
       }
       if (purpose == 'synctime'){
-        this.notification = 'Syncing time (request)..';
         axios.get(this.theApi + path + '?epoch=' + this.browsertime)
-          .then(response => {
+          .then(function(response) {
             console.log('synctime GET response:');
             console.log(response);
             // TODO: check if we get a 200 from device?
-            this.notification = 'Device synced and has started working!'
-          }).catch(e => {
-            this.errors.push(e);
+          }).catch(function(e) {
+            that.errors.push(e);
           });;
       }
     },
-    axiosPost: function(path) {
-      console.log('POST request');
-      this.browsertime = Math.floor(Date.now() / 1000);
-      this.notification = 'Sending POST data... Please wait!';
-      axios.post(this.theApi + path, {
-        ssid: this.selectedwifi,
-        password: this.wifipass,
-        token: this.usertoken,
-        epoch: this.browsertime
-      })
-      .then(response => {
-        console.log(response);
-        this.notification = response.data;
-      })
-      .catch(e => {
-        this.errors.push(e);
-      })
-    }
-
   },
-  computed:{
-    sortedWifi: function(){
-      this.wifis.nets.sort((a,b) =>{
+  computed: {
+    sortedWifi: function () {
+      this.wifis.nets.sort(function (a, b) {
         return a.rssi - b.rssi;
       });
       return this.wifis.nets.reverse();
     }
   }
 });
+

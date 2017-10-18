@@ -43,7 +43,7 @@
             <h5>Network Settings</h5>
              <div class="field-group">
               <label>SSID (Network name)</label>
-              <select v-model="selectedwifi" name="ssid" type="text" length=64>
+              <select v-model="selectedWifi" name="ssid" type="text" length=64>
                 <!-- Here goes the Access point list -->
                 <option disabled value="">Select your wifi ({{wifis["nets"].length}})</option>
                 <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}} ({{x.rssi}}, {{x.ch}})</option>
@@ -56,22 +56,11 @@
             </div>
            <button class="btn" type="button" id="connect" v-on:click="axiosGet('set','online')">Connect</button>
 
-           <div class="font70" v-if="apiresponse">
-             <h5>API Response:</h5>
-             <table>
-               <tr v-for="value, index in apiresponse">
-                 <td><b>{{index}}</b></td>
-                 <td>{{value}}</td>
-               </tr>
-             </table>
-           </div>
-
            <!-- advanced -->
            <hr />
            <button type="button"  id="advancedbtn" class="btn " v-bind:class="{ 'btn-blue': advanced}" v-on:click="showAdvanced()">Advanced</button>
 
            <div v-show="advanced" id="advanced" class="">
-
 
              <div id="Intervals">
                <h5>Global - Intervals</h5>

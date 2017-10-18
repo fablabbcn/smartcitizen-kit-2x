@@ -125,6 +125,7 @@ input[type=text]:focus {
   background-color: #065063;
   min-height:50px;
   position: sticky;
+  position: -webkit-sticky;
   width: 100%;
   top:0;
   bottom:auto;

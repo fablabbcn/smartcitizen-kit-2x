@@ -4,14 +4,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css.css" type="text/css" />
     <script src="vue.min.js" type="text/javascript" charset="utf-8" ></script>
-    <script src="axios.min.js" type="text/javascript" ></script>
     <title>SCK Setup</title>
   </head>
   <body>
     <div class="container" id="app">
 
       <div class="topnav font70">
-        <a href="#" v-on:click="axiosFetch('status')">
+        <a href="#" v-on:click="jsGet('status')">
           <img id="toplogo" src="images/sck.png">
         </a>
         <div class="statuswrapper" style="text-align: right">
@@ -54,7 +53,7 @@
               <label>Password</label>
               <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password">
             </div>
-           <button class="btn" type="button" id="connect" v-on:click="axiosGet('set','online')">Connect</button>
+           <button class="btn" type="button" id="connect" v-on:click="jsPost('set','online')">Connect</button>
 
            <!-- advanced -->
            <hr />
@@ -111,7 +110,7 @@
 
                <p class="font70">When you click this button the device will go offline and start working. </p>
                <p class="font70">(You will loose connection to the device)</p>
-               <button class="btn btn-red" type="button" v-on:click="axiosGet('set', 'synctime')">Start logging on SD Card</button>
+               <button class="btn btn-red" type="button" v-on:click="jsPost('set', 'synctime')">Start logging on SD Card</button>
 
              </div> <!-- /sd card -->
 
@@ -125,7 +124,7 @@
                <ul v-show="debuginfo">
                  <li v-for="value, index in debuginfo"><b>{{index}}</b>: {{value}}</li>
                </ul>
-               <button class="btn" type="button" v-on:click="axiosFetch('status')">Refresh /status</button>
+               <button class="btn" type="button" v-on:click="jsGet('status')">Refresh /status</button>
              </div>
 
              <hr />

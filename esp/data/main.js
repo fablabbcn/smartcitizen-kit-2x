@@ -44,7 +44,7 @@ var app = new Vue({
     console.log('Vue.js mounted, fetching data at startup');
 
     setTimeout(function() {
-      return that.axiosFetch('aplist');
+      return that.jsGet('aplist');
     }, 500);
 
     // This checks if connection to the kit has been lost, every 5 sec
@@ -53,11 +53,7 @@ var app = new Vue({
   methods: {
     every5sec: function () {
       var that = this;
-
-      axios.get(this.theApi + 'status').then(function(response) {
-      }).catch(function(e) {
-        //that.errors.push(e);
-      });
+      //console.log('I should check /status');
 
       setTimeout(function(){
         return that.every5sec();
@@ -82,7 +78,7 @@ var app = new Vue({
     selectPath: function (path) {
       this.setuppath = path;
     },
-    jsGet: function (path) {
+    jsGet: function (path, purpose) {
       // Backup function to fetch with pure javascript
       // (If we cannot use extra libraries due to space issues etc)
       var that = this;
@@ -95,64 +91,43 @@ var app = new Vue({
         that.wifis = JSON.parse(xmlHttp.responseText);
         that.notification = 'JS Fetching wifi list';
       }
-    },
-    axiosFetch: function (path) {
-      var that = this;
-      that.notification = 'Fetching...';
-      this.errors.push('Axios Fetching')
-      axios.get(this.theApi + path)
-        .then(function(response)  {
-          //console.log(response.data);
-          that.errors.push('fetch inside')
+      if (path = 'status'){
+        that.notification = 'JS Fetching status';
+        that.browsertime = Math.floor(Date.now() / 1000);
+        //that.devicetime = response.data.time;
+      }
 
-          // If this is a call for the Wifi list, populate this.wifis
-          if (path == 'aplist'){
-            that.errors.push('wifi list')
-            that.wifis = response.data;
-            that.notification = 'Fetching wifi list';
-          }
-          if (path == 'status'){
-            that.browsertime = Math.floor(Date.now() / 1000);
-            that.devicetime = response.data.time;
-            that.debuginfo = response.data;
-            that.notification = 'Fetching status';
-          }
-
-        })
-      .catch(function(e) {
-        // Printing errors to the app output so our users can tell us.
-        //that.errors.push(e);
-        that.notification = 'Error';
-        that.errors.push('fetch error')
-      });
     },
-    axiosGet: function(path, purpose){
+    // Not actually a POST request, but a GET with params
+    jsPost: function(path, purpose){
       this.browsertime = Math.floor(Date.now() / 1000);
       var that = this;
       // Available parameters:
       // /set?ssid=value1&password=value2&token=value3&epoch=value
+
+      var xmlHttp = new XMLHttpRequest();
+
       if (purpose == 'online'){
-        axios.get(that.theApi + path +
+        xmlHttp.open("GET", that.theApi + path +
             '?ssid=' + that.selectedWifi +
             '&password=' + that.wifipass +
             '&token=' + that.usertoken +
-            '&epoch=' + that.browsertime
-        ).then(function(response) {
-          console.log(response);
-        }).catch(function(e) {
-          that.errors.push(e);
-        });
+            '&epoch=' + that.browsertime);
+        xmlHttp.send(null);
+        console.log(xmlHttp.responseText);
+
+        console.log(response);
+        //  that.errors.push(e);
       }
+
       if (purpose == 'synctime'){
-        axios.get(this.theApi + path + '?epoch=' + this.browsertime)
-          .then(function(response) {
-            console.log('synctime GET response:');
-            console.log(response);
-            // TODO: check if we get a 200 from device?
-          }).catch(function(e) {
-            that.errors.push(e);
-          });;
+        xmlHttp.open("GET", this.theApi + path + '?epoch=' + this.browsertime);
+        xmlHttp.send(null);
+        console.log('synctime GET response:');
+        // TODO: check if we get a 200 from device?
+        console.log(xmlHttp.responseText);
       }
+
     },
   },
   computed: {

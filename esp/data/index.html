@@ -2,20 +2,24 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="css.css" type="text/css" />
-    <script src="vue.min.js" type="text/javascript" charset="utf-8" ></script>
     <title>SCK Setup</title>
   </head>
   <body>
+
+    <div id="loading">
+      <h1 style="font-family:Arial; padding:100px 10px;">The page is loading... please wait!</h1>
+    </div>
+
     <div class="container" id="app">
 
-      <div class="topnav font70">
+      <div class="topnav sticky">
         <a href="#" v-on:click="jsGet('status')">
           <img id="toplogo" src="images/sck.png">
         </a>
-        <div class="statuswrapper" style="text-align: right">
-          <i id="" class="" style="text-align:right">{{ notification }}</i>
-        </div>
+        SCK 2.0
+      </div>
+
+      <div id="toast-wrapper" class="sticky">
       </div>
 
       <div class="content">
@@ -161,6 +165,8 @@
 
       </div><!-- /content -->
     </div><!-- container -->
+    <script src="vue.min.js" type="text/javascript" charset="utf-8" ></script>
     <script src="main.js" type="text/javascript" charset="utf-8"></script>
+    <link rel="stylesheet" href="css.css" type="text/css" />
   </body>
 </html>

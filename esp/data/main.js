@@ -19,7 +19,6 @@ var app = new Vue({
     sensor2: false,
     sensor3: false,
     sensor4: false,
-    setuppath: 'online',
     sdlog: false,
     usertoken: '',
     wifiname: '',
@@ -38,6 +37,8 @@ var app = new Vue({
     }
   },
   mounted: function () {
+    var el = document.getElementById('loading')
+      el.parentNode.removeChild(el);
     // When the app is mounted
     this.selectApiUrl();
     var that = this;
@@ -45,6 +46,7 @@ var app = new Vue({
 
     setTimeout(function() {
       return that.jsGet('aplist');
+      this.notify('Using later', 3000);
     }, 1500);
 
     // This checks if connection to the kit has been lost, every 5 sec
@@ -72,11 +74,8 @@ var app = new Vue({
         this.theApi = window.location.href;
       }
 
-      this.errors.push('Using API: ' + this.theApi);
       console.log('Using API : ' + this.theApi);
-    },
-    selectPath: function (path) {
-      this.setuppath = path;
+      this.notify('Using API', 3000);
     },
     httpGet: function(theUrl) {
       var xmlHttp = new XMLHttpRequest();
@@ -91,6 +90,7 @@ var app = new Vue({
       if (path == 'aplist') {
         that.wifis = JSON.parse(res);
         that.notification = 'Getting wifi list..';
+        this.notify('Get aplist', 1000);
       }
       if (path == 'status'){
         that.notification = 'Getting status..';
@@ -121,6 +121,22 @@ var app = new Vue({
       }
       console.log(res);
 
+    },
+
+    // TODO: add className option
+    notify: function(msg, duration, className){
+
+      var newtoast = document.createElement("div");
+      newtoast.className = "toast";
+      newtoast.innerHTML = msg;
+      document.getElementById("toast-wrapper").appendChild(newtoast);
+
+      setTimeout(function(){
+        newtoast.outerHTML = "";
+        delete newtoast;
+      }, duration);
+
+      console.log('Notify', msg)
     },
   },
   computed: {

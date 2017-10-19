@@ -1,3 +1,9 @@
+/*
+ Colors:
+ Blue:       #065063;
+ LightBlue:  #38cef3;
+*/
+
 body {
   margin:0px;
   color: #434343;
@@ -88,6 +94,10 @@ input[type=text]:focus {
 .btn-red{
   background-color: rgb(244,67,54);
 }
+.btn-grey{
+  background: #C8E6ED;
+  color: #8db2ba;
+}
 .color-red{
   color: rgb(244,67,54);
 }
@@ -103,10 +113,6 @@ input[type=text]:focus {
 }
 .font80{
   font-size: 80%;
-}
-.btn-grey{
-  background: #C8E6ED;
-  color: #8db2ba;
 }
 .monospace{
   font-family: 'monospace';
@@ -124,17 +130,19 @@ input[type=text]:focus {
   color:white;
   background-color: #065063;
   min-height:50px;
-  position: sticky;
-  position: -webkit-sticky;
   width: 100%;
   top:0;
   bottom:auto;
   z-index: 100;
 }
+.sticky {
+  position: sticky;
+  position: -webkit-sticky;
+  position: -moz-sticky;
+  position: -ms-sticky;
+  position: -o-sticky;
+}
 #toplogo{
-  position: relative;
-  left: 7px;
-  top: 13px;
 }
 .topnav a:visited{
   color:white;
@@ -143,10 +151,6 @@ input[type=text]:focus {
   line-height: 24px;
   display: inline;
 }
-
-#advanced{
-}
-
 
 input[type=checkbox] {
   width: 30px;
@@ -167,4 +171,14 @@ input[type=range] {
   float:right;
 }
 
+.toast-wrapper{
 
+}
+.toast {
+  min-width: 250px;
+  background-color: green;
+  color: #fff;
+  padding: 10px;
+  border: 2px solid;
+  z-index: 1;
+}

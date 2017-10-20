@@ -167,10 +167,6 @@ label{
 }
 
 @media (max-width: 320px){
-  body{
-    background-color:black;
-
-  }
   .sticky{
     width:320px;
     position:fixed;

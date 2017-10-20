@@ -159,7 +159,6 @@ input[type=checkbox] {
   border: 1px solid #bbb;
 }
 
-
 input[type=range] {
    width: 95%;
 }
@@ -171,14 +170,15 @@ input[type=range] {
   float:right;
 }
 
-.toast-wrapper{
-
+#toast-wrapper{
 }
 .toast {
-  min-width: 250px;
   background-color: green;
   color: #fff;
   padding: 10px;
   border: 2px solid;
-  z-index: 1;
+}
+
+label{
+  padding:5px 0px;
 }

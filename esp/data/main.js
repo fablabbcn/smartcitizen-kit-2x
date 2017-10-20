@@ -10,7 +10,6 @@ var app = new Vue({
     errors: [],
     intervals: false,
     kitinfo: false,
-    notification: '',
     publishinterval: 2,
     readinginterval: 60,
     selectedWifi: '',
@@ -77,49 +76,60 @@ var app = new Vue({
       console.log('Using API : ' + this.theApi);
       this.notify('Using API', 3000);
     },
-    httpGet: function(theUrl) {
+    httpGet: function(theUrl, callback) {
       var xmlHttp = new XMLHttpRequest();
-      xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+
+      xmlHttp.onreadystatechange =  function() {
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+          callback(xmlHttp.responseText);
+        }
+      }
+      xmlHttp.open( "GET", theUrl, true ); // false for synchronous request, true = async
       xmlHttp.send( null );
-      return xmlHttp.responseText;
     },
     jsGet: function(path) {
       var that = this;
-      var res = this.httpGet(this.theApi + path);
 
-      if (path == 'aplist') {
-        that.wifis = JSON.parse(res);
-        that.notification = 'Getting wifi list..';
-        this.notify('Get aplist', 1000);
-      }
-      if (path == 'status'){
-        that.notification = 'Getting status..';
-        that.debuginfo = JSON.parse(res);
-      }
+      this.httpGet(this.theApi + path, function(res){
+        if (path === 'aplist') {
+          that.wifis = JSON.parse(res);
+          that.notify('Getting wifi list', 2000);
+        }
+        if (path === 'status'){
+          that.notify('Getting status', 2000);
+          that.debuginfo = JSON.parse(res);
+        }
+
+      });
 
     },
     // Not actually a POST request, but a GET with params
     jsPost: function(path, purpose){
       this.browsertime = Math.floor(Date.now() / 1000);
-      var res;
       var that = this;
       // Available parameters:
       // /set?ssid=value1&password=value2&token=value3&epoch=value
 
       if (purpose == 'connect'){
-        that.notification = 'Connecting online..';
-        res = that.httpGet(that.theApi + path +
+        this.notify('Connecting online...', 2000);
+        that.httpGet(that.theApi + path +
             '?ssid=' + that.selectedWifi +
             '&password=' + that.wifipass +
             '&token=' + that.usertoken +
-            '&epoch=' + that.browsertime);
+            '&epoch=' + that.browsertime,
+            function(res){
+              console.log(res);
+              that.notify('Response: ' + res.test, 5000);
+            });
       }
 
       if (purpose == 'synctime'){
-        that.notification = 'Starting to log on SD CARD..';
-        res = this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime);
+        this.notify('Starting to log on SD CARD..', 2000);
+        this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime,
+        function(res){
+          that.notify(res.test, 5000);
+        });
       }
-      console.log(res);
 
     },
 
@@ -136,7 +146,7 @@ var app = new Vue({
         delete newtoast;
       }, duration);
 
-      console.log('Notify', msg)
+      console.log('Notify: ', msg)
     },
   },
   computed: {

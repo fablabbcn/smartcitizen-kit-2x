@@ -12,11 +12,14 @@
 
     <div class="container" id="app">
 
-      <div class="topnav sticky">
-        <a href="#" v-on:click="jsGet('status')">
-          <img id="toplogo" src="images/sck.png">
-        </a>
-        SCK 2.0
+      <div class="topnav sticky ">
+        <div class="bg-blue">
+          <a href="#" v-on:click="jsGet('status')">
+            <img id="toplogo" src="images/sck.png">
+          </a>
+          <p>SCK 2.0</p>
+          <p class="text-right">i</p>
+        </div>
 
         <div id="toast-wrapper"></div>
       </div>
@@ -63,7 +66,8 @@
            <input type="checkbox" name="" id="id-advanced" value="" v-model="advanced"/>
            <label for="id-advanced">Show advanced</label>
 
-           <div v-show="advanced" id="advanced" class="">
+           <div v-show="advanced" id="advanced" class="mt20">
+             <i v-show="development">Development mode</i>
 
              <div id="Intervals">
                <h5>Global - Intervals</h5>
@@ -99,7 +103,7 @@
                  <p class="font70">If you don't, all your measurements will be dated from the year 1971</p>
                  <input type="checkbox" name="usewifisync" id="usewifisync" v-model="wifisync" />
                  <label for="usewifisync"> Use Wifi to sync time</label>
-                 <p v-if="!wifipass && wifisync" class="color-red font70">Don't forget to give the kit your wifi password!</p>
+                 <p v-if="!wifipass && wifisync" class="text-red font70">Don't forget to give the kit your wifi password!</p>
                  <hr />
                </div>
                <p class="font70">Your kit will be offline and save data to the SD CARD.</p>
@@ -113,7 +117,7 @@
 
                <p class="font70">When you click this button the device will go offline and start working. </p>
                <p class="font70">(You will loose connection to the device)</p>
-               <button class="btn btn-red" type="button" v-on:click="jsPost('set', 'synctime')">Start logging on SD Card</button>
+               <button class="btn bg-red" type="button" v-on:click="jsPost('set', 'synctime')">Start logging on SD Card</button>
 
              </div> <!-- /sd card -->
 

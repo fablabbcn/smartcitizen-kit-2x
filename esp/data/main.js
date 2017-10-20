@@ -44,8 +44,7 @@ var app = new Vue({
     console.log('Vue.js mounted, fetching data at startup');
 
     setTimeout(function() {
-      return that.jsGet('aplist');
-      this.notify('Using later', 3000);
+      that.jsGet('aplist');
     }, 1500);
 
     // This checks if connection to the kit has been lost, every 5 sec
@@ -93,7 +92,7 @@ var app = new Vue({
       this.httpGet(this.theApi + path, function(res){
         if (path === 'aplist') {
           that.wifis = JSON.parse(res);
-          that.notify('Getting wifi list', 2000);
+          that.notify('Getting wifi list...', 3000, 'bg-cyan');
         }
         if (path === 'status'){
           that.notify('Getting status', 2000);
@@ -137,7 +136,11 @@ var app = new Vue({
     notify: function(msg, duration, className){
 
       var newtoast = document.createElement("div");
-      newtoast.className = "toast";
+      if (className) {
+        newtoast.className = "toast " + className;
+      }else{
+        newtoast.className = "toast";
+      }
       newtoast.innerHTML = msg;
       document.getElementById("toast-wrapper").appendChild(newtoast);
 

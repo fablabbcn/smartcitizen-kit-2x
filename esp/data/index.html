@@ -37,7 +37,7 @@
             <h5>Network Settings</h5>
             <div class="field-group">
               <label>SSID (Network name)</label>
-              <select v-model="selectedWifi" name="ssid" type="text" length=64>
+              <select v-model="selectedWifi" name="ssid" id="ssid" type="text" length=64>
                 <!-- Here goes the Access point list -->
                 <option disabled value="">Select your wifi ({{wifis["nets"].length}})</option>
                 <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}} ({{x.rssi}}, {{x.ch}})</option>
@@ -52,15 +52,21 @@
 
             <!-- advanced -->
             <hr />
-            <label for="id-advanced">
-              <input type="checkbox" name="" id="id-advanced" value="" v-model="advanced"/>
+            <label for="label-advanced">
+              <input type="checkbox" name="" id="label-advanced" value="" v-model="showAdvanced"/>
               Show advanced
             </label>
 
-            <div v-show="advanced" id="advanced" class="mt20">
-              <i v-show="development">Development mode</i>
+            <div v-show="showAdvanced" id="advanced" class="mt20">
+              <p v-show="development">Development mode</p>
 
-              <div id="Intervals">
+
+              <label for="id-show-interval">
+                <input type="checkbox" name="" id="id-show-interval" value="" v-model="showInterval" />
+                Intervals
+              </label>
+
+              <div v-show="showInterval" id="intervals">
                 <h5>Global - Intervals</h5>
                 <div>
                   <p class="font70">How often should the kit go online to publish the data?</p>
@@ -77,10 +83,15 @@
                 </div>
               </div>
 
-              <br />
-              <div id="sdcard">
+              <hr />
 
-                <hr />
+              <label for="id-showsdcard">
+                <input type="checkbox" name="" id="id-showsdcard" value="" v-model="showSdCard" />
+                SD Card
+              </label>
+
+              <div v-show="showSdCard" id="sdcard">
+
                 <h5>SD CARD</h5>
                 <div>
                   <p class="font70">The kit should never post my data with Wifi</p>
@@ -89,7 +100,7 @@
                     Log *only* to SD Card
                   </label>
                 </div>
-                <hr />
+                <br />
 
                 <div v-if="sdlog">
                   <p class="font70">When your kit runs out of battery, it loses the time. This will allow the kit to go online and fetch the time.</p>
@@ -98,10 +109,8 @@
                     <input type="checkbox" name="usewifisync" id="usewifisync" v-model="wifisync" />
                     Use Wifi to sync time
                   </label>
-                  <p v-if="!wifipass && wifisync" class="text-red font70">Don't forget to give the kit your wifi password!</p>
-                  <hr />
+                  <p v-if="!wifipass && wifisync" class="text-red font80">Don't forget to give the kit your wifi password!</p>
                 </div>
-                <p class="font70">Your kit will be offline and save data to the SD CARD.</p>
                 <div v-show="browsertime != devicetime" id="timesync">
                   <table>
                     <tr><td>Browser time:</td><td>{{ browsertime }}</td></tr>
@@ -123,7 +132,7 @@
                 Show kit info
               </label>
 
-              <div id="kitinfo"  v-if="kitinfo" class="font70">
+              <div id="kitinfo"  v-show="kitinfo" class="font70">
                 <p>Kit info:</p>
                 <ul v-show="debuginfo">
                   <li v-for="value, index in debuginfo"><b>{{index}}</b>: {{value}}</li>
@@ -166,9 +175,8 @@
                 <hr />
                 <p>Logging:</p>
                 <ul v-show="logging && logging.length">
-                  <li v-for="error of logging" class="font70">
-                    <span v-if="development">{{error.message}} - {{error}}</span>
-                    <span v-else>{{error.message}}</span>
+                  <li v-for="x in logging" class="font70">
+                    {{x}}
                   </li>
                 </ul>
               </div>

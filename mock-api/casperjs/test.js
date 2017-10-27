@@ -9,30 +9,10 @@ casper.on('http.status.404', function(resource){
 });
 
 casper.on('remote.message', function(msg){
-  this.echo('-- remote message: ' + msg)
-})
+  this.echo('--> remote msg: ' + msg)
+});
 
-//casper.test.begin("Find a few elements on our github webpage", 4, function(test) {
-//  console.log('Testing on: ' + urlgh);
-//  casper.start(urlgh);
-//  console.log('Waiting 1.4 sec for page to load');
-//  casper.then(function() {
-//    casper.wait(1400, function(){
-//      test.assertEvalEquals(function(){
-//        return document.querySelectorAll('#wifisetup > form > .field-group')[1].outerText;
-//      }, 'Password\n');
-//      test.assertTitleMatch(/^SCK/i, 'The page title starts with SCK');
-//      test.assertExists('#main', '#main exist');
-//      test.assertExists('form', 'form exist');
-//      this.echo(' __ Done __')
-//
-//    });
-//  }).run(function() {
-//    test.done();
-//  });
-//});
-
-casper.test.begin("Find elements on our local page", 5, function(test) {
+casper.test.begin("Find elements on our local page", 6, function(test) {
   console.log('Testing on: ' + url);
 
   casper.start(url);
@@ -40,33 +20,51 @@ casper.test.begin("Find elements on our local page", 5, function(test) {
   casper.then(function(){
     //casper.echo("-- document.location.href: " + document.location.href);
     this.echo('CurrentUrl: ' + this.getCurrentUrl());
-    //console.log(document.querySelector('form'))
     //casper.waitUntilVisible('.school_nav.content-panel');
     //this.captureSelector('captures/schools-nav-open.png', '.school_nav.content-panel');
     test.assertSelectorHasText('#connect', 'Connect');
     test.assertTitleMatch(/^SCK/i, 'The page title starts with SCK');
     test.assertTitle('SCK Setup', 'The page title is exactly SCK Setup');
     test.assertExists('#refreshbtn', '#refreshbtn exists - (Refresh Wifi button)');
-    test.assertExists('#id-advanced', 'Checkbox for advanced exists');
-
+    test.assertExists('#ssid', 'Wifi dropdown exists');
+    test.assertExists('#label-advanced', 'Checkbox for advanced exists');
+    casper.click('#label-advanced');
+  }).then(function(){
     this.waitForSelector('form', function(){
       this.fill('form', {
-        'token': '123456',
+        'token': '123451',
         'password': 'SuperPssword'
       }, true);
-
       //this.echo(this.getFormValues('form').token);
       //this.echo(this.getFormValues('form').password);
 
+      // Test Refresh Wifi btn?
+      casper.click('#refreshbtn');
+
+      // Select wifi nr 2
+      this.evaluate(function(){
+        document.querySelector('#ssid').selectedIndex = 2;
+      });
+
+      casper.capture('1.png');
+      // Connect
       casper.click('#connect');
-      //casper.wait(3000)
-      casper.capture('xx.png');
-    });
+
+    }); // End form
+
+  }).then(function(){
+
+    casper.capture('2.png');
+  }).then(function(){
+    casper.capture('3.png');
+  }).then(function(){
+    // Debug helpers
 
     //this.debugPage();
     //this.debugHTML();
-
-  }).run(function() {
+    //console.log(document.querySelector('form'))
+    //require('utils').dump( this.getElementInfo('#ssid') );
+}).run(function() {
     test.done();
   });
 

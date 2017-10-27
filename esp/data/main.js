@@ -3,7 +3,6 @@ var app = new Vue({
   data: {
     theApi: window.location.href,
     development: false,
-    advanced: false,
     browsertime: Math.floor(Date.now() / 1000),
     debuginfo: [],
     devicetime: 0,
@@ -18,6 +17,9 @@ var app = new Vue({
     sensor2: false,
     sensor3: false,
     sensor4: false,
+    showAdvanced: false,
+    showInterval: false,
+    showSdCard: false,
     sdlog: false,
     usertoken: '',
     wifiname: '',
@@ -124,15 +126,14 @@ var app = new Vue({
 
       if (purpose == 'synctime'){
         this.notify('Starting to log on SD CARD..', 2000);
-        this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime,
-        function(res){
-          that.notify(res.test, 5000);
+        this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime, function(res){
+          // TODO: What is the correct response.key from the kit?
+          that.notify(JSON.parse(res).todo, 5000);
         });
       }
 
     },
 
-    // TODO: add className option
     notify: function(msg, duration, className){
 
       //All events should also go to the logging section at the bottom in the advanced section
@@ -152,7 +153,7 @@ var app = new Vue({
         delete newtoast;
       }, duration);
 
-      console.log('Notify: ', msg)
+      console.log('Notify:', msg)
     },
   },
   computed: {

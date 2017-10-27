@@ -26,17 +26,6 @@
 
       <div class="content">
 
-        <div v-show="errors && errors.length" id="feedback" class="font80">
-          <p>Errors:</p>
-          <ul v-show="errors && errors.length">
-            <li v-for="error of errors" class="font70">
-              <span v-if="development">{{error.message}} - {{error}}</span>
-              <span v-else>{{error.message}}</span>
-            </li>
-          </ul>
-          <hr />
-        </div>
-
         <!-- online setup -->
         <div id="wifisetup">
           <p class="font70">If you don't have a Token, get one at http://onboarding.smartcitizen.me</p>
@@ -46,7 +35,7 @@
               <input name="token" type="text" maxlength="6" v-model='usertoken' minlength="6" placeholder="6 letters">
             </div>
             <h5>Network Settings</h5>
-             <div class="field-group">
+            <div class="field-group">
               <label>SSID (Network name)</label>
               <select v-model="selectedWifi" name="ssid" type="text" length=64>
                 <!-- Here goes the Access point list -->
@@ -59,109 +48,132 @@
               <label>Password</label>
               <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password">
             </div>
-           <button class="btn" type="button" id="connect" v-on:click="jsPost('set','connect')">Connect</button>
+            <button class="btn" type="button" id="connect" v-on:click="jsPost('set','connect')">Connect</button>
 
-           <!-- advanced -->
-           <hr />
-           <input type="checkbox" name="" id="id-advanced" value="" v-model="advanced"/>
-           <label for="id-advanced">Show advanced</label>
+            <!-- advanced -->
+            <hr />
+            <label for="id-advanced">
+              <input type="checkbox" name="" id="id-advanced" value="" v-model="advanced"/>
+              Show advanced
+            </label>
 
-           <div v-show="advanced" id="advanced" class="mt20">
-             <i v-show="development">Development mode</i>
+            <div v-show="advanced" id="advanced" class="mt20">
+              <i v-show="development">Development mode</i>
 
-             <div id="Intervals">
-               <h5>Global - Intervals</h5>
-               <div>
-                 <p class="font70">How often should the kit go online to publish the data?</p>
-                 <label for="pubint">Publish interval hours: {{publishinterval}}</label>
-                 <input type="range" name="pubint" id="" v-model="publishinterval" max="100" />
-               </div>
-               <div>
-                 <p class="font70">How often should the kit poll the sensors?</p>
-                 <label for="readint">Reading interval seconds: {{readinginterval}}</label>
-                 <input type="range" name="readint" id="" value="60" v-model="readinginterval" max="1000" />
-               </div>
-               <div>
-                 <p>Estimated battery duration: {{ Number(publishinterval * (readinginterval / 100)).toFixed(1) }} Hours</p>
-               </div>
-             </div>
+              <div id="Intervals">
+                <h5>Global - Intervals</h5>
+                <div>
+                  <p class="font70">How often should the kit go online to publish the data?</p>
+                  <label for="pubint">Publish interval hours: {{publishinterval}}</label>
+                  <input type="range" name="pubint" id="" v-model="publishinterval" max="100" />
+                </div>
+                <div>
+                  <p class="font70">How often should the kit poll the sensors?</p>
+                  <label for="readint">Reading interval seconds: {{readinginterval}}</label>
+                  <input type="range" name="readint" id="" value="60" v-model="readinginterval" max="1000" />
+                </div>
+                <div>
+                  <p>Estimated battery duration: {{ Number(publishinterval * (readinginterval / 100)).toFixed(1) }} Hours</p>
+                </div>
+              </div>
 
-             <br />
-             <div id="sdcard">
+              <br />
+              <div id="sdcard">
 
-               <hr />
-               <h5>SD CARD</h5>
-               <div>
-                 <p class="font70">The kit should never post my data with Wifi</p>
-                 <input type="checkbox" name="usesdcard" id="sdlog" value="" v-model="sdlog" />
-                 <label for="sdlog"> Log *only* to SD Card</label>
-               </div>
-               <hr />
+                <hr />
+                <h5>SD CARD</h5>
+                <div>
+                  <p class="font70">The kit should never post my data with Wifi</p>
+                  <label for="sdlog">
+                    <input type="checkbox" name="usesdcard" id="sdlog" value="" v-model="sdlog" />
+                    Log *only* to SD Card
+                  </label>
+                </div>
+                <hr />
 
-               <div v-if="sdlog">
-                 <p class="font70">When your kit runs out of battery, it loses the time. This will allow the kit to go online and fetch the time.</p>
-                 <p class="font70">If you don't, all your measurements will be dated from the year 1971</p>
-                 <input type="checkbox" name="usewifisync" id="usewifisync" v-model="wifisync" />
-                 <label for="usewifisync"> Use Wifi to sync time</label>
-                 <p v-if="!wifipass && wifisync" class="text-red font70">Don't forget to give the kit your wifi password!</p>
-                 <hr />
-               </div>
-               <p class="font70">Your kit will be offline and save data to the SD CARD.</p>
-               <div v-show="browsertime != devicetime" id="timesync">
-                 <table>
-                   <tr><td>Browser time:</td><td>{{ browsertime }}</td></tr>
-                   <tr><td>Device time: </td><td>{{ devicetime }}</td></tr>
-                   <tr><td>Diff: </td><td>{{ browsertime - devicetime }}</td></tr>
-                 </table>
-               </div>
+                <div v-if="sdlog">
+                  <p class="font70">When your kit runs out of battery, it loses the time. This will allow the kit to go online and fetch the time.</p>
+                  <p class="font70">If you don't, all your measurements will be dated from the year 1971</p>
+                  <label for="usewifisync">
+                    <input type="checkbox" name="usewifisync" id="usewifisync" v-model="wifisync" />
+                    Use Wifi to sync time
+                  </label>
+                  <p v-if="!wifipass && wifisync" class="text-red font70">Don't forget to give the kit your wifi password!</p>
+                  <hr />
+                </div>
+                <p class="font70">Your kit will be offline and save data to the SD CARD.</p>
+                <div v-show="browsertime != devicetime" id="timesync">
+                  <table>
+                    <tr><td>Browser time:</td><td>{{ browsertime }}</td></tr>
+                    <tr><td>Device time: </td><td>{{ devicetime }}</td></tr>
+                    <tr><td>Diff: </td><td>{{ browsertime - devicetime }}</td></tr>
+                  </table>
+                </div>
 
-               <p class="font70">When you click this button the device will go offline and start working. </p>
-               <p class="font70">(You will loose connection to the device)</p>
-               <button class="btn bg-red" type="button" v-on:click="jsPost('set', 'synctime')">Start logging on SD Card</button>
+                <p class="font70">When you click this button the device will go offline and start working. </p>
+                <p class="font70">(You will loose connection to the device)</p>
+                <button class="btn bg-red" type="button" v-on:click="jsPost('set', 'synctime')">Start logging on SD Card</button>
 
-             </div> <!-- /sd card -->
+              </div> <!-- /sd card -->
 
-             <hr />
+              <hr />
 
-             <input type="checkbox" name="" id="id-showkit" value="" v-model="kitinfo" />
-             <label for="id-showkit">Show kit info</label>
+              <label for="id-showkit">
+                <input type="checkbox" name="" id="id-showkit" value="" v-model="kitinfo" />
+                Show kit info
+              </label>
 
-             <div id="kitinfo"  v-if="kitinfo" class="font70">
-               <p>Kit info:</p>
-               <ul v-show="debuginfo">
-                 <li v-for="value, index in debuginfo"><b>{{index}}</b>: {{value}}</li>
-               </ul>
-               <button class="btn" type="button" v-on:click="jsGet('status')">Refresh /status</button>
-             </div>
+              <div id="kitinfo"  v-if="kitinfo" class="font70">
+                <p>Kit info:</p>
+                <ul v-show="debuginfo">
+                  <li v-for="value, index in debuginfo"><b>{{index}}</b>: {{value}}</li>
+                </ul>
+                <button class="btn" type="button" v-on:click="jsGet('status')">Refresh /status</button>
+              </div>
 
-             <hr />
-             <input type="checkbox" name="" id="id-show-sensors" value="" v-model="sensors"/>
-             <label for="id-show-sensors">
-               Show sensors
-             </label>
+              <hr />
+              <label for="id-show-sensors">
+                <input type="checkbox" name="" id="id-show-sensors" value="" v-model="sensors"/>
+                Show sensors
+              </label>
 
-             <div id="sensors" v-show="sensors">
-               <h5>Sensors</h5>
-               <p class="font70">The new SCK allows you to configure each sensor independently.</p>
-               <div class="check-sensor">
-                 <label for="sensorlight">Light</label>
-                 <input type="checkbox" name="sensor1" id="sensorlight" value="" v-model="sensor1" />
-               </div>
-               <div class="check-sensor">
-                 <label for="sensormic">Microphone</label>
-                 <input type="checkbox" name="sensor2" id="sensormic" value="" v-model="sensor2" />
-               </div>
-               <div class="check-sensor">
-                 <label for="sensorco2">CO2</label>
-                 <input type="checkbox" name="sensor3" id="sensorco2" value="" v-model="sensor3" />
-               </div>
-               <div class="check-sensor">
-                 <label for="sensorthermo">Thermometer</label>
-                 <input type="checkbox" name="sensor4" id="sensorthermo" value="" v-model="sensor4" />
-               </div>
-             </div><!-- /sensors -->
+              <div id="sensors" v-show="sensors">
+                <h5>Sensors</h5>
+                <p class="font70">The new SCK allows you to configure each sensor independently.</p>
+                <div class="check-sensor">
+                  <label for="sensorlight">Light
+                    <input type="checkbox" name="sensor1" id="sensorlight" value="" v-model="sensor1" />
+                  </label>
+                </div>
+                <div class="check-sensor">
+                  <label for="sensormic">Microphone
+                    <input type="checkbox" name="sensor2" id="sensormic" value="" v-model="sensor2" />
+                  </label>
+                </div>
+                <div class="check-sensor">
+                  <label for="sensorco2">CO2
+                    <input type="checkbox" name="sensor3" id="sensorco2" value="" v-model="sensor3" />
+                  </label>
+                </div>
+                <div class="check-sensor">
+                  <label for="sensorthermo">Thermometer
+                    <input type="checkbox" name="sensor4" id="sensorthermo" value="" v-model="sensor4" />
+                  </label>
+                </div>
+              </div><!-- /sensors -->
 
-           </div> <!-- /advanced -->
+              <div id="id-logging">
+                <hr />
+                <p>Logging:</p>
+                <ul v-show="logging && logging.length">
+                  <li v-for="error of logging" class="font70">
+                    <span v-if="development">{{error.message}} - {{error}}</span>
+                    <span v-else>{{error.message}}</span>
+                  </li>
+                </ul>
+              </div>
+
+            </div> <!-- /advanced -->
 
           </form>
         </div> <!-- end #wifisetup -->

@@ -30,6 +30,12 @@ form .field-group > label {
   position: relative;
   word-wrap: break-word;
 }
+
+label{
+  display: block;
+  padding:5px 0px;
+}
+
 select[type=text], input[type=text] {
   background: #fff;
   border: 1px solid #d0d0d0;
@@ -46,6 +52,18 @@ select[type=text], input[type=text] {
 input[type=text]:focus {
   border-color: #4C669F;
   outline: 0;
+}
+
+input[type=checkbox] {
+  width: 30px;
+  height: 30px;
+  -webkit-border-radius: 22px; -moz-border-radius: 22px; border-radius: 22px;
+  border: 1px solid #bbb;
+  margin-top: -2px; /* move checkbox 2px down to match line, when float:right */
+}
+
+input[type=range] {
+   width: 95%;
 }
 
 #feedback{
@@ -137,16 +155,6 @@ input[type=text]:focus {
   position: -o-sticky;
 }
 
-input[type=checkbox] {
-  width: 30px;
-  height: 30px;
-  -webkit-border-radius: 22px; -moz-border-radius: 22px; border-radius: 22px;
-  border: 1px solid #bbb;
-}
-
-input[type=range] {
-   width: 95%;
-}
 .check-sensor{
   clear:both;
   margin-bottom:30px;
@@ -162,9 +170,6 @@ input[type=range] {
   margin: 2px 0px;
 }
 
-label{
-  padding:5px 0px;
-}
 
 @media (max-width: 320px){
   .sticky{

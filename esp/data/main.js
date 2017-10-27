@@ -7,7 +7,7 @@ var app = new Vue({
     browsertime: Math.floor(Date.now() / 1000),
     debuginfo: [],
     devicetime: 0,
-    errors: [],
+    logging: [],
     intervals: false,
     kitinfo: false,
     publishinterval: 2,
@@ -134,6 +134,9 @@ var app = new Vue({
 
     // TODO: add className option
     notify: function(msg, duration, className){
+
+      //All events should also go to the logging section at the bottom in the advanced section
+      this.logging.push(msg)
 
       var newtoast = document.createElement("div");
       if (className) {

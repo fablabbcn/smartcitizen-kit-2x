@@ -52,9 +52,9 @@ Inside the ./mock-api folder do:
 
 1. `npm install`
 
-1. `npm run web` - Starts frontend on [localhost:8000](localhost:8000)
+1. `npm run web` - Starts frontend on [localhost:8000](http://localhost:8000)
 
-1. `npm run api` - Starts api on [localhost:3000](localhost:3000)
+1. `npm run api` - Starts api on [localhost:3000](http://localhost:3000)
 
 If your mock-api is not responding, see */esp/data/main.js*, **theUrl** should be (your API url:port)
 

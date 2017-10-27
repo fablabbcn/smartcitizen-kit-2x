@@ -25,12 +25,15 @@ The technology used:
 #### Uploading the firmware to the kit
 
 1. In folder ./sam/ do:
+
   `pio run -t upload`
 
 2. in folder ./esp/ do:
+
   `pio run -t upload`
 
 3. To upload the Frontend website code to the filesystem do:
+
   `pio run -t uploadfs`
 
 
@@ -45,15 +48,13 @@ And the files are under *esp/data*
 
 #### Starting frontend development
 
-Inside the /mock-api folder do:
+Inside the ./mock-api folder do:
 
-1. `cd mock-api`
+1. `npm install`
 
-2. `npm install`
+1. `npm run web` - Starts frontend on [localhost:8000](localhost:8000)
 
-3. `npm run web`  - Starts frontend on [localhost:8000](localhost:8000)
-
-4. `npm run api` - Starts api on [localhost:3000](localhost:3000)
+1. `npm run api` - Starts api on [localhost:3000](localhost:3000)
 
 If your mock-api is not responding, see */esp/data/main.js*, **theUrl** should be (your API url:port)
 

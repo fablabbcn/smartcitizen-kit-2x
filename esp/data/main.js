@@ -9,6 +9,13 @@ var app = new Vue({
     logging: [],
     intervals: false,
     kitinfo: false,
+    currentPage: 1,
+    page: {
+      1: true,
+      2: false,
+      3: false,
+      4: false,
+    },
     publishinterval: 2,
     readinginterval: 60,
     selectedWifi: '',
@@ -132,6 +139,18 @@ var app = new Vue({
         });
       }
 
+    },
+
+    gotoPage: function(){
+      // Get page
+      // disable page
+      // enable next page
+      if (this.currentPage === 4) {
+        return;
+      }
+      this.page[this.currentPage] = false;
+      this.currentPage += 1;
+      this.page[this.currentPage] = true;
     },
 
     notify: function(msg, duration, className){

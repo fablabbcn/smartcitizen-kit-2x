@@ -7,7 +7,7 @@
   <body>
 
     <div id="loading">
-      <h1 style="font-family:Arial; padding:100px 10px;">The page is loading... please wait!</h1>
+      <h1 style="color:#38cef3; font-family:Arial, sans-serif; padding:100px 10px;">The page is loading... please wait!</h1>
     </div>
 
     <div class="container" id="app">
@@ -25,6 +25,32 @@
       </div>
 
       <div class="content">
+
+        <div id="page1" v-show='page[1]'>
+          <div class="text-center">
+            1 - Home
+          </div>
+        </div>
+
+        <div id="page2" v-show='page[2]'>
+          <div class="text-center">
+            2 - Token
+          </div>
+        </div>
+
+        <div id="page3" v-show='page[3]'>
+          <div class="text-center">
+            3 - Wifi
+          </div>
+        </div>
+
+        <div id="page4" v-show='page[4]'>
+          <div class="text-center">
+            4 - Connecting
+          </div>
+        </div>
+
+        <button class="btn bg-cyan" type="button" v-on:click='gotoPage()'>Next</button>
 
         <!-- online setup -->
         <div id="wifisetup">

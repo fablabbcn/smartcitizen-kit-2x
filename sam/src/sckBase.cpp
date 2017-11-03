@@ -220,16 +220,19 @@ void SckBase::update() {
 
 					if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
 						if (lightResults.lines[1].length() > 0) {
-							lightResults.lines[1].toCharArray(config.ssid, 64);
-							lightResults.lines[2].toCharArray(config.pass, 64);
-							wifiSet = true;
+							char newSsid[64];
+							char newPass[64];
+							lightResults.lines[1].toCharArray(newSsid, 64);
+							lightResults.lines[2].toCharArray(newPass, 64);
+							saveWifi(newSsid, newPass);
 							setESPwifi();
 						}
 					}
 					if (lightResults.lines[0].endsWith(F("auth"))) {
 						if (lightResults.lines[3].length() > 0) {
-							lightResults.lines[3].toCharArray(config.token, 8);
-							tokenSet = true;
+							char newToken[8];
+							lightResults.lines[3].toCharArray(newToken, 8);
+							saveToken(newToken);
 							setESPtoken();
 						}
 						if (lightResults.lines[4].toInt() > 0 && lightResults.lines[4].toInt() < ONE_DAY_IN_SECONDS) {
@@ -302,20 +305,25 @@ void SckBase::getESPwifi() {
 }
 void SckBase::saveToken(char newToken[8]) {
 
-	sprintf(outBuff, "Saving new token: %s", newToken);
-	sckOut();
-	
 	if (String(newToken).length() == 6) {
+		
+		sprintf(outBuff, "Saving new token: %s", newToken);
+		sckOut();
+
 		strncpy(config.token, newToken, 8);
 		tokenSet = true;
 		saveConfig();
-	}
+	
+	} else sckOut("Token must have 6 characters!!!");
 }
 void SckBase::clearToken() {
 
 	sckOut(F("Clearing token..."));
 	strncpy(config.token, "null", 8);
+
+	tokenSet = false;
 	saveConfig();
+
 	msgBuff.com = ESP_CLEAR_TOKEN_COM;
 	ESPqueueMsg(false, true);
 }
@@ -494,7 +502,7 @@ bool SckBase::loadSDconfig() {
 							}
 
 						// New reading interval
-						} else if (newInterval > minimal_sensor_reading_interval && newInterval < max_sensor_reading_interval) {
+						} else if (newInterval >= minimal_sensor_reading_interval && newInterval <= max_sensor_reading_interval) {
 							
 							// Enable sensor if it was disabled
 							if (!sensors[wichSensor].enabled) {
@@ -870,9 +878,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 }
 void SckBase::ESPbusUpdate() {
 
-	// If there is something the ESP want to tell to us
-	if (BUS_in.receiveData()) ESPprocessMsg();
-
 	// If there are pending messages to send
 	if (BUS_queueCount > 0) {
 
@@ -911,9 +916,14 @@ void SckBase::ESPbusUpdate() {
 			BUS_queueCount--;
 		}
 	}
-}
 
+	// If there is something the ESP want to tell to us
+	if (BUS_in.receiveData()) ESPprocessMsg();
+}
 void SckBase::ESPqueueMsg(bool sendParam, bool waitAnswer) {
+
+	// sprintf(outBuff, "ESP queueing command: %i", msgBuff.com);
+	// sckOut();
 
 	ESPcontrol(ESP_ON);
 
@@ -1031,15 +1041,21 @@ void SckBase::ESPprocessMsg() {
 			StaticJsonBuffer<240> jsonBuffer;
 			JsonObject& jsonConf = jsonBuffer.parseObject(msgIn.param);
 			
-			config.publishInterval = jsonConf["ri"];
-			// TODO agregar mode change
-			// config.persistentMode = config.mode;
-
-			saveConfig();
-			
+			String tmode = jsonConf["mo"];
+			sckOut(String("modo --> ") + tmode);
+			config.persistentMode = static_cast<SCKmodes>(tmode.toInt());
+			config.publishInterval 	= jsonConf["ri"];
+			String tssid = jsonConf["ss"];
+			tssid.toCharArray(config.ssid, 64);
+			String tpass = jsonConf["pa"];
+			tpass.toCharArray(config.pass, 64);
+			String ttoken = jsonConf["to"];
+			ttoken.toCharArray(config.token, 64);
+					
 			sckOut(F("Configuration updated:"));
-			sckOut(String F("Reading interval: ") + String(config.publishInterval));
-			prompt();
+			sprintf(outBuff, "Publish Interval: %lu\r\nWifi: %s - %s\r\nToken: %s", config.publishInterval, config.ssid, config.pass, config.token);
+			sckOut();
+			saveConfig();
 			break;
 
 		} case ESP_GET_APCOUNT_COM: {
@@ -1112,18 +1128,18 @@ void SckBase::ESPprocessMsg() {
 			sckOut(String F("ESP free heap: ") + String(msgIn.param));
 			break;
 
-		} case ESP_WEB_CONFIG_SUCCESS: {
+		} //case ESP_WEB_CONFIG_SUCCESS: {
 
-			sckOut(F("Configuration changed via WebServer!!!"));
-			led.configOK();
-		 	readLightEnabled = false;
-		 	readLight.reset();
+			// sckOut(F("Configuration changed via WebServer!!!"));
+			// led.configOK();
+		 // 	readLightEnabled = false;
+		 // 	readLight.reset();
 
-		 	//MQTT Hellow for Onboarding process
-			triggerHello = true;
-			break;
+		 // 	//MQTT Hellow for Onboarding process
+			// triggerHello = true;
+			// break;
 
-		}
+		//}
 	}
 
 	// Clear msg
@@ -1349,28 +1365,21 @@ void SckBase::processStatus() {
 		}
 	}
 
-	if (tokenSet && (espStatus.token != ESP_TOKEN_OK)) setESPtoken();
-
 	// Conf status has changed
 	if (espStatus.conf != prevEspStatus.conf) {
 		switch(espStatus.conf) {
 			case ESP_CONF_CHANGED_EVENT: {
 
-				sckOut(F("Configuration on ESP has changed!!!"), PRIO_LOW);
+				sckOut(F("Configuration changed via ESP WebServer!!!"));
+				led.configOK();
+			 	readLightEnabled = false;
+			 	readLight.reset();
+
+		 		//MQTT Hellow for Onboarding process
+				triggerHello = true;
+
 				msgBuff.com = ESP_GET_CONF_COM;
 				ESPqueueMsg(false, false);
-				break;
-
-			} case ESP_CONF_WIFI_UPDATED: {
-
-				sckOut("Wifi has been updated on ESP!!");
-				getESPwifi();
-				break;
-
-			} case ESP_CONF_TOKEN_UPDATED: {
-
-				sckOut("Token has been updated on ESP!!");
-				getESPtoken();
 				break;
 			} default: break;
 		} 
@@ -1547,6 +1556,7 @@ void SckBase::sckIn(String strIn) {
 
 		} case EXTCOM_CLEAR_WIFI: {
 			clearWifi();
+			saveConfig();
 			break;
 
 		} case EXTCOM_GET_NET_INFO: {
@@ -1564,12 +1574,14 @@ void SckBase::sckIn(String strIn) {
 				saveToken(newToken);
 				sprintf(outBuff, "New token: %s", config.token);
 				sckOut();
+				setESPtoken();
 			}
 			break;
 		
 		} case EXTCOM_CLEAR_TOKEN: {
 
 			clearToken();
+			saveConfig();
 			break;
 
 		} case EXTCOM_GET_VERSION: {
@@ -2246,8 +2258,9 @@ void SckBase::updateSensors() {
 		return;
 	}
 
-	// In network mode don't take readings if token is not configured
-	if (config.mode == MODE_NET && !tokenSet) {
+	// In network mode don't take readings if token or wifi is not configured
+	if (config.mode == MODE_NET && (!tokenSet || !wifiSet)) {
+		sckOut("Wifi or token configuration missing!!!");
 		errorMode();
 		return;
 	}

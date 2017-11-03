@@ -79,10 +79,12 @@ public:
 	void startWebServer();
 	void stopWebserver();
 	void webSet();
-	void webConf();
 	void webStatus();
 	bool flashReadFile(String path);
 	// for captive portal
+	bool captivePortal();
+	bool isIp(String str);
+	String toStringIp(IPAddress ip);
 	const byte DNS_PORT = 53;
 	String consoleBuffer;
 	
@@ -147,8 +149,6 @@ String leadingZeros(String original, int decimalNumber);
 time_t ntpProvider();
 
 // Static webserver handlers
-void extRoot(String path);
 void extSet();
-void extConf();
 void extStatus();
 void extAplist();

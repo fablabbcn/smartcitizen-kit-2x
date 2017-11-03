@@ -23,12 +23,6 @@ time_t ntpProvider() {
 void extSet() {
 	esp.webSet();
 }
-void extConf() {
-	esp.webConf();
-}
 void extStatus() {
 	esp.webStatus();
-}
-void extRoot(String path) {
-	esp.flashReadFile(path);
 }

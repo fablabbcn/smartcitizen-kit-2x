@@ -1067,10 +1067,8 @@ void SckBase::ESPprocessMsg() {
 			StaticJsonBuffer<240> jsonBuffer;
 			JsonObject& jsonVer = jsonBuffer.parseObject(msgIn.param);
 			String ESPv = jsonVer["ver"];
-			ESPversion = ESPv;
 			String ESPbd = jsonVer["date"];
-			ESPbuildDate = ESPbd;
-			sckOut(String F("ESP version:\t\t") + ESPversion + F(" (") + ESPbuildDate + F(")"));
+			sckOut(String F("ESP version:\t\t") + ESPv + F(" (") + ESPbd + F(")"));
 			break;
 
 		} case ESP_CONSOLE_COM: {

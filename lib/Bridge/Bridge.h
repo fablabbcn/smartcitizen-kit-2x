@@ -235,3 +235,9 @@ struct Configuration {
 	char pass[64];
 	char token[8] = "null";
 };
+
+const String hardwareVer 	= "1.5";
+const String SAMversion	= "0.2.0";
+const String SAMbuildDate = String(__DATE__) + '-' + String(__TIME__);
+const String ESPversion = "0.2.0";
+const String ESPbuildDate = String(__DATE__) + '-' + String(__TIME__);

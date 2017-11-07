@@ -201,11 +201,6 @@ public:
 	static const uint8_t publish_timeout = 120;		// Time out for publish (in seconds)
 
 	// Configuration
-	String hardwareVer 	= "1.5";
-	String SAMversion	= "0.2.0";
-	String SAMbuildDate = String(__DATE__) + '-' + String(__TIME__);
-	String ESPversion 	= "null";
-	String ESPbuildDate = "null";
 	bool triggerHello = false;
 	void saveWifi(char newSsid[64], char newPass[64]);
 	void clearWifi();

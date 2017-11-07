@@ -194,6 +194,7 @@ public:
 	int sdIndex = -1;
 	bool ESPpublish();
 	uint32_t lastPublishTime = 0;
+	uint32_t globalLastReading = 0;
 	bool publishRuning = false;
 	uint32_t publishStarted = 0;
 	uint8_t sensorDisplayIndex = 0;					// For LCD sensor display

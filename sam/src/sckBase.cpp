@@ -2381,7 +2381,10 @@ bool SckBase::getReading(SensorType wichSensor) {
 	}
 
 	// Store last reading time
-	if (sensors[wichSensor].valid) sensors[wichSensor].lastReadingTime = startedTime;
+	if (sensors[wichSensor].valid) {
+		sensors[wichSensor].lastReadingTime = startedTime;
+		globalLastReading = startedTime;
+	}
 
 	return sensors[wichSensor].valid;
 }

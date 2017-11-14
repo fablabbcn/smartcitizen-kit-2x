@@ -917,7 +917,10 @@ void SckESP::webStatus() {
 	json += "\"net\":\"" + String(espStatus.eventTitle[espStatus.net]) + "\",";
 
 	// MQTT status
-	json += "\"mqtt\":\"" + String(espStatus.eventTitle[espStatus.mqtt]) + "\"";
+	json += "\"mqtt\":\"" + String(espStatus.eventTitle[espStatus.mqtt]) + "\",";
+
+	// Last publish time
+	json += "\"last_publish\":\"" + epochSTR + "\"";
 
 
 	json += "}";

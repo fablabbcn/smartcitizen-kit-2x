@@ -1,7 +1,7 @@
 var app = new Vue({
   el: '#app',
   data: {
-    theApi: window.location.href,
+    theApi: window.location.protocol + '//' + window.location.host + '/',
     development: false,
     browsertime: Math.floor(Date.now() / 1000),
     debuginfo: [],
@@ -9,13 +9,17 @@ var app = new Vue({
     logging: [],
     intervals: false,
     kitinfo: false,
-    currentPage: 1,
-    page: {
-      1: true,
-      2: false,
-      3: false,
-      4: false,
-    },
+    currentPage: 0,
+    page: [
+       {'visible': true,  'footer': 'HOME',          'back': false },
+       {'visible': false, 'footer': 'REGISTER Key',  'back': true },
+       {'visible': false, 'footer': 'REGISTER WiFi', 'back': true },
+       {'visible': false, 'footer': 'Connecting',    'back': false },
+       {'visible': false, 'footer': 'Connecting',    'back': true },
+       {'visible': false, 'footer': 'SD card',       'back': true },
+       {'visible': false, 'footer': 'Debug info',    'back': true },
+       {'visible': false, 'footer': 'Empty',         'back': true },
+    ],
     publishinterval: 2,
     readinginterval: 60,
     selectedWifi: '',
@@ -25,10 +29,12 @@ var app = new Vue({
     sensor3: false,
     sensor4: false,
     showAdvanced: false,
+    showExperimental: false,
     showInterval: false,
     showSdCard: false,
     sdlog: false,
     usertoken: '',
+    version: 'SCK 2.0 / SAM V0.0.2 / ESP V0.0.2',
     wifiname: '',
     wifipass: '',
     wifisync: true,
@@ -45,28 +51,31 @@ var app = new Vue({
     }
   },
   mounted: function () {
-    var el = document.getElementById('loading')
-      el.parentNode.removeChild(el);
     // When the app is mounted
+    this.logging.push('App started.');
+
+    // 1. Remove loading screen
+    var el = document.getElementById('loading');
+    el.parentNode.removeChild(el);
+
+    // 2. Select which API to use, dev vs prod
     this.selectApiUrl();
-    var that = this;
-    console.log('Vue.js mounted, fetching data at startup');
 
-    setTimeout(function() {
-      that.jsGet('aplist');
-    }, 1500);
+    // 3. Fetch available Wifis
+    this.jsGet('aplist');
 
-    // This checks if connection to the kit has been lost, every 5 sec
-    this.every5sec();
+    // This checks if connection to the kit has been lost, every X sec
+    this.periodic(9000);
   },
   methods: {
-    every5sec: function () {
+    periodic: function (ms) {
       var that = this;
-      //console.log('I should check /status');
 
+      // TODO: should we check status every 5 sec?
       setTimeout(function(){
-        return that.every5sec();
-      }, 5000);
+        that.jsGet('status');
+        return that.periodic(ms);
+      }, ms);
     },
     selectApiUrl: function () {
       // If we are running this from the kit,
@@ -77,20 +86,23 @@ var app = new Vue({
       if (window.location.port === '8000') {
         this.theApi = 'http://' + window.location.hostname + ':3000/';
         this.development = true;
-      } else {
-        this.theApi = window.location.href;
       }
 
-      console.log('Using API : ' + this.theApi);
-      this.notify('Using API', 3000);
+      //console.log('Using API : ' + this.theApi);
+      this.notify('Using API', 1000);
     },
     httpGet: function(theUrl, callback) {
+      //console.log('theurl: ' + theUrl);
       var xmlHttp = new XMLHttpRequest();
+      var that = this;
 
       xmlHttp.onreadystatechange =  function() {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
           callback(xmlHttp.responseText);
         }
+      }
+      xmlHttp.onerror = function(e){
+        that.notify('Cannot access API', 5000, 'bg-red');
       }
       xmlHttp.open( "GET", theUrl, true ); // false for synchronous request, true = async
       xmlHttp.send( null );
@@ -99,12 +111,14 @@ var app = new Vue({
       var that = this;
 
       this.httpGet(this.theApi + path, function(res){
+        //console.log('Getting: ' + path);
+        //console.log(JSON.parse(res));
         if (path === 'aplist') {
           that.wifis = JSON.parse(res);
-          that.notify('Getting wifi list...', 3000, 'bg-cyan');
+          that.notify('Getting wifi list...', 1000, 'bg-cyan');
         }
         if (path === 'status'){
-          that.notify('Getting status', 2000);
+          //that.notify('Getting status', 1000);
           that.debuginfo = JSON.parse(res);
         }
 
@@ -126,9 +140,10 @@ var app = new Vue({
             '&token=' + that.usertoken +
             '&epoch=' + that.browsertime,
             function(res){
-              console.log(res);
-              that.notify('Response: ' + res.test, 5000);
+              console.log('Kit response: ' + res);
             });
+        // After we try to connect, we go to the next page.
+        this.gotoPage();
       }
 
       if (purpose == 'synctime'){
@@ -141,22 +156,35 @@ var app = new Vue({
 
     },
 
-    gotoPage: function(){
-      // Get page
-      // disable page
-      // enable next page
-      if (this.currentPage === 4) {
+    gotoPage: function(num){
+
+      // Find last page so we wont go to far, when clicking 'Next'
+      if (!num && this.currentPage === (this.page.length - 1)) {
+        //console.log('Last page: ' + this.currentPage)
         return;
       }
-      this.page[this.currentPage] = false;
-      this.currentPage += 1;
-      this.page[this.currentPage] = true;
+
+      //console.log(this.currentPage + ' / ' + this.page.length);
+
+      // Hide current page
+      this.page[this.currentPage].visible = false;
+
+      // Find which page to show next
+      if ( typeof num !== 'undefined') {
+        this.currentPage = parseInt(num);
+      }else{
+        this.currentPage = parseInt(this.currentPage + 1);
+      }
+
+      // Show it
+      this.page[this.currentPage].visible = true;
+
     },
 
-    notify: function(msg, duration, className){
+    notify: function(msg, duration = 1000, className){
 
       //All events should also go to the logging section at the bottom in the advanced section
-      this.logging.push(msg)
+      this.logging.push(msg);
 
       var newtoast = document.createElement("div");
       if (className) {
@@ -172,7 +200,7 @@ var app = new Vue({
         delete newtoast;
       }, duration);
 
-      console.log('Notify:', msg)
+      console.log('Notify:', msg);
     },
   },
   computed: {
@@ -181,6 +209,9 @@ var app = new Vue({
         return a.rssi - b.rssi;
       });
       return this.wifis.nets.reverse();
+    },
+    usertokenCheck: function(){
+      return this.usertoken.length === 6;
     }
   }
 });

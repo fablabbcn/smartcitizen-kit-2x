@@ -66,35 +66,35 @@ input[type=range] {
    width: 95%;
 }
 
-#feedback{
-  margin-top: 10px;
+svg {
+  fill: #fff;
+}
+
+td{
+  padding:10px;
 }
 
 .btn{
-  border: 1px solid #bdbdbd;
-  border-radius: 2px;
-  /*
-  color: #434343;
-  background: #f5f5f5;
-  */
   color: white;
-  background-color: #065063;
+  margin: 30px auto;
+  display: block;
+  border: 0px;
+  border-radius: 30px;
   cursor: pointer;
   font-size: 22px;
   font-variant: normal;
   font-weight: 400;
   height: 2.5em;
-  margin: 0;
-  padding: 4px 10px;
+  padding: 4px 40px;
   text-decoration: none;
 }
 
 .bg-blue{
- background-color: #065063 !important;
+  background-color: #065063 !important;
 }
 .bg-cyan{
   background-color: #38cef3 !important;
-  color:black;
+  color:white;
 }
 .bg-red{
   background-color: rgb(244,67,54) !important;
@@ -103,8 +103,14 @@ input[type=range] {
   background: #C8E6ED;
   color: #8db2ba;
 }
+.text-cyan{
+  color: #38cef3 !important;
+}
 .text-red{
   color: rgb(244,67,54);
+}
+.text-grey{
+  color: #ccc;
 }
 .text-right{
   text-align: right;
@@ -113,16 +119,13 @@ input[type=range] {
   text-align: center;
 }
 .content{
-  padding: 10px 5px 40px;
+  padding: 10px 5px 20px;
 }
 .font70{
   font-size: 70%;
 }
 .font80{
   font-size: 80%;
-}
-.monospace{
-  font-family: 'monospace';
 }
 .mt20{
   margin-top: 20px;
@@ -141,10 +144,27 @@ input[type=range] {
   z-index: 100;
 }
 .topnav p{
-  display:inline;
+  margin: 0px;
+  padding:15px 0px 0px;
+  height:40px;
 }
 
 #toplogo{
+  position:absolute;
+  top:10px;
+  left:10px;
+}
+#topinfo{
+  position:absolute;
+  top:10px;
+  right:10px;
+  height:30px;
+  width:30px;
+}
+#topbackbtn{
+  position:absolute;
+  top:0px;
+  width:57px;
 }
 
 .sticky {
@@ -170,6 +190,9 @@ input[type=range] {
   margin: 2px 0px;
 }
 
+.monospace{
+  font-family: 'monospace';
+}
 
 @media (max-width: 320px){
   .sticky{
@@ -178,3 +201,5 @@ input[type=range] {
   }
 
 }
+
+

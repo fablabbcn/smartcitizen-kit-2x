@@ -1,7 +1,11 @@
 # SmartCitizenKit
 Developer version of Smart Citizen Kit 2.0 Firmware
 
-You can see the current (master branch) state of the mobile UI setup here:
+Find the new version here:
+
+https://github.com/fablabbcn/smartcitizen-kit-20
+
+You can see this repos current (master branch) state of the mobile UI setup here:
 
 https://fablabbcn.github.io/smartcitizen-kit-20/esp/data/
 

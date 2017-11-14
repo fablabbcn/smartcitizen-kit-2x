@@ -14,11 +14,23 @@
 
       <div class="topnav sticky ">
         <div class="bg-blue">
-          <a href="#" v-on:click="jsGet('status')">
-            <img id="toplogo" src="images/sck.png">
+
+          <p class="text-center">SCK 2.0 Setup</p>
+
+          <a v-show="page[currentPage].back" id="topbackbtn" v-on:click="gotoPage(currentPage - 1)" href="#">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 125" style="enable-background:new 0 0 100 100;" xml:space="preserve"><g><polygon points="55.7,33.8 39.7,50.2 56.1,66.3 58.9,63.4 45.3,50.1 58.6,36.6  "/></g></svg>
           </a>
-          <p>SCK 2.0</p>
-          <p class="text-right">i</p>
+
+          <a v-show="!page[currentPage].back" id="toplogo" href="/">
+            <?xml version="1.0" encoding="UTF-8" standalone="no"?><svg width="29px" height="32px" viewBox="0 0 29 32" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns"><title>Logotipo SmartCitizen peque@3x</title><desc>Created with Sketch.</desc><defs></defs><g id="Map-elements" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" sketch:type="MSPage"><g sketch:type="MSArtboardGroup" transform="translate(-20.000000, -16.000000)" id="map"><g sketch:type="MSLayerGroup"><g id="Logotipo-SmartCitizen-peque" transform="translate(20.000000, 16.000000)" sketch:type="MSShapeGroup"><path d="M14.2569231,20.0994286 C14.2707692,20.832 14.0769231,21.4617143 13.68,21.9817143 C13.4180769,22.336 13.0534615,22.5874286 12.5780769,22.7314286 C12.3207692,22.8102857 12.0253846,22.8502857 11.685,22.8502857 C11.0573077,22.8502857 10.5357692,22.6937143 10.1238462,22.3885714 C9.77653846,22.1337143 9.50423077,21.7908571 9.30346154,21.3565714 C9.10269231,20.9222857 8.98384615,20.424 8.94923077,19.864 L10.4803846,19.7542857 C10.5473077,20.368 10.7123077,20.8148571 10.9707692,21.0891429 C11.1646154,21.2994286 11.3861538,21.3977143 11.6342308,21.3862857 C11.985,21.3737143 12.2642308,21.2045714 12.4765385,20.8731429 C12.5826923,20.7097143 12.6369231,20.4754286 12.6369231,20.1737143 C12.6369231,19.736 12.4361538,19.3017143 12.0323077,18.8685714 C11.7173077,18.5714286 11.2419231,18.1257143 10.6084615,17.5302857 C10.0742308,17.0194286 9.70038462,16.5622857 9.47653846,16.1577143 C9.24,15.704 9.12115385,15.2091429 9.12115385,14.6754286 C9.12115385,13.7165714 9.44769231,12.9897143 10.0973077,12.496 C10.5,12.1988571 10.9984615,12.0502857 11.5926923,12.0502857 C12.1638462,12.0502857 12.6542308,12.176 13.0603846,12.4285714 C13.3776923,12.6251429 13.635,12.8994286 13.8288462,13.2525714 C14.025,13.6057143 14.1415385,14.0125714 14.1807692,14.472 L12.6461538,14.7497143 C12.5988462,14.3177143 12.4765385,13.9805714 12.2711538,13.7405714 C12.1246154,13.5668571 11.9111538,13.4788571 11.6342308,13.4788571 C11.3388462,13.4788571 11.1173077,13.608 10.9638462,13.8662857 C10.8380769,14.0742857 10.7769231,14.3325714 10.7769231,14.64 C10.7769231,15.1222857 10.9869231,15.6125714 11.4057692,16.1131429 C11.5638462,16.3028571 11.8026923,16.5268571 12.1176923,16.7851429 C12.4926923,17.0937143 12.7384615,17.3097143 12.8573077,17.4331429 C13.2542308,17.8251429 13.5588462,18.2125714 13.7746154,18.5942857 C13.8761538,18.7725714 13.9569231,18.9371429 14.0203846,19.0891429 C14.1715385,19.4662857 14.2523077,19.8022857 14.2569231,20.0994286" id="Fill-7" fill="#FFFFFF"></path><path d="M17.8603846,22.8502857 C17.16,22.8502857 16.5646154,22.608 16.0753846,22.1222857 C15.5861538,21.6388571 15.3403846,21.0525714 15.3403846,20.3634286 L15.3403846,14.6765714 C15.3403846,13.984 15.5861538,13.3954286 16.08,12.9097143 C16.5715385,12.424 17.1646154,12.184 17.8603846,12.184 C18.5596154,12.184 19.1515385,12.4274286 19.6384615,12.9142857 C20.1253846,13.4034286 20.3688462,13.9908571 20.3688462,14.6765714 L20.3688462,15.8662857 L18.7234615,15.8662857 L18.7234615,14.6434286 C18.7234615,14.3942857 18.6334615,14.1817143 18.4557692,14.0045714 C18.2769231,13.8251429 18.0611538,13.7371429 17.8084615,13.7371429 C17.5580769,13.7371429 17.3423077,13.8251429 17.1680769,14.0045714 C16.9903846,14.1817143 16.9003846,14.3942857 16.9003846,14.6434286 L16.9003846,20.3462857 C16.9003846,20.5965714 16.9903846,20.808 17.1680769,20.984 C17.3423077,21.1577143 17.5580769,21.2457143 17.8084615,21.2457143 C18.0611538,21.2457143 18.2769231,21.1577143 18.4557692,20.984 C18.6334615,20.808 18.7234615,20.5965714 18.7234615,20.3462857 L18.7234615,18.9085714 L20.3688462,18.9085714 L20.3688462,20.3634286 C20.3688462,21.0582857 20.1230769,21.6434286 19.6292308,22.1268571 C19.1376923,22.6091429 18.5480769,22.8502857 17.8603846,22.8502857" id="Fill-8" fill="#35C2E5"></path><path d="M25.4123077,8.20342857 L23.2603846,9.87085714 C26.0976923,13.0971429 26.9988462,17.7622857 25.1734615,21.9531429 C22.6361538,27.7748571 15.8146154,30.456 9.93923077,27.944 C4.06384615,25.4331429 1.35461538,18.6754286 3.89076923,12.856 C5.41153846,9.36685714 8.46923077,7.01942857 11.94,6.22857143 L12.9253846,9.47542857 C13.0176923,9.77485714 13.2357692,9.81142857 13.4157692,9.55542857 L17.5003846,3.77371429 C17.6780769,3.51771429 17.5880769,3.216 17.295,3.10057143 L10.6742308,0.498285714 C10.3811538,0.382857143 10.2161538,0.533714286 10.3061538,0.832 L11.1992308,3.77371429 C7.04307692,4.80571429 3.40153846,7.66514286 1.57153846,11.864 C-1.54730769,19.0228571 1.78269231,27.3348571 9.01269231,30.4251429 C16.2403846,33.5154286 24.6323077,30.2148571 27.7511538,23.056 C29.9965385,17.9062857 28.8923077,12.1737143 25.4123077,8.20342857" id="Fill-15" fill="#FFFFFF"></path></g></g></g></g></svg>
+          </a>
+
+          <div id="topinfo">
+            <a v-on:click='gotoPage(6)'>
+              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 125" style="enable-background:new 0 0 100 100;" xml:space="preserve"><g><g><g><path d="M53.1,73h-7.2c-1.1,0-1.9-0.9-1.9-1.9V44h11v27.1C55,72.1,54.1,73,53.1,73z"/></g></g></g><g><g><g><path d="M55,39H44v-9.1c0-1.1,0.9-1.9,1.9-1.9h7.2c1.1,0,1.9,0.9,1.9,1.9V39z"/></g></g></g><g><path d="M50,96C24.6,96,4,75.4,4,50S24.6,4,50,4s46,20.6,46,46S75.4,96,50,96z M50,12c-21,0-38,17-38,38s17,38,38,38s38-17,38-38   S71,12,50,12z"/></g></svg>
+            </a>
+          </div>
+
         </div>
 
         <div id="toast-wrapper"></div>
@@ -26,196 +38,279 @@
 
       <div class="content">
 
-        <div id="page1" v-show='page[1]'>
-          <div class="text-center">
-            1 - Home
-          </div>
+        <div v-show="showAdvanced">
+          <button class="" type="button" v-on:click='gotoPage("0")'>Start</button>
+          <button class="" type="button" v-on:click='gotoPage()'>Next</button>
+          <hr />
         </div>
 
-        <div id="page2" v-show='page[2]'>
-          <div class="text-center">
-            2 - Token
-          </div>
+        <div v-show='page[0].visible'>
+          <h1 class="text-cyan text-center">WELCOME TO SMART CITIZEN KIT CONFIGURATION</h1>
+          <p>Is this your first time here?</p>
+          <p>Remember before you start you need to visit <span class="text-cyan">onboarding.smartcitizen.me</span> to obtain a Device Key</p>
+
+          <button class="btn bg-cyan" id="start" type="button" v-on:click='gotoPage()'>Start</button>
+          <p>or go to <span class='text-cyan'>
+            <a v-on:click='gotoPage(5)'>SD Card mode</a></span>
+          </p>
         </div>
 
-        <div id="page3" v-show='page[3]'>
-          <div class="text-center">
-            3 - Wifi
+        <div v-show='page[1].visible'>
+          <h4>Device key</h4>
+
+          <div class="field-token">
+            <label>Token</label>
+            <input name="token" type="text" maxlength="6" v-model='usertoken' minlength="6" placeholder="6 letters">
           </div>
+          <p v-show='!usertokenCheck'>
+          {{ 6 - usertoken.length }} letters missing.
+          </p>
+          <button class="btn next" v-bind:class="{ 'bg-cyan': usertokenCheck }" type="button" :disabled=!usertokenCheck v-on:click='gotoPage()'>Next</button>
+
         </div>
 
-        <div id="page4" v-show='page[4]'>
-          <div class="text-center">
-            4 - Connecting
+        <div v-show='page[2].visible'>
+          <h4>WiFi connection</h4>
+          <div class="field-wifi">
+            <label>SSID (Network name)</label>
+            <select v-model="selectedWifi" name="ssid" id="ssid" type="text" length=64>
+              <!-- Here goes the Access point list -->
+              <option disabled value="">Select your wifi ({{wifis["nets"].length}})</option>
+              <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}} ({{x.rssi}}, {{x.ch}})</option>
+            </select>
           </div>
+          <div class="field-group">
+            <label>Password</label>
+            <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password">
+          </div>
+          <button class="btn bg-cyan" type="button" id="connect" v-on:click="jsPost('set','connect')">Connect</button>
+
+
         </div>
 
-        <button class="btn bg-cyan" type="button" v-on:click='gotoPage()'>Next</button>
+        <div v-show='page[3].visible'>
+          <h4>Trying to connect..</h4>
 
-        <!-- online setup -->
-        <div id="wifisetup">
-          <p class="font70">If you don't have a Token, get one at http://onboarding.smartcitizen.me</p>
-          <form method="post" action="/">
-            <div class="field-group">
-              <label>Token</label>
-              <input name="token" type="text" maxlength="6" v-model='usertoken' minlength="6" placeholder="6 letters">
-            </div>
-            <h5>Network Settings</h5>
-            <div class="field-group">
-              <label>SSID (Network name)</label>
-              <select v-model="selectedWifi" name="ssid" id="ssid" type="text" length=64>
-                <!-- Here goes the Access point list -->
-                <option disabled value="">Select your wifi ({{wifis["nets"].length}})</option>
-                <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}} ({{x.rssi}}, {{x.ch}})</option>
-              </select>
-            </div>
-            <button class="btn" id="refreshbtn" type="button" v-on:click="jsGet('aplist')">Refresh Wifi list</button>
-            <div class="field-group">
-              <label>Password</label>
-              <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password">
-            </div>
-            <button class="btn" type="button" id="connect" v-on:click="jsPost('set','connect')">Connect</button>
+          <p>Your kit is now trying to connect to the online platform, and this website has no connection to the kit anymore.</p>
+          <p>Check the light on your Kit:</p>
+          <ul>
+            <li><span style="color:green">GREEN</span>: Everything is fine, your Kit is online.</li>
+            <li><span style="color:red">RED</span>: Some problem happened, push the button on your Kit and join the SCK WiFi again.</li>
+          </ul>
+        </div>
 
-            <!-- advanced -->
+        <div v-show='page[4].visible'>
+          <h4 style="text-cyan">Your kit status</h4>
+
+          <table>
+            <tr>
+              <td>Mode</td>
+              <td>{{ debuginfo.net }}</td>
+            </tr>
+            <tr>
+              <td>Wifi</td>
+              <td>{{ debuginfo.wifi }}</td>
+            </tr>
+            <tr>
+              <td>Battery</td>
+              <td>{{ debuginfo.battPercent }}</td>
+            </tr>
+            <tr>
+              <td>Published</td>
+              <td>{{ debuginfo.last_publish }}</td>
+            </tr>
+          </table>
+          <p>If you want to run a full setup again, press the button on your Kit for 15 seconds and reconnect, and refresh this page.</p>
+
+          <button class="btn bg-cyan" type="button" v-on:click='gotoPage(2)'>Edit Wifi</button>
+        </div>
+
+
+        <div v-show='page[5].visible'>
+          <h4>SD Card</h4>
+          <p>Your Kit can store the data on a microSD card that later you can read with your computer.</p>
+          <p>This is useful when no WiFi is available at your location.</p>
+          <p>You will need to insert a valid microSD card and click the button.</p>
+          <table>
+            <tr>
+              <td>SD CARD</td>
+              <td>{{ debuginfo.sdcard }}</td>
+            </tr>
+            <tr>
+              <td>TIME SYNC</td>
+              <td>{{ debuginfo.time }}</td>
+            </tr>
+          </table>
+          <button class="btn bg-cyan" type="button" v-on:click="jsPost('set', 'synctime')">START LOGGING</button>
+          <p>You will be disconnected and the Kit will start recording data.</p>
+        </div>
+
+        <div v-show='page[6].visible'>
+          <h4>Debug info</h4>
+
+          <label for="label-advanced" class="font80">
+            <input type="checkbox" name="" id="label-advanced" value="" v-model="showAdvanced"/>
+            Enable advanced (debug mode)
+          </label>
+          <label for="label-experimental" class="font80">
+            <input type="checkbox" name="" id="label-experimental" value="" v-model="showExperimental"/>
+            Show Experimental (UNSTABLE!)
+          </label>
+
+
+          <div id="id-logging">
             <hr />
-            <label for="label-advanced">
-              <input type="checkbox" name="" id="label-advanced" value="" v-model="showAdvanced"/>
-              Show advanced
-            </label>
+            <p>Log:</p>
+            <ul v-show="logging && logging.length">
+              <li v-for="x in logging" class="font70">
+                {{x}}
+              </li>
+            </ul>
+          </div>
 
-            <div v-show="showAdvanced" id="advanced" class="mt20">
-              <p v-show="development">Development mode</p>
+          <button class="btn " type="button" v-on:click='gotoPage("0")'>Back to the beginning</button>
+        </div>
+
+        <div v-show='page[7].visible'>
+          <h4>Empty page</h4>
+        </div>
+
+        <br />
+        <br />
+
+        <div class="text-center text-grey font80">
+          {{ version }}
+          <hr />
+          {{ currentPage }} - {{ page[currentPage].footer }}
+        </div>
+
+        <br />
 
 
-              <label for="id-show-interval">
-                <input type="checkbox" name="" id="id-show-interval" value="" v-model="showInterval" />
-                Intervals
+
+        <!-- advanced, only accessible in debug mode -->
+
+        <div v-show="showExperimental" id="advanced" class="mt20">
+          <p v-show="development">Development mode</p>
+
+          <label for="id-show-interval">
+            <input type="checkbox" name="" id="id-show-interval" value="" v-model="showInterval" />
+            Intervals
+          </label>
+
+          <div v-show="showInterval" id="intervals">
+            <h5>Global - Intervals</h5>
+            <div>
+              <p class="font70">How often should the kit go online to publish the data?</p>
+              <label for="pubint">Publish interval hours: {{publishinterval}}</label>
+              <input type="range" name="pubint" id="" v-model="publishinterval" max="100" />
+            </div>
+            <div>
+              <p class="font70">How often should the kit poll the sensors?</p>
+              <label for="readint">Reading interval seconds: {{readinginterval}}</label>
+              <input type="range" name="readint" id="" value="60" v-model="readinginterval" max="1000" />
+            </div>
+            <div>
+              <p>Estimated battery duration: {{ Number(publishinterval * (readinginterval / 100)).toFixed(1) }} Hours</p>
+            </div>
+          </div>
+
+          <hr />
+
+          <label for="id-showsdcard">
+            <input type="checkbox" name="" id="id-showsdcard" value="" v-model="showSdCard" />
+            SD Card
+          </label>
+
+          <div v-show="showSdCard" id="sdcard">
+
+            <h5>SD CARD</h5>
+            <div>
+              <p class="font70">The kit should never post my data with Wifi</p>
+              <label for="sdlog">
+                <input type="checkbox" name="usesdcard" id="sdlog" value="" v-model="sdlog" />
+                Log *only* to SD Card
               </label>
+            </div>
+            <br />
 
-              <div v-show="showInterval" id="intervals">
-                <h5>Global - Intervals</h5>
-                <div>
-                  <p class="font70">How often should the kit go online to publish the data?</p>
-                  <label for="pubint">Publish interval hours: {{publishinterval}}</label>
-                  <input type="range" name="pubint" id="" v-model="publishinterval" max="100" />
-                </div>
-                <div>
-                  <p class="font70">How often should the kit poll the sensors?</p>
-                  <label for="readint">Reading interval seconds: {{readinginterval}}</label>
-                  <input type="range" name="readint" id="" value="60" v-model="readinginterval" max="1000" />
-                </div>
-                <div>
-                  <p>Estimated battery duration: {{ Number(publishinterval * (readinginterval / 100)).toFixed(1) }} Hours</p>
-                </div>
-              </div>
-
-              <hr />
-
-              <label for="id-showsdcard">
-                <input type="checkbox" name="" id="id-showsdcard" value="" v-model="showSdCard" />
-                SD Card
+            <div v-if="sdlog">
+              <p class="font70">When your kit runs out of battery, it loses the time. This will allow the kit to go online and fetch the time.</p>
+              <p class="font70">If you don't, all your measurements will be dated from the year 1971</p>
+              <label for="usewifisync">
+                <input type="checkbox" name="usewifisync" id="usewifisync" v-model="wifisync" />
+                Use Wifi to sync time
               </label>
+              <p v-if="!wifipass && wifisync" class="text-red font80">Don't forget to give the kit your wifi password!</p>
+            </div>
+            <div v-show="browsertime != devicetime" id="timesync">
+              <table>
+                <tr><td>Browser time:</td><td>{{ browsertime }}</td></tr>
+                <tr><td>Device time: </td><td>{{ devicetime }}</td></tr>
+                <tr><td>Diff: </td><td>{{ browsertime - devicetime }}</td></tr>
+              </table>
+            </div>
 
-              <div v-show="showSdCard" id="sdcard">
+            <p class="font70">When you click this button the device will go offline and start working. </p>
+            <p class="font70">(You will loose connection to the device)</p>
+            <button class="btn bg-red" type="button" v-on:click="jsPost('set', 'synctime')">Start logging on SD Card</button>
 
-                <h5>SD CARD</h5>
-                <div>
-                  <p class="font70">The kit should never post my data with Wifi</p>
-                  <label for="sdlog">
-                    <input type="checkbox" name="usesdcard" id="sdlog" value="" v-model="sdlog" />
-                    Log *only* to SD Card
-                  </label>
-                </div>
-                <br />
+          </div> <!-- /sd card -->
 
-                <div v-if="sdlog">
-                  <p class="font70">When your kit runs out of battery, it loses the time. This will allow the kit to go online and fetch the time.</p>
-                  <p class="font70">If you don't, all your measurements will be dated from the year 1971</p>
-                  <label for="usewifisync">
-                    <input type="checkbox" name="usewifisync" id="usewifisync" v-model="wifisync" />
-                    Use Wifi to sync time
-                  </label>
-                  <p v-if="!wifipass && wifisync" class="text-red font80">Don't forget to give the kit your wifi password!</p>
-                </div>
-                <div v-show="browsertime != devicetime" id="timesync">
-                  <table>
-                    <tr><td>Browser time:</td><td>{{ browsertime }}</td></tr>
-                    <tr><td>Device time: </td><td>{{ devicetime }}</td></tr>
-                    <tr><td>Diff: </td><td>{{ browsertime - devicetime }}</td></tr>
-                  </table>
-                </div>
+          <hr />
 
-                <p class="font70">When you click this button the device will go offline and start working. </p>
-                <p class="font70">(You will loose connection to the device)</p>
-                <button class="btn bg-red" type="button" v-on:click="jsPost('set', 'synctime')">Start logging on SD Card</button>
+          <label for="id-showkit">
+            <input type="checkbox" name="" id="id-showkit" value="" v-model="kitinfo" />
+            Show kit info
+          </label>
 
-              </div> <!-- /sd card -->
+          <div id="kitinfo"  v-show="kitinfo" class="font70">
+            <p>Kit info:</p>
+            <ul v-show="debuginfo">
+              <li v-for="value, index in debuginfo"><b>{{index}}</b>: {{value}}</li>
+            </ul>
+            <button class="btn" type="button" v-on:click="jsGet('status')">Refresh /status</button>
+          </div>
 
-              <hr />
+          <hr />
+          <label for="id-show-sensors">
+            <input type="checkbox" name="" id="id-show-sensors" value="" v-model="sensors"/>
+            Show sensors
+          </label>
 
-              <label for="id-showkit">
-                <input type="checkbox" name="" id="id-showkit" value="" v-model="kitinfo" />
-                Show kit info
+          <div id="sensors" v-show="sensors">
+            <h5>Sensors</h5>
+            <p class="font70">The new SCK allows you to configure each sensor independently.</p>
+            <div class="check-sensor">
+              <label for="sensorlight">Light
+                <input type="checkbox" name="sensor1" id="sensorlight" value="" v-model="sensor1" />
               </label>
-
-              <div id="kitinfo"  v-show="kitinfo" class="font70">
-                <p>Kit info:</p>
-                <ul v-show="debuginfo">
-                  <li v-for="value, index in debuginfo"><b>{{index}}</b>: {{value}}</li>
-                </ul>
-                <button class="btn" type="button" v-on:click="jsGet('status')">Refresh /status</button>
-              </div>
-
-              <hr />
-              <label for="id-show-sensors">
-                <input type="checkbox" name="" id="id-show-sensors" value="" v-model="sensors"/>
-                Show sensors
+            </div>
+            <div class="check-sensor">
+              <label for="sensormic">Microphone
+                <input type="checkbox" name="sensor2" id="sensormic" value="" v-model="sensor2" />
               </label>
+            </div>
+            <div class="check-sensor">
+              <label for="sensorco2">CO2
+                <input type="checkbox" name="sensor3" id="sensorco2" value="" v-model="sensor3" />
+              </label>
+            </div>
+            <div class="check-sensor">
+              <label for="sensorthermo">Thermometer
+                <input type="checkbox" name="sensor4" id="sensorthermo" value="" v-model="sensor4" />
+              </label>
+            </div>
+          </div><!-- /sensors -->
 
-              <div id="sensors" v-show="sensors">
-                <h5>Sensors</h5>
-                <p class="font70">The new SCK allows you to configure each sensor independently.</p>
-                <div class="check-sensor">
-                  <label for="sensorlight">Light
-                    <input type="checkbox" name="sensor1" id="sensorlight" value="" v-model="sensor1" />
-                  </label>
-                </div>
-                <div class="check-sensor">
-                  <label for="sensormic">Microphone
-                    <input type="checkbox" name="sensor2" id="sensormic" value="" v-model="sensor2" />
-                  </label>
-                </div>
-                <div class="check-sensor">
-                  <label for="sensorco2">CO2
-                    <input type="checkbox" name="sensor3" id="sensorco2" value="" v-model="sensor3" />
-                  </label>
-                </div>
-                <div class="check-sensor">
-                  <label for="sensorthermo">Thermometer
-                    <input type="checkbox" name="sensor4" id="sensorthermo" value="" v-model="sensor4" />
-                  </label>
-                </div>
-              </div><!-- /sensors -->
-
-              <div id="id-logging">
-                <hr />
-                <p>Logging:</p>
-                <ul v-show="logging && logging.length">
-                  <li v-for="x in logging" class="font70">
-                    {{x}}
-                  </li>
-                </ul>
-              </div>
-
-            </div> <!-- /advanced -->
-
-          </form>
-        </div> <!-- end #wifisetup -->
+        </div> <!-- /advanced -->
 
       </div><!-- /content -->
     </div><!-- container -->
+
     <script src="vue.min.js" type="text/javascript" charset="utf-8" ></script>
     <script src="main.js" type="text/javascript" charset="utf-8"></script>
     <link rel="stylesheet" href="css.css" type="text/css" />
+
   </body>
 </html>

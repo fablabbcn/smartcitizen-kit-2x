@@ -1,4 +1,6 @@
-# SmartCitizenKit
+# SmartCitizenKit ![Travis](https://travis-ci.org/fablabbcn/smartcitizen-kit-20.svg?branch=master) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
+
+
 Developer version of Smart Citizen Kit 2.0 Firmware
 
 Find the new version here:

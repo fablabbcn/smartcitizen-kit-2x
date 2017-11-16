@@ -4,21 +4,22 @@ var app = new Vue({
     theApi: window.location.protocol + '//' + window.location.host + '/',
     development: false,
     browsertime: Math.floor(Date.now() / 1000),
-    debuginfo: [],
+    kitstatus: [],
     devicetime: 0,
     logging: [],
     intervals: false,
     kitinfo: false,
     currentPage: 0,
+    lastPage: 0,
     page: [
-       {'visible': true,  'footer': 'HOME',          'back': false },
-       {'visible': false, 'footer': 'REGISTER Key',  'back': true },
-       {'visible': false, 'footer': 'REGISTER WiFi', 'back': true },
-       {'visible': false, 'footer': 'Connecting',    'back': false },
-       {'visible': false, 'footer': 'Connecting',    'back': true },
-       {'visible': false, 'footer': 'SD card',       'back': true },
-       {'visible': false, 'footer': 'Debug info',    'back': true },
-       {'visible': false, 'footer': 'Empty',         'back': true },
+       {'visible': true,  'footer': 'HOME',         'backTo': 0, 'back': false },
+       {'visible': false, 'footer': 'REGISTER Key', 'backTo': 0, 'back': true  },
+       {'visible': false, 'footer': 'REGISTER WiFi','backTo': 1, 'back': true  },
+       {'visible': false, 'footer': 'Connecting',   'backTo': 0, 'back': false },
+       {'visible': false, 'footer': 'Connecting',   'backTo': 0, 'back': true },
+       {'visible': false, 'footer': 'SD card',      'backTo': 0, 'back': true },
+       {'visible': false, 'footer': 'Kit info',     'backTo': 0, 'back': true },
+       {'visible': false, 'footer': 'Empty',        'backTo': 0, 'back': true },
     ],
     publishinterval: 2,
     readinginterval: 60,
@@ -28,7 +29,7 @@ var app = new Vue({
     sensor2: false,
     sensor3: false,
     sensor4: false,
-    showAdvanced: false,
+    showDebug: false,
     showExperimental: false,
     showInterval: false,
     showSdCard: false,
@@ -54,6 +55,8 @@ var app = new Vue({
     // When the app is mounted
     this.logging.push('App started.');
 
+    this.checkIfDebugMode;
+
     // 1. Remove loading screen
     var el = document.getElementById('loading');
     el.parentNode.removeChild(el);
@@ -61,8 +64,9 @@ var app = new Vue({
     // 2. Select which API to use, dev vs prod
     this.selectApiUrl();
 
-    // 3. Fetch available Wifis
+    // 3. Fetch available Wifis + status
     this.jsGet('aplist');
+    this.jsGet('status');
 
     // This checks if connection to the kit has been lost, every X sec
     this.periodic(9000);
@@ -119,7 +123,7 @@ var app = new Vue({
         }
         if (path === 'status'){
           //that.notify('Getting status', 1000);
-          that.debuginfo = JSON.parse(res);
+          that.kitstatus = JSON.parse(res);
         }
 
       });
@@ -158,32 +162,39 @@ var app = new Vue({
 
     gotoPage: function(num){
 
-      // Find last page so we wont go to far, when clicking 'Next'
-      if (!num && this.currentPage === (this.page.length - 1)) {
-        //console.log('Last page: ' + this.currentPage)
-        return;
-      }
-
-      //console.log(this.currentPage + ' / ' + this.page.length);
+      // Keep lastPage in memory
+      this.lastPage = this.currentPage;
 
       // Hide current page
       this.page[this.currentPage].visible = false;
 
       // Find which page to show next
+      // Is it a specified page, or the next one?
       if ( typeof num !== 'undefined') {
         this.currentPage = parseInt(num);
       }else{
+        // Find the last page so we wont go too far, when clicking 'Next'
+        if ( this.currentPage === (this.page.length - 1)) {
+          //console.log('Last page: ' + this.currentPage)
+          return;
+        }
+
         this.currentPage = parseInt(this.currentPage + 1);
       }
 
       // Show it
       this.page[this.currentPage].visible = true;
 
+      this.logging.push('Go to page: ' + this.currentPage);
     },
 
-    notify: function(msg, duration = 1000, className){
+    notify: function(msg, duration, className){
+      if (duration === 'undefined') {
+        console.log('no duration');
+        duration = 1000;
+      }
 
-      //All events should also go to the logging section at the bottom in the advanced section
+      //All events should also go to the logging section
       this.logging.push(msg);
 
       var newtoast = document.createElement("div");
@@ -204,6 +215,12 @@ var app = new Vue({
     },
   },
   computed: {
+    checkIfDebugMode: function(){
+       if (window.location.hash === '#debug'){
+         // Enables debug buttons
+         this.showDebug = true;
+       }
+    },
     sortedWifi: function () {
       this.wifis.nets.sort(function (a, b) {
         return a.rssi - b.rssi;

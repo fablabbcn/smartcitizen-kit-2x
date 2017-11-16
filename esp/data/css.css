@@ -70,21 +70,29 @@ svg {
   fill: #fff;
 }
 
+table{
+  background: #f3f3f3;
+  border-collapse: collapse;
+  border: 1px solid #ccc;
+  width: 100%;
+}
+
 td{
   padding:10px;
+  border-bottom: 1px solid #ddd;
 }
 
 .btn{
-  color: white;
-  margin: 30px auto;
-  display: block;
-  border: 0px;
   border-radius: 30px;
+  border: 0px;
+  color: white;
   cursor: pointer;
+  display: block;
   font-size: 22px;
   font-variant: normal;
   font-weight: 400;
   height: 2.5em;
+  margin: 30px auto;
   padding: 4px 40px;
   text-decoration: none;
 }
@@ -199,7 +207,16 @@ td{
     width:320px;
     position:fixed;
   }
-
+  .content {
+    padding: 50px 5px 20px;
+  }
+  #topbackbtn{
+    position:absolute;
+    height:70px;
+    left: 0px;
+    top:0px;
+    width:70px;
+  }
 }
 
 

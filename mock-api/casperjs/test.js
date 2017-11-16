@@ -12,7 +12,7 @@ casper.on('remote.message', function(msg){
   this.echo('--> remote msg: ' + msg)
 });
 
-casper.test.begin("Find elements on our local page", 7, function(test) {
+casper.test.begin("Find elements on our local page", 6, function(test) {
   console.log('Testing on: ' + url);
 
   casper.start(url);
@@ -28,7 +28,6 @@ casper.test.begin("Find elements on our local page", 7, function(test) {
     test.assertTitle('SCK Setup', 'The page title is exactly SCK Setup');
     //test.assertExists('#refreshbtn', '#refreshbtn exists - (Refresh Wifi button)');
     test.assertExists('#ssid', 'Wifi dropdown exists');
-    test.assertExists('#label-advanced', 'Checkbox for advanced exists');
     casper.click('#start');
   }).then(function(){
     casper.capture('1.png');

@@ -48,6 +48,7 @@ The technology used:
 The technology used here is:
 * HTML, CSS, JavaScript
 * (Vue.js)
+* **Make sure it is using the old javascript, so older phones work. **
 
 And the files are under *esp/data*
 

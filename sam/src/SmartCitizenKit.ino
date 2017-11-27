@@ -5,30 +5,26 @@ SckBase base;
 // Button interrupt handler
 void ISR_button() {
 	base.buttonEvent();
-};
-void ISR_alarm() {
-	base.wakeUp();
-};
+}
+// void ISR_alarm() {
+// 	base.wakeUp();
+// };
+
+// Timer 4 interrupt handler
+void TC4_Handler (void) {
+	base.buttonStillDown();
+	TC4->COUNT16.INTFLAG.bit.MC0 = 1;
+}
 // Timer 5 interrupt handler
 void TC5_Handler (void) {
 	base.led.tick();
-    // Clear the interrupt
-    TC5->COUNT16.INTFLAG.bit.MC0 = 1;
-};
-
-void setup() {
-
-	base.setup();
-
+	TC5->COUNT16.INTFLAG.bit.MC0 = 1;
 }
 
-uint32_t publish_timer = millis();
+void setup() {
+	base.setup();
+}
 
 void loop() {
-
-	// delay(10);
-	// base.getReading(SENSOR_INA219_CURRENT);
-	// base.sckOut(String(base.sensors[SENSOR_INA219_CURRENT].reading));
-
 	base.update();
 }

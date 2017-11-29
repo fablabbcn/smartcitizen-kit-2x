@@ -17,7 +17,7 @@ gulp.task('compress', function(){
     .pipe(rename('./index.html'))
     .pipe(gulp.dest('../esp/data/'))
     .pipe(gzip())
-    .pipe(rename('./index.html.gz'))
+    .pipe(rename('./index.gz'))
     .pipe(gulp.dest('../esp/data/'))
     .pipe(livereload());
 });

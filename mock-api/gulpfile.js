@@ -22,7 +22,7 @@ gulp.task('compress', function(){
     .pipe(livereload());
 });
 
-// Watch changes to index.html.dev, css.css, main.js
+// Watch changes to index.html.dev, css.css, main.js'
 gulp.task('watch', function(){
   livereload.listen();
   gulp.watch(['../esp/data/index.html.dev', '../esp/data/css.css', '../esp/data/main.js'], ['compress']);

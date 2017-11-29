@@ -640,9 +640,6 @@ var app = new Vue({
         this.theApi = 'http://' + window.location.hostname + ':3000/';
         this.development = true;
       }
-
-      //console.log('Using API : ' + this.theApi);
-      this.notify('Using API', 1000);
     },
     httpGet: function(theUrl, callback) {
       //console.log('theurl: ' + theUrl);
@@ -668,7 +665,6 @@ var app = new Vue({
         //console.log(JSON.parse(res));
         if (path === 'aplist') {
           that.wifis = JSON.parse(res);
-          that.notify('Getting wifi list...', 1000, 'bg-cyan');
         }
         if (path === 'status'){
           //that.notify('Getting status', 1000);

@@ -63,7 +63,7 @@ Inside the ./mock-api folder do:
 
 1. `npm run api` - Starts api on [localhost:3000](http://localhost:3000)
 
-1. `gulp compress` - Creates the `index.html.gz`
+1. `gulp watch` - Watches changes and creates the `index.html.gz`
 
 If your mock-api is not responding, see */esp/data/main.js*, **theUrl** should be (your API url:port)
 

@@ -2,6 +2,7 @@ var gulp = require('gulp');
 var gzip = require('gulp-gzip');
 var gfi  = require('gulp-file-insert');
 var rename = require('gulp-rename');
+var livereload = require('gulp-livereload');
 
 // Takes the original index.html.dev file and creates 2 files
 // index.html    for localhost:8000
@@ -17,5 +18,12 @@ gulp.task('compress', function(){
     .pipe(gulp.dest('../esp/data/'))
     .pipe(gzip())
     .pipe(rename('./index.html.gz'))
-    .pipe(gulp.dest('../esp/data/'));
+    .pipe(gulp.dest('../esp/data/'))
+    .pipe(livereload());
 });
+
+// Watch changes to index.html.dev, css.css, main.js
+gulp.task('watch', function(){
+  livereload.listen();
+  gulp.watch(['../esp/data/index.html.dev', '../esp/data/css.css', '../esp/data/main.js'], ['compress']);
+})

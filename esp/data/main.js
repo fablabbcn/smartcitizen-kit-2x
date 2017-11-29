@@ -115,7 +115,6 @@ var app = new Vue({
       var that = this;
 
       this.httpGet(this.theApi + path, function(res){
-        //console.log('Getting: ' + path);
         //console.log(JSON.parse(res));
         if (path === 'aplist') {
           that.wifis = JSON.parse(res);

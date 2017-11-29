@@ -169,7 +169,6 @@
             <ul>
               <li v-for="value, index in kitstatus"><b>{{index}}</b>: {{value}}</li>
             </ul>
-            <button class="btn" type="button" v-on:click="jsGet('status')">Refresh /status</button>
           </div>
 
           <div id="id-logging">

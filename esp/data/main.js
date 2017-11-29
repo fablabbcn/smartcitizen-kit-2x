@@ -61,6 +61,9 @@ var app = new Vue({
     var el = document.getElementById('loading');
     el.parentNode.removeChild(el);
 
+    var el1 = document.getElementById('app');
+    el1.style.display = 'block';
+
     // 2. Select which API to use, dev vs prod
     this.selectApiUrl();
 

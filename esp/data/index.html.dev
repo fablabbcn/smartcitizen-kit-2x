@@ -171,6 +171,9 @@
             </ul>
           </div>
 
+          <button id="copied-notification" class="btn bg-cyan" type="button" v-on:click="copyTextToClipboard()">Copy info to clipboard</button>
+          <textarea name="" id='hiddenText' style='opacity:0; transform: scale(0); position: absolute; bottom:10%' rows="8" cols="40"></textarea>
+
           <div id="id-logging">
             <hr />
             <p>Log:</p>
@@ -180,6 +183,7 @@
               </li>
             </ul>
           </div>
+
 
         </div>
 

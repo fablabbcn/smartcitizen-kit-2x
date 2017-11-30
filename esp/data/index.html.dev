@@ -190,15 +190,11 @@
         <br />
         <br />
 
-        <div class="text-center text-grey font80">
+        <div v-show="showDebug" class="text-center text-grey font80">
           {{ version }}
           <hr />
           {{ currentPage }} - {{ page[currentPage].footer }}
         </div>
-
-        <br />
-
-
 
         <!-- experimental -->
 

@@ -13,7 +13,7 @@ body {
 }
 .container {
   margin: 0 auto;
-  max-width: 400px;
+  max-width: 900px;
 }
 form .field-group {
   box-sizing: border-box;
@@ -127,7 +127,7 @@ td{
   text-align: center;
 }
 .content{
-  padding: 10px 5px 20px;
+  padding: 10px 10px 20px;
 }
 .font70{
   font-size: 70%;

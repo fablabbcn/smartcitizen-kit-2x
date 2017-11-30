@@ -64,7 +64,7 @@
 
           <div class="field-token">
             <label>Token</label>
-            <input name="token" type="text" maxlength="6" v-model='usertoken' minlength="6" placeholder="6 letters">
+            <input name="token" autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false' type="text" maxlength="6" v-model='usertoken' minlength="6" placeholder="6 letters">
           </div>
           <p v-show='!usertokenCheck'>
           {{ 6 - usertoken.length }} letters missing.
@@ -80,7 +80,7 @@
             <select v-model="selectedWifi" name="ssid" id="ssid" type="text" length=64>
               <!-- Here goes the Access point list -->
               <option disabled value="">Select your wifi ({{wifis["nets"].length}})</option>
-              <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}} ({{x.rssi}}, {{x.ch}})</option>
+              <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}}</option>
             </select>
           </div>
           <div class="field-group">
@@ -151,25 +151,14 @@
 
         <div v-show='page[6].visible'>
 
-          <label for="label-showDebug" class="font80">
-            <input type="checkbox" name="" id="label-showDebug" value="" v-model="showDebug"/>
-            Enable Debug buttons
-          </label>
-
-          <h4>Kit info:</h4>
-
-          <!--
-          <label for="label-experimental" class="font80">
-            <input type="checkbox" name="" id="label-experimental" value="" v-model="showExperimental"/>
-            Show Experimental (UNSTABLE!)
-          </label>
-          -->
-
           <div id="kitinfo" class="font70">
             <ul>
               <li v-for="value, index in kitstatus"><b>{{index}}</b>: {{value}}</li>
             </ul>
           </div>
+
+          <h4>Kit info:</h4>
+
 
           <button id="copied-notification" class="btn bg-cyan" type="button" v-on:click="copyTextToClipboard()">Copy info to clipboard</button>
           <textarea name="" id='hiddenText' style='opacity:0; transform: scale(0); position: absolute; bottom:10%' rows="8" cols="40"></textarea>
@@ -184,6 +173,17 @@
             </ul>
           </div>
 
+          <label for="label-showDebug" class="font80">
+            <input type="checkbox" name="" id="label-showDebug" value="" v-model="showDebug"/>
+            Enable Debug buttons
+          </label>
+
+          <!--
+          <label for="label-experimental" class="font80">
+            <input type="checkbox" name="" id="label-experimental" value="" v-model="showExperimental"/>
+            Show Experimental (UNSTABLE!)
+          </label>
+          -->
 
         </div>
 

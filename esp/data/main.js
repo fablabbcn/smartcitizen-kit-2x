@@ -76,6 +76,17 @@ var app = new Vue({
     this.periodic(9000);
   },
   methods: {
+    copyTextToClipboard: function(containerid){
+      // We need to copy the text temporary into a textBox to be able to copy it to clipboard.
+      var textToCopy = document.getElementById('kitinfo').innerText;
+      var textBox = document.getElementById('hiddenText');
+      textBox.innerText = textToCopy;
+
+      textBox.select();
+      document.execCommand('copy');
+
+      document.getElementById('copied-notification').innerHTML = 'Text copied!'
+    },
     periodic: function (ms) {
       var that = this;
 
@@ -109,7 +120,7 @@ var app = new Vue({
       xmlHttp.onerror = function(e){
         // Don't show this error, if we have tried connecting. Only on real API failures
         if (!that.weHaveTriedConnecting) {
-          that.notify('Cannot access API', 5000, 'bg-red');
+          that.notify('Your kit is not responding', 5000, 'bg-red');
         }
       }
       xmlHttp.open( "GET", theUrl, true ); // false for synchronous request, true = async

@@ -36,6 +36,7 @@ var app = new Vue({
     sdlog: false,
     usertoken: '',
     version: 'SCK 2.0 / SAM V0.0.2 / ESP V0.0.2',
+    weHaveTriedConnecting: false,
     wifiname: '',
     wifipass: '',
     wifisync: true,
@@ -106,7 +107,10 @@ var app = new Vue({
         }
       }
       xmlHttp.onerror = function(e){
-        that.notify('Cannot access API', 5000, 'bg-red');
+        // Don't show this error, if we have tried connecting. Only on real API failures
+        if (!that.weHaveTriedConnecting) {
+          that.notify('Cannot access API', 5000, 'bg-red');
+        }
       }
       xmlHttp.open( "GET", theUrl, true ); // false for synchronous request, true = async
       xmlHttp.send( null );
@@ -135,7 +139,8 @@ var app = new Vue({
       // /set?ssid=value1&password=value2&token=value3&epoch=value
 
       if (purpose == 'connect'){
-        this.notify('Connecting online...', 2000);
+        this.weHaveTriedConnecting = true;
+        this.notify('Kit is trying to connect online...', 2000);
         that.httpGet(that.theApi + path +
             '?ssid=' + that.selectedWifi +
             '&password=' + that.wifipass +

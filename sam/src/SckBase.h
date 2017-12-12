@@ -31,10 +31,6 @@ private:
 	// ESP Comunication
 	const uint32_t serialBaudrate = 115200;
 
-	// Output
-	const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
-	char outBuff[240];
-
 	// Button
 	const uint8_t pinBUTTON = 7;		// PA21
 	const uint16_t buttonLong = 5000;
@@ -46,9 +42,6 @@ private:
 	
 	// Configuration
 	Configuration config;
-
-	// Commands
-	AllCommands commands;
 
 	// To ORGANIZE
 	bool onUSB = true;
@@ -69,16 +62,21 @@ public:
 	void inputUpdate();
 
 	// Output
+	const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
+	OutLevels outputLevel = OUT_VERBOSE;
+	char outBuff[240];
 	void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts String object
 	void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
 	void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
 	void prompt();
-	OutLevels outputLevel = OUT_VERBOSE;
 
 	// Button
 	void buttonEvent();
 	void buttonStillDown();
 	void setAlarm_TC4(uint16_t lapse=0);
+
+	// Commands
+	AllCommands commands;
 
 	void reset();
 

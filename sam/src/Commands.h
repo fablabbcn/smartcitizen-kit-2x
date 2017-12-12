@@ -10,6 +10,8 @@ enum CommandType {
 
 	COM_RESET,
 	COM_GET_VERSION,
+	COM_OUTLEVEL,
+	COM_HELP,
 
 	COM_COUNT
 };
@@ -17,7 +19,8 @@ enum CommandType {
 // Declare command function
 void reset_com(SckBase* base, String parameters);
 void getVersion_com(SckBase* base, String parameters);
-
+void outlevel_com(SckBase* base, String parameters);
+void help_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -41,9 +44,11 @@ public:
 
 	OneCom com_list[COM_COUNT] {
 
-		//			type 					title 				help 												function
-		OneCom { 	COM_RESET, 				"reset", 			"Resets the SCK", 									reset_com},
-		OneCom { 	COM_GET_VERSION, 		"get version", 		"Shows versions", 									getVersion_com}
+		//			type 					title 				help 																function
+		OneCom { 	COM_RESET, 				"reset", 			"Resets the SCK", 													reset_com},
+		OneCom { 	COM_GET_VERSION, 		"version",	 		"Shows versions",				 									getVersion_com},
+		OneCom {	COM_OUTLEVEL,			"outlevel",			"Shows or sets outlevel [0:silent, 1:normal, 2:verbose]",			outlevel_com},
+		OneCom {	COM_HELP,				"help",				"Duhhhh!!",															help_com}
 
 	};
 

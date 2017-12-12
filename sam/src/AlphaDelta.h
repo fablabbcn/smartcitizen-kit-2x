@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sckAux.h>
+#include <SckAux.h>
 #include "Adafruit_SHT31.h"
 #include <MCP342X.h>
 

@@ -11,12 +11,12 @@
 #define CS_ESP  		13		// PA17
 
 // RGB Led 
-#define PIN_LED_RED 	6		// PA20
-#define PIN_LED_GREEN 	12		// PA19
-#define PIN_LED_BLUE 	10		// PA18
+// #define PIN_LED_RED 	6		// PA20
+// #define PIN_LED_GREEN 	12		// PA19
+// #define PIN_LED_BLUE 	10		// PA18
 
 // Button 
-#define PIN_BUTTON 		7		// PA21
+// #define PIN_BUTTON 		7		// PA21
 
 // Serial USB leds
 #define SERIAL_TX_LED	26		// PA27
@@ -42,7 +42,7 @@
 
 // Power Management
 #define VCC 	3300.				// mV
-#define PS 		38					// PA13 -- TPS63001 PS/SYNC
+#define PS 		38					// PA13 -- TPS63001 PS/SYNC (Enable/disable power-save mode (1 disabled, 0 enabled)
 
 // I2C address
 #define SHT21_I2C_DIR			0x40	// I2C Address SHT21 Temperature and Humidity sensor

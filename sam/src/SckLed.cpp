@@ -1,4 +1,4 @@
-#include "sckLed.h"
+#include "SckLed.h"
 
 void SckLed::setup() {
 	pinMode(pinRED, OUTPUT);

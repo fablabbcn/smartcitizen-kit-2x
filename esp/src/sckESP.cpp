@@ -710,7 +710,7 @@ void SckESP::startWebServer() {
     SSDP.setModelURL("http://www.smartcitizen.me");
 	SSDP.begin();
 	
-}
+}ºº
 void SckESP::stopWebserver() {
 
 	espStatus.web = ESP_WEB_OFF_EVENT;
@@ -933,7 +933,7 @@ bool SckESP::flashReadFile(String path){
 	debugOUT("Received file request: " + path);
 	
 	// send index file in case no file is requested
-	if (path.endsWith("/")) path += "index.html";
+	if (path.endsWith("/")) path += "index.gz";
 
 	// Manage content types
 	String contentType = "text/html";

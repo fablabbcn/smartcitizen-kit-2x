@@ -1,72 +1,51 @@
-#include "sckBase.h"
+#include "SckBase.h"
 
 void SckBase::buttonEvent() {
 
-	butLastEvent = millis();
-	butStage = BUT_STARTED;
+	buttonLastEvent = millis();
+	buttonStage = BUT_STARTED;
 
 	if (!digitalRead(pinBUTTON)) {
 
 		// Button Down
-		configureAlarm_TC4(100);
+		setAlarm_TC4(100);
 		sckOut("Button Down", PRIO_LOW);
-
-		// 	switch (config.mode) {
-	// 		case MODE_FLASH: {
-	// 			softReset();
-	// 			break;
-
-	// 		} case MODE_SETUP: {
-	// 			changeMode(config.persistentMode);
-	// 			break;
-
-	// 		} case MODE_OFF: {
-
-	// 			wakeUp();
-	// 			break;
-
-	// 		} default: {
-	// 			changeMode(MODE_SETUP);
-	// 		}
-	// 	}
-
 
 	} else {
 
 		// Button Up
-		disableAlarm_TC4();
+		setAlarm_TC4();
 		sckOut("Button Up", PRIO_LOW);
 
-		// 	if (config.mode == MODE_OFF) {
-// 		sckOut("Sleeping!!");
-// 		timerSet(ACTION_SLEEP, 500);
-// 	}
 	}
 }
 void SckBase::buttonStillDown() {
 
-	uint32_t pressedTime = millis() - butLastEvent;
+	uint32_t pressedTime = millis() - buttonLastEvent;
 
-	if (pressedTime >= veryLongPressInterval && butStage == BUT_LONG_PRESS) veryLongPress();
-	else if (pressedTime >= longPressInterval && butStage == BUT_STARTED) longPress();
-}
-void SckBase::longPress() {
+	if (pressedTime >= buttonLong && buttonStage == BUT_STARTED) {
 
-	butStage = BUT_LONG_PRESS;
-	sprintf(outBuff, "Button pressed for %lu milliseconds: Long press", millis() - butLastEvent);
-	sckOut(PRIO_LOW);
-	// changeMode(MODE_OFF);	
-}
-void SckBase::veryLongPress() {
+		buttonStage = BUT_LONG_PRESS;
+		sprintf(outBuff, "Button pressed for %lu milliseconds: Long press", millis() - buttonLastEvent);
+		sckOut(PRIO_LOW);
+
+	} else if (pressedTime >= buttonVeryLong && buttonStage == BUT_LONG_PRESS) {
 	
-	butStage = BUT_VERY_LONG;
-	sprintf(outBuff, "Button pressed for %lu milliseconds: Very long press", millis() - butLastEvent);
-	sckOut(PRIO_LOW);
-	// factoryReset();
-}
-void SckBase::configureAlarm_TC4(uint16_t periodMS) {
+		buttonStage = BUT_VERY_LONG;
+		sprintf(outBuff, "Button pressed for %lu milliseconds: Very long press", millis() - buttonLastEvent);
+		sckOut(PRIO_LOW);
 
-	if (!alarmConfigured_TC4) {
+	}
+}
+void SckBase::setAlarm_TC4(uint16_t lapse) {
+
+	if(alarmRunning_TC4 || lapse == 0) {
+
+		TC4->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
+		while(TC4->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
+		alarmRunning_TC4 = false;
+
+	} else {
 
 		// Clock the timer with the core cpu clock (48MHz)
 		GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_ID(GCM_TC4_TC5)) ;
@@ -85,7 +64,7 @@ void SckBase::configureAlarm_TC4(uint16_t periodMS) {
 
 		TC4->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1024 | TC_CTRLA_ENABLE;
 
-		TC4->COUNT16.CC[0].reg = uint32_t(46.875 * periodMS);
+		TC4->COUNT16.CC[0].reg = uint32_t(46.875 * lapse);
 		// TC4->COUNT16.CC[0].reg = uint16_t(95 * periodMS);
 
 		// TC5->COUNT16.CC[0].reg = (uint16_t) 187; //0.5us = 240 clock cycle at 48MHz (core clock)
@@ -106,15 +85,6 @@ void SckBase::configureAlarm_TC4(uint16_t periodMS) {
 		TC4->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
 		while(TC4->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
 
-		alarmConfigured_TC4 = true;
-	}
-}
-void SckBase::disableAlarm_TC4() {
-
-	if(alarmConfigured_TC4) {
-		//use this to disable the counter :
-		TC4->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
-		while(TC4->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
-		alarmConfigured_TC4 = false;
+		alarmRunning_TC4 = true;
 	}
 }

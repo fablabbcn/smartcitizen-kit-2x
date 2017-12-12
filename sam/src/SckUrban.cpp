@@ -1,4 +1,4 @@
-#include "sckUrban.h"
+#include "SckUrban.h"
 
 uint8_t pot_6_db_preset[] = {0,  7, 26, 96, 255};
 uint8_t pot_7_db_preset[] = {0, 17, 97, 255, 255};

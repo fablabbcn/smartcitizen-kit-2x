@@ -1,4 +1,4 @@
-#include "sckAux.h"
+#include "SckAux.h"
 
 AlphaDelta			alphaDelta;
 GrooveI2C_ADC		grooveI2C_ADC;

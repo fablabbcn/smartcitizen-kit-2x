@@ -103,8 +103,8 @@ void SckBase::prompt() {
 }
 
 void SckBase::reset() {
-
-	sckOut("Reseting!!!!!");
+	sckOut("Bye!!");
+	NVIC_SystemReset();
 }
 
 

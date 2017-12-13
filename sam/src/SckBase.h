@@ -5,6 +5,7 @@
 #include <RTCZero.h>
 #include <SPI.h>
 #include "ArduinoLowPower.h"
+#include "SdFat.h"
 
 #include "SckLed.h"
 #include "SckPot.h"
@@ -43,6 +44,15 @@ private:
 	// Configuration
 	Configuration config;
 
+	// ESP8266
+	const uint8_t pinPOWER_ESP = 30;	// PB22
+	const uint8_t pinESP_CH_PD = 31;	// PB23
+	const uint8_t pinESP_GPIO0 = 11;	// PA16
+
+	// Sd card (to be revised)
+	const uint8_t pinCS_SDCARD = 2;		// PA14 -- SPI Select SDcard
+	SdFat sd;
+
 	// To ORGANIZE
 	bool onUSB = true;
 
@@ -78,6 +88,10 @@ public:
 	// Commands
 	AllCommands commands;
 
+	// ESP control
+	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
+	void ESPcontrol(ESPcontrols myESPControl);
+	uint32_t espStarted;
 	void reset();
 
 };

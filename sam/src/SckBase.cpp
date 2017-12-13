@@ -20,6 +20,20 @@ void SckBase::setup() {
 	pinMode(pinBUTTON, INPUT_PULLUP);
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
 
+	// ESP Configuration
+	pinMode(pinPOWER_ESP, OUTPUT);
+	pinMode(pinESP_CH_PD, OUTPUT);
+	pinMode(pinESP_GPIO0, OUTPUT);
+	ESPcontrol(ESP_OFF);
+
+	// This should be removed when ESP SPI flash access is fixed
+	// ------------
+	sd.cardBegin(pinCS_SDCARD, SPI_HALF_SPEED);
+	delay(10);
+	SPI.end();
+	delay(10);
+	// ------------
+
 	// Peripheral setup
 	led.setup();
 	rtc.begin();
@@ -100,6 +114,41 @@ void SckBase::sckOut(PrioLevels priority, bool newLine) {
 void SckBase::prompt() {
 
 	sckOut("SCK > ", PRIO_MED, false);
+}
+
+// ESP
+void SckBase::ESPcontrol(ESPcontrols controlCommand) {
+	switch(controlCommand){
+		case ESP_OFF:
+			sckOut("Turning ESP off...");
+			digitalWrite(pinESP_CH_PD, LOW);
+			digitalWrite(pinPOWER_ESP, HIGH);
+			digitalWrite(pinESP_GPIO0, LOW);
+			espStarted = 0;
+			break;
+
+		case ESP_FLASH:
+			sckOut("Putting ESP in flash mode...");
+			digitalWrite(pinESP_CH_PD, HIGH);
+			digitalWrite(pinESP_GPIO0, LOW);			// LOW for flash mode
+			digitalWrite(pinPOWER_ESP, LOW);
+			break;
+
+		case ESP_ON:
+			sckOut("Turning ESP on...");
+			digitalWrite(pinESP_CH_PD, HIGH);
+			digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
+			digitalWrite(pinPOWER_ESP, LOW);
+			espStarted = millis();
+			break;
+
+		case ESP_REBOOT:
+			sckOut("Restarting ESP...");
+			ESPcontrol(ESP_OFF);
+			delay(10);
+			ESPcontrol(ESP_ON);
+			break;
+	}
 }
 
 void SckBase::reset() {

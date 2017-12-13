@@ -22,6 +22,7 @@ void AllCommands::in(SckBase* base, String strIn) {
 			reqComm = thisType;
 			strIn.replace(thisCommand->title, "");
 			strIn.trim();
+			break;
 		}
 	}
 
@@ -62,7 +63,7 @@ void outlevel_com(SckBase* base, String parameters) {
 	}
 }
 void help_com(SckBase* base, String parameters) {
-	
+
 	// list commands
 	if (parameters.length() <= 0) {
 	
@@ -95,9 +96,25 @@ void help_com(SckBase* base, String parameters) {
 			CommandType thisType = static_cast<CommandType>(i);
 			OneCom *thisCommand = &base->commands[thisType];
 
-			if (parameters.startsWith(thisCommand->title)) base->sckOut(thisCommand->help);
+			if (parameters.startsWith(thisCommand->title)) {
+				base->sckOut(thisCommand->help);
+				break;
+			}
 		}
 
 	}
 }
+void esp_com(SckBase* base, String parameters) {
 
+	if (parameters.length() <= 0) {
+		if (base->espStarted > 0) {
+			sprintf(base->outBuff, "ESP is on since %lu seconds ago", (millis() - base->espStarted) / 1000);
+			base->sckOut();
+		} else base->sckOut("ESP is off");
+	} else if (parameters.equals("on")) base->ESPcontrol(base->ESP_ON);
+	else if (parameters.equals("off")) base->ESPcontrol(base->ESP_OFF);
+	else if (parameters.equals("reboot")) base->ESPcontrol(base->ESP_REBOOT);
+	else if (parameters.equals("debug")) {
+		// TODO toggle esp debug
+	}
+}

@@ -12,7 +12,7 @@
 #include <DNSServer.h>
 #include <PubSubClient.h>
 
-#include <Bridge.h>
+#include <Shared.h>
 #include <Sensors.h>
 
 // Led pins

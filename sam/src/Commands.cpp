@@ -114,6 +114,7 @@ void esp_com(SckBase* base, String parameters) {
 	} else if (parameters.equals("on")) base->ESPcontrol(base->ESP_ON);
 	else if (parameters.equals("off")) base->ESPcontrol(base->ESP_OFF);
 	else if (parameters.equals("reboot")) base->ESPcontrol(base->ESP_REBOOT);
+	else if (parameters.equals("flash")) base->ESPcontrol(base->ESP_FLASH);
 	else if (parameters.equals("debug")) {
 		// TODO toggle esp debug
 	}

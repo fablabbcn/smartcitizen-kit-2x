@@ -2,6 +2,8 @@
 
 void SckBase::buttonEvent() {
 
+	if (flashingESP) reset();
+
 	buttonLastEvent = millis();
 	buttonStage = BUT_STARTED;
 

@@ -29,9 +29,6 @@ private:
 	// Input
 	String serialBuff;
 
-	// ESP Comunication
-	const uint32_t serialBaudrate = 115200;
-
 	// Button
 	const uint8_t pinBUTTON = 7;		// PA21
 	const uint16_t buttonLong = 5000;
@@ -48,6 +45,7 @@ private:
 	const uint8_t pinPOWER_ESP = 30;	// PB22
 	const uint8_t pinESP_CH_PD = 31;	// PB23
 	const uint8_t pinESP_GPIO0 = 11;	// PA16
+	const uint32_t ESP_FLASH_SPEED = 921600;
 
 	// Sd card (to be revised)
 	const uint8_t pinCS_SDCARD = 2;		// PA14 -- SPI Select SDcard
@@ -92,6 +90,7 @@ public:
 	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
 	void ESPcontrol(ESPcontrols myESPControl);
 	uint32_t espStarted;
+	bool flashingESP = false;
 	void reset();
 
 };

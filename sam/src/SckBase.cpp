@@ -45,8 +45,10 @@ void SckBase::setup() {
 }
 void SckBase::update() {
 
-	if (config.mode == MODE_FLASH) {
+	if (flashingESP) {
+		while(1) {
 
+		}
 	} else {
 
 		// Check Serial port input
@@ -119,7 +121,7 @@ void SckBase::prompt() {
 // ESP
 void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 	switch(controlCommand){
-		case ESP_OFF:
+		case ESP_OFF: {
 			sckOut("Turning ESP off...");
 			digitalWrite(pinESP_CH_PD, LOW);
 			digitalWrite(pinPOWER_ESP, HIGH);
@@ -127,14 +129,33 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			espStarted = 0;
 			break;
 
-		case ESP_FLASH:
+		} case ESP_FLASH: {
 			sckOut("Putting ESP in flash mode...");
+
+			led.update(led.WHITE, led.PULSE_STATIC);
+
+			SerialUSB.begin(ESP_FLASH_SPEED);
+			Serial1.begin(ESP_FLASH_SPEED);
+
 			digitalWrite(pinESP_CH_PD, HIGH);
 			digitalWrite(pinESP_GPIO0, LOW);			// LOW for flash mode
 			digitalWrite(pinPOWER_ESP, LOW);
+
+			uint32_t flashTimeout = millis();	// Give extra 5 seconds to start
+			while(1) {
+				if (SerialUSB.available()) {
+					Serial1.write(SerialUSB.read());
+					flashTimeout = millis();
+				} else if (Serial1.available()) {
+					SerialUSB.write(Serial1.read());
+					flashTimeout = millis();
+				} else {
+					if (millis() - flashTimeout > 5000) reset();
+				}
+			}
 			break;
 
-		case ESP_ON:
+		} case ESP_ON: {
 			sckOut("Turning ESP on...");
 			digitalWrite(pinESP_CH_PD, HIGH);
 			digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
@@ -142,12 +163,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			espStarted = millis();
 			break;
 
-		case ESP_REBOOT:
+		} case ESP_REBOOT: {
 			sckOut("Restarting ESP...");
 			ESPcontrol(ESP_OFF);
 			delay(10);
 			ESPcontrol(ESP_ON);
 			break;
+		}
 	}
 }
 

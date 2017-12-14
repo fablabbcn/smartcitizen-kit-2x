@@ -710,7 +710,7 @@ void SckESP::startWebServer() {
     SSDP.setModelURL("http://www.smartcitizen.me");
 	SSDP.begin();
 	
-}ºº
+}
 void SckESP::stopWebserver() {
 
 	espStatus.web = ESP_WEB_OFF_EVENT;

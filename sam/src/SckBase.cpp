@@ -1,60 +1,58 @@
 #include "SckBase.h"
 #include "Commands.h"
 
+// Software Serial ESP 
+SoftwareSerial SerialESP(16, 15); // RX, TX
+
 void SckBase::setup() {
 
+	led.setup();
+
 	// Serial Port Configuration (ESP communication)
-	Serial1.begin(serialBaudrate);
+	SerialESP.begin(serialBaudrate);
+
+	// Internal I2C bus setup
+	Wire.begin();
 
 	// Output
 	outputLevel = OUT_VERBOSE;
 
-	// Power management configuration
-  	pinMode(pinPwrSave, OUTPUT);
-  	digitalWrite(pinPwrSave, HIGH);
-
-  	// Pause for a moment (for uploading firmware in case of problems)
+	// Pause for a moment (for uploading firmware in case of problems)
 	delay(2000);
 
 	// Button
 	pinMode(pinBUTTON, INPUT_PULLUP);
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
 
+	// Power management configuration
+
 	// ESP Configuration
 	pinMode(pinPOWER_ESP, OUTPUT);
 	pinMode(pinESP_CH_PD, OUTPUT);
 	pinMode(pinESP_GPIO0, OUTPUT);
+	digitalWrite(pinPOWER_ESP, HIGH);
 	ESPcontrol(ESP_OFF);
 
-	// This should be removed when ESP SPI flash access is fixed
-	// ------------
-	sd.cardBegin(pinCS_SDCARD, SPI_HALF_SPEED);
-	delay(10);
-	SPI.end();
-	delay(10);
-	// ------------
-
 	// Peripheral setup
-	led.setup();
 	rtc.begin();
+
+	pinMode(31, OUTPUT);
+	digitalWrite(31, HIGH);
 
 	// Configuration
 	
+	// Urban board
+	urbanPresent = urban.setup();
+	if (urbanPresent) sckOut("Urban board detected");
+
 	// TEMP
-	config.mode = MODE_NET;
+	// config.mode = MODE_NET;
 }
 void SckBase::update() {
 
-	if (flashingESP) {
-		while(1) {
+	// Check Serial port input
+	inputUpdate();
 
-		}
-	} else {
-
-		// Check Serial port input
-		inputUpdate();
-
-	}
 }
 
 
@@ -134,33 +132,64 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 
 			led.update(led.WHITE, led.PULSE_STATIC);
 
+			ESPcontrol(ESP_OFF);
+
 			SerialUSB.begin(ESP_FLASH_SPEED);
-			Serial1.begin(ESP_FLASH_SPEED);
+			SerialESP.begin(ESP_FLASH_SPEED);
+
+			delay(500);
+
+
+			// digitalWrite(pinESP_CH_PD, HIGH);
+			// digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
+			// digitalWrite(pinPOWER_ESP, LOW);
 
 			digitalWrite(pinESP_CH_PD, HIGH);
-			digitalWrite(pinESP_GPIO0, LOW);			// LOW for flash mode
+			digitalWrite(pinESP_GPIO0, LOW);	// LOW for flash mode
 			digitalWrite(pinPOWER_ESP, LOW);
 
-			uint32_t flashTimeout = millis();	// Give extra 5 seconds to start
+			flashingESP = true;
+
+			uint32_t flashTimeout = millis();
+			uint32_t startTimeout = millis();	// 5 seconds after start the timeout starts running.
 			while(1) {
 				if (SerialUSB.available()) {
-					Serial1.write(SerialUSB.read());
-					flashTimeout = millis();
-				} else if (Serial1.available()) {
-					SerialUSB.write(Serial1.read());
-					flashTimeout = millis();
-				} else {
-					if (millis() - flashTimeout > 5000) reset();
-				}
+					SerialESP.write(SerialUSB.read());
+					// flashTimeout = millis();
+				} else if (SerialESP.available()) {
+					SerialUSB.write(SerialESP.read());
+					// flashTimeout = millis();
+				} //else {
+					// if (millis() - flashTimeout > 1000) {
+					// 	if (millis() - startTimeout > 5000) reset();
+					// }
+				//}
 			}
 			break;
 
 		} case ESP_ON: {
+
+			SerialUSB.begin(ESP_FLASH_SPEED);
+			SerialESP.begin(ESP_FLASH_SPEED);
+
+			delay(500);
+
+
 			sckOut("Turning ESP on...");
 			digitalWrite(pinESP_CH_PD, HIGH);
 			digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 			digitalWrite(pinPOWER_ESP, LOW);
 			espStarted = millis();
+
+			delay(500);
+
+			// temporal bridge mode on start esp
+			while(1) {
+				if (SerialUSB.available()) SerialESP.write(SerialUSB.read());
+				else if (SerialESP.available()) SerialUSB.write(SerialESP.read());
+			}
+
+
 			break;
 
 		} case ESP_REBOOT: {
@@ -179,3 +208,4 @@ void SckBase::reset() {
 }
 
 
+// Urban board

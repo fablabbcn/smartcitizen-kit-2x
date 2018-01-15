@@ -25,8 +25,8 @@
 // Sensor Board Conector
 #define IO0 9					// PA7 -- CO Sensor Heather
 #define IO1 8       			// PA6 -- NO2 Sensor Heater
-#define IO2 3					// PA9 -- Unused
-#define IO3 4					// PA8 -- Unused
+#define IO2 3					// PA9 -- Unused	* SCK2.0	PWM_HEATER_CO
+#define IO3 4					// PA8 -- Unused	* SCK2.0	PWM_HEATER_NO2
 #define S0 A3         			// PA4 -- CO Sensor
 #define S1 A4         			// PA5 -- NO2 Sensor
 #define S2 A1         			// PB8 -- CO Current Sensor

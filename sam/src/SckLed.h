@@ -64,7 +64,7 @@ private:
 	// Hardware pins
 	const uint8_t pinRED 	= 6;		// PA20
 	const uint8_t pinGREEN 	= 12;		// PA19
-	const uint8_t pinBLUE 	= 10;		// PA19
+	const uint8_t pinBLUE 	= 10;		// PA18
 
 	// Hardware interrupt settings
 	const uint8_t refreshPeriod = 40;

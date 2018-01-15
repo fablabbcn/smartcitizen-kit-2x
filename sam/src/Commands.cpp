@@ -119,3 +119,28 @@ void esp_com(SckBase* base, String parameters) {
 		// TODO toggle esp debug
 	}
 }
+void resetCause_com(SckBase* base, String parameters) {
+
+	uint8_t resetCause = PM->RCAUSE.reg;
+
+	switch(resetCause){
+		case 1:
+			base->sckOut("POR: Power On Reset");
+			break;
+		case 2:
+			base->sckOut("BOD12: Brown Out 12 Detector Reset");
+			break;
+		case 4:
+			base->sckOut("BOD33: Brown Out 33 Detector Reset");
+			break;
+		case 16:
+			base->sckOut("EXT: External Reset");
+			break;
+		case 32:
+			base->sckOut("WDT: Watchdog Reset");
+			break;
+		case 64:
+			base->sckOut("SYST: System Reset Request");
+			break;
+	}
+}

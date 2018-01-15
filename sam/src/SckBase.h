@@ -1,11 +1,11 @@
 #pragma once
 
-
 #include <Arduino.h>
 #include <RTCZero.h>
 #include <SPI.h>
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
+#include <SoftwareSerial.h>
 
 #include "SckLed.h"
 #include "SckPot.h"
@@ -13,6 +13,7 @@
 #include "Config.h"
 #include "Commands.h"
 #include "Sensors.h"
+#include "SckUrban.h"
 
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
@@ -43,13 +44,19 @@ private:
 
 	// ESP8266
 	const uint8_t pinPOWER_ESP = 30;	// PB22
-	const uint8_t pinESP_CH_PD = 31;	// PB23
-	const uint8_t pinESP_GPIO0 = 11;	// PA16
-	const uint32_t ESP_FLASH_SPEED = 921600;
+	const uint8_t pinESP_CH_PD = 17;	// PA04 - A3
+	const uint8_t pinESP_GPIO0 = 18;	// PA05 - A4
+	// const uint32_t ESP_FLASH_SPEED = 921600;
+	const uint32_t ESP_FLASH_SPEED = 115200;
 
 	// Sd card (to be revised)
 	const uint8_t pinCS_SDCARD = 2;		// PA14 -- SPI Select SDcard
-	SdFat sd;
+	// SdFat sd;
+
+	// Urban board
+	bool urbanPresent = false;
+	SckUrban urban;
+	bool urbanBoardDetected();
 
 	// To ORGANIZE
 	bool onUSB = true;
@@ -89,8 +96,8 @@ public:
 	// ESP control
 	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
 	void ESPcontrol(ESPcontrols myESPControl);
-	uint32_t espStarted;
 	bool flashingESP = false;
+	uint32_t espStarted;
 	void reset();
 
 };

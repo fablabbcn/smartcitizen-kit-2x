@@ -67,3 +67,4 @@ double AlphaDelta::getElectrode(Electrode wichElectrode) {
 
 	return (result * 0.015625) / getPGAgain(wichElectrode.adc);
 }
+

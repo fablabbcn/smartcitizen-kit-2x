@@ -8,5 +8,6 @@ enum SCKmodes {
 	MODE_COUNT
 };
 
-// Serial Comunication
-const uint32_t serialBaudrate = 115200;
+
+// Serial Comunication (2400 funciona)
+const uint32_t serialBaudrate = 2400;

@@ -15,6 +15,7 @@ def before_upload(source, target, env):
 		myPort.write("")
 		myPort.write("esp flash\n")
 		myPort.close()
+	time.sleep(0.5)
 	env.Replace(UPLOAD_PORT=portName)
 
 def after_upload(source, target, env):
@@ -102,4 +103,4 @@ def selectPort(ports):
 			pass
 
 	print 'No Smartcitizen kit found, please check your USB connection'
-	sys.exit()
+	sys.exit(-1)

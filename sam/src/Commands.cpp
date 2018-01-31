@@ -100,6 +100,14 @@ void help_com(SckBase* base, String parameters) {
 
 	}
 }
+void pinmux_com(SckBase* base, String parameters){
+
+	for (uint8_t pin=0; pin<PINS_COUNT; pin++) {  // For all defined pins
+    	pinmux_report(pin, base->outBuff, 0);
+    	base->sckOut();	
+	}
+	
+}
 void esp_com(SckBase* base, String parameters) {
 
 	if (parameters.length() <= 0) {

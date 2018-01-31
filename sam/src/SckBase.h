@@ -57,6 +57,17 @@ private:
 	SckUrban urban;
 	bool urbanBoardDetected();
 
+	// Sd card
+	bool cardPresent = false;
+	SdFat sd;
+	File publishFile;
+	File logFile;
+	File configFile;
+	File debugLogFile;
+	bool sdBegin();
+	bool openConfigFile(bool onlyRead=false);
+	char configFileName[11] = "CONFIG.TXT";
+
 	// To ORGANIZE
 	bool onUSB = true;
 
@@ -99,6 +110,10 @@ public:
 	uint32_t espStarted;
 	void reset();
 
+	// SDcard
+	bool cardDetect();
+
 };
 
 void ISR_button();
+void ISR_cardDetect();

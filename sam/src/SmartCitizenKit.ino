@@ -11,6 +11,10 @@ void TC5_Handler (void) {
 void ISR_button() {
 	base.buttonEvent();
 }
+// Card detect interrupt
+void ISR_cardDetect() {
+	base.cardDetect();
+}
 // Button alarm interrupt
 void TC4_Handler (void) {
 	base.buttonStillDown();

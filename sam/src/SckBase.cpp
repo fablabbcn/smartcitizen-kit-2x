@@ -4,6 +4,13 @@
 // Software Serial ESP 
 SoftwareSerial SerialESP(16, 15); // RX, TX
 
+// Hardware Auxiliary I2C bus
+TwoWire auxWire(&sercom1, pinAUX_WIRE_SDA, pinAUX_WIRE_SCL);
+void SERCOM1_Handler(void) {
+	auxWire.onService();
+}
+
+
 void SckBase::setup() {
 
 	led.setup();
@@ -14,6 +21,9 @@ void SckBase::setup() {
 	// Internal I2C bus setup
 	Wire.begin();
 
+	// Auxiliary I2C bus
+	auxWire.begin();
+
 	// Output
 	outputLevel = OUT_VERBOSE;
 
@@ -23,7 +33,7 @@ void SckBase::setup() {
 	// Button
 	pinMode(pinBUTTON, INPUT_PULLUP);
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
-
+	
 	// Power management configuration
 
 	// ESP Configuration
@@ -64,7 +74,7 @@ void SckBase::inputUpdate() {
 
 			char buff = SerialUSB.read();
 			uint16_t blen = serialBuff.length();
-			
+
 			// New line
 			if (buff == 13 || buff == 10) {
 

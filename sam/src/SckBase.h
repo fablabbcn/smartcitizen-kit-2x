@@ -6,6 +6,8 @@
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
 #include <SoftwareSerial.h>
+#include "SAMD_pinmux_report.h"
+#include "wiring_private.h"
 
 #include "Pins.h"
 #include "SckLed.h"

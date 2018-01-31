@@ -1,6 +1,5 @@
 #pragma once
 
-// #include "SckBase.h"
 #include <Arduino.h>
 
 class SckBase;
@@ -13,7 +12,9 @@ enum CommandType {
 	COM_RESET_CAUSE,
 	COM_OUTLEVEL,
 	COM_HELP,
+	COM_PINMUX,
 	COM_ESP_CONTROL,
+	
 
 	COM_COUNT
 };
@@ -25,6 +26,7 @@ void resetCause_com(SckBase* base, String parameters);
 void outlevel_com(SckBase* base, String parameters);
 void help_com(SckBase* base, String parameters);
 void esp_com(SckBase* base, String parameters);
+void pinmux_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -54,6 +56,7 @@ public:
 		OneCom {	COM_RESET_CAUSE,		"rcause",			"Show last reset cause (debug)",									resetCause_com},
 		OneCom {	COM_OUTLEVEL,			"outlevel",			"Shows or sets outlevel [0:silent, 1:normal, 2:verbose]",			outlevel_com},
 		OneCom {	COM_HELP,				"help",				"Duhhhh!!",															help_com},
+		OneCom {	COM_PINMUX,				"pinmux",			"Shows SAMD pin mapping status",									pinmux_com},
 
 		OneCom {	COM_ESP_CONTROL,		"esp",				"Controls ESP wifi [on, off, reboot, debug]",						esp_com}
 

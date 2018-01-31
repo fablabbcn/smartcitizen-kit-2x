@@ -46,6 +46,17 @@ void SckBase::setup() {
 	// Peripheral setup
 	rtc.begin();
 
+	// SD card
+	pinMode(pinCS_SDCARD, OUTPUT);
+	pinMode(pinCARD_DETECT, INPUT_PULLUP);
+	attachInterrupt(pinCARD_DETECT, ISR_cardDetect, CHANGE);
+	cardDetect();
+
+	// Flash memory
+	pinMode(pinCS_FLASH, OUTPUT);
+	digitalWrite(pinCS_FLASH, HIGH);	// disables Flash
+
+
 	pinMode(31, OUTPUT);
 	digitalWrite(31, HIGH);
 
@@ -226,6 +237,56 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			break;
 		}
 	}
+}
+
+// SD card
+bool SckBase::cardDetect() {
+
+	cardPresent = !digitalRead(pinCARD_DETECT);
+
+	if (cardPresent) {
+		sckOut("Sdcard inserted!!");
+		sdBegin();
+		return true;
+	} else {
+		sckOut("Sdcard removed!!");
+		digitalWrite(pinCS_SDCARD, HIGH);
+		return false;
+	}
+}
+bool SckBase::sdBegin() {
+
+	digitalWrite(pinCS_FLASH, HIGH);	// disables Flash
+
+	if (sd.cardBegin(pinCS_SDCARD)) {
+		sckOut(F("Sdcard ready!!"), PRIO_LOW);
+		return true;
+	} else {
+		sckOut(F("Sdcard not found!!"));
+		return false;
+	}
+}
+bool SckBase::openConfigFile(bool onlyRead) {
+
+	if (cardPresent) {
+
+		sd.begin(pinCS_SDCARD);
+
+		if (onlyRead) {
+			// Open file only for reading
+			configFile = sd.open(configFileName, FILE_READ);
+		} else {
+			// Open file
+			configFile = sd.open(configFileName, FILE_WRITE);
+		}
+
+		if (configFile) {
+			sprintf(outBuff, "Using %s for configuration.", configFileName);
+			sckOut(PRIO_LOW);
+			return true;
+		}
+	}
+	return false;
 }
 
 void SckBase::reset() {

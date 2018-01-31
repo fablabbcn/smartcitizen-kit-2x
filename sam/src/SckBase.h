@@ -7,6 +7,7 @@
 #include "SdFat.h"
 #include <SoftwareSerial.h>
 
+#include "Pins.h"
 #include "SckLed.h"
 #include "SckPot.h"
 #include "Shared.h"
@@ -14,6 +15,7 @@
 #include "Commands.h"
 #include "Sensors.h"
 #include "SckUrban.h"
+
 
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
@@ -32,7 +34,6 @@ private:
 	String previousCommand;
 
 	// Button
-	const uint8_t pinBUTTON = 7;		// PA21
 	const uint16_t buttonLong = 5000;
 	const uint16_t buttonVeryLong = 13000;
 	enum ButtonStage { BUT_STARTED, BUT_LONG_PRESS, BUT_VERY_LONG };
@@ -44,14 +45,9 @@ private:
 	Configuration config;
 
 	// ESP8266
-	const uint8_t pinPOWER_ESP = 30;	// PB22
-	const uint8_t pinESP_CH_PD = 17;	// PA04 - A3
-	const uint8_t pinESP_GPIO0 = 18;	// PA05 - A4
 	// const uint32_t ESP_FLASH_SPEED = 921600;
 	const uint32_t ESP_FLASH_SPEED = 115200;
 
-	// Sd card (to be revised)
-	const uint8_t pinCS_SDCARD = 2;		// PA14 -- SPI Select SDcard
 	// SdFat sd;
 
 	// Urban board
@@ -104,4 +100,3 @@ public:
 };
 
 void ISR_button();
-

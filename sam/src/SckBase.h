@@ -47,10 +47,7 @@ private:
 	Configuration config;
 
 	// ESP8266
-	// const uint32_t ESP_FLASH_SPEED = 921600;
-	const uint32_t ESP_FLASH_SPEED = 115200;
-
-	// SdFat sd;
+	const uint32_t ESP_FLASH_SPEED = 921600;
 
 	// Urban board
 	bool urbanPresent = false;

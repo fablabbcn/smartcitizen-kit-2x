@@ -1,8 +1,14 @@
 #include "SckBase.h"
 #include "Commands.h"
 
-// Software Serial ESP 
-SoftwareSerial SerialESP(16, 15); // RX, TX
+// Software Serial ESP
+SoftwareSerial SerialESP(pinESP_RX_WIFI, pinESP_TX_WIFI);
+
+// Hardware Serial ESP handler (only for flashing)
+Uart SerialFlashESP (&sercom4, pinESP_RX_WIFI, pinESP_TX_WIFI, SERCOM_RX_PAD_1, UART_TX_PAD_0);
+void SERCOM4_Handler() {
+  	SerialFlashESP.IrqHandler();
+}
 
 // Hardware Auxiliary I2C bus
 TwoWire auxWire(&sercom1, pinAUX_WIRE_SDA, pinAUX_WIRE_SCL);
@@ -14,9 +20,6 @@ void SERCOM1_Handler(void) {
 void SckBase::setup() {
 
 	led.setup();
-
-	// Serial Port Configuration (ESP communication)
-	SerialESP.begin(serialBaudrate);
 
 	// Internal I2C bus setup
 	Wire.begin();
@@ -40,7 +43,6 @@ void SckBase::setup() {
 	pinMode(pinPOWER_ESP, OUTPUT);
 	pinMode(pinESP_CH_PD, OUTPUT);
 	pinMode(pinESP_GPIO0, OUTPUT);
-	digitalWrite(pinPOWER_ESP, HIGH);
 	ESPcontrol(ESP_OFF);
 
 	// Peripheral setup
@@ -73,7 +75,6 @@ void SckBase::update() {
 
 	// Check Serial port input
 	inputUpdate();
-
 }
 
 
@@ -165,21 +166,16 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			break;
 
 		} case ESP_FLASH: {
+
 			sckOut("Putting ESP in flash mode...");
 
-			led.update(led.WHITE, led.PULSE_STATIC);
+			SerialUSB.begin(ESP_FLASH_SPEED);
+			SerialFlashESP.begin(ESP_FLASH_SPEED);
+
+			pinPeripheral(pinESP_TX_WIFI, PIO_SERCOM_ALT);	// PB8 - TXwifi (A1-15 zeroUSB)	SERCOM4 PAD[0]
+  			pinPeripheral(pinESP_RX_WIFI, PIO_SERCOM_ALT);	// PB9 - RXwifi (A2-16 zeroUSB)	SERCOM4 PAD[1]
 
 			ESPcontrol(ESP_OFF);
-
-			SerialUSB.begin(ESP_FLASH_SPEED);
-			SerialESP.begin(ESP_FLASH_SPEED);
-
-			delay(500);
-
-
-			// digitalWrite(pinESP_CH_PD, HIGH);
-			// digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
-			// digitalWrite(pinPOWER_ESP, LOW);
 
 			digitalWrite(pinESP_CH_PD, HIGH);
 			digitalWrite(pinESP_GPIO0, LOW);	// LOW for flash mode
@@ -187,45 +183,34 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 
 			flashingESP = true;
 
+			led.update(led.WHITE, led.PULSE_STATIC);
+
 			uint32_t flashTimeout = millis();
-			uint32_t startTimeout = millis();	// 5 seconds after start the timeout starts running.
+			uint32_t startTimeout = millis();
 			while(1) {
 				if (SerialUSB.available()) {
-					SerialESP.write(SerialUSB.read());
-					// flashTimeout = millis();
-				} else if (SerialESP.available()) {
-					SerialUSB.write(SerialESP.read());
-					// flashTimeout = millis();
-				} //else {
-					// if (millis() - flashTimeout > 1000) {
-					// 	if (millis() - startTimeout > 5000) reset();
-					// }
-				//}
+					SerialFlashESP.write(SerialUSB.read());
+					flashTimeout = millis();	// If something is received restart timer
+				}
+				if (SerialFlashESP.available()) {
+					SerialUSB.write(SerialFlashESP.read());
+				} 
+				if (millis() - flashTimeout > 1000) {
+					if (millis() - startTimeout > 8000) reset();		// Giva an initial 8 seconds for the flashing to start
+				}
 			}
 			break;
 
 		} case ESP_ON: {
 
-			SerialUSB.begin(ESP_FLASH_SPEED);
-			SerialESP.begin(ESP_FLASH_SPEED);
-
-			delay(500);
-
+			SerialUSB.begin(serialBaudrate);
+			SerialESP.begin(serialBaudrate);
 
 			sckOut("Turning ESP on...");
 			digitalWrite(pinESP_CH_PD, HIGH);
 			digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 			digitalWrite(pinPOWER_ESP, LOW);
-			espStarted = millis();
-
-			delay(500);
-
-			// temporal bridge mode on start esp
-			while(1) {
-				if (SerialUSB.available()) SerialESP.write(SerialUSB.read());
-				else if (SerialESP.available()) SerialUSB.write(SerialESP.read());
-			}
-
+			espStarted = rtc.getEpoch();
 
 			break;
 

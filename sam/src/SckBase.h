@@ -29,6 +29,7 @@ private:
 
 	// Input
 	String serialBuff;
+	String previousCommand;
 
 	// Button
 	const uint8_t pinBUTTON = 7;		// PA21

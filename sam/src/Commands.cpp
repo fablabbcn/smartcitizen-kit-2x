@@ -3,10 +3,6 @@
 
 void AllCommands::in(SckBase* base, String strIn) {
 
-	strIn.replace("\n", "");
-	strIn.replace("\r", "");
-	strIn.trim();
-
 	if (strIn.length() <= 0) return;
 
 	CommandType reqComm = COM_COUNT;

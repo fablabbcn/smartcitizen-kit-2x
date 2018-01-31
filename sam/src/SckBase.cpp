@@ -69,7 +69,13 @@ void SckBase::inputUpdate() {
 			if (buff == 13 || buff == 10) {
 
 				SerialUSB.println();				// Newline
+
+				serialBuff.replace("\n", "");		// Clean input
+				serialBuff.replace("\r", "");
+				serialBuff.trim();
+
 				commands.in(this, serialBuff);		// Process input
+				if (blen > 0) previousCommand = serialBuff;
 				serialBuff = "";
 				prompt();
 
@@ -78,6 +84,16 @@ void SckBase::inputUpdate() {
 
 				if (blen > 0) SerialUSB.print("\b \b");
 				serialBuff.remove(blen-1);
+
+			// Up arrow (previous command)
+			} else if (buff == 27) {
+
+				SerialUSB.read();				// drop next char (always 91)
+				if (SerialUSB.read() == 65) {	// detect up arrow
+					for (uint8_t i=0; i<blen; i++) SerialUSB.print("\b \b");	// clean previous command
+					SerialUSB.print(previousCommand);
+					serialBuff = previousCommand;
+				}
 
 			// Normal char
 			} else {

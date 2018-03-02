@@ -1,7 +1,7 @@
 #pragma once
 
 #include <SckAux.h>
-#include "Adafruit_SHT31.h"
+#include "Adafruit_SHT31.h"		// To be replaced by internal lib
 #include <MCP342X.h>
 
 struct Resistor {

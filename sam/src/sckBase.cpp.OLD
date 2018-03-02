@@ -2755,7 +2755,7 @@ bool SckBase::sdPresent() {
 	// Make sure files are closed to avoid corruption
 	closeFiles();
 
-	if (sd.cardBegin(CS_SDCARD, SPI_HALF_SPEED)) {
+	if (sd.cardBegin(CS_SDCARD, SPI_FULL_SPEED)) {
 		sckOut(F("Sdcard ready!!"), PRIO_LOW);
 		return true;
 	} else {

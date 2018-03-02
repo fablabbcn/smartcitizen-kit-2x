@@ -11,9 +11,13 @@ void TC5_Handler (void) {
 void ISR_button() {
 	base.buttonEvent();
 }
+// Battery events interrupt
+void ISR_battery() {
+	base.batteryEvent();
+}
 // Card detect interrupt
-void ISR_cardDetect() {
-	base.cardDetect();
+void ISR_sdDetect() {
+	base.sdDetect();
 }
 // Button alarm interrupt
 void TC4_Handler (void) {

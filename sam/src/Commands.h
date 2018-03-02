@@ -13,9 +13,12 @@ enum CommandType {
 	COM_OUTLEVEL,
 	COM_HELP,
 	COM_PINMUX,
+	COM_LIST_SENSOR,
+	COM_READ_SENSOR,
 	COM_ESP_CONTROL,
+	COM_GET_FREERAM,
+	COM_BATT_REPORT,
 	
-
 	COM_COUNT
 };
 
@@ -25,19 +28,25 @@ void getVersion_com(SckBase* base, String parameters);
 void resetCause_com(SckBase* base, String parameters);
 void outlevel_com(SckBase* base, String parameters);
 void help_com(SckBase* base, String parameters);
-void esp_com(SckBase* base, String parameters);
 void pinmux_com(SckBase* base, String parameters);
+void listSensor_com(SckBase* base, String parameters);
+void readSensor_com(SckBase* base, String parameters);
+void freeRAM_com(SckBase* base, String parameters);
+void battReport_com(SckBase* base, String parameters);
+void esp_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
 class OneCom {
 public:	
+	uint16_t place;
 	CommandType type;
 	const char *title;
 	const char *help;
 	com_function function;
 
-	OneCom(CommandType ntype, const char *nTitle, const char *nhelp, com_function nfunction){
+	OneCom(uint16_t nplace, CommandType ntype, const char *nTitle, const char *nhelp, com_function nfunction) {
+		place = nplace;
 		type = ntype;
 		title = nTitle;
 		help = nhelp;
@@ -50,15 +59,19 @@ public:
 
 	OneCom com_list[COM_COUNT] {
 
-		//			type 					title 				help 																function
-		OneCom { 	COM_RESET, 				"reset", 			"Resets the SCK", 													reset_com},
-		OneCom { 	COM_GET_VERSION, 		"version",	 		"Shows versions",				 									getVersion_com},
-		OneCom {	COM_RESET_CAUSE,		"rcause",			"Show last reset cause (debug)",									resetCause_com},
-		OneCom {	COM_OUTLEVEL,			"outlevel",			"Shows or sets outlevel [0:silent, 1:normal, 2:verbose]",			outlevel_com},
-		OneCom {	COM_HELP,				"help",				"Duhhhh!!",															help_com},
-		OneCom {	COM_PINMUX,				"pinmux",			"Shows SAMD pin mapping status",									pinmux_com},
-
-		OneCom {	COM_ESP_CONTROL,		"esp",				"Controls ESP wifi [on, off, reboot, debug]",						esp_com}
+		//			place	type 					title 				help 																function
+		OneCom { 	10,		COM_RESET, 				"reset", 			"Resets the SCK", 													reset_com},
+		OneCom { 	20,		COM_GET_VERSION, 		"version",	 		"Shows versions",				 									getVersion_com},
+		OneCom {	30,		COM_RESET_CAUSE,		"rcause",			"Show last reset cause (debug)",									resetCause_com},
+		OneCom {	40,		COM_OUTLEVEL,			"outlevel",			"Shows or sets outlevel [0:silent, 1:normal, 2:verbose]",			outlevel_com},
+		OneCom {	50,		COM_HELP,				"help",				"Duhhhh!!",															help_com},
+		OneCom {	60,		COM_PINMUX,				"pinmux",			"Shows SAMD pin mapping status",									pinmux_com},
+		OneCom {	80,		COM_LIST_SENSOR,		"sensors",			"Shows a list of enabled/disabled sensors",							listSensor_com},
+		OneCom {	90,		COM_READ_SENSOR,		"read",				"Reads sensor [sensorName]",										readSensor_com},
+		OneCom {	90,		COM_GET_FREERAM,		"free",				"Shows the amount of free RAM memory",								freeRAM_com},
+		OneCom {	90,		COM_BATT_REPORT,		"batt",				"Shows the battery state",											battReport_com},
+		
+		OneCom {	100,	COM_ESP_CONTROL,		"esp",				"Controls ESP wifi [on, off, reboot, debug]",						esp_com}
 
 	};
 

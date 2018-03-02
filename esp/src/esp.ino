@@ -11,18 +11,15 @@ void loop() {
 }
 
 
-// void LedToggleLeft() {
-// 	esp.ledToggle(esp.ledLeft);G
-// }
-// void LedToggleRight() {
-// 	esp.ledToggle(esp.ledRight);
-// }
+void ledToggle() {
+	esp._ledToggle();
+}
 // time_t ntpProvider() {
 // 	return esp.getNtpTime();
 // }
 // void extSet() {
 // 	esp.webSet();
-// 
+// }
 // void extStatus() {
 // 	esp.webStatus();
 // }

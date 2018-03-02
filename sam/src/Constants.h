@@ -56,4 +56,3 @@
 //OLED Screen 					0x3c	// I2C Address of the Groove OLED Screen
 
 #define RESOLUTION_ANALOG    	4095.   	// Rsolution of the analog inputs
-#define ohmsPerStep				392.1568    // Ohms for each potenciometer step

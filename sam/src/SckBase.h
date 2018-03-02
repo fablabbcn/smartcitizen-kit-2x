@@ -5,9 +5,13 @@
 #include <SPI.h>
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
-#include <SoftwareSerial.h>
+#include <SPIFlash.h>
+#include <SoftwareSerial.h>		// To be removed
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
+
+// Battery gauge
+#include <SparkFunBQ27441.h>
 
 #include "Pins.h"
 #include "SckLed.h"
@@ -23,13 +27,8 @@
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
 enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
 
-// Forward declaration
-// class AllCommands;
-
 class SckBase {
 private:
-
-	const uint8_t pinPwrSave = 38; 		// PA13 -- TPS63001 PS/SYNC (Enable/disable power-save mode (1 disabled, 0 enabled)
 
 	// Input
 	String serialBuff;
@@ -45,30 +44,40 @@ private:
 	
 	// Configuration
 	Configuration config;
+	// void saveSDconfig();
 
 	// ESP8266
 	const uint32_t ESP_FLASH_SPEED = 921600;
 
 	// Urban board
 	bool urbanPresent = false;
+	friend class urban;
 	SckUrban urban;
-	bool urbanBoardDetected();
 
+	// STORAGE
+	// files
+	struct SckFile {char name[13]; File file;};
+	SckFile configFile {"CONFIG.TXT"};
+	SckFile postFile {"POST.CSV"};
+	SckFile debugFile {"DEBUG.CSV"};
 	// Sd card
-	bool cardPresent = false;
 	SdFat sd;
-	File publishFile;
-	File logFile;
-	File configFile;
-	File debugLogFile;
-	bool sdBegin();
-	bool openConfigFile(bool onlyRead=false);
-	char configFileName[11] = "CONFIG.TXT";
+	bool cardPresent = false;
+	void sdSelect();
+	bool sdOpenFile(SckFile wichFile, uint8_t oflag);
+	// Flash memory
+	SPIFlash flash = SPIFlash(pinCS_FLASH);
+	void flashSelect();
+	// bool flashOpenFile(SckFile wichFile, uint8_t oflag);
+	// remember this for power management
+	// flash.powerDown();
+	// flash.powerUp();
 
-	// To ORGANIZE
+	// Power
+	uint16_t battCapacity = 2000;
+	bool batteryPresent = false;
 	bool onUSB = true;
-
-
+	bool battSetup();
 
 public:
 
@@ -79,6 +88,10 @@ public:
 	SckLed led;
 	friend class SckButton;
 	RTCZero rtc;
+
+	// Sensors
+	AllSensors sensors;
+	bool getReading(SensorType wichSensor, bool wait=true);
 
 	// Input
 	void inputUpdate();
@@ -105,12 +118,17 @@ public:
 	void ESPcontrol(ESPcontrols myESPControl);
 	bool flashingESP = false;
 	uint32_t espStarted;
-	void reset();
 
 	// SDcard
-	bool cardDetect();
+	bool sdDetect();
+
+	// Power
+	void reset();
+	void batteryEvent();
+	void batteryReport();
 
 };
 
 void ISR_button();
-void ISR_cardDetect();
+void ISR_battery();
+void ISR_sdDetect();

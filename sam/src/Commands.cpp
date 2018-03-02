@@ -35,6 +35,31 @@ void getVersion_com(SckBase* base, String parameters) {
 	base->sckOut("SAM Version ");
 	base->sckOut("ESP version ");
 }
+void resetCause_com(SckBase* base, String parameters) {
+
+	uint8_t resetCause = PM->RCAUSE.reg;
+
+	switch(resetCause){
+		case 1:
+			base->sckOut("POR: Power On Reset");
+			break;
+		case 2:
+			base->sckOut("BOD12: Brown Out 12 Detector Reset");
+			break;
+		case 4:
+			base->sckOut("BOD33: Brown Out 33 Detector Reset");
+			break;
+		case 16:
+			base->sckOut("EXT: External Reset");
+			break;
+		case 32:
+			base->sckOut("WDT: Watchdog Reset");
+			break;
+		case 64:
+			base->sckOut("SYST: System Reset Request");
+			break;
+	}
+}
 void outlevel_com(SckBase* base, String parameters) {
 
 	// get
@@ -60,45 +85,19 @@ void outlevel_com(SckBase* base, String parameters) {
 }
 void help_com(SckBase* base, String parameters) {
 
-	// list commands
-	if (parameters.length() <= 0) {
-	
-		base->sckOut("Command list:\n");
+	base->sckOut();
+	for (uint8_t i=0; i < COM_COUNT; ++i) {
 
-		uint8_t numberOfColumns = 3;
+		CommandType thisType = static_cast<CommandType>(i);
+		OneCom *thisCommand = &base->commands[thisType];
 
-		for (uint8_t i=0; i < COM_COUNT; ++i) {
+		String sep = "            ";
+		sep.remove(sep.length() -String(thisCommand->title).length());
 
-			CommandType thisType = static_cast<CommandType>(i);
-			OneCom *thisCommand = &base->commands[thisType];
-
-
-			if ((i+1) % numberOfColumns == 0) {
-				sprintf(base->outBuff, "%s%s", base->outBuff, thisCommand->title);
-				base->sckOut();
-			} else {
-				sprintf(base->outBuff, "%s%s%s", base->outBuff, thisCommand->title, "\t");
-				if (String(thisCommand->title).length() < 8) sprintf(base->outBuff, "%s%s", base->outBuff, "\t");
-			}
-		}
+		sprintf(base->outBuff, "%s:%s%s", thisCommand->title, sep.c_str(), thisCommand->help);
 		base->sckOut();
-		base->sckOut("Type help [command name] to see command description.");
-
-	// Specific command help
-	} else {
-
-		for (uint8_t i=0; i < COM_COUNT; ++i) {
-
-			CommandType thisType = static_cast<CommandType>(i);
-			OneCom *thisCommand = &base->commands[thisType];
-
-			if (parameters.startsWith(thisCommand->title)) {
-				base->sckOut(thisCommand->help);
-				break;
-			}
-		}
-
 	}
+	base->sckOut();
 }
 void pinmux_com(SckBase* base, String parameters){
 
@@ -106,7 +105,47 @@ void pinmux_com(SckBase* base, String parameters){
     	pinmux_report(pin, base->outBuff, 0);
     	base->sckOut();	
 	}
+}
+void listSensor_com(SckBase* base, String parameters) {
+
+	SensorType thisType = SENSOR_COUNT;
+
+	sprintf(base->outBuff, "\r\nDisabled\r\n----------");
+	base->sckOut();
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		thisType = static_cast<SensorType>(i);
+
+		if (!base->sensors[thisType].enabled) base->sckOut(base->sensors[thisType].title);
+	}
+
+	sprintf(base->outBuff, "\r\nEnabled\r\n----------");
+	base->sckOut();
+	// Get sensor type
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		thisType = static_cast<SensorType>(i);
+
+		if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].interval) + " sec)");
+	}
+}
+void readSensor_com(SckBase* base, String parameters) {
+
+	SensorType sensorToRead = base->sensors.getTypeFromString(parameters);
+
+	if (base->getReading(sensorToRead, true)) sprintf(base->outBuff, "%s: %s %s", base->sensors[sensorToRead].title, base->sensors[sensorToRead].reading.c_str(), base->sensors[sensorToRead].unit);
+	else sprintf(base->outBuff, "ERROR reading %s sensor!!!", base->sensors[sensorToRead].title);
+	base->sckOut();
+}
+extern "C" char *sbrk(int i);
+void freeRAM_com(SckBase* base, String parameters) {
 	
+	char stack_dummy = 0;
+	uint32_t free = &stack_dummy - sbrk(0);
+	sprintf(base->outBuff, "Free RAM: %lu bytes", free);
+	base->sckOut();
+}
+void battReport_com(SckBase* base, String parameters) {
+
+	base->batteryReport();
 }
 void esp_com(SckBase* base, String parameters) {
 
@@ -121,30 +160,5 @@ void esp_com(SckBase* base, String parameters) {
 	else if (parameters.equals("flash")) base->ESPcontrol(base->ESP_FLASH);
 	else if (parameters.equals("debug")) {
 		// TODO toggle esp debug
-	}
-}
-void resetCause_com(SckBase* base, String parameters) {
-
-	uint8_t resetCause = PM->RCAUSE.reg;
-
-	switch(resetCause){
-		case 1:
-			base->sckOut("POR: Power On Reset");
-			break;
-		case 2:
-			base->sckOut("BOD12: Brown Out 12 Detector Reset");
-			break;
-		case 4:
-			base->sckOut("BOD33: Brown Out 33 Detector Reset");
-			break;
-		case 16:
-			base->sckOut("EXT: External Reset");
-			break;
-		case 32:
-			base->sckOut("WDT: Watchdog Reset");
-			break;
-		case 64:
-			base->sckOut("SYST: System Reset Request");
-			break;
 	}
 }

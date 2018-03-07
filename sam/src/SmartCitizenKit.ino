@@ -19,6 +19,10 @@ void ISR_battery() {
 void ISR_sdDetect() {
 	base.sdDetect();
 }
+// Battery charger interrupt
+void ISR_charger() {
+	base.chargerEvent();
+}
 // Button alarm interrupt
 void TC4_Handler (void) {
 	base.buttonStillDown();

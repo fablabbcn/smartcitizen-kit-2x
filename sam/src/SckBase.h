@@ -6,7 +6,6 @@
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
 #include <SPIFlash.h>
-#include <SoftwareSerial.h>		// To be removed
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
 
@@ -15,6 +14,7 @@
 
 #include "Pins.h"
 #include "SckLed.h"
+#include "SckCharger.h"
 #include "SckPot.h"
 #include "Shared.h"
 #include "Config.h"
@@ -68,10 +68,6 @@ private:
 	// Flash memory
 	SPIFlash flash = SPIFlash(pinCS_FLASH);
 	void flashSelect();
-	// bool flashOpenFile(SckFile wichFile, uint8_t oflag);
-	// remember this for power management
-	// flash.powerDown();
-	// flash.powerUp();
 
 	// Power
 	uint16_t battCapacity = 2000;
@@ -123,6 +119,8 @@ public:
 	bool sdDetect();
 
 	// Power
+	SckCharger charger;
+	void chargerEvent();
 	void reset();
 	void batteryEvent();
 	void batteryReport();
@@ -132,3 +130,4 @@ public:
 void ISR_button();
 void ISR_battery();
 void ISR_sdDetect();
+void ISR_charger();

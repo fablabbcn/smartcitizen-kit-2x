@@ -1,18 +1,10 @@
 #include "SckBase.h"
 #include "Commands.h"
 
-// Software Serial ESP
-SoftwareSerial SerialESP(pinESP_RX_WIFI, pinESP_TX_WIFI);
-
-// Hardware Serial ESP handler (only for flashing)
-Uart SerialFlashESP (&sercom4, pinESP_RX_WIFI, pinESP_TX_WIFI, SERCOM_RX_PAD_1, UART_TX_PAD_0);
-void SERCOM4_Handler() {
-  	SerialFlashESP.IrqHandler();
-}
-
 // Hardware Auxiliary I2C bus
 TwoWire auxWire(&sercom1, pinAUX_WIRE_SDA, pinAUX_WIRE_SCL);
 void SERCOM1_Handler(void) {
+
 	auxWire.onService();
 }
 
@@ -25,6 +17,8 @@ void SckBase::setup() {
 	Wire.begin();
 
 	// Auxiliary I2C bus
+	pinMode(pinPOWER_AUX_WIRE, OUTPUT);
+	digitalWrite(pinPOWER_AUX_WIRE, LOW);	// LOW -> ON , HIGH -> OFF
 	auxWire.begin();
 
 	// Output
@@ -38,7 +32,12 @@ void SckBase::setup() {
 	delay(4000);
 	
 	// Power management configuration
-	// battSetup();
+	// batteryEvent();
+	pinMode(pinCHARGER_INT, INPUT);
+	LowPower.attachInterruptWakeup(pinCHARGER_INT, ISR_charger, CHANGE);
+	charger.resetConfig();
+	SerialUSB.println(charger.chargeStatusTitle());
+	charger.getNewFault();
 
 	// ESP Configuration
 	pinMode(pinPOWER_ESP, OUTPUT);
@@ -60,40 +59,173 @@ void SckBase::setup() {
 	attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
 	sdDetect();
 
-	// Flash memory
+	// Flash memory 
+	// TODO disable debug messages from library
+	flashSelect();
+	flash.begin();
+	flash.setClock(133000);
+	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
 
+	// *****************REMOVE
+	// uint8_t b1, b2;
+	// uint32_t JEDEC = flash.getJEDECID();
+	// uint32_t maxPage = flash.getMaxPage();
+	// uint32_t capacity = flash.getCapacity();
+	// b1 = (JEDEC >> 16);
+	// b2 = (JEDEC >> 8);
+	// sprintf(outBuff, "Manufacturer ID: %02xh\r\nMemory Type: %02xh\r\nCapacity: %lu bytes\r\nMaximum pages: %lu", b1, b2, capacity, maxPage);
+	// sckOut();
 
-	// Turn off Aux power TEMP THIS WILL BE REMOVED
-	pinMode(31, OUTPUT);
-	digitalWrite(31, LOW);
+	// byte d = 35;
+	// uint32_t addr = random(0, 0xFFFFF);
+	// SerialUSB.println(flash.writeByte(addr, d));
+	// uint8_t _data = flash.readByte(addr);
+	// SerialUSB.println(_data, DEC);
+	// if (_data == d) sckOut("Flash write byte test passed!!!");
+	// else sckOut("Flash write byte test failed!!!");
+
+	// if (flash.powerDown()) sckOut("Succesfully power down flash memory!!!");
+	// if (flash.powerUp()) sckOut("Succesfully waked up flash memory!!!");
+	// **********************
 
 	// Configuration
 	
 	// Urban board
 	urbanPresent = urban.setup();
 	if (urbanPresent) {
-		
 		sckOut("Urban board detected");
 	
 		// Activate enabled sensors
 
 	}
-
-	// TEMP
-	// config.mode = MODE_NET;
-	flashSelect();
-
 }
+
+// TEMP
+uint8_t readConsecutive(uint8_t * dataBuffer, uint8_t startAddress, uint8_t bytes){
+
+	auxWire.begin();
+	SerialUSB.print("1");
+    auxWire.beginTransmission(0x61);
+    SerialUSB.print("2");
+    auxWire.write(startAddress);
+    SerialUSB.print("3");
+    SerialUSB.println(auxWire.endTransmission());
+    SerialUSB.print("4");
+    if(auxWire.requestFrom(0x61, bytes) != bytes){
+        return 0;
+    } else {
+        uint8_t pos;
+        for(pos = 0; pos < bytes; pos++){
+            dataBuffer[pos] = auxWire.read();
+        }
+        return bytes;
+    }
+    SerialUSB.print("5");
+}
+void sendComm(uint16_t comm) {
+  auxWire.beginTransmission(0x44);
+  auxWire.write(comm >> 8);
+  auxWire.write(comm & 0xFF);
+  auxWire.endTransmission();  
+}
+const uint16_t SOFT_RESET = 0x30A2;
+const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
+bool gettemp() {
+
+	uint8_t address = 0x44;
+
+	sendComm(SOFT_RESET);
+
+	uint8_t readbuffer[6];
+	sendComm(SINGLE_SHOT_HIGH_REP);
+  	
+  	auxWire.requestFrom(address, (uint8_t)6);
+
+  	SerialUSB.println("paso;");
+
+  	// Wait for answer (datasheet says 15ms is the max)
+  	uint32_t started = millis();
+  	while(auxWire.available() != 6) {
+  		if (millis() - started > 2000) {
+  			SerialUSB.println("nada...");
+  			return 0;
+  		}
+   	}
+
+  	// Read response
+	for (uint8_t i=0; i<6; i++) {
+		SerialUSB.println(i);
+		readbuffer[i] = auxWire.read();
+	}
+
+	uint16_t ST, SRH;
+	ST = readbuffer[0];
+	ST <<= 8;
+	ST |= readbuffer[1];
+
+	// Check Temperature crc
+	// if (readbuffer[2] != crc8(readbuffer, 2)) return false;
+
+	SRH = readbuffer[3];
+	SRH <<= 8;
+	SRH |= readbuffer[4];
+
+	// check Humidity crc
+	// if (readbuffer[5] != crc8(readbuffer+3, 2)) return false;
+
+	double temp = ST;
+	temp *= 175;
+	temp /= 0xffff;
+	temp = -45 + temp;
+	// temperature = (float)temp;
+	SerialUSB.println(temp);
+
+	double shum = SRH;
+	shum *= 100;
+	shum /= 0xFFFF;
+	// humidity = (float)shum;
+	SerialUSB.println(shum);
+
+	return true;
+}
+
 void SckBase::update() {
 
 	// Check Serial port input
 	inputUpdate();
 
-	// Sent test text via i2C to pm board (address 8)
-	// SerialUSB.println("Sending data to aux i2C");
-	// Wire.beginTransmission(8);
-	// Wire.write("Hola desde el SCK 2.0!!!");
-	// Wire.endTransmission();
+	
+	// TEMP
+	if (millis() % 5000 == 0) {
+
+		delay(1);
+
+		// for (uint8_t pin=0; pin<PINS_COUNT; pin++) {  // For all defined pins
+	 //    	pinmux_report(pin, outBuff, 0);
+	 //    	sckOut();	
+		// }
+		SerialUSB.println("empieza...");
+		gettemp();
+
+
+
+
+
+		// SerialUSB.print("Alphadelta UUID: ");
+
+	 //    uint8_t UIDBytes[4];
+	 //    if(readConsecutive(UIDBytes, 0xFC, 4) != 4){
+	 //        return;
+	 //    }
+
+	 //    uint8_t pos;
+	 //    uint32_t UID = 0;        // Probably not needed
+	 //    for(pos = 0; pos < 4; pos++){
+	 //        UID <<= 8;
+	 //        UID |= UIDBytes[pos];
+	 //    }
+	 //    SerialUSB.println(UID);
+	}
 }
 
 
@@ -243,10 +375,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			sckOut("Putting ESP in flash mode...");
 
 			SerialUSB.begin(ESP_FLASH_SPEED);
-			SerialFlashESP.begin(ESP_FLASH_SPEED);
-
-			pinPeripheral(pinESP_TX_WIFI, PIO_SERCOM_ALT);	// PB8 - TXwifi (A1-15 zeroUSB)	SERCOM4 PAD[0]
-  			pinPeripheral(pinESP_RX_WIFI, PIO_SERCOM_ALT);	// PB9 - RXwifi (A2-16 zeroUSB)	SERCOM4 PAD[1]
+			SerialESP.begin(ESP_FLASH_SPEED);
 
 			ESPcontrol(ESP_OFF);
 
@@ -262,11 +391,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			uint32_t startTimeout = millis();
 			while(1) {
 				if (SerialUSB.available()) {
-					SerialFlashESP.write(SerialUSB.read());
+					//SerialFlashESP.write(SerialUSB.read());
+					SerialESP.write(SerialUSB.read());
 					flashTimeout = millis();	// If something is received restart timer
 				}
-				if (SerialFlashESP.available()) {
-					SerialUSB.write(SerialFlashESP.read());
+				if (SerialESP.available()) {
+					//SerialUSB.write(SerialFlashESP.read());
+					SerialUSB.write(SerialESP.read());
 				} 
 				if (millis() - flashTimeout > 1000) {
 					if (millis() - startTimeout > 8000) reset();		// Giva an initial 8 seconds for the flashing to start
@@ -340,77 +471,7 @@ void SckBase::flashSelect() {
 
 	digitalWrite(pinCS_SDCARD, HIGH);	// disables SDcard
 	digitalWrite(pinCS_FLASH, LOW);
-
-	sckOut("Starting flash memory...");
-
-	// Get ID
-	// SPI.begin();
-	flash.begin(MB(8));
-	flash.setClock(70000000);
-
-	uint8_t b1, b2;
-	uint32_t JEDEC = flash.getJEDECID();
-	uint32_t maxPage = flash.getMaxPage();
-	uint32_t capacity = flash.getCapacity();
-	b1 = (JEDEC >> 16);
-	b2 = (JEDEC >> 8);
-
-	sprintf(outBuff, "JEDEC ID: %u\r\nMax page: %u\r\nCapacity: %u", JEDEC, maxPage, capacity);
-	sckOut();
-
-
-
-	// uint32_t wTime = 0;
-	// uint32_t rTime, addr;
-	// uint8_t _data, _d;
-	// _d = 35;
-
-	// addr = random(0, 0xFFFFF);
-  	flash.eraseSector(35);
-	flash.writeChar(35, 32);
-
-	// if (flash.writeByte(addr, _d)) wTime = flash.functionRunTime();
-	// _data = flash.readByte(addr);
-	// rTime = flash.functionRunTime();
-
-	// SerialUSB.print ("\t\t\tByte: \t\t");
-	// if (_data == _d) SerialUSB.println("Data I/O Passed!");
-	// else SerialUSB.println("Data I/O ERROR!");
-  
-	// if (rTime != 0) {
-	// 	SerialUSB.print(F("\t\tWrite Time: "));
- //    	SerialUSB.print(wTime);
- //    	SerialUSB.println(" us");
- //    	SerialUSB.print(F(",\tRead Time: "));
- //    	SerialUSB.print(rTime);
- //    	SerialUSB.println(" us");
- //  	} else {
- //    	SerialUSB.print(F("\t\tTime: "));
- //    	SerialUSB.print(wTime);
- //    	SerialUSB.println(" us");;
-	// }
-
-
-  // long long _uniqueID = flash.getUniqueID();
-  // sprintf(outBuff, "unique ID: %u", _uniqueID);
-  // sckOut();
-
-	// SPI.beginTransaction(_settings);
-
-	// SPI.transfer(SPIFLASH_IDREAD);
-
-	// uint16_t jedecid = SPI.transfer(0) << 8;
-	// jedecid |= SPI.transfer(0);
 }
-// bool SckBase::flashOpenFile(SckFile wichFile, uint8_t oflag) {
-
-// 	if (flashBegin()) {
-// 		// if (oflag == O_CREAT) flash.remove(wichFile.name);	// Delete the file if we need a new one.
-// 		// wichFile.file = flash.open(wichFile.name, oflag);
-// 		return true;
-// 	}
-// 	return false;
-// }
 
 // Power
 bool SckBase::battSetup() {
@@ -428,7 +489,6 @@ bool SckBase::battSetup() {
 		lipo.exitConfig();
 
 		// Force an update
-		batteryEvent();
 		return true;
 	}
 	return false;
@@ -438,13 +498,15 @@ void SckBase::batteryEvent(){
 	getReading(SENSOR_BATT_PERCENT);
 
 	if (sensors[SENSOR_BATT_PERCENT].reading.toInt() != 0) {
-		batteryPresent = true;
+		if (!batteryPresent) {
+			battSetup();
+			batteryPresent = true;
+		}
 		sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
 	} else {
 
 		// TODO
 		// To confirm no battery is present we should check the state of charger here
-
 		batteryPresent = false;
 		sprintf(outBuff, "No battery present!!");
 	}
@@ -466,7 +528,10 @@ void SckBase::reset() {
 	sckOut("Bye!!");
 	NVIC_SystemReset();
 }
-
+void SckBase::chargerEvent() {
+	sckOut("charger event!!!");
+	led.update(led.YELLOW, led.PULSE_STATIC);
+}
 // Sensors
 bool SckBase::getReading(SensorType wichSensor, bool wait) {
 

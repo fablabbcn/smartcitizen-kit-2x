@@ -14,7 +14,7 @@ void SckESP::setup() {
 	digitalWrite(pinLED, LOW);
 
 	Serial.begin(serialBaudrate);
-	Serial.setDebugOutput(false);	
+	Serial.setDebugOutput(false);
 	
 	SPIFFS.begin();
 
@@ -31,7 +31,7 @@ void SckESP::setup() {
 	WiFi.persistent(false);		 		// Only write to flash credentials when changed (for protecting flash from wearing out)
 
 	// WiFi.begin("IAAC-OFFICE-C", "enteroffice2016");
-	startAP();
+	// startAP();
 
 }
 void SckESP::update() {
@@ -41,6 +41,8 @@ void SckESP::update() {
 	if (currentWIFIStatus == WL_CONNECTED) {
 		ledSet(1);
 	}
+
+
 
 }
 

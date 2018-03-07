@@ -198,7 +198,7 @@ bool Sck_SHT31::update(bool wait) {
   	
   	Wire.requestFrom(address, (uint8_t)6);
 
-  	// Wait for answer (dtasheet says 15ms i tha max)
+  	// Wait for answer (datasheet says 15ms is the max)
   	uint32_t started = millis();
   	while(Wire.available() != 6) {
   		if (millis() - started > timeout) return 0;
@@ -284,8 +284,8 @@ bool Sck_MICS4514::begin() {
 	setNO2load(5000);
 
 	// REMOVE THIS
-	enable(SENSOR_CO, 0);
-	enable(SENSOR_NO2, 0);
+	// enable(SENSOR_CO, 0);
+	// enable(SENSOR_NO2, 0);
 
 	return true;
 }
@@ -304,15 +304,15 @@ bool Sck_MICS4514::enable(SensorType wichSensor, uint32_t epoch) {
 			
 			// voltaje deseado 2.848v
 			// se supone que el valor correcto (sin capacitancia parasita) era de 13.7%
-			setPWM(SENSOR_CO, 65.7);
-
-
+			setPWM(SENSOR_CO, 65.7); // Esto funciona en las placas sin condensadores
+			// setPWM(SENSOR_CO, 40.0);
 			startHeaterTime_CO = epoch;
 			break;
 		} case SENSOR_NO2: {
 
 			// Con esto obtenemos el valor adecuado de voltaje en el heater (2.184v)
-			setPWM(SENSOR_NO2, 34.8);
+			setPWM(SENSOR_NO2, 34.8); // Esto funciona en las placas sin condensadores
+			// setPWM(SENSOR_NO2, 33.8);
 			startHeaterTime_NO2 = epoch;
 			break;
 		} default: break;
@@ -419,7 +419,7 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle) {
 	// Frequency = 48MHz / (2 * 1 * 96) = 250 kHz
 	// Resolution at 250kHz = log(96 + 1) / log(2) = 6.6 bits
 
-	uint8_t resolution = 12;					// Resolution in bits
+	uint8_t resolution = 10;					// Resolution in bits
 	uint16_t maxValue = pow(2, resolution);
 
 	REG_GCLK_GENDIV = GCLK_GENDIV_DIV(1) |          // Divide the 48MHz clock source by divisor 1: 48MHz/1=48MHz

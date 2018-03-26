@@ -147,6 +147,46 @@ void battReport_com(SckBase* base, String parameters) {
 
 	base->batteryReport();
 }
+
+#include <Wire.h>
+#include "wiring_private.h"
+// Hardware Auxiliary I2C bus
+// TwoWire Wire1(&sercom1, pinAUX_WIRE_SDA, pinAUX_WIRE_SCL);
+// void SERCOM1_Handler(void) {
+//   Wire1.onService();
+// }
+void i2cDetect_com(SckBase* base, String parameters) {
+
+	for (uint8_t wichWire=0; wichWire<2; wichWire++) {
+
+		if (wichWire == 0) base->sckOut("Searching for devices on internal I2C bus...");
+		else base->sckOut("\r\nSearching for devices on auxiliary I2C bus...");
+
+		uint8_t nDevices = 0;
+		for(uint8_t address = 1; address < 127; address++ ) {
+
+			uint8_t error;
+			if (wichWire == 0) {
+				Wire.beginTransmission(address);
+				error = Wire.endTransmission();
+			} else {
+				myWire.beginTransmission(address);
+				error = myWire.endTransmission();
+			}
+
+			if (error == 0) {
+				sprintf(base->outBuff, "I2C device found at address 0x%02x!!", address);
+				base->sckOut();
+				nDevices++;
+			} else if (error==4) {
+				sprintf(base->outBuff, "Unknow error at address 0x%02x!!", address);
+				base->sckOut();
+			}
+		}
+		sprintf(base->outBuff, "Found %u devices", nDevices);
+		base->sckOut();
+	}
+}
 void esp_com(SckBase* base, String parameters) {
 
 	if (parameters.length() <= 0) {

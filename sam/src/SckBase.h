@@ -21,7 +21,7 @@
 #include "Commands.h"
 #include "Sensors.h"
 #include "SckUrban.h"
-
+#include "SckAux.h"
 
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};

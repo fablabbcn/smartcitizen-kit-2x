@@ -8,18 +8,63 @@ void SERCOM1_Handler(void) {
 	auxWire.onService();
 }
 
+// Auxiliary I2C devices
+AuxBoards auxBoards;
+
 void SckBase::setup() {
 
 	// Led
 	led.setup();
 
+	// Pause for a moment (for uploading firmware in case of problems)
+	delay(4000);
+	
 	// Internal I2C bus setup
 	Wire.begin();
 
 	// Auxiliary I2C bus
 	pinMode(pinPOWER_AUX_WIRE, OUTPUT);
 	digitalWrite(pinPOWER_AUX_WIRE, LOW);	// LOW -> ON , HIGH -> OFF
+	pinPeripheral(11, PIO_SERCOM);
+	pinPeripheral(13, PIO_SERCOM);
 	auxWire.begin();
+
+	// TEMP Scan, esto se tiene que hacer como una funcion bien hecha de sckAux
+	sckOut("Scanning I2C auxiliary bus");
+	uint8_t ndevices = 0;
+	for (uint8_t i=1; i<127; i++) {
+		auxWire.beginTransmission(i);
+		uint8_t response = auxWire.endTransmission();
+
+		if (response == 0) {
+			ndevices++;
+			sprintf(outBuff, "device found at 0x%02x", i);
+			sckOut();
+		} else if (response == 4) {
+			sprintf(outBuff, "unknown error at %02x", i);
+			sckOut();
+		}
+	}
+	sprintf(outBuff, "Found %u devices", ndevices);
+	sckOut();
+
+	// sckOut("Scanning I2C bus");
+	// uint8_t ndevices = 0;
+	// for (uint8_t i=0; i<127; i++) {
+	// 	Wire.beginTransmission(i);
+	// 	uint8_t response = Wire.endTransmission();
+
+	// 	if (response == 0) {
+	// 		ndevices++;
+	// 		sprintf(outBuff, "device found at 0x%02x", i);
+	// 		sckOut();
+	// 	} else if (response == 4) {
+	// 		sprintf(outBuff, "unknown error at %02x", i);
+	// 		sckOut();
+	// 	}
+	// }
+	// sprintf(outBuff, "Found %u devices", ndevices);
+	// sckOut();
 
 	// Output
 	outputLevel = OUT_VERBOSE;
@@ -28,15 +73,11 @@ void SckBase::setup() {
 	pinMode(pinBUTTON, INPUT_PULLUP);
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
 
-	// Pause for a moment (for uploading firmware in case of problems)
-	delay(4000);
-	
 	// Power management configuration
 	// batteryEvent();
 	pinMode(pinCHARGER_INT, INPUT);
 	LowPower.attachInterruptWakeup(pinCHARGER_INT, ISR_charger, CHANGE);
 	charger.resetConfig();
-	SerialUSB.println(charger.chargeStatusTitle());
 	charger.getNewFault();
 
 	// ESP Configuration
@@ -61,9 +102,9 @@ void SckBase::setup() {
 
 	// Flash memory 
 	// TODO disable debug messages from library
-	flashSelect();
-	flash.begin();
-	flash.setClock(133000);
+	// flashSelect();
+	// flash.begin();
+	// flash.setClock(133000);
 	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
 
 	// *****************REMOVE
@@ -94,138 +135,44 @@ void SckBase::setup() {
 	urbanPresent = urban.setup();
 	if (urbanPresent) {
 		sckOut("Urban board detected");
-	
-		// Activate enabled sensors
-
-	}
-}
-
-// TEMP
-uint8_t readConsecutive(uint8_t * dataBuffer, uint8_t startAddress, uint8_t bytes){
-
-	auxWire.begin();
-	SerialUSB.print("1");
-    auxWire.beginTransmission(0x61);
-    SerialUSB.print("2");
-    auxWire.write(startAddress);
-    SerialUSB.print("3");
-    SerialUSB.println(auxWire.endTransmission());
-    SerialUSB.print("4");
-    if(auxWire.requestFrom(0x61, bytes) != bytes){
-        return 0;
-    } else {
-        uint8_t pos;
-        for(pos = 0; pos < bytes; pos++){
-            dataBuffer[pos] = auxWire.read();
-        }
-        return bytes;
-    }
-    SerialUSB.print("5");
-}
-void sendComm(uint16_t comm) {
-  auxWire.beginTransmission(0x44);
-  auxWire.write(comm >> 8);
-  auxWire.write(comm & 0xFF);
-  auxWire.endTransmission();  
-}
-const uint16_t SOFT_RESET = 0x30A2;
-const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
-bool gettemp() {
-
-	uint8_t address = 0x44;
-
-	sendComm(SOFT_RESET);
-
-	uint8_t readbuffer[6];
-	sendComm(SINGLE_SHOT_HIGH_REP);
-  	
-  	auxWire.requestFrom(address, (uint8_t)6);
-
-  	SerialUSB.println("paso;");
-
-  	// Wait for answer (datasheet says 15ms is the max)
-  	uint32_t started = millis();
-  	while(auxWire.available() != 6) {
-  		if (millis() - started > 2000) {
-  			SerialUSB.println("nada...");
-  			return 0;
-  		}
-   	}
-
-  	// Read response
-	for (uint8_t i=0; i<6; i++) {
-		SerialUSB.println(i);
-		readbuffer[i] = auxWire.read();
 	}
 
-	uint16_t ST, SRH;
-	ST = readbuffer[0];
-	ST <<= 8;
-	ST |= readbuffer[1];
+	// Detect and enable auxiliary boards // TEMP this should be done in aux setup
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
-	// Check Temperature crc
-	// if (readbuffer[2] != crc8(readbuffer, 2)) return false;
+		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 
-	SRH = readbuffer[3];
-	SRH <<= 8;
-	SRH |= readbuffer[4];
+		// Only try to find auxiliary sensors
+		if (wichSensor->location == BOARD_AUX) {
 
-	// check Humidity crc
-	// if (readbuffer[5] != crc8(readbuffer+3, 2)) return false;
+			sprintf(outBuff, "Detecting: %s... ", wichSensor->title);
+			sckOut(PRIO_MED, false);
 
-	double temp = ST;
-	temp *= 175;
-	temp /= 0xffff;
-	temp = -45 + temp;
-	// temperature = (float)temp;
-	SerialUSB.println(temp);
+			if (auxBoards.begin(wichSensor->type)) {
 
-	double shum = SRH;
-	shum *= 100;
-	shum /= 0xFFFF;
-	// humidity = (float)shum;
-	SerialUSB.println(shum);
+				if (!wichSensor->enabled) {
+					sckOut("found!!!");
+					// enableSensor(wichSensor);
+				} else {
+					sckOut("found, already enabled!!!");
+					sckOut();
+				}
 
-	return true;
+			} else {
+				if (wichSensor->enabled) {
+					sckOut("not found!!!");
+					// disableSensor(wichSensor);
+				} else sckOut("nothing!");
+			}
+		}
+	}
 }
 
 void SckBase::update() {
 
 	// Check Serial port input
 	inputUpdate();
-
 	
-	// TEMP
-	if (millis() % 5000 == 0) {
-
-		delay(1);
-
-		// for (uint8_t pin=0; pin<PINS_COUNT; pin++) {  // For all defined pins
-	 //    	pinmux_report(pin, outBuff, 0);
-	 //    	sckOut();	
-		// }
-		SerialUSB.println("empieza...");
-		gettemp();
-
-
-
-
-
-		// SerialUSB.print("Alphadelta UUID: ");
-
-	 //    uint8_t UIDBytes[4];
-	 //    if(readConsecutive(UIDBytes, 0xFC, 4) != 4){
-	 //        return;
-	 //    }
-
-	 //    uint8_t pos;
-	 //    uint32_t UID = 0;        // Probably not needed
-	 //    for(pos = 0; pos < 4; pos++){
-	 //        UID <<= 8;
-	 //        UID |= UIDBytes[pos];
-	 //    }
-	 //    SerialUSB.println(UID);
-	}
 }
 
 
@@ -555,8 +502,10 @@ bool SckBase::getReading(SensorType wichSensor, bool wait) {
 			if (result.startsWith("none")) return false;
 			break;
 		}
-		case BOARD_AUX: break;
-
+		case BOARD_AUX: {
+			SerialUSB.println(auxBoards.getReading(wichSensor));
+			break;
+		}
 	}
 
 	sensors[wichSensor].reading = result;

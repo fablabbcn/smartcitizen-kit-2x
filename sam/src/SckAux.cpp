@@ -540,18 +540,18 @@ bool Atlas::sendCommand(char* command) {
 
 bool Atlas::tempCompensation() {
 
-		String stringData;
-		char data[10];
+	String stringData;
+	char data[10];
 
-		float temperature = waterTemp_DS18B20.getReading();
+	float temperature = waterTemp_DS18B20.getReading();
 
-		if (temperature == 0) return false;
+	if (temperature == 0) return false;
 
-		sprintf(data,"T,%.2f",temperature);
+	sprintf(data,"T,%.2f",temperature);
 
-		if (sendCommand(data)) return true;
+	if (sendCommand(data)) return true;
 
-		return false;
+	return false;
 }
 
 uint8_t Atlas::getResponse() {

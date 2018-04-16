@@ -29,43 +29,6 @@ void SckBase::setup() {
 	pinPeripheral(13, PIO_SERCOM);
 	auxWire.begin();
 
-	// TEMP Scan, esto se tiene que hacer como una funcion bien hecha de sckAux
-	sckOut("Scanning I2C auxiliary bus");
-	uint8_t ndevices = 0;
-	for (uint8_t i=1; i<127; i++) {
-		auxWire.beginTransmission(i);
-		uint8_t response = auxWire.endTransmission();
-
-		if (response == 0) {
-			ndevices++;
-			sprintf(outBuff, "device found at 0x%02x", i);
-			sckOut();
-		} else if (response == 4) {
-			sprintf(outBuff, "unknown error at %02x", i);
-			sckOut();
-		}
-	}
-	sprintf(outBuff, "Found %u devices", ndevices);
-	sckOut();
-
-	// sckOut("Scanning I2C bus");
-	// uint8_t ndevices = 0;
-	// for (uint8_t i=0; i<127; i++) {
-	// 	Wire.beginTransmission(i);
-	// 	uint8_t response = Wire.endTransmission();
-
-	// 	if (response == 0) {
-	// 		ndevices++;
-	// 		sprintf(outBuff, "device found at 0x%02x", i);
-	// 		sckOut();
-	// 	} else if (response == 4) {
-	// 		sprintf(outBuff, "unknown error at %02x", i);
-	// 		sckOut();
-	// 	}
-	// }
-	// sprintf(outBuff, "Found %u devices", ndevices);
-	// sckOut();
-
 	// Output
 	outputLevel = OUT_VERBOSE;
 

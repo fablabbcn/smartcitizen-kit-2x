@@ -171,8 +171,12 @@ void SckBase::inputUpdate() {
 			// Up arrow (previous command)
 			} else if (buff == 27) {
 
+				delayMicroseconds(200);
 				SerialUSB.read();				// drop next char (always 91)
-				if (SerialUSB.read() == 65) {	// detect up arrow
+				delayMicroseconds(200);
+				char tmp = SerialUSB.read();
+				if (tmp != 65) tmp = SerialUSB.read(); // detect up arrow
+				else {
 					for (uint8_t i=0; i<blen; i++) SerialUSB.print("\b \b");	// clean previous command
 					SerialUSB.print(previousCommand);
 					serialBuff = previousCommand;

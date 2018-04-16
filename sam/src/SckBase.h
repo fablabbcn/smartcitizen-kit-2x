@@ -63,7 +63,8 @@ private:
 	// Sd card
 	SdFat sd;
 	bool cardPresent = false;
-	void sdSelect();
+	uint32_t cardLastChange = 0;
+	bool sdSelect();
 	bool sdOpenFile(SckFile wichFile, uint8_t oflag);
 	// Flash memory
 	SPIFlash flash = SPIFlash(pinCS_FLASH);

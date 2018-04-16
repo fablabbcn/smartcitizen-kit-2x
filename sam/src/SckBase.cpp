@@ -378,34 +378,34 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 // SD card
 bool SckBase::sdDetect() {
 
+	// Wait 100 ms to avoid multiple triggered interrupts
+	if (millis() - cardLastChange < 100) return cardPresent;
+
+	cardLastChange = millis();
 	cardPresent = !digitalRead(pinCARD_DETECT);
 
-	if (cardPresent) {
-		sckOut("Sdcard inserted!!");
-		// sdSelect();
-		// if (sd.cardBegin(pinCS_SDCARD)) {
-		// 	sckOut(F("Sdcard ready!!"), PRIO_LOW);
-		// 	return true;
-		// } else {
-		// 	sckOut(F("Sdcard not found!!"));
-		// }
-
-	} else {
-		
-		sckOut("Sdcard removed!!");
-	}
+	if (cardPresent) return sdSelect();
+	else sckOut("No Sdcard found!!");
 	return false;
 }
-void SckBase::sdSelect() {
+bool SckBase::sdSelect() {
+
+	if (!cardPresent) return false;
 
 	digitalWrite(pinCS_FLASH, HIGH);	// disables Flash
 	digitalWrite(pinCS_SDCARD, LOW);
-	sd.begin(pinCS_SDCARD);
+	
+	if (sd.begin(pinCS_SDCARD)) {
+		sckOut(F("Sdcard ready!!"), PRIO_LOW);
+		return true;
+	} else {
+		sckOut(F("Sdcard ERROR!!"));
+		return false;
+	}
 }
 bool SckBase::sdOpenFile(SckFile wichFile, uint8_t oflag) {
 
-	if (cardPresent) {
-		sdSelect();
+	if (sdSelect()) {
 		if (oflag == O_CREAT) sd.remove(wichFile.name);	// Delete the file if we need a new one.
 		wichFile.file = sd.open(wichFile.name, oflag);
 		return true;

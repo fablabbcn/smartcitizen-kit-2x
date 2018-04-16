@@ -513,3 +513,17 @@ bool SckBase::getReading(SensorType wichSensor, bool wait) {
 	sensors[wichSensor].valid = true;
 	return true;;
 }
+
+
+void SckBase::getUniqueID() {
+
+	volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
+	uniqueID[0] = *ptr1;
+
+	volatile uint32_t *ptr = (volatile uint32_t *)0x0080A040;
+	uniqueID[1] = *ptr;
+	ptr++;
+	uniqueID[2] = *ptr;
+	ptr++;
+	uniqueID[3] = *ptr;
+}

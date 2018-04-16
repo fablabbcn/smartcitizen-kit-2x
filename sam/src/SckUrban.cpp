@@ -5,7 +5,7 @@ bool SckUrban::setup() {
 	// TODO implementar una prueba de deteccion y si falla retornar falso.
 
 	// Light
-	if (!sck_bh1721fvc.begin()) return false;;
+	if (!sck_bh1721fvc.begin()) return false;
 
 	// Temperature and Humidity
 	if (!sck_sht31.begin()) return false;
@@ -274,18 +274,14 @@ bool Sck_MICS4514::begin() {
 	pinMode(pinPWM_HEATER_CO, OUTPUT);
 	pinMode(pinPWM_HEATER_NO2, OUTPUT);
 	
-	digitalWrite(pinPWM_HEATER_CO, HIGH);
-	digitalWrite(pinPWM_HEATER_NO2, HIGH);
-
 	pinMode(pinREAD_CO, INPUT);
 	pinMode(pinREAD_NO2, INPUT);
 
+	disable(SENSOR_CO);
+	disable(SENSOR_NO2);
+
 	// Put the load resistor in middle position
 	setNO2load(5000);
-
-	// REMOVE THIS
-	// enable(SENSOR_CO, 0);
-	// enable(SENSOR_NO2, 0);
 
 	return true;
 }
@@ -302,17 +298,12 @@ bool Sck_MICS4514::enable(SensorType wichSensor, uint32_t epoch) {
 	switch(wichSensor) {
 		case SENSOR_CO: {
 			
-			// voltaje deseado 2.848v
-			// se supone que el valor correcto (sin capacitancia parasita) era de 13.7%
-			setPWM(SENSOR_CO, 65.7); // Esto funciona en las placas sin condensadores
-			// setPWM(SENSOR_CO, 40.0);
+			setPWM(SENSOR_CO, 50.8); 		// This works on proto boards 2.0 rev1 (50.8%)
 			startHeaterTime_CO = epoch;
 			break;
 		} case SENSOR_NO2: {
 
-			// Con esto obtenemos el valor adecuado de voltaje en el heater (2.184v)
-			setPWM(SENSOR_NO2, 34.8); // Esto funciona en las placas sin condensadores
-			// setPWM(SENSOR_NO2, 33.8);
+			setPWM(SENSOR_NO2, 76.2); 		// This works on proto boards 2.0 rev1 (76.2%)
 			startHeaterTime_NO2 = epoch;
 			break;
 		} default: break;

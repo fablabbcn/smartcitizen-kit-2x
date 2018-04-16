@@ -152,14 +152,6 @@ void battReport_com(SckBase* base, String parameters) {
 
 	base->batteryReport();
 }
-
-#include <Wire.h>
-#include "wiring_private.h"
-// Hardware Auxiliary I2C bus
-// TwoWire Wire1(&sercom1, pinAUX_WIRE_SDA, pinAUX_WIRE_SCL);
-// void SERCOM1_Handler(void) {
-//   Wire1.onService();
-// }
 void i2cDetect_com(SckBase* base, String parameters) {
 
 	for (uint8_t wichWire=0; wichWire<2; wichWire++) {
@@ -175,8 +167,8 @@ void i2cDetect_com(SckBase* base, String parameters) {
 				Wire.beginTransmission(address);
 				error = Wire.endTransmission();
 			} else {
-				myWire.beginTransmission(address);
-				error = myWire.endTransmission();
+				auxWire.beginTransmission(address);
+				error = auxWire.endTransmission();
 			}
 
 			if (error == 0) {

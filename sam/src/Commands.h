@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-extern TwoWire myWire;
+extern TwoWire auxWire;
 
 class SckBase;
 

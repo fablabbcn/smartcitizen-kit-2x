@@ -18,11 +18,12 @@ enum CommandType {
 	COM_PINMUX,
 	COM_LIST_SENSOR,
 	COM_READ_SENSOR,
-	COM_ESP_CONTROL,
 	COM_GET_FREERAM,
 	COM_BATT_REPORT,
 	COM_I2C_DETECT,
 	
+	COM_ESP_CONTROL,
+
 	COM_COUNT
 };
 
@@ -66,7 +67,7 @@ public:
 
 		//			place	type 					title 				help 																function
 		OneCom { 	10,		COM_RESET, 				"reset", 			"Resets the SCK", 													reset_com},
-		OneCom { 	20,		COM_GET_VERSION, 		"version",	 		"Shows versions",				 									getVersion_com},
+		OneCom { 	20,		COM_GET_VERSION, 		"version",	 		"Shows versions and Hardware ID",				 									getVersion_com},
 		OneCom {	30,		COM_RESET_CAUSE,		"rcause",			"Show last reset cause (debug)",									resetCause_com},
 		OneCom {	40,		COM_OUTLEVEL,			"outlevel",			"Shows or sets outlevel [0:silent, 1:normal, 2:verbose]",			outlevel_com},
 		OneCom {	50,		COM_HELP,				"help",				"Duhhhh!!",															help_com},

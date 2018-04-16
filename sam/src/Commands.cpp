@@ -1,6 +1,7 @@
 #include "Commands.h"
 #include "SckBase.h"
 
+
 void AllCommands::in(SckBase* base, String strIn) {
 
 	if (strIn.length() <= 0) return;
@@ -31,9 +32,13 @@ void reset_com(SckBase* base, String parameters) {
 	base->reset();
 }
 void getVersion_com(SckBase* base, String parameters) {
-	base->sckOut("Hardware Version ");
-	base->sckOut("SAM Version ");
-	base->sckOut("ESP version ");
+	base->sckOut("Hardware Version: ");
+	base->sckOut("SAM Version: ");
+	base->sckOut("ESP version: ");
+
+	base->getUniqueID();
+	sprintf(base->outBuff, "Hardware ID: %lx-%lx-%lx-%lx", base->uniqueID[0], base->uniqueID[1], base->uniqueID[2], base->uniqueID[3]);
+	base->sckOut();
 }
 void resetCause_com(SckBase* base, String parameters) {
 

@@ -125,6 +125,8 @@ public:
 	void batteryEvent();
 	void batteryReport();
 
+	void getUniqueID();
+	uint32_t uniqueID[4];
 };
 
 void ISR_button();

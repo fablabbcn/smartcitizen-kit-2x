@@ -16,7 +16,6 @@ private:
 
 	// Input/Output
 	void debugOUT(String strOut);
-	bool serialDebug = true;
 	bool serialDebug = false;
 	bool telnetDebug = true;
 

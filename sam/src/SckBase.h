@@ -22,6 +22,7 @@
 #include "Sensors.h"
 #include "SckUrban.h"
 #include "SckAux.h"
+#include "SckTimer.h"
 
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
@@ -40,6 +41,7 @@ private:
 	enum ButtonStage { BUT_STARTED, BUT_LONG_PRESS, BUT_VERY_LONG };
 	ButtonStage buttonStage = BUT_STARTED;
 	bool alarmRunning_TC4 = false;
+	bool alarmRunning_TC3 = false;
 	uint32_t buttonLastEvent = 0;
 	
 	// Configuration
@@ -128,6 +130,11 @@ public:
 
 	void getUniqueID();
 	uint32_t uniqueID[4];
+
+	// Timers
+	Task nextTask;
+	void timerAlarm();
+	void setTimer(uint16_t lapse=0, Task task=TASK_COUNT);
 };
 
 void ISR_button();

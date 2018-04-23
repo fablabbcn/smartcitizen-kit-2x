@@ -1,5 +1,7 @@
 #include "SckESP.h"
 
+// Telnet debug 
+RemoteDebug Debug;
 
 // Web Server
 ESP8266WebServer webServer(80);
@@ -33,6 +35,12 @@ void SckESP::setup() {
 	// WiFi.begin("IAAC-OFFICE-C", "enteroffice2016");
 	// startAP();
 
+	if (telnetDebug) {
+		Debug.begin(hostname);
+		Debug.setResetCmdEnabled(true);
+		Debug.showColors(true);
+		Debug.setSerialEnabled(false);
+	}
 }
 void SckESP::update() {
 
@@ -43,6 +51,7 @@ void SckESP::update() {
 	}
 
 
+	if (telnetDebug) Debug.handle();
 
 }
 
@@ -416,6 +425,8 @@ void SckESP::update() {
 // }
 void SckESP::debugOUT(String strOut) {
 
+	if (telnetDebug) DEBUG(strOut.c_str());
+	
 	if (serialDebug) { 
 		// msgOut.com = ESP_DEBUG_EVENT;
 		// strOut.toCharArray(msgOut.param, 240);

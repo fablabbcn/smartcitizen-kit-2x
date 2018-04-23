@@ -6,6 +6,7 @@
 #include <ESP8266mDNS.h>
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
+#include "RemoteDebug.h"
 
 #include <Arduino.h>
 #include "Shared.h"
@@ -16,6 +17,8 @@ private:
 	// Input/Output
 	void debugOUT(String strOut);
 	bool serialDebug = true;
+	bool serialDebug = false;
+	bool telnetDebug = true;
 
 	// Led control
 	const uint8_t pinLED = 4; 	// GPIO5

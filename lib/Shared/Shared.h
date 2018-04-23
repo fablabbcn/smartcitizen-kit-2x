@@ -15,5 +15,4 @@ enum SCKmodes {
 // 	"sleep"			// modeTitles[MODE_SLEEP]
 // };
 
-// Serial Comunication (2400 funciona)
-const uint32_t serialBaudrate = 2400;
+const uint32_t serialBaudrate = 115200;

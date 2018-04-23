@@ -31,6 +31,7 @@ void SckBase::setup() {
 
 	// Output
 	outputLevel = OUT_VERBOSE;
+	SerialESP.begin(serialBaudrate);
 
 	// Button
 	pinMode(pinBUTTON, INPUT_PULLUP);
@@ -320,9 +321,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			break;
 
 		} case ESP_ON: {
-
-			SerialUSB.begin(serialBaudrate);
-			SerialESP.begin(serialBaudrate);
 
 			sckOut("Turning ESP on...");
 			digitalWrite(pinESP_CH_PD, HIGH);

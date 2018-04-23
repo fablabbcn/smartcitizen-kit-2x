@@ -1,4 +1,13 @@
-// #pragma once
+#pragma once
+
+enum Task {
+
+	T_OTG_ON,
+	T_OTG_OFF,
+
+	TASK_COUNT
+};
+
 
 // // Timer
 // 	bool timerRun();

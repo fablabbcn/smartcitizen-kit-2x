@@ -1,3 +1,76 @@
+#include "SckBase.h"
+#include "SckTimer.h"
+
+
+void SckBase::setTimer(uint16_t lapse, Task task) {
+
+	nextTask = task;
+
+	if(alarmRunning_TC3 || lapse == 0) {
+
+		TC3->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
+		while(TC3->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
+		alarmRunning_TC3 = false;
+
+		nextTask = TASK_COUNT;
+
+	} else {
+
+		// Clock the timer with the core cpu clock (48MHz)
+		GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_ID_TCC2_TC3 );
+		while(GCLK->STATUS.bit.SYNCBUSY);
+
+		// Reset the TC
+		TC3->COUNT16.CTRLA.reg = TC_CTRLA_SWRST;
+		while(TC3->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
+		while(TC3->COUNT16.CTRLA.bit.SWRST);
+
+		// Set Timer counter Mode to 16 bits
+		TC3->COUNT16.CTRLA.reg |= TC_CTRLA_MODE_COUNT16;
+
+		// Set TC5 mode as match frequency
+		TC3->COUNT16.CTRLA.reg |= TC_CTRLA_WAVEGEN_MFRQ;
+
+		TC3->COUNT16.CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1024 | TC_CTRLA_ENABLE;
+
+		TC3->COUNT16.CC[0].reg = uint32_t(46.875 * lapse);
+		while(TC3->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
+		
+		// Configure interrupt request
+		NVIC_DisableIRQ(TC3_IRQn);
+		NVIC_ClearPendingIRQ(TC3_IRQn);
+		NVIC_SetPriority(TC3_IRQn, 2); //you can change priority between 0 (Highest priority) and 2 (lowest)
+		NVIC_EnableIRQ(TC3_IRQn);
+
+		// Enable the TC5 interrupt request
+		TC3->COUNT16.INTENSET.bit.MC0 = 1;
+		while(TC3->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
+		
+		//enable the counter (from now your getting interrupt)
+		TC3->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
+		while(TC3->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
+
+		alarmRunning_TC3 = true;
+	}
+}
+
+void SckBase::timerAlarm() {
+	SerialUSB.println("caca");
+	sckOut("timer alarm!!!");
+
+	switch (nextTask) {
+
+		case T_OTG_ON: {
+			charger.OTG(1);
+			break;
+		} case T_OTG_OFF : {
+			charger.OTG(0);
+			break;
+		} default: break;
+	}
+	
+	setTimer();
+}
 
 
 // // 	-----------------

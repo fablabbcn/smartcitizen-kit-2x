@@ -38,11 +38,9 @@ void SckBase::setup() {
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
 
 	// Power management configuration
-	// batteryEvent();
-	pinMode(pinCHARGER_INT, INPUT);
-	LowPower.attachInterruptWakeup(pinCHARGER_INT, ISR_charger, CHANGE);
-	charger.resetConfig();
-	charger.getNewFault();
+	// battSetup();
+	charger.setup();
+	
 
 	// ESP Configuration
 	pinMode(pinPOWER_ESP, OUTPUT);
@@ -441,9 +439,39 @@ void SckBase::reset() {
 	NVIC_SystemReset();
 }
 void SckBase::chargerEvent() {
-	sckOut("charger event!!!");
-	led.update(led.YELLOW, led.PULSE_STATIC);
+	// If charge is finished disable it, to avoid multiple interrupts 
+	// Maybe when we have batt detection on top this is not necesary!!!
+	if (charger.getChargeStatus() == charger.CHRG_CHARGE_TERM_DONE) {
+		sckOut("Batterry fully charged... or removed");
+		charger.chargeState(0);
+		// led.update(led.YELLOW, led.PULSE_STATIC);
+	}
+
+	while (charger.getDPMstatus()) {} // Wait for DPM detection finish
+	
+	if (charger.getPowerGoodStatus()) {
+		
+		onUSB = true;
+		// led.update(led.GREEN, led.PULSE_STATIC);
+		// charger.OTG(false);
+		
+	} else { 
+		
+		onUSB = false;
+		// led.update(led.BLUE, led.PULSE_STATIC);
+		// charger.OTG(true);
+
+	}
+
+	// TODO, React to any charger fault
+	if (charger.getNewFault() != 0) {
+		sckOut("Charger fault!!!");
+		// led.update(led.YELLOW, led.PULSE_STATIC);
+	}
+	
+	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }
+
 // Sensors
 bool SckBase::getReading(SensorType wichSensor, bool wait) {
 

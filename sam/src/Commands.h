@@ -21,7 +21,7 @@ enum CommandType {
 	COM_GET_FREERAM,
 	COM_BATT_REPORT,
 	COM_I2C_DETECT,
-	
+	COM_GET_CHARGER_CONF,
 	COM_ESP_CONTROL,
 
 	COM_COUNT
@@ -39,7 +39,9 @@ void readSensor_com(SckBase* base, String parameters);
 void freeRAM_com(SckBase* base, String parameters);
 void battReport_com(SckBase* base, String parameters);
 void i2cDetect_com(SckBase* base, String parameters);
+void getCharger_com(SckBase* base, String parameters);
 void esp_com(SckBase* base, String parameters);
+
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -77,7 +79,7 @@ public:
 		OneCom {	90,		COM_GET_FREERAM,		"free",				"Shows the amount of free RAM memory",								freeRAM_com},
 		OneCom {	90,		COM_BATT_REPORT,		"batt",				"Shows the battery state",											battReport_com},
 		OneCom {	90,		COM_I2C_DETECT,			"i2c",				"Search the I2C bus for devices",									i2cDetect_com},
-		
+		OneCom {	90,		COM_GET_CHARGER_CONF,	"charger",			"Shows charger configuration",										getCharger_com},
 		OneCom {	100,	COM_ESP_CONTROL,		"esp",				"Controls ESP wifi [on, off, reboot, debug]",						esp_com}
 
 	};

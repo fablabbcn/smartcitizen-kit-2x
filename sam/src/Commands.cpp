@@ -184,6 +184,38 @@ void i2cDetect_com(SckBase* base, String parameters) {
 		base->sckOut();
 	}
 }
+void getCharger_com(SckBase* base, String parameters) {
+
+	// sprintf(base->outBuff, "%u", base->charger.chargeTimer(parameters.toInt()));	
+	// base->sckOut();
+
+	if (parameters.endsWith("otg")) base->charger.OTG(0);
+
+	sprintf(base->outBuff, "Battery: %s", base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
+	base->sckOut();
+
+	sprintf(base->outBuff, "USB: %s", base->charger.VBUSStatusTitles[base->charger.getVBUSstatus()]);
+	base->sckOut();
+
+	sprintf(base->outBuff, "OTG: %s", base->charger.enTitles[base->charger.OTG()]);
+	base->sckOut();
+
+	sprintf(base->outBuff, "Charge: %s", base->charger.enTitles[base->charger.chargeState()]);
+	base->sckOut();
+
+	sprintf(base->outBuff, "Charger current limit: %u mA", base->charger.chargerCurrentLimit());
+	base->sckOut();
+
+	sprintf(base->outBuff, "Input current limit: %u mA", base->charger.inputCurrentLimit());
+	base->sckOut();
+
+	sprintf(base->outBuff, "I2c watchdog timer: %u sec (0: disabled)", base->charger.I2Cwatchdog());
+	base->sckOut();
+
+	sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
+	base->sckOut();
+
+}
 void esp_com(SckBase* base, String parameters) {
 
 	if (parameters.length() <= 0) {

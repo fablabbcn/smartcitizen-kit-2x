@@ -132,65 +132,61 @@ void SckBase::setup() {
 
 void SckBase::update() {
 
-	// Check Serial port input
-	inputUpdate();
-	
 }
 
 
 // Input
 void SckBase::inputUpdate() {
 
-	if (onUSB) {
-		if (SerialUSB.available()) {
+	if (SerialUSB.available()) {
 
-			char buff = SerialUSB.read();
-			uint16_t blen = serialBuff.length();
+		char buff = SerialUSB.read();
+		uint16_t blen = serialBuff.length();
 
-			// New line
-			if (buff == 13 || buff == 10) {
+		// New line
+		if (buff == 13 || buff == 10) {
 
-				SerialUSB.println();				// Newline
+			SerialUSB.println();				// Newline
 
-				serialBuff.replace("\n", "");		// Clean input
-				serialBuff.replace("\r", "");
-				serialBuff.trim();
+			serialBuff.replace("\n", "");		// Clean input
+			serialBuff.replace("\r", "");
+			serialBuff.trim();
 
-				commands.in(this, serialBuff);		// Process input
-				if (blen > 0) previousCommand = serialBuff;
-				serialBuff = "";
-				prompt();
+			commands.in(this, serialBuff);		// Process input
+			if (blen > 0) previousCommand = serialBuff;
+			serialBuff = "";
+			prompt();
 
-			// Backspace
-			} else if (buff == 127) {
+		// Backspace
+		} else if (buff == 127) {
 
-				if (blen > 0) SerialUSB.print("\b \b");
-				serialBuff.remove(blen-1);
+			if (blen > 0) SerialUSB.print("\b \b");
+			serialBuff.remove(blen-1);
 
-			// Up arrow (previous command)
-			} else if (buff == 27) {
+		// Up arrow (previous command)
+		} else if (buff == 27) {
 
-				delayMicroseconds(200);
-				SerialUSB.read();				// drop next char (always 91)
-				delayMicroseconds(200);
-				char tmp = SerialUSB.read();
-				if (tmp != 65) tmp = SerialUSB.read(); // detect up arrow
-				else {
-					for (uint8_t i=0; i<blen; i++) SerialUSB.print("\b \b");	// clean previous command
-					SerialUSB.print(previousCommand);
-					serialBuff = previousCommand;
-				}
-
-			// Normal char
-			} else {
-
-				serialBuff += buff;
-				SerialUSB.print(buff);				// Echo
-
+			delayMicroseconds(200);
+			SerialUSB.read();				// drop next char (always 91)
+			delayMicroseconds(200);
+			char tmp = SerialUSB.read();
+			if (tmp != 65) tmp = SerialUSB.read(); // detect up arrow
+			else {
+				for (uint8_t i=0; i<blen; i++) SerialUSB.print("\b \b");	// clean previous command
+				SerialUSB.print(previousCommand);
+				serialBuff = previousCommand;
 			}
+
+		// Normal char
+		} else {
+
+			serialBuff += buff;
+			SerialUSB.print(buff);				// Echo
+
 		}
 	}
 }
+
 
 // Output
 void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine) {
@@ -209,6 +205,8 @@ void SckBase::sckOut(PrioLevels priority, bool newLine) {
 			if (newLine) SerialUSB.println(outBuff);
 			else SerialUSB.print(outBuff);
 		}
+	} else  {
+		digitalWrite(pinLED_USB, HIGH);
 	}
 	
 	strncpy(outBuff, "", 240);

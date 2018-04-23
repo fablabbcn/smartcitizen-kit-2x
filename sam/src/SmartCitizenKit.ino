@@ -39,3 +39,7 @@ void setup() {
 void loop() {
 	base.update();
 }
+
+void serialEventRun(){
+	base.inputUpdate();
+}

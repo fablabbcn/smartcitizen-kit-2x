@@ -292,7 +292,9 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			SerialUSB.begin(ESP_FLASH_SPEED);
 			SerialESP.begin(ESP_FLASH_SPEED);
 
-			ESPcontrol(ESP_OFF);
+			digitalWrite(pinESP_CH_PD, LOW);
+			digitalWrite(pinPOWER_ESP, HIGH);
+			delay(500);
 
 			digitalWrite(pinESP_CH_PD, HIGH);
 			digitalWrite(pinESP_GPIO0, LOW);	// LOW for flash mode
@@ -306,12 +308,10 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			uint32_t startTimeout = millis();
 			while(1) {
 				if (SerialUSB.available()) {
-					//SerialFlashESP.write(SerialUSB.read());
 					SerialESP.write(SerialUSB.read());
 					flashTimeout = millis();	// If something is received restart timer
 				}
 				if (SerialESP.available()) {
-					//SerialUSB.write(SerialFlashESP.read());
 					SerialUSB.write(SerialESP.read());
 				} 
 				if (millis() - flashTimeout > 1000) {

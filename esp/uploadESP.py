@@ -15,7 +15,7 @@ def before_upload(source, target, env):
 		myPort.write("")
 		myPort.write("esp flash\n")
 		myPort.close()
-	time.sleep(0.5)
+	time.sleep(2)
 	env.Replace(UPLOAD_PORT=portName)
 
 def after_upload(source, target, env):

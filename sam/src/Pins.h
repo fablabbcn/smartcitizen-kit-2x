@@ -8,6 +8,9 @@ const uint8_t pinRED 	= 6;		// PA20
 const uint8_t pinGREEN 	= 12;		// PA19
 const uint8_t pinBLUE 	= 10;		// PA18
 
+// Other leds
+const uint8_t pinLED_USB = 26;		// PA27
+
 // ESP pins
 const uint8_t pinPOWER_ESP = 	30;	// PB22
 const uint8_t pinESP_TX_WIFI = 	17;	// PA04 - Txwifi in SERCOM0:PAD[0]

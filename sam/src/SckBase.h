@@ -106,7 +106,7 @@ public:
 	void buttonEvent();
 	void buttonStillDown();
 	void setAlarm_TC4(uint16_t lapse=0);
-
+	
 	// Commands
 	AllCommands commands;
 

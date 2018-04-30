@@ -24,3 +24,7 @@ void ledToggle() {
 // void extStatus() {
 // 	esp.webStatus();
 // }
+// Wifi event hadlers
+void onStationConnected(const WiFiEventStationModeConnected& evt) {
+  esp.WifiConnected();
+}

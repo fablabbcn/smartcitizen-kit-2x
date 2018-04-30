@@ -57,6 +57,7 @@ public:
 	void inputUpdate();	
 
 	void _ledToggle();
+	void WifiConnected();
 	
 };
 
@@ -64,3 +65,7 @@ public:
 void ledToggle();
 
 // Static webserver handlers
+void extSet();
+
+// Wifi event handlers
+void onStationConnected(const WiFiEventStationModeConnected& evt);

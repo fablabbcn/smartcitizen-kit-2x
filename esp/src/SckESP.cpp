@@ -28,6 +28,9 @@ void SckESP::setup() {
 	Serial.setDebugOutput(false);
 	manager.init();
 
+	// Event handlers
+	stationConnectedHandler = WiFi.onStationModeConnected(&onStationConnected);
+
 	SPIFFS.begin();
 
 	ledBlink(350); 			// Heartbeat
@@ -54,10 +57,9 @@ void SckESP::setup() {
 }
 void SckESP::update() {
 
-	currentWIFIStatus = WiFi.status();
-
-	if (currentWIFIStatus == WL_CONNECTED) {
-		ledSet(1);
+	if (WiFi.getMode() == WIFI_AP) {
+		dnsServer.processNextRequest();
+		// webServer.handleClient();
 	}
 
 	inputUpdate();
@@ -122,6 +124,12 @@ void SckESP::receiveMessage(ESPMessage wichMessage) {
 }
 
 
+void SckESP::WifiConnected() {
+
+	debugOUT("Conected to Wifi!");
+	ledSet(1);
+	// TODO notify sam
+}
 // 	---------------------
 //	|	Input-Output 	|
 //	---------------------
@@ -499,7 +507,12 @@ void SckESP::debugOUT(String strOut) {
 		// strOut.toCharArray(msgOut.param, 240);
 		// SAMsendMsg();
 		Serial.println(strOut);
+	if (telnetDebug) {
+		strOut += "\r\n";
+		DEBUG(strOut.c_str());
 	}
+	
+	if (serialDebug) Serial.println(strOut);
 }
 // void SckESP::clearParam() {
 
@@ -507,13 +520,10 @@ void SckESP::debugOUT(String strOut) {
 // }
 
 
-// 	-----------------------------
-//	|	APmode and WebServer 	|
-//	-----------------------------
-//
+// APmode and WebServer
 void SckESP::startAP(){
 
-	// debugOUT(String F("Starting Ap with ssid: ") + String(hostname));
+	debugOUT(String F("Starting Ap with ssid: ") + String(hostname));
 
 	// IP for DNS
 	IPAddress myIP(192, 168, 1, 1);
@@ -529,14 +539,12 @@ void SckESP::startAP(){
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
 	dnsServer.start(DNS_PORT, "*", myIP);
 
-	delay(100);
 	// startWebServer();
 }
 void SckESP::stopAP() {
 
 	dnsServer.stop();
 	WiFi.softAPdisconnect(true);
-	// espStatus.ap = ESP_AP_OFF_EVENT;
 }
 // void SckESP::startWebServer() {
 
@@ -660,16 +668,13 @@ void SckESP::stopAP() {
 // }
 
 
-// 	------------
-// 	|	Led    |
-// 	------------
-//
 void SckESP::ledSet(uint8_t value) {
 	blink.detach();
 	ledValue = abs(value - 1);
 	digitalWrite(pinLED, ledValue);
 }
 void SckESP::ledBlink(float rate) {
+
 	blink.attach_ms(rate, ledToggle);
 }
 void SckESP::_ledToggle() {

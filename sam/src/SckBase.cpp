@@ -11,6 +11,10 @@ void SERCOM1_Handler(void) {
 // Auxiliary I2C devices
 AuxBoards auxBoards;
 
+// Eeprom flash emulation to store persistent variables
+FlashStorage(eepromConfig, Configuration);
+
+
 void SckBase::setup() {
 
 	// Led
@@ -41,7 +45,6 @@ void SckBase::setup() {
 	// battSetup();
 	charger.setup();
 	
-
 	// ESP Configuration
 	pinMode(pinPOWER_ESP, OUTPUT);
 	pinMode(pinESP_CH_PD, OUTPUT);
@@ -92,6 +95,7 @@ void SckBase::setup() {
 	// **********************
 
 	// Configuration
+	loadConfig();
 	
 	// Urban board
 	urbanPresent = urban.setup();
@@ -129,13 +133,11 @@ void SckBase::setup() {
 		}
 	}
 }
-
 void SckBase::update() {
 
 }
 
-
-// Input
+// **** Input
 void SckBase::inputUpdate() {
 
 	if (SerialUSB.available()) {
@@ -189,6 +191,7 @@ void SckBase::inputUpdate() {
 
 
 // Output
+// **** Output
 void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine) {
 	strOut.toCharArray(outBuff, strOut.length()+1);
 	sckOut(priority, newLine);
@@ -216,61 +219,146 @@ void SckBase::prompt() {
 	sckOut("SCK > ", PRIO_MED, false);
 }
 
-// Configuration
-// void SckBase::saveSDconfig() {
+// **** Config
+void SckBase::loadConfig() {
 
-// 	sckOut("Trying to save configuration to SDcard...");
+	sckOut("Loading configuration from eeprom...");
 
-// 	if (cardPresent) {
-// 		// Remove old sdcard config
-// 		if (sd.exists(configFileName)) sd.remove(configFileName);
+	Configuration savedConf = eepromConfig.read();
 
-// 		// Save to sdcard
-// 		if (openConfigFile()) {
-// 			char lineBuff[128];
+	if (savedConf.valid) {
+		
+		config.publishInterval = savedConf.publishInterval;
+		config.workingMode = savedConf.workingMode;
+		config.mode = savedConf.mode;
+		strncpy(config.ssid, savedConf.ssid, 64);
+		strncpy(config.pass, savedConf.pass, 64);
+		strncpy(config.token, savedConf.token, 8);
 
-// 			configFile.println("# -------------------\r\n# General configuration\r\n# -------------------");
-// 			configFile.println("\r\n# mode:sdcard or network");
-// 			// sprintf(lineBuff, "mode:%s", modeTitles[config.workingMode]);
-// 			configFile.println(lineBuff);
-// 			configFile.println("\r\n# publishInterval:period in seconds");
-// 			sprintf(lineBuff, "publishInterval:%lu", config.publishInterval);
-// 			configFile.println(lineBuff);
+		// Load per sensor config
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
+			sensors[wichSensor].enabled = savedConf.sensor[wichSensor].enabled;
+			sensors[wichSensor].interval = savedConf.sensor[wichSensor].interval;
+		}
 
-// 			configFile.println("\r\n# -------------------\r\n# Network configuration\r\n# -------------------");
-// 			sprintf(lineBuff, "ssid:%s", config.ssid);
-// 			configFile.println(lineBuff);
-// 			sprintf(lineBuff, "pass:%s", config.pass);
-// 			configFile.println(lineBuff);
-// 			sprintf(lineBuff, "token:%s", config.token);
-// 			configFile.println(lineBuff);
+		// Load sdcard config
+		// loadSDconfig();
 
-// 			configFile.println("\r\n# -------------------\r\n# Sensor configuration\r\n# ej. sensor name:reading interval or disabled\r\n# -------------------\r\n");
+	} else {
 
-// 			bool externalTitlePrinted = false;
+		// If there is no sdcard valid config turn to factory defaults
+		// if (!loadSDconfig()) {
+			sckOut("Can't find valid configuration!!! loading defaults...");
+			saveConfig(true);
+			loadConfig();
 
-// 			// Sensors config
-// 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-// 				SensorType wichSensor = static_cast<SensorType>(i);
+		// } else {
+		// 	saveConfig();
+		// }
+		return;
+	}
 
-// 				if (!externalTitlePrinted && sensors[wichSensor].location == BOARD_AUX) {
-// 					configFile.println("\r\n# External sensors (Not included in SCK board)"); 
-// 					externalTitlePrinted = true;
-// 				}
+	// Check if wifi is already set
+	if (String(config.ssid).length() > 0) wifiSet = true;
+	else {
+		sckOut("Wifi is not configured!!!");
+		wifiSet = false;
+	}
 
-// 				if (sensors[wichSensor].enabled) sprintf(lineBuff, "%s:%lu", sensors[wichSensor].title, sensors[wichSensor].interval);
-// 				else sprintf(lineBuff, "%s:disabled", sensors[wichSensor].title);
+	// Check if token is already set
+	if (String(config.token).length() == 6) tokenSet = true;
+	else {
+		sckOut("No token configured!!");
+		tokenSet = false;
+	}
 
-// 				configFile.println(lineBuff);
-// 			}
+	// changeMode(config.persistentMode);
+}
+void SckBase::saveConfig(bool factory) {
 
-// 			configFile.close();
-// 			sckOut("Saved configuration to sdcard!!!");
-// 		}
-// 	}
-// }
+	Configuration toSaveConfig;
 
-// ESP
+	if (!factory) {
+		
+		toSaveConfig.valid = true;
+		toSaveConfig.mode = config.mode;
+		toSaveConfig.workingMode = config.workingMode;
+		toSaveConfig.publishInterval = config.publishInterval;
+		strncpy(toSaveConfig.ssid, config.ssid, 64);
+		strncpy(toSaveConfig.pass, config.pass, 64);
+		strncpy(toSaveConfig.token, config.token, 8);
+		
+		// Save per sensor config
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
+			toSaveConfig.sensor[wichSensor].enabled = sensors[wichSensor].enabled;
+			toSaveConfig.sensor[wichSensor].interval = sensors[wichSensor].interval;
+		}
+
+		// Save to eeprom
+		eepromConfig.write(toSaveConfig);
+		sckOut("Saved configuration to eeprom!!!");
+
+	} else {
+
+		sckOut("Reseting to factory defaults...");
+
+		// Default values
+		toSaveConfig.valid = true;
+		toSaveConfig.mode = config.mode = MODE_NOT_CONFIGURED;
+		toSaveConfig.workingMode = config.workingMode = MODE_NET;
+		toSaveConfig.publishInterval = config.publishInterval =  default_publish_interval;
+		strncpy(toSaveConfig.ssid, "", 64);
+		strncpy(toSaveConfig.pass, "", 64);
+		strncpy(toSaveConfig.token, "null", 8);
+
+		// Default sensor values
+		AllSensors tempSensors;
+
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
+			toSaveConfig.sensor[wichSensor].enabled = sensors[wichSensor].enabled = tempSensors[wichSensor].enabled;
+			toSaveConfig.sensor[wichSensor].interval = sensors[wichSensor].interval = default_sensor_reading_interval;
+		}
+
+		// Save to eeprom
+		eepromConfig.write(toSaveConfig);
+		sckOut("Saved configuration to eeprom!!!");
+		// saveSDconfig();
+	}
+}
+char* SckBase::getToken() {
+	sendMessage(ESPMES_GET_TOKEN, true);
+	return config.token;
+}
+void SckBase::saveToken(char newToken[8]) {
+
+	if (String(newToken).length() == 6) {
+		
+		sprintf(outBuff, "Saving new token: %s", newToken);
+		sckOut();
+
+		strncpy(config.token, newToken, 8);
+		tokenSet = true;
+		saveConfig();
+
+		sendMessage(ESPMES_SET_TOKEN, config.token, true);
+	
+	} else sckOut("Token must have 6 characters!!!");
+}
+void SckBase::saveToken() {
+
+	sckOut(F("Clearing token..."));
+	strncpy(config.token, "null", 8);
+
+	tokenSet = false;
+	saveConfig();
+
+	sendMessage(ESPMES_SET_TOKEN, "null");
+}
+
+// **** ESP
 void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 	switch(controlCommand){
 		case ESP_OFF: {
@@ -336,7 +424,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 	}
 }
 
-// SD card
+// **** SD card
 bool SckBase::sdDetect() {
 
 	// Wait 100 ms to avoid multiple triggered interrupts
@@ -374,15 +462,15 @@ bool SckBase::sdOpenFile(SckFile wichFile, uint8_t oflag) {
 	return false;
 }
 
-// Flash memory
+// **** Flash memory
 void SckBase::flashSelect() {
 
 	digitalWrite(pinCS_SDCARD, HIGH);	// disables SDcard
 	digitalWrite(pinCS_FLASH, LOW);
 }
 
-// Power
-bool SckBase::battSetup() {
+// **** Power
+void SckBase::battSetup() {
 
 	pinMode(pinBATTERY_ALARM, INPUT_PULLUP);
 	LowPower.attachInterruptWakeup(pinBATTERY_ALARM, ISR_battery, CHANGE);
@@ -470,7 +558,7 @@ void SckBase::chargerEvent() {
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }
 
-// Sensors
+// **** Sensors
 bool SckBase::getReading(SensorType wichSensor, bool wait) {
 
 	sensors[wichSensor].valid = false;
@@ -504,7 +592,6 @@ bool SckBase::getReading(SensorType wichSensor, bool wait) {
 	sensors[wichSensor].valid = true;
 	return true;;
 }
-
 
 void SckBase::getUniqueID() {
 

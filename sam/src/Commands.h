@@ -22,6 +22,7 @@ enum CommandType {
 	COM_BATT_REPORT,
 	COM_I2C_DETECT,
 	COM_GET_CHARGER_CONF,
+	COM_TOKEN,
 	COM_ESP_CONTROL,
 
 	COM_COUNT
@@ -40,6 +41,7 @@ void freeRAM_com(SckBase* base, String parameters);
 void battReport_com(SckBase* base, String parameters);
 void i2cDetect_com(SckBase* base, String parameters);
 void getCharger_com(SckBase* base, String parameters);
+void token_com(SckBase* base, String parameters);
 void esp_com(SckBase* base, String parameters);
 
 
@@ -69,7 +71,7 @@ public:
 
 		//			place	type 					title 				help 																function
 		OneCom { 	10,		COM_RESET, 				"reset", 			"Resets the SCK", 													reset_com},
-		OneCom { 	20,		COM_GET_VERSION, 		"version",	 		"Shows versions and Hardware ID",				 									getVersion_com},
+		OneCom { 	20,		COM_GET_VERSION, 		"version",	 		"Shows versions and Hardware ID",				 					getVersion_com},
 		OneCom {	30,		COM_RESET_CAUSE,		"rcause",			"Show last reset cause (debug)",									resetCause_com},
 		OneCom {	40,		COM_OUTLEVEL,			"outlevel",			"Shows or sets outlevel [0:silent, 1:normal, 2:verbose]",			outlevel_com},
 		OneCom {	50,		COM_HELP,				"help",				"Duhhhh!!",															help_com},
@@ -80,6 +82,7 @@ public:
 		OneCom {	90,		COM_BATT_REPORT,		"batt",				"Shows the battery state",											battReport_com},
 		OneCom {	90,		COM_I2C_DETECT,			"i2c",				"Search the I2C bus for devices",									i2cDetect_com},
 		OneCom {	90,		COM_GET_CHARGER_CONF,	"charger",			"Shows charger configuration",										getCharger_com},
+		OneCom {	90,		COM_TOKEN,				"token",			"Shows or sets token (\"null\" for clearing) ",						token_com},
 		OneCom {	100,	COM_ESP_CONTROL,		"esp",				"Controls ESP wifi [on, off, reboot, debug]",						esp_com}
 
 	};

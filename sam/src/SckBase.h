@@ -46,9 +46,11 @@ private:
 	
 	// Configuration
 	Configuration config;
-	// void saveSDconfig();
-
-	// ESP8266
+	bool wifiSet = false;
+	bool tokenSet = false;
+	void loadConfig();
+	void saveConfig(bool factory=false);
+	
 	const uint32_t ESP_FLASH_SPEED = 921600;
 
 	// Urban board
@@ -91,6 +93,11 @@ public:
 	// Sensors
 	AllSensors sensors;
 	bool getReading(SensorType wichSensor, bool wait=true);
+
+	// Configuration
+	char* getToken();
+	void saveToken(char newToken[8]);
+	void saveToken();
 
 	// Input
 	void inputUpdate();

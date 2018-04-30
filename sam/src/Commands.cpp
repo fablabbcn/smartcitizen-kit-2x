@@ -80,6 +80,8 @@ void outlevel_com(SckBase* base, String parameters) {
 		
 		// Parameter sanity check
 		if (newLevel > 0 && newLevel < OUT_COUNT) {
+			OutLevels thisLevel = static_cast<OutLevels>(newLevel);
+			base->outputLevel = thisLevel;
 			sprintf(base->outBuff, "New output level: %s", base->outLevelTitles[newLevel]);
 			base->sckOut();
 		} else {
@@ -214,7 +216,25 @@ void getCharger_com(SckBase* base, String parameters) {
 
 	sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
 	base->sckOut();
+}
+void token_com(SckBase* base, String parameters) {
 
+	// get
+	if (parameters.length() <= 0) {
+	
+		sprintf(base->outBuff, "Current token: %s", base->getToken());
+		base->sckOut();
+	
+	// set
+	} else {
+
+		char newToken[8];
+		parameters.toCharArray(newToken, 8);
+		
+		if (strcmp(newToken, "null") == 0) base->saveToken();
+		else base->saveToken(newToken);
+
+	}
 }
 void esp_com(SckBase* base, String parameters) {
 

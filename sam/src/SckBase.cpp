@@ -8,6 +8,10 @@ void SERCOM1_Handler(void) {
 	auxWire.onService();
 }
 
+// ESP communication
+RH_Serial driver(SerialESP);
+RHReliableDatagram manager(driver, SAM_ADDRESS);
+
 // Auxiliary I2C devices
 AuxBoards auxBoards;
 
@@ -35,7 +39,6 @@ void SckBase::setup() {
 
 	// Output
 	outputLevel = OUT_VERBOSE;
-	SerialESP.begin(serialBaudrate);
 
 	// Button
 	pinMode(pinBUTTON, INPUT_PULLUP);
@@ -50,6 +53,8 @@ void SckBase::setup() {
 	pinMode(pinESP_CH_PD, OUTPUT);
 	pinMode(pinESP_GPIO0, OUTPUT);
 	ESPcontrol(ESP_OFF);
+	SerialESP.begin(serialBaudrate);
+	manager.init();
 
 	// Peripheral setup
 	rtc.begin();
@@ -187,10 +192,36 @@ void SckBase::inputUpdate() {
 
 		}
 	}
+
+	ESPbusUpdate();
+}
+void SckBase::ESPbusUpdate(bool waitResponse) {
+
+	uint16_t waitTimeout = 500;
+	if (waitResponse) waitTimeout = 2000;
+
+	if (manager.available() || waitResponse) {
+
+		uint8_t len = NETPACK_TOTAL_SIZE;
+		if (manager.recvfromAckTimeout(netPack, &len, waitTimeout) ) {
+
+			sckOut("Command from ESP: " + String((char)netPack[2]), PRIO_LOW);
+			
+			memcpy(netBuff, &netPack[3], NETPACK_CONTENT_SIZE);
+
+			for (uint8_t i=1; i<netPack[TOTAL_PARTS]; i++) {
+				if (manager.recvfromAckTimeout(netPack, &len, 500))	memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE)], &netPack[2], sizeof(netPack)-2);
+				else return;
+			}
+			sckOut("Content: " + String(netBuff), PRIO_LOW);
+
+			uint8_t pre = String((char)netPack[2]).toInt();
+			SAMMessage wichMessage = static_cast<SAMMessage>(pre);
+			receiveMessage(wichMessage);
+		}
+	}
 }
 
-
-// Output
 // **** Output
 void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine) {
 	strOut.toCharArray(outBuff, strOut.length()+1);
@@ -362,7 +393,8 @@ void SckBase::saveToken() {
 void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 	switch(controlCommand){
 		case ESP_OFF: {
-			sckOut("Turning ESP off...");
+			sckOut("ESP off...");
+			espON = false;
 			digitalWrite(pinESP_CH_PD, LOW);
 			digitalWrite(pinPOWER_ESP, HIGH);
 			digitalWrite(pinESP_GPIO0, LOW);
@@ -406,10 +438,11 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 
 		} case ESP_ON: {
 
-			sckOut("Turning ESP on...");
+			sckOut("ESP on...");
 			digitalWrite(pinESP_CH_PD, HIGH);
 			digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 			digitalWrite(pinPOWER_ESP, LOW);
+			espON = true;
 			espStarted = rtc.getEpoch();
 
 			break;
@@ -422,6 +455,54 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 			break;
 		}
 	}
+}
+bool SckBase::sendMessage(ESPMessage wichMessage, bool waitResponse) {
+
+	if (sendMessage(wichMessage, "", waitResponse)) return true;
+	return false;
+}
+bool SckBase::sendMessage(ESPMessage wichMessage, const char *content, bool waitResponse) {
+
+	bool espON_onStart = espON;
+
+	if (!espON) {
+		ESPcontrol(ESP_ON);
+	}
+
+	sprintf(netBuff, "%u%s", wichMessage, content);
+
+	uint16_t totalSize = strlen(netBuff);
+	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
+	netPack[TOTAL_PARTS] = totalParts;
+
+	for (uint8_t i=0; i<totalParts; i++) {
+		netPack[PART_NUMBER] = i;
+		netPack[2] = 0;				// Clear previous contents
+		memcpy(&netPack[2], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
+		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) return false;
+	}
+
+	if (waitResponse) ESPbusUpdate(true);
+
+	if (!espON_onStart) ESPcontrol(ESP_OFF);
+
+	return true;
+}
+bool SckBase::receiveMessage(SAMMessage wichMessage) {
+
+	switch(wichMessage) {
+		case SAMMES_TOKEN: {
+
+			int comparison = strcmp(config.token, netBuff);
+			if (comparison != 0) {
+				sckOut("Token mismatch between ESP and SAM, correcting...");
+				sendMessage(ESPMES_SET_TOKEN, config.token);
+			}
+			break;
+		} default: break;
+	}
+
+	return true;
 }
 
 // **** SD card

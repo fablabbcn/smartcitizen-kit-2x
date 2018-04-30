@@ -41,6 +41,20 @@ private:
 	// Wifi related
 	char hostname[20];
 	int currentWIFIStatus;
+
+	// Config
+	Configuration config;
+
+	const char *credentialsFileName = "/nets.txt";
+	// const static char *credentialsFile = F("/nets.txt");
+	bool saveCredentials();
+	bool readCredentials();
+	bool clearCredentials();
+	const char *tokenFileName = "/token.txt";
+	bool saveToken();
+	bool loadToken();
+	bool clearToken();
+	bool sendToken();
 	
 	// AP mode
 	void startAP();

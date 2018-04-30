@@ -31,6 +31,7 @@ void SckESP::setup() {
 	// Event handlers
 	stationConnectedHandler = WiFi.onStationModeConnected(&onStationConnected);
 
+	// Flash filesystem
 	SPIFFS.begin();
 
 	ledBlink(350); 			// Heartbeat
@@ -47,6 +48,7 @@ void SckESP::setup() {
 
 	// WiFi.begin("IAAC-OFFICE-C", "enteroffice2016");
 	// startAP();
+	// delay(2000);
 
 	if (telnetDebug) {
 		Debug.begin(hostname);
@@ -154,17 +156,6 @@ void SckESP::WifiConnected() {
 // 				if (WiFi.status() != WL_CONNECTED) tryConnection();
 // 			} 
 // 			break;
-
-// 		} case ESP_SET_TOKEN_COM: {
-
-// 	 		strncpy(config.token, msgIn.param, 8);
-// 	 		espStatus.token = ESP_TOKEN_OK;
-// 	 		if (saveToken()) {
-// 	 			loadToken();
-// 	 			sendToken();
-// 	 		}
-
-// 	 		break;
 
 // 	 	} case ESP_GET_WIFI_COM: {
 // 			debugOUT(F("Cheking for saved networks..."));
@@ -500,13 +491,6 @@ void SckESP::WifiConnected() {
 // }
 void SckESP::debugOUT(String strOut) {
 
-	if (telnetDebug) DEBUG(strOut.c_str());
-	
-	if (serialDebug) { 
-		// msgOut.com = ESP_DEBUG_EVENT;
-		// strOut.toCharArray(msgOut.param, 240);
-		// SAMsendMsg();
-		Serial.println(strOut);
 	if (telnetDebug) {
 		strOut += "\r\n";
 		DEBUG(strOut.c_str());
@@ -514,10 +498,6 @@ void SckESP::debugOUT(String strOut) {
 	
 	if (serialDebug) Serial.println(strOut);
 }
-// void SckESP::clearParam() {
-
-// 	memset(msgOut.param, 0, sizeof(msgOut.param));
-// }
 
 
 // APmode and WebServer
@@ -667,7 +647,87 @@ void SckESP::stopAP() {
 // 	return false;
 // }
 
+// **** Settings
+bool SckESP::saveCredentials() {
 
+	// Prepare json for saving
+	StaticJsonBuffer<240> jsonBuffer;
+	JsonObject& jsonNet = jsonBuffer.createObject();
+	jsonNet["ssid"] = config.ssid;
+	jsonNet["pass"] = config.pass;
+
+	File credFile = SPIFFS.open(credentialsFileName, "w");
+	
+	if (credFile) {
+		jsonNet.printTo(credFile);
+		credFile.write('\n');
+		credFile.close();
+		debugOUT(String F("Saved network: ") + String(config.ssid) + " - " + String(config.pass));
+		return true;
+	}
+	debugOUT(F("Error saving network!!!"));
+	return false;
+}
+bool SckESP::saveToken() {
+
+	// Open token flash file
+	File tokenFile = SPIFFS.open(tokenFileName, "w");
+
+	// Check if file opened OK
+	if (!tokenFile) {
+		return false;
+		debugOUT(F("Failed to save token!!!"));
+	}
+		
+	// Write the token
+	tokenFile.println(config.token);
+	tokenFile.close();
+	debugOUT(String F("saved new token: ") + String(config.token));
+	return true;
+}
+bool SckESP::loadToken() {
+
+	// Check if file exists
+	if (!SPIFFS.exists(tokenFileName)) {
+		debugOUT(F("Failed to load token!!!"));
+		return false;
+	}
+
+	// Open token flash file
+	File tokenFile = SPIFFS.open(tokenFileName, "r");
+
+	// Read line
+	String buffer;
+	while (tokenFile.available()) {
+		char buff = tokenFile.read();
+		if (buff == 10) break;
+		buffer += buff;
+	}
+
+	buffer.replace("\r", "");
+	buffer.replace("\n", "");
+
+	tokenFile.close();
+	buffer.toCharArray(config.token, buffer.length()+1);
+	return true;
+}
+bool SckESP::clearToken() {
+
+	if (SPIFFS.exists(tokenFileName)) {
+		SPIFFS.remove(tokenFileName);
+	}
+	return true;
+}
+bool SckESP::sendToken() {
+
+	loadToken();
+	if (sendMessage(SAMMES_TOKEN, config.token)) return true;
+	return false;
+}
+
+
+
+// **** Led
 void SckESP::ledSet(uint8_t value) {
 	blink.detach();
 	ledValue = abs(value - 1);

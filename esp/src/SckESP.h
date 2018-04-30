@@ -1,5 +1,6 @@
 #pragma once
 
+#include <SPI.h>
 #include <ESP8266WiFi.h>
 #include <Ticker.h>
 #include "FS.h"
@@ -7,9 +8,13 @@
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
 #include "RemoteDebug.h"
+#include <ArduinoJson.h>
+#include <RHReliableDatagram.h>
+#include <RH_Serial.h>
 
 #include <Arduino.h>
 #include "Shared.h"
+#include "Config.h"
 
 class SckESP {
 private:
@@ -18,6 +23,12 @@ private:
 	void debugOUT(String strOut);
 	bool serialDebug = false;
 	bool telnetDebug = true;
+
+	// SAM communication
+	uint8_t netPack[NETPACK_TOTAL_SIZE];			// bytes -> 0:PART_NUMBER, 1:TOTAL_PARTS, 2:59 content
+	char netBuff[NETPACK_CONTENT_SIZE * 8];
+	bool sendMessage(SAMMessage wichMessage, const char *content);
+	void receiveMessage(ESPMessage wichMessage);
 
 	// Led control
 	const uint8_t pinLED = 4; 	// GPIO5
@@ -38,13 +49,12 @@ private:
 	bool flashReadFile(String path);
 	const byte DNS_PORT = 53;
 
-
 public:
 	void setup();
 	void update();
 
 	void espOut(String strOut);
-	
+	void inputUpdate();	
 
 	void _ledToggle();
 	
@@ -54,4 +64,3 @@ public:
 void ledToggle();
 
 // Static webserver handlers
-void extSet();

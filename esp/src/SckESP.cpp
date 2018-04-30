@@ -1,5 +1,9 @@
 #include "SckESP.h"
 
+// SAM communication
+RH_Serial driver(Serial);
+RHReliableDatagram manager(driver, ESP_ADDRESS);
+
 // Telnet debug 
 RemoteDebug Debug;
 
@@ -9,15 +13,21 @@ ESP8266WebServer webServer(80);
 // DNS for captive portal
 DNSServer dnsServer;
 
+// Event managers
+WiFiEventHandler stationConnectedHandler;
+
+
 void SckESP::setup() {
 
 	// LED outputs
 	pinMode(pinLED, OUTPUT);
 	digitalWrite(pinLED, LOW);
 
+	// SAM communication
 	Serial.begin(serialBaudrate);
 	Serial.setDebugOutput(false);
-	
+	manager.init();
+
 	SPIFFS.begin();
 
 	ledBlink(350); 			// Heartbeat
@@ -50,10 +60,67 @@ void SckESP::update() {
 		ledSet(1);
 	}
 
+	inputUpdate();
 
 	if (telnetDebug) Debug.handle();
-
 }
+
+void SckESP::inputUpdate() {
+	
+	if (manager.available()) {
+		uint8_t len = NETPACK_TOTAL_SIZE;
+		if (manager.recvfromAck(netPack, &len)) {
+
+			debugOUT("Command: " + String((char)netPack[2]));
+			
+			memcpy(netBuff, &netPack[3], NETPACK_CONTENT_SIZE);
+
+			for (uint8_t i=1; i<netPack[TOTAL_PARTS]; i++) {
+				if (manager.recvfromAckTimeout(netPack, &len, 500))	memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE)], &netPack[2], sizeof(netPack)-2);
+				else return;
+			}
+			debugOUT("Content: " + String(netBuff));
+
+			uint8_t pre = String((char)netPack[2]).toInt();
+			ESPMessage wichMessage = static_cast<ESPMessage>(pre);
+			receiveMessage(wichMessage);
+		}
+	}
+}
+bool SckESP::sendMessage(SAMMessage wichMessage, const char *content) {
+
+	sprintf(netBuff, "%u%s", wichMessage, content);
+
+	uint16_t totalSize = strlen(netBuff);
+	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
+	netPack[TOTAL_PARTS] = totalParts;
+
+	for (uint8_t i=0; i<totalParts; i++) {
+		netPack[PART_NUMBER] = i;
+		netPack[2] = 0;				// Clear previous contents
+		memcpy(&netPack[2], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
+		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, SAM_ADDRESS)) return false;
+	}
+
+	return true;
+}
+void SckESP::receiveMessage(ESPMessage wichMessage) {
+
+	switch(wichMessage) {
+
+		case ESPMES_SET_TOKEN: {
+	 		strncpy(config.token, netBuff, 8);
+	 		if (saveToken()) {
+	 			loadToken();
+	 			sendToken();
+	 		}
+
+	 		break;
+	 	} case ESPMES_GET_TOKEN: { sendToken(); break;
+	 	} default: break;
+	}
+}
+
 
 // 	---------------------
 //	|	Input-Output 	|

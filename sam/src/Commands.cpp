@@ -288,10 +288,8 @@ void config_com(SckBase* base, String parameters) {
 void esp_com(SckBase* base, String parameters) {
 
 	if (parameters.length() <= 0) {
-		if (base->espON) {
-			sprintf(base->outBuff, "ESP is already ON");
-			base->sckOut();
-		} else base->sckOut("ESP is off");
+		if (base->espON) base->sckOut("ESP is ON");
+		else base->sckOut("ESP is off");
 	} else if (parameters.equals("on")) base->ESPcontrol(base->ESP_ON);
 	else if (parameters.equals("off")) base->ESPcontrol(base->ESP_OFF);
 	else if (parameters.equals("reboot")) base->ESPcontrol(base->ESP_REBOOT);
@@ -303,4 +301,16 @@ void esp_com(SckBase* base, String parameters) {
 void netInfo_com(SckBase* base, String parameters) {
 
 	base->sendMessage(ESPMES_GET_NETINFO);
+}
+void time_com(SckBase* base, String parameters) {
+
+	if (parameters.length() <= 0) {
+		if (base->onTime) {
+			sprintf(base->outBuff, "Time: %s", base->ISOtimeBuff); 
+			base->sckOut();
+		} else {
+			base->sckOut("Time is not synced, trying to sync...");
+			base->sendMessage(ESPMES_GET_TIME, "");
+		}
+	} else if (parameters.toInt() > 0) base->setTime(parameters);
 }

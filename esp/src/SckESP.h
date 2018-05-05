@@ -3,6 +3,7 @@
 #include <SPI.h>
 #include <ESP8266WiFi.h>
 #include <Ticker.h>
+#include <TimeLib.h>
 #include "FS.h"
 #include <ESP8266mDNS.h>
 #include <DNSServer.h>
@@ -15,6 +16,8 @@
 #include <Arduino.h>
 #include "Shared.h"
 #include "Config.h"
+
+#define NTP_SERVER_NAME "pool.ntp.org"
 
 class SckESP {
 private:
@@ -37,6 +40,7 @@ private:
 	bool sendToken();
 	bool sendCredentials();
 	bool sendNetinfo();
+	bool sendTime();
 
 	// Led control
 	const uint8_t pinLED = 4; 	// GPIO5
@@ -68,12 +72,22 @@ private:
 	bool flashReadFile(String path);
 	const byte DNS_PORT = 53;
 
+	// Time
+	void sendNTPpacket(IPAddress &address);
+	String ISOtime();
+	String epoch2iso(uint32_t toConvert);
+	String leadingZeros(String original, int decimalNumber);
+	WiFiUDP Udp;
+	byte packetBuffer[48];
+	
+
 public:
 	void setup();
 	void update();
 
 	// External calls
 	void _ledToggle();
+	time_t getNtpTime();
 };
 
 // Static led control
@@ -81,3 +95,6 @@ void ledToggle();
 
 // Static webserver handlers
 void extSet();
+
+// Time
+time_t ntpProvider();

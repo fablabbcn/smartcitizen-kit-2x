@@ -402,11 +402,23 @@ void SckBase::receiveMessage(SAMMessage wichMessage) {
 			sckOut();
 			break;
 
-		} case SAMMES_WIFI_CONNECTED: onWifi = true; sckOut("Conected to wifi!!"); break;
-		case SAMMES_SSID_ERROR: sckOut("ERROR Access point not found!!"); break;
+		} case SAMMES_WIFI_CONNECTED: {
+			
+			onWifi = true;
+			sckOut("Conected to wifi!!");
+			if (!onTime) sckOut("Asking time to ESP..."); sendMessage(ESPMES_GET_TIME, "");
+			break;
+
+		} case SAMMES_SSID_ERROR: sckOut("ERROR Access point not found!!"); break;
 		case SAMMES_PASS_ERROR: sckOut("ERROR wrong wifi password!!"); break;
 		case SAMMES_WIFI_UNKNOWN_ERROR: sckOut("ERROR unknown wifi error!!"); break;
-		default: break;
+		case SAMMES_TIME : {
+
+			String strTime = String(netBuff);
+			setTime(strTime);
+			break;
+
+		} default: break;
 	}
 }
 
@@ -583,7 +595,6 @@ bool SckBase::getReading(SensorType wichSensor, bool wait) {
 	sensors[wichSensor].valid = true;
 	return true;;
 }
-
 void SckBase::getUniqueID() {
 
 	volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
@@ -595,4 +606,42 @@ void SckBase::getUniqueID() {
 	uniqueID[2] = *ptr;
 	ptr++;
 	uniqueID[3] = *ptr;
+}
+
+
+// **** Time
+bool SckBase::setTime(String epoch) {
+
+	rtc.setEpoch(epoch.toInt());
+	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
+		onTime = true;
+		ISOtime();
+		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
+		sckOut();
+		return true;
+	} else sckOut("RTC update failed!!");
+	return false;
+}
+bool SckBase::ISOtime() {
+
+	if (onTime) {
+		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
+		return true;
+	} else {
+		sprintf(ISOtimeBuff, "0");
+		return false;
+	}
+}
+void SckBase::epoch2iso(uint32_t toConvert, char* isoTime) {
+
+	time_t tc = toConvert;
+    struct tm* tmp = gmtime(&tc);
+
+    sprintf(isoTime, "20%02d-%02d-%02dT%02d:%02d:%02dZ", 
+    	tmp->tm_year - 100, 
+    	tmp->tm_mon + 1,
+    	tmp->tm_mday,
+		tmp->tm_hour,
+		tmp->tm_min,
+		tmp->tm_sec);
 }

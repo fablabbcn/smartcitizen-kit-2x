@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <RTCZero.h>
+#include <time.h>
 #include <SPI.h>
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
@@ -38,9 +39,6 @@ private:
 	// Input/Output
 	String serialBuff;
 	String previousCommand;
-
-	// Status flags
-	bool onWifi = false;
 
 	// ESP control
 	uint32_t espStarted;
@@ -97,10 +95,20 @@ public:
 	void setup();
 	void update();
 
+	// Status flags
+	bool onWifi = false;
+	bool onTime = false;
+
 	// Peripherals
 	SckLed led;
 	friend class SckButton;
+	
+	// Time
 	RTCZero rtc;
+	char ISOtimeBuff[20];
+	bool setTime(String epoch);
+	void epoch2iso(uint32_t toConvert, char* isoTime);
+	bool ISOtime();
 
 	// Sensors
 	AllSensors sensors;
@@ -151,6 +159,7 @@ public:
 	void batteryEvent();
 	void batteryReport();
 
+	// Misc
 	void getUniqueID();
 	uint32_t uniqueID[4];
 

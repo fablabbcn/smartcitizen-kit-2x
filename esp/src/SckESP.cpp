@@ -173,9 +173,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage) {
 			uint8_t intMode = json["mo"];
 			SCKmodes wichMode = static_cast<SCKmodes>(intMode);
 			config.mode = wichMode;
-			uint8_t intMode2 = json["wm"];
-			SCKmodes wichMode2 = static_cast<SCKmodes>(intMode2);
-			config.workingMode = wichMode2;
 			config.publishInterval = json["pi"];
 			config.credentials.set = json["cs"];
 			strcpy(config.credentials.ssid, json["ss"]);
@@ -252,7 +249,6 @@ bool SckESP::saveConfig(Configuration newConfig) {
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
 	json["mo"] = (uint8_t)config.mode;
-	json["wm"] = (uint8_t)config.workingMode;
 	json["pi"] = config.publishInterval;
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
@@ -290,10 +286,6 @@ bool SckESP::loadConfig() {
 			uint8_t intMode = json["mo"];
 			SCKmodes wichMode = static_cast<SCKmodes>(intMode);
 			config.mode = wichMode;
-
-			uint8_t intMode2 = json["wm"];
-			SCKmodes wichMode2 = static_cast<SCKmodes>(intMode2);
-			config.workingMode = wichMode2;
 
 			config.publishInterval = json["pi"];
 

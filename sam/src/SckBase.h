@@ -96,7 +96,9 @@ public:
 	void update();
 
 	// Status flags
+	bool onSetup = false;
 	bool onWifi = false;
+	bool wifiError = false;
 	bool onTime = false;
 
 	// Peripherals
@@ -173,3 +175,32 @@ void ISR_button();
 void ISR_battery();
 void ISR_sdDetect();
 void ISR_charger();
+	* State machine hig level design
+
+		* MODE_NETWORK (!wifiSet || !tokenSet ) -> onSetup
+		* MODE_NETWORK (wifiSet && tokenSet && !onTime) -> WAITING_TIME
+			* WAITING_TIME (!onWifi) -> WAITING_WIFI
+				* WAITING_WIFI (!espON) -> ESP_ON
+				* WAITING_WIFI -> (espON && wifiError || timeout) -> onSetup
+			* WAITING_TIME (onWifi && timeout) -> onSetup
+		* MODE_NETWORK (wifiSet && tokenSet && onTime) -> WAITING_READING
+			* WAITING_READING (errors < retrys) -> PUBLISH
+			* PUBLISH (!onWifi) -> WAITING_WIFI
+				* WAITING_WIFI (!espON) -> ESP_ON
+				* WAITING_WIFI -> (espON && wifiError || timeout) -> errors ++
+			* PUBLISH (onWifi) -> WAITING_MQTT_RESPONSE
+				* WAITING_MQTT_RESPONSE (mqttError || timeout) -> errors ++
+
+		* MODE_SDCARD (!cardPresent) -> onSetup
+		* MODE_SDCARD (cardPresent &&!onTime && !wifiSet) -> onSetup
+		* MODE_SDCARD (cardPresent && !onTime && wifiSet) -> WAITING_TIME
+			* WAITING_TIME (!onWifi) -> WAITING_WIFI
+				* WAITING_WIFI (!espON) -> ESP_ON
+				* WAITING_WIFI -> (espON && wifiError || timeout) -> onSetup
+			* WAITING_TIME (onWifi && timeout) -> onSetup
+		* MODE_SDCARD (cardPresent && onTime) -> WAITING_READING
+			* WAITING_READING -> PUBLISH
+
+		* Modes :
+			* MODE_NETWORK
+			* MODE_SDCARD

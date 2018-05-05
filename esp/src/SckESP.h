@@ -20,41 +20,46 @@ class SckESP {
 private:
 
 	// Input/Output
-	void debugOUT(String strOut);
-	bool serialDebug = false;
+	bool serialDebug = false;		// Interfere with ESP <-> SAM comunnication (use with caution)
 	bool telnetDebug = true;
+	void SAMbusUpdate();
+	void debugOUT(String strOut);
 
 	// SAM communication
-	uint8_t netPack[NETPACK_TOTAL_SIZE];			// bytes -> 0:PART_NUMBER, 1:TOTAL_PARTS, 2:59 content
-	char netBuff[NETPACK_CONTENT_SIZE * 8];
+	uint8_t netPack[NETPACK_TOTAL_SIZE];
+	char netBuff[NETBUFF_SIZE];
+	bool sendMessage(SAMMessage wichMessage);
 	bool sendMessage(SAMMessage wichMessage, const char *content);
+	bool sendMessage();
 	void receiveMessage(ESPMessage wichMessage);
+
+	// Notifications
+	bool sendToken();
+	bool sendCredentials();
+	bool sendNetinfo();
 
 	// Led control
 	const uint8_t pinLED = 4; 	// GPIO5
 	uint8_t ledValue = 0;
 	Ticker blink;
+	uint16_t LED_SLOW = 350;
+	uint16_t LED_FAST = 100;
 	void ledSet(uint8_t value);
 	void ledBlink(float rate);
 	void ledOff();
 
 	// Wifi related
 	char hostname[20];
+	String macAddr;
+	String ipAddr;
 	int currentWIFIStatus;
+	void tryConnection();
 
 	// Config
 	Configuration config;
-
-	const char *credentialsFileName = "/nets.txt";
-	// const static char *credentialsFile = F("/nets.txt");
-	bool saveCredentials();
-	bool readCredentials();
-	bool clearCredentials();
-	const char *tokenFileName = "/token.txt";
-	bool saveToken();
-	bool loadToken();
-	bool clearToken();
-	bool sendToken();
+	const char *configFileName = "/config.txt";
+	bool saveConfig(Configuration newConfig);
+	bool loadConfig();
 	
 	// AP mode
 	void startAP();
@@ -67,12 +72,8 @@ public:
 	void setup();
 	void update();
 
-	void espOut(String strOut);
-	void inputUpdate();	
-
+	// External calls
 	void _ledToggle();
-	void WifiConnected();
-	
 };
 
 // Static led control
@@ -80,6 +81,3 @@ void ledToggle();
 
 // Static webserver handlers
 void extSet();
-
-// Wifi event handlers
-void onStationConnected(const WiFiEventStationModeConnected& evt);

@@ -79,7 +79,7 @@ void outlevel_com(SckBase* base, String parameters) {
 		uint8_t newLevel = parameters.toInt();
 		
 		// Parameter sanity check
-		if (newLevel > 0 && newLevel < OUT_COUNT) {
+		if (newLevel >= 0 && newLevel < OUT_COUNT) {
 			OutLevels thisLevel = static_cast<OutLevels>(newLevel);
 			base->outputLevel = thisLevel;
 			sprintf(base->outBuff, "New output level: %s", base->outLevelTitles[newLevel]);
@@ -92,6 +92,7 @@ void outlevel_com(SckBase* base, String parameters) {
 }
 void help_com(SckBase* base, String parameters) {
 
+	// TODO manage multiline help. Maybe a simple general help and a per command help: "help config"
 	base->sckOut();
 	for (uint8_t i=0; i < COM_COUNT; ++i) {
 
@@ -217,30 +218,78 @@ void getCharger_com(SckBase* base, String parameters) {
 	sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
 	base->sckOut();
 }
-void token_com(SckBase* base, String parameters) {
+void config_com(SckBase* base, String parameters) {
 
-	// get
-	if (parameters.length() <= 0) {
-	
-		sprintf(base->outBuff, "Current token: %s", base->getToken());
-		base->sckOut();
-	
-	// set
-	} else {
+	// Set
+	if (parameters.length() > 0) {
 
-		char newToken[8];
-		parameters.toCharArray(newToken, 8);
-		
-		if (strcmp(newToken, "null") == 0) base->saveToken();
-		else base->saveToken(newToken);
+		if (parameters.indexOf("-defaults") >= 0) {
+			Configuration defaultConfig;
+			base->saveConfig(defaultConfig);
 
-	}
+		} else {
+			Configuration thisConfig;
+			thisConfig = base->getConfig();
+
+			// Shows or sets configuration [-defaults -mode sdcard/network -pubint publish-interval -wifi \"ssid/null\" [\"pass\"] -token token/null]
+			uint16_t modeI = parameters.indexOf("-mode");
+			if (modeI >= 0) {
+				String modeC = parameters.substring(modeI+6);
+				modeC.toLowerCase();
+				if (modeC.startsWith("sd")) thisConfig.mode = MODE_SD;
+				else if (modeC.startsWith("net")) thisConfig.mode = MODE_NET; 
+			}
+			uint16_t pubIntI = parameters.indexOf("-pubint");
+			if (pubIntI >= 0) {
+				String pubIntC = parameters.substring(pubIntI+8);
+				uint32_t pubIntV = pubIntC.toInt();
+				if (pubIntV > minimal_publish_interval && pubIntV < max_publish_interval) thisConfig.publishInterval = pubIntV; 
+			}
+			uint16_t credI = parameters.indexOf("-wifi");
+			if (credI >= 0) {
+				uint8_t first = parameters.indexOf("\"", credI+6);
+				uint8_t second = parameters.indexOf("\"", first + 1);
+				uint8_t third = parameters.indexOf("\"", second + 1);
+				uint8_t fourth = parameters.indexOf("\"", third + 1);
+				if (parameters.substring(first + 1, second).length() > 0) {
+					parameters.substring(first + 1, second).toCharArray(thisConfig.credentials.ssid, 64);
+					thisConfig.credentials.set = true;
+				}
+				if (parameters.substring(third + 1, fourth).length() > 0) {
+					parameters.substring(third + 1, fourth).toCharArray(thisConfig.credentials.pass, 64);
+				}
+			}
+			uint16_t tokenI = parameters.indexOf("-token");
+			if (tokenI >= 0) {
+				String tokenC = parameters.substring(tokenI+7);
+				if (tokenC.length() >= 6) tokenC.toCharArray(thisConfig.token.token, 7);
+				thisConfig.token.set = true;
+			}
+			base->saveConfig(thisConfig);
+		}
+		sprintf(base->outBuff, "-- New config --\r\n");
+
+	// Get
+	} else base->outBuff[0] = 0;
+
+	Configuration currentConfig = base->getConfig();
+
+	sprintf(base->outBuff, "%sMode: %s\r\nPublish interval: %lu\r\n", base->outBuff, modeTitles[currentConfig.mode], currentConfig.publishInterval);
+
+	sprintf(base->outBuff, "%sWifi credentials: ", base->outBuff);
+	if (currentConfig.credentials.set) sprintf(base->outBuff, "%s%s - %s\r\n", base->outBuff, currentConfig.credentials.ssid, currentConfig.credentials.pass);
+	else sprintf(base->outBuff, "%snot configured\r\n", base->outBuff);
+
+	sprintf(base->outBuff, "%sToken: ", base->outBuff);
+	if (currentConfig.token.set) sprintf(base->outBuff, "%s%s", base->outBuff, currentConfig.token.token);
+	else sprintf(base->outBuff, "%snot configured", base->outBuff);
+	base->sckOut();
 }
 void esp_com(SckBase* base, String parameters) {
 
 	if (parameters.length() <= 0) {
-		if (base->espStarted > 0) {
-			sprintf(base->outBuff, "ESP is on since %lu seconds ago", (millis() - base->espStarted) / 1000);
+		if (base->espON) {
+			sprintf(base->outBuff, "ESP is already ON");
 			base->sckOut();
 		} else base->sckOut("ESP is off");
 	} else if (parameters.equals("on")) base->ESPcontrol(base->ESP_ON);
@@ -250,4 +299,8 @@ void esp_com(SckBase* base, String parameters) {
 	else if (parameters.equals("debug")) {
 		// TODO toggle esp debug
 	}
+}
+void netInfo_com(SckBase* base, String parameters) {
+
+	base->sendMessage(ESPMES_GET_NETINFO);
 }

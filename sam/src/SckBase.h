@@ -11,8 +11,9 @@
 #include <RHReliableDatagram.h>
 #include <RH_Serial.h>
 #include <FlashStorage.h>
+#include <ArduinoJson.h>
 
-// Battery gauge
+// Battery gauge TO BE REMOVED!
 #include <SparkFunBQ27441.h>
 
 #include "Pins.h"
@@ -34,9 +35,22 @@ enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
 class SckBase {
 private:
 
-	// Input
+	// Input/Output
 	String serialBuff;
 	String previousCommand;
+
+	// Status flags
+	bool onWifi = false;
+
+	// ESP control
+	uint32_t espStarted;
+
+	// ESP communication
+	const uint32_t ESP_FLASH_SPEED = 921600;
+	uint8_t netPack[NETPACK_TOTAL_SIZE];
+	char netBuff[NETBUFF_SIZE];
+	void ESPbusUpdate();
+	void receiveMessage(SAMMessage wichMessage);
 
 	// Button
 	const uint16_t buttonLong = 5000;
@@ -49,16 +63,8 @@ private:
 	
 	// Configuration
 	Configuration config;
-	bool wifiSet = false;
-	bool tokenSet = false;
 	void loadConfig();
-	void saveConfig(bool factory=false);
-	
-	// ESP communication
-	const uint32_t ESP_FLASH_SPEED = 921600;
-	uint8_t netPack[NETPACK_TOTAL_SIZE];			// bytes -> 0:PART_NUMBER, 1:TOTAL_PARTS, 2:59 content
-	char netBuff[NETPACK_CONTENT_SIZE * 8];
-		
+
 	// Urban board
 	bool urbanPresent = false;
 	friend class urban;
@@ -84,7 +90,7 @@ private:
 	uint16_t battCapacity = 2000;
 	bool batteryPresent = false;
 	bool onUSB = true;
-	bool battSetup();
+	void battSetup();
 
 public:
 
@@ -101,16 +107,26 @@ public:
 	bool getReading(SensorType wichSensor, bool wait=true);
 
 	// Configuration
-	char* getToken();
-	void saveToken(char newToken[8]);
-	void saveToken();
+	Configuration getConfig();
+	bool saveConfig(Configuration newConfig);
 
-	// Input
+	// Input/Output
 	void inputUpdate();
+
+	// ESP control
+	bool espON = false;
+	bool flashingESP = false;
+	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
+	void ESPcontrol(ESPcontrols myESPControl);
+
+	// ESP communication
+	bool sendMessage(ESPMessage wichMessage, const char *content);
+	bool sendMessage(ESPMessage wichMessage);
+	bool sendMessage();
 
 	// Output
 	const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
-	OutLevels outputLevel = OUT_VERBOSE;
+	OutLevels outputLevel = OUT_NORMAL;
 	char outBuff[240];
 	void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts String object
 	void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
@@ -124,17 +140,6 @@ public:
 	
 	// Commands
 	AllCommands commands;
-
-	// ESP control
-	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
-	void ESPcontrol(ESPcontrols myESPControl);
-	bool flashingESP = false;
-	uint32_t espStarted;
-	bool espON = false;
-	void ESPbusUpdate(bool waitResponse=false);
-	bool sendMessage(ESPMessage wichMessage, bool waitResponse=false);
-	bool sendMessage(ESPMessage wichMessage, const char *content, bool waitResponse=false);
-	bool receiveMessage(SAMMessage wichMessage);
 
 	// SDcard
 	bool sdDetect();

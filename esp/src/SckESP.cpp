@@ -187,10 +187,13 @@ void SckESP::receiveMessage(ESPMessage wichMessage) {
 			break;
 
 		} case ESPMES_GET_NETINFO: sendNetinfo(); break;
+		case ESPMES_GET_TIME: sendTime(); break;
 	 	default: break;
 	}
 }
 
+
+// **** Notifications
 bool SckESP::sendNetinfo() {
 		
 		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
@@ -204,6 +207,14 @@ bool SckESP::sendNetinfo() {
 		jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
 
 		return sendMessage();
+}
+bool SckESP::sendTime() {
+
+	// Update time
+	debugOUT(F("Trying NTP Sync..."));
+	Udp.begin(8888);
+	setSyncProvider(ntpProvider);
+	setSyncInterval(300);
 }
 
 // **** APmode and WebServer
@@ -318,4 +329,85 @@ void SckESP::ledBlink(float rate) {
 void SckESP::_ledToggle() {
 	ledValue = abs(ledValue - 1);
 	digitalWrite(pinLED, ledValue);
+}
+
+// **** Time
+time_t SckESP::getNtpTime() {
+  IPAddress ntpServerIP;
+
+  while (Udp.parsePacket() > 0) ; // discard any previously received packets
+  WiFi.hostByName(NTP_SERVER_NAME, ntpServerIP);
+
+  sendNTPpacket(ntpServerIP);
+  uint32_t beginWait = millis();
+  while (millis() - beginWait < 200) {
+    int size = Udp.parsePacket();
+    if (size >= 48) {
+      Udp.read(packetBuffer, 48);  // read packet into the buffer
+      unsigned long secsSince1900;
+      // convert four bytes starting at location 40 to a long integer
+      secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
+      secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
+      secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
+      secsSince1900 |= (unsigned long)packetBuffer[43];
+      
+      debugOUT(F("Time updated!!!"));
+      String epochStr = String(secsSince1900 - 2208988800UL);
+      sendMessage(SAMMES_TIME, epochStr.c_str());
+      return secsSince1900 - 2208988800UL;
+    }
+  }
+  debugOUT(F("No NTP Response!!!"));
+  return 0;
+}
+void SckESP::sendNTPpacket(IPAddress &address) {
+  memset(packetBuffer, 0, 48);
+
+  // Initialize values needed to form NTP request
+  packetBuffer[0] = 0b11100011;
+  packetBuffer[1] = 0;
+  packetBuffer[2] = 6;
+  packetBuffer[3] = 0xEC;
+
+  packetBuffer[12] = 49;
+  packetBuffer[13] = 0x4E;
+  packetBuffer[14] = 49;
+  packetBuffer[15] = 52;
+
+  Udp.beginPacket(address, 123);
+  Udp.write(packetBuffer, 48);
+  Udp.endPacket();
+}
+String SckESP::ISOtime() {
+	// Return string.format("%04d-%02d-%02dT%02d:%02d:%02dZ", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
+	if (timeStatus() == timeSet) {
+		String isoTime = String(year()) + "-" + 
+		leadingZeros(String(month()), 2) + "-" + 
+		leadingZeros(String(day()), 2) + "T" +  
+		leadingZeros(String(hour()), 2) + ":" + 
+		leadingZeros(String(minute()), 2) + ":" + 
+		leadingZeros(String(second()), 2) + "Z";
+		return isoTime;
+	} else {
+		return "0";
+	}
+}
+String SckESP::leadingZeros(String original, int decimalNumber) {
+	for (uint8_t i=0; i < (decimalNumber - original.length()); ++i)	{
+		original = "0" + original;
+	}
+	return original;
+}
+String SckESP::epoch2iso(uint32_t toConvert) {
+
+	time_t tc = toConvert;
+
+	String isoTime = String(year(tc)) + "-" +
+	leadingZeros(String(month(tc)), 2) + "-" + 
+	leadingZeros(String(day(tc)), 2) + "T" +
+	leadingZeros(String(hour(tc)), 2) + ":" + 
+	leadingZeros(String(minute(tc)), 2) + ":" + 
+	leadingZeros(String(second(tc)), 2) + "Z";
+	
+	return isoTime;
 }

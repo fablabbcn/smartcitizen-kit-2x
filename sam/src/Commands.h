@@ -25,6 +25,7 @@ enum CommandType {
 	COM_CONFIG,
 	COM_ESP_CONTROL,
 	COM_NETINFO,
+	COM_TIME,
 
 	COM_COUNT
 };
@@ -45,6 +46,7 @@ void getCharger_com(SckBase* base, String parameters);
 void config_com(SckBase* base, String parameters);
 void esp_com(SckBase* base, String parameters);
 void netInfo_com(SckBase* base, String parameters);
+void time_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -74,7 +76,7 @@ public:
 		OneCom { 	10,		COM_RESET, 				"reset", 			"Resets the SCK", 																	reset_com},
 		OneCom { 	20,		COM_GET_VERSION, 		"version",	 		"Shows versions and Hardware ID",				 									getVersion_com},
 		OneCom {	30,		COM_RESET_CAUSE,		"rcause",			"Show last reset cause (debug)",													resetCause_com},
-		OneCom {	40,		COM_OUTLEVEL,			"outlevel",			"Shows or sets outlevel [0:silent, 1:normal, 2:verbose]",							outlevel_com},
+		OneCom {	40,		COM_OUTLEVEL,			"outlevel",			"Shows/sets outlevel [0:silent, 1:normal, 2:verbose]",							outlevel_com},
 		OneCom {	50,		COM_HELP,				"help",				"Duhhhh!!",																			help_com},
 		OneCom {	60,		COM_PINMUX,				"pinmux",			"Shows SAMD pin mapping status",													pinmux_com},
 		OneCom {	80,		COM_LIST_SENSOR,		"sensors",			"Shows a list of enabled/disabled sensors",											listSensor_com},
@@ -83,9 +85,10 @@ public:
 		OneCom {	90,		COM_BATT_REPORT,		"batt",				"Shows the battery state",															battReport_com},
 		OneCom {	90,		COM_I2C_DETECT,			"i2c",				"Search the I2C bus for devices",													i2cDetect_com},
 		OneCom {	90,		COM_GET_CHARGER_CONF,	"charger",			"Shows charger configuration",														getCharger_com},
-		OneCom {	90,		COM_CONFIG,				"config",			"Shows or sets configuration [-defaults] [-mode sdcard/network] [-pubint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token]",		config_com},
+		OneCom {	90,		COM_CONFIG,				"config",			"Shows/sets configuration [-defaults] [-mode sdcard/network] [-pubint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token]",		config_com},
 		OneCom {	100,	COM_ESP_CONTROL,		"esp",				"Controls ESP [on, off, reboot, debug]",											esp_com},
-		OneCom {	100,	COM_NETINFO,			"netinfo",			"Shows network information",														netInfo_com}
+		OneCom {	100,	COM_NETINFO,			"netinfo",			"Shows network information",														netInfo_com},
+		OneCom {	100,	COM_TIME,				"time",				"Shows/sets or syncs (if needed) time",												time_com}
 
 	};
 

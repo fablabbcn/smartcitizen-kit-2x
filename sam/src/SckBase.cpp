@@ -37,9 +37,6 @@ void SckBase::setup() {
 	pinPeripheral(13, PIO_SERCOM);
 	auxWire.begin();
 
-	// Output
-	outputLevel = OUT_VERBOSE;
-
 	// Button
 	pinMode(pinBUTTON, INPUT_PULLUP);
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
@@ -77,28 +74,6 @@ void SckBase::setup() {
 	// flash.setClock(133000);
 	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
 
-	// *****************REMOVE
-	// uint8_t b1, b2;
-	// uint32_t JEDEC = flash.getJEDECID();
-	// uint32_t maxPage = flash.getMaxPage();
-	// uint32_t capacity = flash.getCapacity();
-	// b1 = (JEDEC >> 16);
-	// b2 = (JEDEC >> 8);
-	// sprintf(outBuff, "Manufacturer ID: %02xh\r\nMemory Type: %02xh\r\nCapacity: %lu bytes\r\nMaximum pages: %lu", b1, b2, capacity, maxPage);
-	// sckOut();
-
-	// byte d = 35;
-	// uint32_t addr = random(0, 0xFFFFF);
-	// SerialUSB.println(flash.writeByte(addr, d));
-	// uint8_t _data = flash.readByte(addr);
-	// SerialUSB.println(_data, DEC);
-	// if (_data == d) sckOut("Flash write byte test passed!!!");
-	// else sckOut("Flash write byte test failed!!!");
-
-	// if (flash.powerDown()) sckOut("Succesfully power down flash memory!!!");
-	// if (flash.powerUp()) sckOut("Succesfully waked up flash memory!!!");
-	// **********************
-
 	// Configuration
 	loadConfig();
 	
@@ -109,34 +84,34 @@ void SckBase::setup() {
 	}
 
 	// Detect and enable auxiliary boards // TEMP this should be done in aux setup
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+	// for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
-		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+	// 	OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 
-		// Only try to find auxiliary sensors
-		if (wichSensor->location == BOARD_AUX) {
+	// 	// Only try to find auxiliary sensors
+	// 	if (wichSensor->location == BOARD_AUX) {
 
-			sprintf(outBuff, "Detecting: %s... ", wichSensor->title);
-			sckOut(PRIO_MED, false);
+	// 		sprintf(outBuff, "Detecting: %s... ", wichSensor->title);
+	// 		sckOut(PRIO_MED, false);
 
-			if (auxBoards.begin(wichSensor->type)) {
+	// 		if (auxBoards.begin(wichSensor->type)) {
 
-				if (!wichSensor->enabled) {
-					sckOut("found!!!");
-					// enableSensor(wichSensor);
-				} else {
-					sckOut("found, already enabled!!!");
-					sckOut();
-				}
+	// 			if (!wichSensor->enabled) {
+	// 				sckOut("found!!!");
+	// 				// enableSensor(wichSensor);
+	// 			} else {
+	// 				sckOut("found, already enabled!!!");
+	// 				sckOut();
+	// 			}
 
-			} else {
-				if (wichSensor->enabled) {
-					sckOut("not found!!!");
-					// disableSensor(wichSensor);
-				} else sckOut("nothing!");
-			}
-		}
-	}
+	// 		} else {
+	// 			if (wichSensor->enabled) {
+	// 				sckOut("not found!!!");
+	// 				// disableSensor(wichSensor);
+	// 			} else sckOut("nothing!");
+	// 		}
+	// 	}
+	// }
 }
 void SckBase::update() {
 
@@ -195,32 +170,6 @@ void SckBase::inputUpdate() {
 
 	ESPbusUpdate();
 }
-void SckBase::ESPbusUpdate(bool waitResponse) {
-
-	uint16_t waitTimeout = 500;
-	if (waitResponse) waitTimeout = 2000;
-
-	if (manager.available() || waitResponse) {
-
-		uint8_t len = NETPACK_TOTAL_SIZE;
-		if (manager.recvfromAckTimeout(netPack, &len, waitTimeout) ) {
-
-			sckOut("Command from ESP: " + String((char)netPack[2]), PRIO_LOW);
-			
-			memcpy(netBuff, &netPack[3], NETPACK_CONTENT_SIZE);
-
-			for (uint8_t i=1; i<netPack[TOTAL_PARTS]; i++) {
-				if (manager.recvfromAckTimeout(netPack, &len, 500))	memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE)], &netPack[2], sizeof(netPack)-2);
-				else return;
-			}
-			sckOut("Content: " + String(netBuff), PRIO_LOW);
-
-			uint8_t pre = String((char)netPack[2]).toInt();
-			SAMMessage wichMessage = static_cast<SAMMessage>(pre);
-			receiveMessage(wichMessage);
-		}
-	}
-}
 
 // **** Output
 void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine) {
@@ -257,136 +206,46 @@ void SckBase::loadConfig() {
 
 	Configuration savedConf = eepromConfig.read();
 
-	if (savedConf.valid) {
-		
-		config.publishInterval = savedConf.publishInterval;
-		config.workingMode = savedConf.workingMode;
-		config.mode = savedConf.mode;
-		strncpy(config.ssid, savedConf.ssid, 64);
-		strncpy(config.pass, savedConf.pass, 64);
-		strncpy(config.token, savedConf.token, 8);
-
-		// Load per sensor config
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
-			sensors[wichSensor].enabled = savedConf.sensor[wichSensor].enabled;
-			sensors[wichSensor].interval = savedConf.sensor[wichSensor].interval;
-		}
-
-		// Load sdcard config
-		// loadSDconfig();
-
-	} else {
-
-		// If there is no sdcard valid config turn to factory defaults
-		// if (!loadSDconfig()) {
-			sckOut("Can't find valid configuration!!! loading defaults...");
-			saveConfig(true);
-			loadConfig();
-
-		// } else {
-		// 	saveConfig();
-		// }
-		return;
-	}
-
-	// Check if wifi is already set
-	if (String(config.ssid).length() > 0) wifiSet = true;
+	if (savedConf.valid) config = savedConf;
 	else {
-		sckOut("Wifi is not configured!!!");
-		wifiSet = false;
-	}
 
-	// Check if token is already set
-	if (String(config.token).length() == 6) tokenSet = true;
-	else {
-		sckOut("No token configured!!");
-		tokenSet = false;
-	}
-
-	// changeMode(config.persistentMode);
-}
-void SckBase::saveConfig(bool factory) {
-
-	Configuration toSaveConfig;
-
-	if (!factory) {
-		
-		toSaveConfig.valid = true;
-		toSaveConfig.mode = config.mode;
-		toSaveConfig.workingMode = config.workingMode;
-		toSaveConfig.publishInterval = config.publishInterval;
-		strncpy(toSaveConfig.ssid, config.ssid, 64);
-		strncpy(toSaveConfig.pass, config.pass, 64);
-		strncpy(toSaveConfig.token, config.token, 8);
-		
-		// Save per sensor config
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
-			toSaveConfig.sensor[wichSensor].enabled = sensors[wichSensor].enabled;
-			toSaveConfig.sensor[wichSensor].interval = sensors[wichSensor].interval;
-		}
-
-		// Save to eeprom
-		eepromConfig.write(toSaveConfig);
-		sckOut("Saved configuration to eeprom!!!");
-
-	} else {
-
-		sckOut("Reseting to factory defaults...");
-
-		// Default values
-		toSaveConfig.valid = true;
-		toSaveConfig.mode = config.mode = MODE_NOT_CONFIGURED;
-		toSaveConfig.workingMode = config.workingMode = MODE_NET;
-		toSaveConfig.publishInterval = config.publishInterval =  default_publish_interval;
-		strncpy(toSaveConfig.ssid, "", 64);
-		strncpy(toSaveConfig.pass, "", 64);
-		strncpy(toSaveConfig.token, "null", 8);
-
-		// Default sensor values
-		AllSensors tempSensors;
-
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
-			toSaveConfig.sensor[wichSensor].enabled = sensors[wichSensor].enabled = tempSensors[wichSensor].enabled;
-			toSaveConfig.sensor[wichSensor].interval = sensors[wichSensor].interval = default_sensor_reading_interval;
-		}
-
-		// Save to eeprom
-		eepromConfig.write(toSaveConfig);
-		sckOut("Saved configuration to eeprom!!!");
-		// saveSDconfig();
+		// TODO check if there is a valid sdcard config and load it
+		sckOut("Can't find valid configuration!!! loading defaults...");
+		Configuration  newConfig;
+		newConfig.valid = true;
+		config = newConfig;
+		saveConfig(config);
 	}
 }
-char* SckBase::getToken() {
-	sendMessage(ESPMES_GET_TOKEN, true);
-	return config.token;
+bool SckBase::saveConfig(Configuration newConfig) {
+
+	config = newConfig;
+	eepromConfig.write(config);
+
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& json = jsonBuffer.createObject();
+
+	json["mo"] = (uint8_t)config.mode;
+	json["wm"] = (uint8_t)config.workingMode;
+	json["pi"] = config.publishInterval;
+	json["cs"] = (uint8_t)config.credentials.set;
+	json["ss"] = config.credentials.ssid;
+	json["pa"] = config.credentials.pass;
+	json["ts"] = (uint8_t)config.token.set;
+	json["to"] = config.token.token;
+
+	sprintf(netBuff, "%u", ESPMES_SET_CONFIG);
+	json.printTo(&netBuff[1], json.measureLength() + 1);
+	if (!espON) ESPcontrol(ESP_ON);
+	if (sendMessage()) {
+		sckOut("Saved configuration!!", PRIO_LOW);
+		return true;	
+	}
+	return false;
 }
-void SckBase::saveToken(char newToken[8]) {
+Configuration SckBase::getConfig() {
 
-	if (String(newToken).length() == 6) {
-		
-		sprintf(outBuff, "Saving new token: %s", newToken);
-		sckOut();
-
-		strncpy(config.token, newToken, 8);
-		tokenSet = true;
-		saveConfig();
-
-		sendMessage(ESPMES_SET_TOKEN, config.token, true);
-	
-	} else sckOut("Token must have 6 characters!!!");
-}
-void SckBase::saveToken() {
-
-	sckOut(F("Clearing token..."));
-	strncpy(config.token, "null", 8);
-
-	tokenSet = false;
-	saveConfig();
-
-	sendMessage(ESPMES_SET_TOKEN, "null");
+	return config;
 }
 
 // **** ESP
@@ -407,16 +266,15 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 
 			SerialUSB.begin(ESP_FLASH_SPEED);
 			SerialESP.begin(ESP_FLASH_SPEED);
+			delay(100);
 
 			digitalWrite(pinESP_CH_PD, LOW);
 			digitalWrite(pinPOWER_ESP, HIGH);
-			delay(500);
+			digitalWrite(pinESP_GPIO0, LOW);	// LOW for flash mode
+			delay(100);
 
 			digitalWrite(pinESP_CH_PD, HIGH);
-			digitalWrite(pinESP_GPIO0, LOW);	// LOW for flash mode
 			digitalWrite(pinPOWER_ESP, LOW);
-
-			flashingESP = true;
 
 			led.update(led.WHITE, led.PULSE_STATIC);
 
@@ -431,7 +289,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 					SerialUSB.write(SerialESP.read());
 				} 
 				if (millis() - flashTimeout > 1000) {
-					if (millis() - startTimeout > 8000) reset();		// Giva an initial 8 seconds for the flashing to start
+					if (millis() - startTimeout > 5000) reset();		// Giva an initial 5 seconds for the flashing to start
 				}
 			}
 			break;
@@ -456,53 +314,100 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand) {
 		}
 	}
 }
-bool SckBase::sendMessage(ESPMessage wichMessage, bool waitResponse) {
+void SckBase::ESPbusUpdate() {
 
-	if (sendMessage(wichMessage, "", waitResponse)) return true;
-	return false;
-}
-bool SckBase::sendMessage(ESPMessage wichMessage, const char *content, bool waitResponse) {
+	if (manager.available()) {
 
-	bool espON_onStart = espON;
+		uint8_t len = NETPACK_TOTAL_SIZE;
 
-	if (!espON) {
-		ESPcontrol(ESP_ON);
+		if (manager.recvfromAck(netPack, &len)) {
+
+			// Identify received command
+			uint8_t pre = String((char)netPack[1]).toInt();
+			SAMMessage wichMessage = static_cast<SAMMessage>(pre);
+			sckOut("Command: " + String(wichMessage), PRIO_LOW);
+
+			// Get content from first package (1 byte less than the rest)
+			memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
+
+			// Het the rest of the packages (if they exist)
+			for (uint8_t i=0; i<netPack[TOTAL_PARTS]-1; i++) {
+				if (manager.recvfromAckTimeout(netPack, &len, 500))	{
+					memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE) + (NETPACK_CONTENT_SIZE - 1)], &netPack[1], NETPACK_CONTENT_SIZE);
+				}
+				else return;
+			}
+			sckOut("Content: " + String(netBuff), PRIO_LOW);
+
+			// Process message
+			receiveMessage(wichMessage);
+		}
 	}
+}
+bool SckBase::sendMessage(ESPMessage wichMessage) {
+
+	// This function is used when &netBuff[1] is already filled with the content
+
+	sprintf(netBuff, "%u", wichMessage);
+	return sendMessage();
+}
+bool SckBase::sendMessage(ESPMessage wichMessage, const char *content) {
 
 	sprintf(netBuff, "%u%s", wichMessage, content);
+	return sendMessage();
+}
+bool SckBase::sendMessage() {
+
+	// This function is used when netbuff is already filled with command and content
+
+	if (!espON) {
+		sckOut("ESP is off please turn it ON !!!");
+		return false;
+	}
 
 	uint16_t totalSize = strlen(netBuff);
 	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
-	netPack[TOTAL_PARTS] = totalParts;
 
 	for (uint8_t i=0; i<totalParts; i++) {
-		netPack[PART_NUMBER] = i;
-		netPack[2] = 0;				// Clear previous contents
-		memcpy(&netPack[2], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
+		netPack[TOTAL_PARTS] = totalParts;
+		memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
 		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) return false;
 	}
 
-	if (waitResponse) ESPbusUpdate(true);
-
-	if (!espON_onStart) ESPcontrol(ESP_OFF);
-
 	return true;
 }
-bool SckBase::receiveMessage(SAMMessage wichMessage) {
+void SckBase::receiveMessage(SAMMessage wichMessage) {
 
 	switch(wichMessage) {
-		case SAMMES_TOKEN: {
+		case SAMMES_SET_CONFIG: {
 
-			int comparison = strcmp(config.token, netBuff);
-			if (comparison != 0) {
-				sckOut("Token mismatch between ESP and SAM, correcting...");
-				sendMessage(ESPMES_SET_TOKEN, config.token);
-			}
+			sckOut("Received new config from ESP");
+			sckOut(netBuff);
 			break;
-		} default: break;
-	}
 
-	return true;
+		} case SAMMES_DEBUG: {
+
+			SerialUSB.print("ESP --> ");
+			SerialUSB.print(netBuff);
+			break;
+
+		} case SAMMES_NETINFO: {
+
+			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+			JsonObject& json = jsonBuffer.parseObject(netBuff);
+			const char* tip = json["ip"];
+			const char* tmac = json["mac"];
+			const char* thostname = json["hn"];
+			sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", thostname, tip, tmac);
+			sckOut();
+			break;
+
+		} case SAMMES_WIFI_CONNECTED: onWifi = true; sckOut("Conected to wifi!!"); break;
+		case SAMMES_SSID_ERROR: sckOut("ERROR Access point not found!!"); break;
+		case SAMMES_PASS_ERROR: sckOut("ERROR wrong wifi password!!"); break;
+		case SAMMES_WIFI_UNKNOWN_ERROR: sckOut("ERROR unknown wifi error!!"); break;
+		default: break;
+	}
 }
 
 // **** SD card
@@ -554,52 +459,57 @@ void SckBase::flashSelect() {
 void SckBase::battSetup() {
 
 	pinMode(pinBATTERY_ALARM, INPUT_PULLUP);
-	LowPower.attachInterruptWakeup(pinBATTERY_ALARM, ISR_battery, CHANGE);
-	
-	if (lipo.begin()) {
-		
-		lipo.enterConfig();
-		lipo.setCapacity(battCapacity);
-		lipo.setGPOUTPolarity(LOW);
-		lipo.setGPOUTFunction(SOC_INT);
-		lipo.setSOCIDelta(1);
-		lipo.exitConfig();
+	attachInterrupt(pinBATTERY_ALARM, ISR_battery, LOW);
 
-		// Force an update
-		return true;
-	}
-	return false;
+	lipo.enterConfig();
+	lipo.setCapacity(battCapacity);
+	lipo.setGPOUTPolarity(LOW);
+	lipo.setGPOUTFunction(SOC_INT);
+	lipo.setSOCIDelta(1);
+	lipo.exitConfig();
 }
 void SckBase::batteryEvent(){
 
-	getReading(SENSOR_BATT_PERCENT);
+	SerialUSB.println("battery event");
 
-	if (sensors[SENSOR_BATT_PERCENT].reading.toInt() != 0) {
-		if (!batteryPresent) {
-			battSetup();
-			batteryPresent = true;
-		}
-		sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
-	} else {
+	// if (batteryPresent) {
 
-		// TODO
-		// To confirm no battery is present we should check the state of charger here
-		batteryPresent = false;
-		sprintf(outBuff, "No battery present!!");
-	}
-	sckOut();
+	// 	if (lipo.batPresent()) {
+	// 		getReading(SENSOR_BATT_PERCENT);
+	// 		sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
+	// 	} else {
+	// 		batteryPresent = false;
+	// 		sprintf(outBuff, "Battery removed!!");
+	// 	}
+
+	// } else {
+
+	// 	if (lipo.batPresent()) {
+	// 		SerialUSB.println("1");
+	// 		if (lipo.begin()) {
+	// 			batteryPresent = true;
+	// 			getReading(SENSOR_BATT_PERCENT);
+	// 			sprintf(outBuff, "Battery connected!! charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
+	// 		}
+	// 	} else {
+	// 		sprintf(outBuff, "Received unknown interrupt from battery gauge");
+	// 	}
+	// }
+	// sckOut();
 }
 void SckBase::batteryReport() {
 
-	sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i",
-		lipo.soc(),
-		lipo.voltage(),
-		lipo.current(AVG),
-		lipo.capacity(REMAIN),
-		lipo.capacity(FULL),
-		lipo.soh()
-	);
-	sckOut();
+	SerialUSB.println(lipo.voltage());
+
+	// sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i",
+	// 	lipo.soc(),
+	// 	lipo.voltage(),
+	// 	lipo.current(AVG),
+	// 	lipo.capacity(REMAIN),
+	// 	lipo.capacity(FULL),
+	// 	lipo.soh()
+	// );
+	// sckOut();
 }
 void SckBase::reset() {
 	sckOut("Bye!!");

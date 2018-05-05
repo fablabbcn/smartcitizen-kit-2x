@@ -226,7 +226,6 @@ bool SckBase::saveConfig(Configuration newConfig) {
 	JsonObject& json = jsonBuffer.createObject();
 
 	json["mo"] = (uint8_t)config.mode;
-	json["wm"] = (uint8_t)config.workingMode;
 	json["pi"] = config.publishInterval;
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
@@ -409,9 +408,9 @@ void SckBase::receiveMessage(SAMMessage wichMessage) {
 			if (!onTime) sckOut("Asking time to ESP..."); sendMessage(ESPMES_GET_TIME, "");
 			break;
 
-		} case SAMMES_SSID_ERROR: sckOut("ERROR Access point not found!!"); break;
-		case SAMMES_PASS_ERROR: sckOut("ERROR wrong wifi password!!"); break;
-		case SAMMES_WIFI_UNKNOWN_ERROR: sckOut("ERROR unknown wifi error!!"); break;
+		} case SAMMES_SSID_ERROR: sckOut("ERROR Access point not found!!"); wifiError = true; break;
+		case SAMMES_PASS_ERROR: sckOut("ERROR wrong wifi password!!"); wifiError = true; break;
+		case SAMMES_WIFI_UNKNOWN_ERROR: sckOut("ERROR unknown wifi error!!"); wifiError = true; break;
 		case SAMMES_TIME : {
 
 			String strTime = String(netBuff);

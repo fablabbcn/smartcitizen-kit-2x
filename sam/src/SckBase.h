@@ -34,6 +34,8 @@ enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
 enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
 struct SckState {
 	bool onSetup = false;
+	bool manualSetup = false;
+	bool manualMode = false;
 	bool espON = false;
 	bool wifiSet = false;
 	bool onWifi = false;
@@ -44,9 +46,12 @@ struct SckState {
 	SCKmodes mode = MODE_NET;
 	bool cardPresent = false;
 	bool reading = false;
+	bool sleeping = false;
 
 	inline bool operator==(SckState a) {
        if (		a.onSetup == onSetup
+       		&& 	a.manualSetup == manualSetup
+       		&& 	a.manualMode == manualMode
        		&& 	a.espON == espON
        		&& 	a.wifiSet == wifiSet
        		&& 	a.onWifi == onWifi
@@ -57,6 +62,7 @@ struct SckState {
        		&& 	a.mode == mode
        		&& 	a.cardPresent == cardPresent
        		&& 	a.reading == reading
+       		&& 	a.sleeping == sleeping
        		) return true;
        else return false;
     }
@@ -74,7 +80,6 @@ private:
 	const uint8_t WIFI_TIMEOUT = 20;		// seconds
 	uint8_t wifiRetrys = 0;
 	const uint8_t WIFI_MAX_RETRYS = 3;
-	bool flashingESP = false;
 
 	// **** Time
 	RTCZero rtc;
@@ -95,9 +100,10 @@ private:
 	void receiveMessage(SAMMessage wichMessage);
 
 	// Button
+	bool buttonDown = false;
 	const uint16_t buttonLong = 5000;
-	const uint16_t buttonVeryLong = 13000;
-	enum ButtonStage { BUT_STARTED, BUT_LONG_PRESS, BUT_VERY_LONG };
+	const uint16_t buttonVeryLong = 15000;
+	enum ButtonStage { BUT_FREE, BUT_STARTED, BUT_LONG_PRESS };
 	ButtonStage buttonStage = BUT_STARTED;
 	bool alarmRunning_TC4 = false;
 	bool alarmRunning_TC3 = false;

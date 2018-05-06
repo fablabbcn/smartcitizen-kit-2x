@@ -124,6 +124,8 @@ void SckBase::update() {
 	
 
 	if (millis() % 100 == 0) reviewState();
+
+	if (millis() % 50 == 0) if (buttonDown) buttonStillDown();	// TODO replace with interrupt timers
 }
 
 // **** Mode Control
@@ -132,6 +134,7 @@ void SckBase::reviewState() {
 	/*
 	struct SckState {
 		bool onSetup = false;
+		bool manualSetup = false;
 		bool espON = false;
 		bool wifiSet = false;
 		bool onWifi = false;
@@ -142,6 +145,7 @@ void SckBase::reviewState() {
 		SCKmodes mode = MODE_NET;
 		bool cardPresent = false;
 		bool reading = false;
+		bool sleeping = false;
 	};
 
 	state can be changed by:
@@ -149,17 +153,21 @@ void SckBase::reviewState() {
 		receiveMessage()
 		setTime()
 		sdDetect()
+		buttonEvent();
 	*/
 
 	// TODO this will be implemented in timer library so we dont check it every loop
-	if (state.espON && !state.onWifi) if (rtc.getEpoch() - espStarted > WIFI_TIMEOUT) state.wifiError = true;
-	if (state.onWifi && timeAsked > 0) if (rtc.getEpoch() - timeAsked > TIME_TIMEOUT) state.timeError = true;
+	if (state.espON && !state.onWifi) if ((rtc.getEpoch() - espStarted) > WIFI_TIMEOUT) state.wifiError = true;
+	if (state.onWifi && timeAsked > 0) if ((rtc.getEpoch() - timeAsked) > TIME_TIMEOUT) state.timeError = true;
+	if (state.manualMode) if ((millis() - buttonLastEvent) > 5500) state.manualMode = false;
 
 	if (!(state == oldState)) {
 
 		printState();
 
 		oldState = state;
+
+		if (state.sleeping || state.manualSetup) return;
 
 		if (state.mode == MODE_NET) {
 
@@ -182,7 +190,7 @@ void SckBase::reviewState() {
 					else if (state.wifiError) enterSetup();
 				} else {
 					if (timeAsked == 0) {
-						sckOut("Asking time to ESP..."); 
+						sckOut("Asking time to ESP...");
 						timeAsked = rtc.getEpoch();
 						sendMessage(ESPMES_GET_TIME, "");
 					} else if (state.timeError) enterSetup();
@@ -237,6 +245,8 @@ void SckBase::reviewState() {
 }
 void SckBase::enterSetup() {
 
+	if (state.manualMode) return;
+
 	state.onSetup = true;
 
 	// Update led
@@ -249,6 +259,8 @@ void SckBase::enterSetup() {
 void SckBase::printState(bool all) {
 
 	if ((oldState.onSetup != state.onSetup) | all) sprintf(outBuff, "%sonSetup: %s\r\n", outBuff, state.onSetup  ? "true" : "false");
+	if ((oldState.manualSetup != state.manualSetup) | all) sprintf(outBuff, "%smanualSetup: %s\r\n", outBuff, state.manualSetup  ? "true" : "false");
+	if ((oldState.manualMode != state.manualMode) | all) sprintf(outBuff, "%smanualMode: %s\r\n", outBuff, state.manualMode  ? "true" : "false");
 	if ((oldState.espON != state.espON) | all) sprintf(outBuff, "%sespON: %s\r\n", outBuff, state.espON  ? "true" : "false");
 	if ((oldState.wifiSet != state.wifiSet) | all) sprintf(outBuff, "%swifiSet: %s\r\n", outBuff, state.wifiSet  ? "true" : "false");
 	if ((oldState.onWifi != state.onWifi) | all) sprintf(outBuff, "%sonWifi: %s\r\n", outBuff, state.onWifi  ? "true" : "false");
@@ -259,6 +271,7 @@ void SckBase::printState(bool all) {
 	if ((oldState.mode != state.mode) | all) sprintf(outBuff, "%smode: %s\r\n", outBuff, modeTitles[state.mode]);
 	if ((oldState.cardPresent != state.cardPresent) | all) sprintf(outBuff, "%scardPresent: %s\r\n", outBuff, state.cardPresent  ? "true" : "false");
 	if ((oldState.reading != state.reading) | all) sprintf(outBuff, "%sreading: %s\r\n", outBuff, state.reading  ? "true" : "false");
+	if ((oldState.sleeping != state.sleeping) | all) sprintf(outBuff, "%ssleeping: %s\r\n", outBuff, state.sleeping  ? "true" : "false");
 	sckOut(PRIO_LOW, false);
 }
 
@@ -389,6 +402,7 @@ void SckBase::saveConfig(Configuration newConfig) {
 	sprintf(netBuff, "%u", ESPMES_SET_CONFIG);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	if (!state.espON) ESPcontrol(ESP_ON);
+	delay(150);
 	sckOut("Saved configuration!!", PRIO_LOW);
 	if (sendMessage()) sckOut("Saved configuration on ESP!!", PRIO_LOW);
 }

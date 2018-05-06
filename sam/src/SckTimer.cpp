@@ -55,16 +55,15 @@ void SckBase::setTimer(uint16_t lapse, Task task) {
 }
 
 void SckBase::timerAlarm() {
-	SerialUSB.println("caca");
 	sckOut("timer alarm!!!");
 
 	switch (nextTask) {
 
-		case T_OTG_ON: {
-			charger.OTG(1);
+		case TASK_BUTTON_LONG: {
+
 			break;
-		} case T_OTG_OFF : {
-			charger.OTG(0);
+		} case TASK_BUTTON_VERY_LONG : {
+
 			break;
 		} default: break;
 	}

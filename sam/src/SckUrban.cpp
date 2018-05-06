@@ -30,11 +30,10 @@ String SckUrban::getReading(SensorType wichSensor, bool wait) {
 		case SENSOR_TEMPERATURE: 			if (sck_sht31.update(wait)) return String(sck_sht31.temperature); break;
 		case SENSOR_HUMIDITY: 				if (sck_sht31.update(wait)) return String(sck_sht31.humidity); break;
 		case SENSOR_CO:						if (sck_mics4514.getCO(wait)) return String(sck_mics4514.co); break;
-
+		// case SENSOR_CO_HEAT_TIME:			return String(epoch - sck_mics4514.startHeaterTime_CO); break
 		case SENSOR_NO2:					if (sck_mics4514.getNO2(wait)) return String(sck_mics4514.no2); break;
+		// case SENSOR_NO2_HEAT_TIME:			return String(epoch - sck_mics4514.startHeaterTime_NO2); break
 		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load(wait)) return String(sck_mics4514.no2LoadResistor); break;
-		// aqui faltan varios...
-
 		case SENSOR_ALTITUDE:				if (sck_mpl3115A2.getAltitude(wait)) return String(sck_mpl3115A2.altitude); break;
 		case SENSOR_PRESSURE:				if (sck_mpl3115A2.getPressure(wait)) return String(sck_mpl3115A2.pressure); break;
 		case SENSOR_PRESSURE_TEMP:			if (sck_mpl3115A2.getTemperature(wait)) return String(sck_mpl3115A2.temperature); break;
@@ -273,12 +272,14 @@ bool Sck_MICS4514::begin() {
 	// To protect MICS turn off heaters (HIGH=off, LOW=on)
 	pinMode(pinPWM_HEATER_CO, OUTPUT);
 	pinMode(pinPWM_HEATER_NO2, OUTPUT);
+	digitalWrite(pinPWM_HEATER_CO, HIGH);
+	digitalWrite(pinPWM_HEATER_NO2, HIGH);
 	
 	pinMode(pinREAD_CO, INPUT);
 	pinMode(pinREAD_NO2, INPUT);
 
-	disable(SENSOR_CO);
-	disable(SENSOR_NO2);
+	enable(SENSOR_CO, 0);
+	enable(SENSOR_NO2, 0);
 
 	// Put the load resistor in middle position
 	setNO2load(5000);
@@ -299,12 +300,12 @@ bool Sck_MICS4514::enable(SensorType wichSensor, uint32_t epoch) {
 		case SENSOR_CO: {
 			
 			setPWM(SENSOR_CO, 50.8); 		// This works on proto boards 2.0 rev1 (50.8%)
-			startHeaterTime_CO = epoch;
+			// startHeaterTime_CO = epoch;
 			break;
 		} case SENSOR_NO2: {
 
 			setPWM(SENSOR_NO2, 76.2); 		// This works on proto boards 2.0 rev1 (76.2%)
-			startHeaterTime_NO2 = epoch;
+			// startHeaterTime_NO2 = epoch;
 			break;
 		} default: break;
 	}
@@ -329,9 +330,41 @@ bool Sck_MICS4514::disable(SensorType wichSensor) {
 }
 bool Sck_MICS4514::getCO(bool wait) {
 
+	float sensorVoltage;
+	
+	sensorVoltage = ((average(pinREAD_CO) * (float)VCC) / (float)ANALOG_RESOLUTION);
+	if (sensorVoltage > VCC) sensorVoltage = VCC;
+	co = (((VCC - sensorVoltage) / sensorVoltage) * coLoadResistor) / 1000.0;
+
 	return true;
 }
 bool Sck_MICS4514::getNO2(bool wait) {
+
+	float sensorVoltage;
+	
+	sensorVoltage = ((average(pinREAD_NO2) * (float)VCC) / (float)ANALOG_RESOLUTION);
+	if (sensorVoltage > VCC) sensorVoltage = VCC;
+
+	getNO2load();
+	no2 = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;
+
+
+	// For now dinamic range is disabled, needs more study.
+	// uint8_t cycles = 5;
+	// for (uint8_t i=0; i<cycles; ++i) {
+
+	// 	// If difference between result and load resistor is greater than 80, try to improve resolution.
+	// 	if (abs(no2LoadResistor - no2_K) > 200 && no2_K > 870 && no2_K < 10000) {
+			
+	// 		setNO2load(no2_K);
+
+	// 		// Update reading
+	// 		getNO2load();
+	// 		sensorVoltage = ((average(pinREAD_NO2) * (float)VCC) / (float)ANALOG_RESOLUTION);
+	// 		if (sensorVoltage > VCC) sensorVoltage = VCC;
+	// 		no2 = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;
+	// 	} else break;
+	// }
 
 	return true;
 }
@@ -466,6 +499,17 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle) {
 	REG_TCC1_CTRLA |= MY_DIVIDER |    // Divide GCLK4 (posibles values: 1,2,4,8,16,64,256,1024)
 					  TCC_CTRLA_ENABLE;             // Enable the TCC0 output
 	while (TCC1->SYNCBUSY.bit.ENABLE);
+}
+float Sck_MICS4514::average(uint8_t wichPin) {
+
+	uint16_t numReadings = 300;
+	long total = 0;
+	float average = 0;
+	for(uint16_t i=0; i<numReadings; i++) {
+		total = total + analogRead(wichPin);
+	}
+	average = (float)total / numReadings;  
+	return average;
 }
 
 // Noise

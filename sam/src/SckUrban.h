@@ -80,10 +80,14 @@ class Sck_MICS4514 {
 		const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_3;		// PA9 - HEAT_NO2
 		const uint8_t pinREAD_NO2 = pinBOARD_CONN_11;			// PB2 - READ_NOX
 
-		const uint8_t ANALOG_RESOLUTION = 10;
+		const uint32_t ANALOG_RESOLUTION = 4095;
+		const uint32_t VCC = 3300;
 
 		uint32_t startHeaterTime_CO = 0;
 		uint32_t startHeaterTime_NO2 = 0;
+
+		// CO2 Fixed resistor
+		uint32_t coLoadResistor = 750000;
 
 		// NO2 adjustable load resistor
 		const byte POT_NO2_LOAD_ADDRESS = 0x2F;
@@ -102,6 +106,7 @@ class Sck_MICS4514 {
 		bool getCO(bool wait=true);
 		bool getNO2(bool wait=true);
 		bool getNO2load(bool wait=true);
+		float average(uint8_t wichPin);
 };
 
 // Noise

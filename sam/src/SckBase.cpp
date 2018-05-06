@@ -84,6 +84,7 @@ void SckBase::setup() {
 	else if (config.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
 	
 	// Urban board
+	analogReadResolution(12);
 	urbanPresent = urban.setup();
 	if (urbanPresent) {
 		sckOut("Urban board detected");

@@ -24,10 +24,10 @@ void ISR_charger() {
 	base.chargerEvent();
 }
 // Button alarm interrupt
-void TC4_Handler (void) {
-	base.buttonStillDown();
-	TC4->COUNT16.INTFLAG.bit.MC0 = 1;
-}
+// void TC4_Handler (void) {
+// 	base.buttonStillDown();
+// 	TC4->COUNT16.INTFLAG.bit.MC0 = 1;
+// }
 void TC3_Handler (void) {
 	base.timerAlarm();
 	TC3->COUNT16.INTFLAG.bit.MC0 = 1;

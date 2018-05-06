@@ -2,8 +2,8 @@
 
 enum Task {
 
-	T_OTG_ON,
-	T_OTG_OFF,
+	TASK_BUTTON_LONG,
+	TASK_BUTTON_VERY_LONG,
 
 	TASK_COUNT
 };

@@ -2,23 +2,40 @@
 
 void SckBase::buttonEvent() {
 
-	if (flashingESP) reset();
-
 	buttonLastEvent = millis();
-	buttonStage = BUT_STARTED;
-
+	
 	if (!digitalRead(pinBUTTON)) {
 
 		// Button Down
-		setAlarm_TC4(100);
+		buttonDown = true;
+		buttonStage = BUT_STARTED;
+		// setAlarm_TC4(1000);
 		sckOut("Button Down", PRIO_LOW);
+		if (state.sleeping) state.sleeping = false;
+		else if (!state.onSetup) {
+			state.manualSetup = true;
+			enterSetup();
+		} else if (state.onSetup) {
+			state.manualMode = true;
+			state.manualSetup = false;
+			state.onSetup = false;
+			if (state.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
+			else if (state.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
+		}
 
 	} else {
 
 		// Button Up
-		setAlarm_TC4();
+		buttonDown = false;
+		// setAlarm_TC4();
 		sckOut("Button Up", PRIO_LOW);
 
+		if (buttonStage == BUT_LONG_PRESS) {
+
+			// TODO go to sleep
+		} 
+
+		buttonStage = BUT_FREE;
 	}
 }
 void SckBase::buttonStillDown() {
@@ -31,12 +48,28 @@ void SckBase::buttonStillDown() {
 		sprintf(outBuff, "Button pressed for %lu milliseconds: Long press", millis() - buttonLastEvent);
 		sckOut(PRIO_LOW);
 
+		state.sleeping = true;
+		state.manualSetup = false;
+		state.manualMode = false;
+
+		ESPcontrol(ESP_OFF);
+		led.off();
+
 	} else if (pressedTime >= buttonVeryLong && buttonStage == BUT_LONG_PRESS) {
 	
-		buttonStage = BUT_VERY_LONG;
 		sprintf(outBuff, "Button pressed for %lu milliseconds: Very long press", millis() - buttonLastEvent);
 		sckOut(PRIO_LOW);
+		
+		state.sleeping = false;
+		state.manualSetup = false;
+		state.manualMode = false;
+		
+		// Factory defaults
+		Configuration defaultConfig;
+		saveConfig(defaultConfig);
+		// TODO user Feedback
 
+		buttonStage = BUT_FREE;
 	}
 }
 void SckBase::setAlarm_TC4(uint16_t lapse) {

@@ -262,8 +262,10 @@ void config_com(SckBase* base, String parameters) {
 			uint16_t tokenI = parameters.indexOf("-token");
 			if (tokenI >= 0) {
 				String tokenC = parameters.substring(tokenI+7);
-				if (tokenC.length() >= 6) tokenC.toCharArray(thisConfig.token.token, 7);
-				thisConfig.token.set = true;
+				if (tokenC.length() >= 6) {
+					tokenC.toCharArray(thisConfig.token.token, 7);
+					thisConfig.token.set = true;
+				}
 			}
 			base->saveConfig(thisConfig);
 		}
@@ -288,8 +290,7 @@ void config_com(SckBase* base, String parameters) {
 void esp_com(SckBase* base, String parameters) {
 
 	if (parameters.length() <= 0) {
-		if (base->espON) base->sckOut("ESP is ON");
-		else base->sckOut("ESP is off");
+		base->sckOut("Parameters: on/off/reboot/flash/debug");
 	} else if (parameters.equals("on")) base->ESPcontrol(base->ESP_ON);
 	else if (parameters.equals("off")) base->ESPcontrol(base->ESP_OFF);
 	else if (parameters.equals("reboot")) base->ESPcontrol(base->ESP_REBOOT);
@@ -305,7 +306,8 @@ void netInfo_com(SckBase* base, String parameters) {
 void time_com(SckBase* base, String parameters) {
 
 	if (parameters.length() <= 0) {
-		if (base->onTime) {
+
+		if (base->ISOtime()) {
 			sprintf(base->outBuff, "Time: %s", base->ISOtimeBuff); 
 			base->sckOut();
 		} else {
@@ -313,4 +315,8 @@ void time_com(SckBase* base, String parameters) {
 			base->sendMessage(ESPMES_GET_TIME, "");
 		}
 	} else if (parameters.toInt() > 0) base->setTime(parameters);
+}
+void state_com(SckBase* base, String parameters) {
+
+	base->printState(true);
 }

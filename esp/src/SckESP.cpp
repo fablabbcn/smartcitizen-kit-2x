@@ -244,7 +244,9 @@ void SckESP::stopAP() {
 // **** Configuration
 bool SckESP::saveConfig(Configuration newConfig) {
 
-	debugOUT("entro");
+	if ((config.credentials.ssid != newConfig.credentials.ssid) || !newConfig.credentials.set) WiFi.disconnect();
+
+	config = newConfig;
 
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
@@ -255,8 +257,6 @@ bool SckESP::saveConfig(Configuration newConfig) {
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
-
-	debugOUT("paso otra vez");
 
 	File configFile = SPIFFS.open(configFileName, "w");
 	if (configFile) {

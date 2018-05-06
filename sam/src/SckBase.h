@@ -32,6 +32,35 @@
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
 enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
+struct SckState {
+	bool onSetup = false;
+	bool espON = false;
+	bool wifiSet = false;
+	bool onWifi = false;
+	bool wifiError = false;
+	bool tokenSet = false;
+	bool onTime = false;
+	bool timeError = false;
+	SCKmodes mode = MODE_NET;
+	bool cardPresent = false;
+	bool reading = false;
+
+	inline bool operator==(SckState a) {
+       if (		a.onSetup == onSetup
+       		&& 	a.espON == espON
+       		&& 	a.wifiSet == wifiSet
+       		&& 	a.onWifi == onWifi
+       		&& 	a.wifiError == wifiError
+       		&& 	a.tokenSet == tokenSet
+       		&& 	a.onTime == onTime
+       		&& 	a.timeError == timeError
+       		&& 	a.mode == mode
+       		&& 	a.cardPresent == cardPresent
+       		&& 	a.reading == reading
+       		) return true;
+       else return false;
+    }
+};
 
 class SckBase {
 private:
@@ -40,13 +69,23 @@ private:
 	String serialBuff;
 	String previousCommand;
 
-	// ESP control
+	// **** ESP control
 	uint32_t espStarted;
+	const uint8_t WIFI_TIMEOUT = 20;		// seconds
+	uint8_t wifiRetrys = 0;
+	const uint8_t WIFI_MAX_RETRYS = 3;
+	bool flashingESP = false;
+
 	// **** Time
 	RTCZero rtc;
 	uint32_t timeAsked = 0;
 	const uint8_t TIME_TIMEOUT = 20;		// seconds
 	void epoch2iso(uint32_t toConvert, char* isoTime);
+
+	// **** Mode Control
+	SckState oldState;
+	void reviewState();
+	void enterSetup();
 
 	// ESP communication
 	const uint32_t ESP_FLASH_SPEED = 921600;
@@ -95,41 +134,40 @@ private:
 	bool onUSB = true;
 	void battSetup();
 
+	// **** Sensors
+	uint8_t publishErrors = 0;
+	void updateSensors();
+
 public:
 
 	void setup();
 	void update();
 
-	// Status flags
-	bool onSetup = false;
-	bool onWifi = false;
-	bool wifiError = false;
-	bool onTime = false;
+	// **** Mode Control
+	SckState state;
+	void printState(bool all=false);
+
+	// **** Time
+	char ISOtimeBuff[20];
+	bool setTime(String epoch);
+	bool ISOtime();
 
 	// Peripherals
 	SckLed led;
 	friend class SckButton;
-	
-	// **** Time
-	char ISOtimeBuff[20];
-	bool setTime(String epoch);
-	void epoch2iso(uint32_t toConvert, char* isoTime);
-	bool ISOtime();
 
-	// Sensors
+	// **** Sensors
 	AllSensors sensors;
 	bool getReading(SensorType wichSensor, bool wait=true);
 
 	// Configuration
 	Configuration getConfig();
-	bool saveConfig(Configuration newConfig);
+	void saveConfig(Configuration newConfig);
 
 	// Input/Output
 	void inputUpdate();
 
 	// ESP control
-	bool espON = false;
-	bool flashingESP = false;
 	enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
 	void ESPcontrol(ESPcontrols myESPControl);
 
@@ -179,32 +217,3 @@ void ISR_button();
 void ISR_battery();
 void ISR_sdDetect();
 void ISR_charger();
-	* State machine hig level design
-
-		* MODE_NETWORK (!wifiSet || !tokenSet ) -> onSetup
-		* MODE_NETWORK (wifiSet && tokenSet && !onTime) -> WAITING_TIME
-			* WAITING_TIME (!onWifi) -> WAITING_WIFI
-				* WAITING_WIFI (!espON) -> ESP_ON
-				* WAITING_WIFI -> (espON && wifiError || timeout) -> onSetup
-			* WAITING_TIME (onWifi && timeout) -> onSetup
-		* MODE_NETWORK (wifiSet && tokenSet && onTime) -> WAITING_READING
-			* WAITING_READING (errors < retrys) -> PUBLISH
-			* PUBLISH (!onWifi) -> WAITING_WIFI
-				* WAITING_WIFI (!espON) -> ESP_ON
-				* WAITING_WIFI -> (espON && wifiError || timeout) -> errors ++
-			* PUBLISH (onWifi) -> WAITING_MQTT_RESPONSE
-				* WAITING_MQTT_RESPONSE (mqttError || timeout) -> errors ++
-
-		* MODE_SDCARD (!cardPresent) -> onSetup
-		* MODE_SDCARD (cardPresent &&!onTime && !wifiSet) -> onSetup
-		* MODE_SDCARD (cardPresent && !onTime && wifiSet) -> WAITING_TIME
-			* WAITING_TIME (!onWifi) -> WAITING_WIFI
-				* WAITING_WIFI (!espON) -> ESP_ON
-				* WAITING_WIFI -> (espON && wifiError || timeout) -> onSetup
-			* WAITING_TIME (onWifi && timeout) -> onSetup
-		* MODE_SDCARD (cardPresent && onTime) -> WAITING_READING
-			* WAITING_READING -> PUBLISH
-
-		* Modes :
-			* MODE_NETWORK
-			* MODE_SDCARD

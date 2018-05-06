@@ -9,7 +9,7 @@ def after_upload(source, target, env):
 	time.sleep(1);
 	print "Setting default config..."
 	myPort = serial.Serial("/dev/" + env.get("UPLOAD_PORT"))
-	myPort.write("config -defaults")
+	myPort.write("\r\nconfig -defaults")
 
 print "Current build targets", map(str, BUILD_TARGETS)
 

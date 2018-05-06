@@ -88,6 +88,8 @@ void SckBase::setup() {
 	urbanPresent = urban.setup();
 	if (urbanPresent) {
 		sckOut("Urban board detected");
+		readLight.setup();
+		// readLight.debugFlag = true;
 	}
 
 	// Detect and enable auxiliary boards // TEMP this should be done in aux setup
@@ -122,6 +124,37 @@ void SckBase::setup() {
 }
 void SckBase::update() {
 
+
+
+	// TEMP 
+	if (state.onSetup) {
+			lightResults = readLight.read();
+			if (lightResults.ok) {
+
+				Configuration lightConfig;
+
+				if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
+					if (lightResults.lines[1].length() > 0) {
+						lightResults.lines[1].toCharArray(lightConfig.credentials.ssid, 64);
+						lightResults.lines[2].toCharArray(lightConfig.credentials.pass, 64);
+						lightConfig.credentials.set = true;
+					}
+				}
+				if (lightResults.lines[0].endsWith(F("auth"))) {
+					if (lightResults.lines[3].length() > 0) {
+						lightResults.lines[3].toCharArray(lightConfig.token.token, 7);
+						lightConfig.token.set = true;
+					}
+					uint32_t receivedInterval = lightResults.lines[4].toInt();
+					if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) lightConfig.publishInterval = receivedInterval;
+				}
+				if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
+
+				// led.configOK();
+			 	readLight.reset();
+				saveConfig(lightConfig);
+			}
+		}
 	
 
 	if (millis() % 100 == 0) reviewState();

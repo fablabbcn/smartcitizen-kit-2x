@@ -89,7 +89,7 @@ dataLight ReadLight::read() {
       
       if (dogBite()) return results;
       
-      if (!ETX) {
+      if (!mETX) {
         // Get char
         char b = getChar();
 
@@ -102,13 +102,13 @@ dataLight ReadLight::read() {
         } else if (b == 0x03) {
           // End of text signal
           debugOUT(F("ETX received!!!"));
-          ETX = true;
+          mETX = true;
           TransmittingText = false;
           feedDOG();
         } else if (b == 0x04) {
           // End of transfer
           debugOUT(F("EOT received!!!"));
-          EOT = true;
+          mEOT = true;
           feedDOG();
         } else if (TransmittingText && b != 0x00) {
           // If received char its not a newline, we store it in buffer
@@ -372,8 +372,8 @@ void ReadLight::reset() {
   oldLevel = -1;
   octalString = "0";
   sum = "";
-  EOT = false;
-  ETX = false;
+  mEOT = false;
+  mETX = false;
   TransmittingText = false;
   for (uint8_t i=0; i<8; ++i) results.lines[i] = "";
   results.ok = false;

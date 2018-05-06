@@ -91,34 +91,34 @@ void SckBase::setup() {
 	}
 
 	// Detect and enable auxiliary boards // TEMP this should be done in aux setup
-	// for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
-	// 	OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 
-	// 	// Only try to find auxiliary sensors
-	// 	if (wichSensor->location == BOARD_AUX) {
+		// Only try to find auxiliary sensors
+		if (wichSensor->location == BOARD_AUX) {
 
-	// 		sprintf(outBuff, "Detecting: %s... ", wichSensor->title);
-	// 		sckOut(PRIO_MED, false);
+			sprintf(outBuff, "Detecting: %s... ", wichSensor->title);
+			sckOut(PRIO_MED, false);
 
-	// 		if (auxBoards.begin(wichSensor->type)) {
+			if (auxBoards.begin(wichSensor->type)) {
 
-	// 			if (!wichSensor->enabled) {
-	// 				sckOut("found!!!");
-	// 				// enableSensor(wichSensor);
-	// 			} else {
-	// 				sckOut("found, already enabled!!!");
-	// 				sckOut();
-	// 			}
+				if (!wichSensor->enabled) {
+					sckOut("found!!!");
+					// enableSensor(wichSensor);
+				} else {
+					sckOut("found, already enabled!!!");
+					sckOut();
+				}
 
-	// 		} else {
-	// 			if (wichSensor->enabled) {
-	// 				sckOut("not found!!!");
-	// 				// disableSensor(wichSensor);
-	// 			} else sckOut("nothing!");
-	// 		}
-	// 	}
-	// }
+			} else {
+				if (wichSensor->enabled) {
+					sckOut("not found!!!");
+					// disableSensor(wichSensor);
+				} else sckOut("nothing!");
+			}
+		}
+	}
 }
 void SckBase::update() {
 
@@ -754,7 +754,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait) {
 			break;
 		}
 		case BOARD_AUX: {
-			SerialUSB.println(auxBoards.getReading(wichSensor));
+			result = String(auxBoards.getReading(wichSensor));	// TODO por auxBoards to String mode
 			break;
 		}
 	}

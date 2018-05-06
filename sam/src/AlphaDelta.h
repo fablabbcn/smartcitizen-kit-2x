@@ -4,6 +4,13 @@
 #include "Adafruit_SHT31.h"		// To be replaced by internal lib
 #include <MCP342X.h>
 
+// AlphaDeltaTester
+#ifdef deltaTest 
+#include <AlphaDeltaTester.h>
+#endif
+
+extern TwoWire auxWire;
+
 struct Resistor {
 	byte address;
 	byte channel;
@@ -21,6 +28,32 @@ struct AlphaSensor {
 	Electrode electrode_W;
 };
 
+// Temperature and Humidity
+class Sck_Aux_SHT31 {
+	// Datasheet
+	// https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/2_Humidity_Sensors/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital.pdf
+	// This code is based on Adafruit SHT31 library, thanks! (https://github.com/adafruit/Adafruit_SHT31)
+	private:
+		// Commands
+		uint8_t address = 0x44;
+		const uint16_t SOFT_RESET = 0x30A2;
+		const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
+		
+		// TO be removed with state machine asynchronous
+		uint32_t timeout = 20;	// Time in ms to wait for a reading
+		
+		void sendComm(uint16_t comm);
+		uint8_t crc8(const uint8_t *data, int len);
+		uint32_t lastUpdate = 0;
+	public:
+		float temperature;
+		float humidity;
+		bool begin();
+		bool stop();
+		bool update(bool wait=true);
+};
+
+
 class AlphaDelta {
 	public:
 
@@ -31,7 +64,8 @@ class AlphaDelta {
 		// SHT31 Temperature and Humidity Sensor
 		const byte sht31Address = 0x44;
 
-		Adafruit_SHT31 sht31 = Adafruit_SHT31();
+		// Adafruit_SHT31 sht31 = Adafruit_SHT31();
+		Sck_Aux_SHT31 sht31;
 		
 		float getTemperature();
 		float getHumidity();
@@ -66,6 +100,19 @@ class AlphaDelta {
 		uint8_t getPGAgain(MCP342X adc);
 		float getElectrodeGain(Electrode wichElectrode);
 		double getElectrode(Electrode wichElectrode);
+		String getUID();
+		bool writeByte(uint8_t dataAddress, uint8_t data);
+		uint8_t readByte(uint8_t dataAddress);
+
+		#ifdef deltaTest
+		testerAlphaDelta tester;
+		void runTester(uint8_t wichSlot);
+		void setTesterCurrent(int16_t wichCurrent, uint8_t wichSlot);
+		#endif
 
 	private:
+
+		// EEPROM 24AA025
+		const byte eepromAddress = 0x51;
 };
+

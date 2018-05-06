@@ -42,6 +42,11 @@ private:
 
 	// ESP control
 	uint32_t espStarted;
+	// **** Time
+	RTCZero rtc;
+	uint32_t timeAsked = 0;
+	const uint8_t TIME_TIMEOUT = 20;		// seconds
+	void epoch2iso(uint32_t toConvert, char* isoTime);
 
 	// ESP communication
 	const uint32_t ESP_FLASH_SPEED = 921600;
@@ -105,8 +110,7 @@ public:
 	SckLed led;
 	friend class SckButton;
 	
-	// Time
-	RTCZero rtc;
+	// **** Time
 	char ISOtimeBuff[20];
 	bool setTime(String epoch);
 	void epoch2iso(uint32_t toConvert, char* isoTime);

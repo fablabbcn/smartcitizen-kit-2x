@@ -28,6 +28,7 @@
 #include "SckUrban.h"
 #include "SckAux.h"
 #include "SckTimer.h"
+#include "ReadLight.h"
 
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
@@ -144,6 +145,10 @@ private:
 	uint8_t publishErrors = 0;
 	void updateSensors();
 
+	// LightRead
+	ReadLight readLight;
+	dataLight lightResults;
+	
 public:
 
 	void setup();

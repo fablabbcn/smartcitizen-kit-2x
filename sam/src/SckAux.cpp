@@ -14,8 +14,8 @@ Atlas				atlasDO = Atlas(SENSOR_ATLAS_DO);
 
 bool I2Cdetect(byte address) {
 
-	Wire.beginTransmission(address);
-    byte error = Wire.endTransmission();
+	auxWire.beginTransmission(address);
+    byte error = auxWire.endTransmission();
  
 	if (error == 0) return true;
 	else return false;
@@ -188,10 +188,10 @@ bool GrooveI2C_ADC::begin() {
 
 	if (!I2Cdetect(deviceAddress)) return false;
 
-	Wire.beginTransmission(deviceAddress);		// transmit to device
-	Wire.write(REG_ADDR_CONFIG);				// Configuration Register
-	Wire.write(0x20);
-	Wire.endTransmission();
+	auxWire.beginTransmission(deviceAddress);		// transmit to device
+	auxWire.write(REG_ADDR_CONFIG);				// Configuration Register
+	auxWire.write(0x20);
+	auxWire.endTransmission();
 	return true;
 }
 
@@ -199,16 +199,16 @@ float GrooveI2C_ADC::getReading() {
 
 	uint32_t data = 0;
 
-	Wire.beginTransmission(deviceAddress);		// transmit to device
-	Wire.write(REG_ADDR_RESULT);				// get result
-	Wire.endTransmission();
+	auxWire.beginTransmission(deviceAddress);		// transmit to device
+	auxWire.write(REG_ADDR_RESULT);				// get result
+	auxWire.endTransmission();
 
-	Wire.requestFrom(deviceAddress, 2);			// request 2byte from device
+	auxWire.requestFrom(deviceAddress, 2);			// request 2byte from device
 	delay(1);
 
-	if (Wire.available()<=2) {
-		data = (Wire.read()&0x0f)<<8;
-		data |= Wire.read();
+	if (auxWire.available()<=2) {
+		data = (auxWire.read()&0x0f)<<8;
+		data |= auxWire.read();
 	}
 
 	return data * V_REF * 2.0 / 4096.0;
@@ -340,7 +340,7 @@ bool WaterTemp_DS18B20::begin() {
 
 	if (!I2Cdetect(deviceAddress)) return false;
 
-	Wire.begin();
+	auxWire.begin();
 
 	DS_bridge.reset();
 	DS_bridge.wireReset();
@@ -510,9 +510,9 @@ bool Atlas::getBusyState() {
 
 void Atlas::goToSleep() {
 
-	Wire.beginTransmission(deviceAddress);
-	Wire.write("Sleep");
-	Wire.endTransmission();
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write("Sleep");
+	auxWire.endTransmission();
 }
 
 bool Atlas::sendCommand(char* command) {
@@ -521,12 +521,12 @@ bool Atlas::sendCommand(char* command) {
 
 	for (uint8_t i=0; i<retrys; ++i) {
 
-		Wire.beginTransmission(deviceAddress);
-		Wire.write(command);
+		auxWire.beginTransmission(deviceAddress);
+		auxWire.write(command);
 
-		Wire.requestFrom(deviceAddress, 1, true);
-		uint8_t confirmed = Wire.read();
-		Wire.endTransmission();
+		auxWire.requestFrom(deviceAddress, 1, true);
+		uint8_t confirmed = auxWire.read();
+		auxWire.endTransmission();
 
 		if (confirmed == 1) {
 			lastCommandSent = millis();
@@ -558,8 +558,8 @@ uint8_t Atlas::getResponse() {
 
 	uint8_t code;
 	
-	Wire.requestFrom(deviceAddress, 20, 1);
-	code = Wire.read();
+	auxWire.requestFrom(deviceAddress, 20, 1);
+	code = auxWire.read();
 
 	atlasResponse = "";
 	
@@ -574,11 +574,11 @@ uint8_t Atlas::getResponse() {
 
 		} default : {
 			
-			while (Wire.available()) {
-				char buff = Wire.read();
+			while (auxWire.available()) {
+				char buff = auxWire.read();
 				atlasResponse += buff;
 			}
-			Wire.endTransmission();
+			auxWire.endTransmission();
 			
 			goToSleep();
 
@@ -592,20 +592,20 @@ uint8_t Atlas::getResponse() {
 }
 
 void writeI2C(byte deviceaddress, byte instruction, byte data ) {
-  Wire.beginTransmission(deviceaddress);
-  Wire.write(instruction);
-  Wire.write(data);
-  Wire.endTransmission();
+  auxWire.beginTransmission(deviceaddress);
+  auxWire.write(instruction);
+  auxWire.write(data);
+  auxWire.endTransmission();
 }
 
 byte readI2C(byte deviceaddress, byte instruction) {
   byte  data = 0x0000;
-  Wire.beginTransmission(deviceaddress);
-  Wire.write(instruction);
-  Wire.endTransmission();
-  Wire.requestFrom(deviceaddress,1);
+  auxWire.beginTransmission(deviceaddress);
+  auxWire.write(instruction);
+  auxWire.endTransmission();
+  auxWire.requestFrom(deviceaddress,1);
   unsigned long time = millis();
-  while (!Wire.available()) if ((millis() - time)>500) return 0x00;
-  data = Wire.read();
+  while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
+  data = auxWire.read();
   return data;
 }

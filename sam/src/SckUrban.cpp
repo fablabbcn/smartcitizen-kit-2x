@@ -180,6 +180,8 @@ bool Sck_SHT31::begin() {
 	// Send reset command
 	sendComm(SOFT_RESET);
 
+	update();
+
 	return true;
 }
 bool Sck_SHT31::stop() {

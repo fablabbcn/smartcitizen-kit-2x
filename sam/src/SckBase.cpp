@@ -739,8 +739,14 @@ bool SckBase::getReading(SensorType wichSensor, bool wait) {
 	switch (sensors[wichSensor].location) {
 		case BOARD_BASE: {
 			switch (wichSensor) {
-				case SENSOR_BATT_PERCENT: result = String(lipo.soc()); break;
-				case SENSOR_BATT_VOLTAGE: result = String(lipo.voltage()); break;
+				case SENSOR_BATT_PERCENT: {
+
+					uint32_t thisPercent = lipo.soc();
+					if (thisPercent > 100) thisPercent = 0;
+					result = String(thisPercent); 
+					
+					break;
+				} case SENSOR_BATT_VOLTAGE: result = String(lipo.voltage()); break;
 				case SENSOR_BATT_CHARGE_RATE: result = String(lipo.current(AVG)); break;
 				case SENSOR_VOLTIN: {
 

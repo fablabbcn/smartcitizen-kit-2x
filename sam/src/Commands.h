@@ -27,6 +27,7 @@ enum CommandType {
 	COM_NETINFO,
 	COM_TIME,
 	COM_STATE,
+	COM_HELLO,
 
 	COM_COUNT
 };
@@ -49,6 +50,7 @@ void esp_com(SckBase* base, String parameters);
 void netInfo_com(SckBase* base, String parameters);
 void time_com(SckBase* base, String parameters);
 void state_com(SckBase* base, String parameters);
+void hello_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -91,7 +93,8 @@ public:
 		OneCom {	100,	COM_ESP_CONTROL,		"esp",				"Controls ESP [on, off, reboot, debug]",											esp_com},
 		OneCom {	100,	COM_NETINFO,			"netinfo",			"Shows network information",														netInfo_com},
 		OneCom {	100,	COM_TIME,				"time",				"Shows/sets or syncs (if needed) time",												time_com},
-		OneCom {	100,	COM_STATE,				"state",			"Shows state flags",																state_com}
+		OneCom {	100,	COM_STATE,				"state",			"Shows state flags",																state_com},
+		OneCom {	100,	COM_HELLO,				"hello",			"Sends MQTT hello to platform",														hello_com}
 
 	};
 

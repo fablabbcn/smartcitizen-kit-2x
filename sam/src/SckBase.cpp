@@ -128,37 +128,36 @@ void SckBase::update() {
 
 	// TEMP 
 	if (state.onSetup) {
-			lightResults = readLight.read();
-			if (lightResults.ok) {
+		lightResults = readLight.read();
+		if (lightResults.ok) {
 
-				Configuration lightConfig;
+			Configuration lightConfig;
 
-				if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
-					if (lightResults.lines[1].length() > 0) {
-						lightResults.lines[1].toCharArray(lightConfig.credentials.ssid, 64);
-						lightResults.lines[2].toCharArray(lightConfig.credentials.pass, 64);
-						lightConfig.credentials.set = true;
-					}
+			if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
+				if (lightResults.lines[1].length() > 0) {
+					lightResults.lines[1].toCharArray(lightConfig.credentials.ssid, 64);
+					lightResults.lines[2].toCharArray(lightConfig.credentials.pass, 64);
+					lightConfig.credentials.set = true;
 				}
-				if (lightResults.lines[0].endsWith(F("auth"))) {
-					if (lightResults.lines[3].length() > 0) {
-						lightResults.lines[3].toCharArray(lightConfig.token.token, 7);
-						lightConfig.token.set = true;
-					}
-					uint32_t receivedInterval = lightResults.lines[4].toInt();
-					if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) lightConfig.publishInterval = receivedInterval;
-				}
-				if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
-
-				// led.configOK();
-			 	readLight.reset();
-				saveConfig(lightConfig);
 			}
+			if (lightResults.lines[0].endsWith(F("auth"))) {
+				if (lightResults.lines[3].length() > 0) {
+					lightResults.lines[3].toCharArray(lightConfig.token.token, 7);
+					lightConfig.token.set = true;
+				}
+				uint32_t receivedInterval = lightResults.lines[4].toInt();
+				if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) lightConfig.publishInterval = receivedInterval;
+			}
+			if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
+
+			// led.configOK();
+		 	readLight.reset();
+		 	helloPending = true;
+			saveConfig(lightConfig);
 		}
-	
+	}
 
 	if (millis() % 100 == 0) reviewState();
-
 	if (millis() % 50 == 0) if (buttonDown) buttonStillDown();	// TODO replace with interrupt timers
 }
 
@@ -191,9 +190,14 @@ void SckBase::reviewState() {
 	*/
 
 	// TODO this will be implemented in timer library so we dont check it every loop
-	if (state.espON && !state.onWifi) if ((rtc.getEpoch() - espStarted) > WIFI_TIMEOUT) state.wifiError = true;
-	if (state.onWifi && timeAsked > 0) if ((rtc.getEpoch() - timeAsked) > TIME_TIMEOUT) state.timeError = true;
+	// if (state.espON && !state.onWifi) if ((rtc.getEpoch() - espStarted) > WIFI_TIMEOUT) state.wifiError = true;
+	// if (state.onWifi && timeAsked > 0) if ((rtc.getEpoch() - timeAsked) > TIME_TIMEOUT) state.timeError = true;
 	if (state.manualMode) if ((millis() - buttonLastEvent) > 5500) state.manualMode = false;
+	if (helloPending && state.onWifi) {
+		sckOut("Hello sent!"); 
+		sendMessage(ESPMES_MQTT_HELLO, ""); 
+		helloPending = false;
+	}
 
 	if (!(state == oldState)) {
 
@@ -230,11 +234,12 @@ void SckBase::reviewState() {
 					} else if (state.timeError) enterSetup();
 				}
 			} else {
-				if (state.wifiError) {
-					wifiRetrys++; 
-					ESPcontrol(ESP_OFF);
-					if (wifiRetrys > WIFI_MAX_RETRYS) enterSetup();
-				}
+				// TODO review this...
+				// if (state.wifiError) {	
+				// 	wifiRetrys++; 
+				// 	// ESPcontrol(ESP_OFF);
+				// 	if (wifiRetrys > WIFI_MAX_RETRYS) enterSetup();
+				// }
 				state.onSetup = false;
 				state.reading = true;
 				led.update(led.BLUE, led.PULSE_SOFT);
@@ -608,8 +613,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage) {
 			String strTime = String(netBuff);
 			setTime(strTime);
 			break;
-
-		} default: break;
+		} case SAMMES_MQTT_HELLO_OK: sckOut("MQTT hello OK!!"); break;
+		default: break;
 	}
 }
 

@@ -148,7 +148,7 @@ private:
 	// LightRead
 	ReadLight readLight;
 	dataLight lightResults;
-	
+
 public:
 
 	void setup();
@@ -222,6 +222,9 @@ public:
 	Task nextTask;
 	void timerAlarm();
 	void setTimer(uint16_t lapse=0, Task task=TASK_COUNT);
+
+	// **** MQTT
+	bool helloPending = false;
 };
 
 void ISR_button();

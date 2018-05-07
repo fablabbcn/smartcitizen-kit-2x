@@ -7,6 +7,7 @@ enum ESPMessage {
 	ESPMES_SET_CONFIG,				// SAM->ESP, Sends new config
 	ESPMES_GET_NETINFO,				// SAM->ESP, ESP return network info
 	ESPMES_GET_TIME,				// SAM->ESP, ESP returns epoch time
+	ESPMES_MQTT_HELLO,				// SAM->ESP, ESP publish Hello and returns result
 
 	ESPMES_COUNT
 };
@@ -21,6 +22,7 @@ enum SAMMessage {
 	SAMMES_PASS_ERROR,				// ESP->SAM, On wrong password
 	SAMMES_WIFI_UNKNOWN_ERROR,		// ESP->SAM, On wifi unknown error
 	SAMMES_TIME,					// ESP->SAM, Epoch time
+	SAMMES_MQTT_HELLO_OK,			// ESP->SAM, On MQTT hello OK
 
 	SAMMES_COUNT	
 };

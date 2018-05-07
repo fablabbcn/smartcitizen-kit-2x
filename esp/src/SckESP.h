@@ -12,12 +12,16 @@
 #include <ArduinoJson.h>
 #include <RHReliableDatagram.h>
 #include <RH_Serial.h>
+#include <PubSubClient.h>
 
 #include <Arduino.h>
 #include "Shared.h"
 #include "Config.h"
 
 #define NTP_SERVER_NAME "pool.ntp.org"
+#define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
+#define MQTT_SERVER_PORT 1883
+#define MQTT_QOS 1
 
 class SckESP {
 private:
@@ -41,6 +45,12 @@ private:
 	bool sendCredentials();
 	bool sendNetinfo();
 	bool sendTime();
+
+	// **** MQTT
+	bool mqttConnect();
+	bool mqttHellow();
+	bool mqttPublish();
+	AllSensors sensors;
 
 	// Led control
 	const uint8_t pinLED = 4; 	// GPIO5

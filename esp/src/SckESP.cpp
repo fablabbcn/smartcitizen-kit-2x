@@ -10,6 +10,10 @@ RemoteDebug Debug;
 // Web Server
 ESP8266WebServer webServer(80);
 
+// MQTT client
+WiFiClient wclient;
+PubSubClient MQTTclient(wclient);
+
 // DNS for captive portal
 DNSServer dnsServer;
 
@@ -185,8 +189,111 @@ void SckESP::receiveMessage(ESPMessage wichMessage) {
 
 		} case ESPMES_GET_NETINFO: sendNetinfo(); break;
 		case ESPMES_GET_TIME: sendTime(); break;
+		case ESPMES_MQTT_HELLO: if (mqttHellow()) sendMessage(SAMMES_MQTT_HELLO_OK, ""); break;
 	 	default: break;
 	}
+}
+
+// **** MQTT
+bool SckESP::mqttConnect() {
+
+	if (MQTTclient.connected()) return true;
+
+	debugOUT(F("Connecting to MQTT server..."));
+
+	MQTTclient.setServer(MQTT_SERVER_NAME, 1883);
+
+	if (MQTTclient.connect(config.token.token)) {
+		debugOUT(F("Established MQTT connection..."));
+		return true;
+	} else {
+		debugOUT(F("ERROR: MQTT connection failed!!!"));
+		debugOUT(String(MQTTclient.state()));
+		return false;
+	}
+}
+bool SckESP::mqttHellow() {
+
+	debugOUT(F("Trying MQTT Hello..."));
+
+	if (mqttConnect()) {
+
+		// prepare the topic title
+   		char myTopic[24];
+		sprintf(myTopic, "device/sck/%s/hello", config.token.token);
+
+   		// Prepare the payload
+   		char myPayload[14];
+   		sprintf(myPayload, "%s:Hello", config.token.token);
+
+		if (MQTTclient.publish(myTopic, myPayload)) {
+			debugOUT(F("MQTT Hello published OK !!!"));
+			return true;
+		}
+		debugOUT(F("MQTT Hello ERROR !!!"));
+	}
+	return false;
+}
+bool SckESP::mqttPublish() {
+	
+	debugOUT(F("Trying MQTT publish..."));
+
+	if (mqttConnect()) {
+
+		// /* Example
+		// {	"data":[
+		// 		{"recorded_at":"2017-03-24T13:35:14Z",
+		// 			"sensors":[
+		// 				{"id":29,"value":48.45},
+		// 				{"id":13,"value":66},
+		// 				{"id":12,"value":28},
+		// 				{"id":10,"value":4.45}
+		// 			]
+		// 		}
+		// 	]
+		// }
+		// 	*/
+
+		// Prepare the payload
+    	char myPayload[512];
+
+    	// Put time of the first sensor
+    	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    		SensorType wichSensor = static_cast<SensorType>(i);
+    		if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
+    			sprintf(myPayload, "{\"data\":[{\"recorded_at\":\"%s\",\"sensors\":[", epoch2iso(sensors[wichSensor].lastReadingTime).c_str());
+    		}
+    	}
+
+    	// Put the readings
+    	bool putComma = false;
+    	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    		SensorType wichSensor = static_cast<SensorType>(i);
+
+    		// Only send enabled sensors
+			if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
+				if (putComma) sprintf(myPayload, "%s,", myPayload);
+				else putComma = true;
+				sprintf(myPayload, "%s{\"id\":%i,\"value\":%s}", myPayload, sensors[wichSensor].id, sensors[wichSensor].reading.c_str());
+			}
+    	}
+    	sprintf(myPayload, "%s]}]}", myPayload);
+
+    	debugOUT(String(myPayload));
+
+    	// prepare the topic title
+	   	char pubTopic[27];
+		sprintf(pubTopic, "device/sck/%s/readings", config.token.token);
+
+		debugOUT(String(pubTopic));
+
+		if (MQTTclient.publish(pubTopic, myPayload)) {
+			debugOUT(F("MQTT readings published OK !!!"));
+			return true;
+		}
+	}
+	debugOUT(F("MQTT publish ERROR !!!"));
+	return false;
 }
 
 

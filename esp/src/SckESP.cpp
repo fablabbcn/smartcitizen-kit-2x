@@ -190,6 +190,41 @@ void SckESP::receiveMessage(ESPMessage wichMessage) {
 		} case ESPMES_GET_NETINFO: sendNetinfo(); break;
 		case ESPMES_GET_TIME: sendTime(); break;
 		case ESPMES_MQTT_HELLO: if (mqttHellow()) sendMessage(SAMMES_MQTT_HELLO_OK, ""); break;
+		case ESPMES_MQTT_PUBLISH: {
+
+			debugOUT("Receiving new readings...");
+
+			// Parse input
+			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+			JsonObject& json = jsonBuffer.parseObject(netBuff);
+
+			//JsonArray& jsonSensors = jsonBuffer.parseArray(json["sensors"]);
+
+			// Iterate over all sensors
+			uint8_t count = 0;
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
+				SensorType wichSensor = static_cast<SensorType>(i);
+
+				// Check if sensor exists in received readings (we asume that missing sensors are disabled)
+				//if (json.containsKey(String(i))) {
+				if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
+
+					sensors[wichSensor].lastReadingTime = json["t"];
+					float temp = json["sensors"][count];
+					count++;
+					sensors[wichSensor].reading = String(temp);
+					//sensors[wichSensor].reading = json.get<String>(String(i));
+					sensors[wichSensor].enabled = true;
+
+				} else {
+					sensors[wichSensor].enabled = false;
+				}
+			}
+
+			if (mqttPublish()) sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
+			break;
+		}
 	 	default: break;
 	}
 }
@@ -235,7 +270,7 @@ bool SckESP::mqttHellow() {
 	return false;
 }
 bool SckESP::mqttPublish() {
-	
+
 	debugOUT(F("Trying MQTT publish..."));
 
 	if (mqttConnect()) {
@@ -255,7 +290,7 @@ bool SckESP::mqttPublish() {
 		// 	*/
 
 		// Prepare the payload
-    	char myPayload[512];
+    	char myPayload[1024];
 
     	// Put time of the first sensor
     	for (uint8_t i=0; i<SENSOR_COUNT; i++) {

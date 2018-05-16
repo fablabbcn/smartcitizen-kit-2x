@@ -27,6 +27,12 @@ class AuxBoards {
 		// List for storing Auxiliary sensors I2C address (SENSOR_COUNT - (BASE AND URBAN SENSORS))
 		// TODO: store this in epprom, load it on boot, make a function to change the addresses by console command
 		byte devAddress[SENSOR_COUNT - 18] {
+			0x02,		// SENSOR_PM_A_1
+			0x02,		// SENSOR_PM_A_25
+			0x02,		// SENSOR_PM_A_10
+			0x02,		// SENSOR_PM_B_1
+			0x02,		// SENSOR_PM_B_25
+			0x02,		// SENSOR_PM_B_10
 			0x55,		// SENSOR_ALPHADELTA_AE1,
 			0x55,		// SENSOR_ALPHADELTA_WE1,
 			0x56,		// SENSOR_ALPHADELTA_AE2,
@@ -297,6 +303,28 @@ class Atlas {
 		uint16_t shortWait = 310; //ms
 
 	private:
+};
+
+enum PMslot {SLOT_A, SLOT_B};
+enum PMcommands { PM_START, GET_PMA, GET_PMB, PM_STOP};
+class PMsensor {
+public:
+
+	PMsensor(PMslot wichSlot) {
+		slot = wichSlot;
+	}
+
+	const byte deviceAddress = 0x02;
+
+	uint16_t readingPM1;
+	uint16_t readingPM25;
+	uint16_t readingPM10;
+
+	bool begin();
+	float getReading(uint8_t wichReading);
+private:
+	PMslot slot;
+	uint8_t values[6];		// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

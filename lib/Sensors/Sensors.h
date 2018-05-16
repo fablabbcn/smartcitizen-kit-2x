@@ -71,6 +71,13 @@ enum SensorType {
 	SENSOR_ATLAS_DO,
 	SENSOR_ATLAS_DO_SAT,
 
+	SENSOR_PM_A_1,	
+	SENSOR_PM_A_25,	
+	SENSOR_PM_A_10,
+	SENSOR_PM_B_1,
+	SENSOR_PM_B_25,
+	SENSOR_PM_B_10,
+
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
 
@@ -178,6 +185,14 @@ public:
 		OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC_SG,			"Atlas Specific gravity",			46,		false,		true,			},
 		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO,			"Atlas Dissolved Oxygen",			48,		false,		true,			"mg/L"},
 		OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,			"Atlas DO Saturation",				49,		false,		true,			"%"},
+
+		OneSensor { BOARD_AUX,			SENSOR_PM_A_1,				"PMS A PM 1.0",					73,		false,		false,			"ug/m3"},
+		OneSensor { BOARD_AUX,			SENSOR_PM_A_25,				"PMS A PM 2.5",					71,		false,		false,			"ug/m3"},
+		OneSensor { BOARD_AUX,			SENSOR_PM_A_10,				"PMS A PM 10.0",				72,		false,		false,			"ug/m3"},
+
+		OneSensor { BOARD_AUX,			SENSOR_PM_B_1,				"PMS B PM 1.0",					77,		false,		false,			"ug/m3"},
+		OneSensor { BOARD_AUX,			SENSOR_PM_B_25,				"PMS B PM 2.5",					75,		false,		false,			"ug/m3"},
+		OneSensor { BOARD_AUX,			SENSOR_PM_B_10,				"PMS B PM 10.0",				76,		false,		false,			"ug/m3"},
 
 		// Later this will be moved to a Actuators.h file
 		// Groove I2C Oled Display 96x96

@@ -144,6 +144,10 @@ private:
 	// **** Sensors
 	uint8_t publishErrors = 0;
 	void updateSensors();
+	bool netPublish();
+
+
+public:
 
 	// LightRead
 	ReadLight readLight;

@@ -8,6 +8,7 @@ enum ESPMessage {
 	ESPMES_GET_NETINFO,				// SAM->ESP, ESP return network info
 	ESPMES_GET_TIME,				// SAM->ESP, ESP returns epoch time
 	ESPMES_MQTT_HELLO,				// SAM->ESP, ESP publish Hello and returns result
+	ESPMES_MQTT_PUBLISH,			// SAM->ESP, ESP publish readings and returns results
 
 	ESPMES_COUNT
 };
@@ -23,6 +24,7 @@ enum SAMMessage {
 	SAMMES_WIFI_UNKNOWN_ERROR,		// ESP->SAM, On wifi unknown error
 	SAMMES_TIME,					// ESP->SAM, Epoch time
 	SAMMES_MQTT_HELLO_OK,			// ESP->SAM, On MQTT hello OK
+	SAMMES_MQTT_PUBLISH_OK,			// ESP->SAM, On MQTT publish ok
 
 	SAMMES_COUNT	
 };

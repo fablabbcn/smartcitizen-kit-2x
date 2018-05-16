@@ -820,7 +820,45 @@ void SckBase::getUniqueID() {
 	ptr++;
 	uniqueID[3] = *ptr;
 }
+bool SckBase::netPublish()  {
+	
+	sckOut("Publishing to platform...");
 
+	// Prepare json for sending
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& json = jsonBuffer.createObject();
+	
+	// Epoch time of the grouped readings
+	json["t"] = rtc.getEpoch();
+
+	JsonArray& jsonSensors = json.createNestedArray("sensors");
+
+	uint8_t count = 0;
+
+	for (uint16_t sensorIndex=0; sensorIndex<SENSOR_COUNT; sensorIndex++) {
+
+		SensorType wichSensor = static_cast<SensorType>(sensorIndex);
+
+		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
+			//SerialUSB.print(wichSensor);
+			if (getReading(wichSensor, true)) {
+				//json[String(sensorIndex)] = sensors[wichSensor].reading;
+				jsonSensors.add(sensors[wichSensor].reading);
+				count ++;
+			}
+		}
+	}
+
+	json.printTo(SerialUSB);
+
+	ISOtime();
+	sprintf(outBuff, "%s: %i sensor readings on the go to platform...", ISOtimeBuff, count);
+	sckOut();
+
+	sprintf(netBuff, "%u", ESPMES_MQTT_PUBLISH);
+	json.printTo(&netBuff[1], json.measureLength() + 1);
+	return sendMessage();
+}
 
 // **** Time
 bool SckBase::setTime(String epoch) {

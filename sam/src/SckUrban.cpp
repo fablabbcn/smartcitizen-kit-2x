@@ -14,6 +14,7 @@ bool SckUrban::setup() {
 	if (!sck_mics4514.begin()) return false;
 
 	// Noise
+	if (!sck_ics43432.configure()) return false;
 
 	// Barometric pressure and Altitude
 	if (!sck_mpl3115A2.begin()) return false;
@@ -23,23 +24,28 @@ bool SckUrban::setup() {
 
 	return true;
 };
-String SckUrban::getReading(SensorType wichSensor, bool wait) {
+
+String SckUrban::getReading(SensorType wichSensor, bool wait)
+{
 
 	switch(wichSensor) {
-		case SENSOR_LIGHT:					if (sck_bh1721fvc.get(wait)) return String(sck_bh1721fvc.reading); break;
-		case SENSOR_TEMPERATURE: 			if (sck_sht31.update(wait)) return String(sck_sht31.temperature); break;
-		case SENSOR_HUMIDITY: 				if (sck_sht31.update(wait)) return String(sck_sht31.humidity); break;
-		case SENSOR_CO:						if (sck_mics4514.getCO(wait)) return String(sck_mics4514.co); break;
+		case SENSOR_LIGHT:			if (sck_bh1721fvc.get(wait)) return String(sck_bh1721fvc.reading); break;
+		case SENSOR_TEMPERATURE: 		if (sck_sht31.update(wait)) return String(sck_sht31.temperature); break;
+		case SENSOR_HUMIDITY: 			if (sck_sht31.update(wait)) return String(sck_sht31.humidity); break;
+		case SENSOR_CO:				if (sck_mics4514.getCO(wait)) return String(sck_mics4514.co); break;
 		// case SENSOR_CO_HEAT_TIME:			return String(epoch - sck_mics4514.startHeaterTime_CO); break
-		case SENSOR_NO2:					if (sck_mics4514.getNO2(wait)) return String(sck_mics4514.no2); break;
+		case SENSOR_NO2:			if (sck_mics4514.getNO2(wait)) return String(sck_mics4514.no2); break;
 		// case SENSOR_NO2_HEAT_TIME:			return String(epoch - sck_mics4514.startHeaterTime_NO2); break
 		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load(wait)) return String(sck_mics4514.no2LoadResistor); break;
-		case SENSOR_ALTITUDE:				if (sck_mpl3115A2.getAltitude(wait)) return String(sck_mpl3115A2.altitude); break;
-		case SENSOR_PRESSURE:				if (sck_mpl3115A2.getPressure(wait)) return String(sck_mpl3115A2.pressure); break;
-		case SENSOR_PRESSURE_TEMP:			if (sck_mpl3115A2.getTemperature(wait)) return String(sck_mpl3115A2.temperature); break;
-		case SENSOR_PARTICLE_RED:			if (sck_max30105.getRed(wait)) return String(sck_max30105.redChann); break;
-		case SENSOR_PARTICLE_GREEN:			if (sck_max30105.getGreen(wait)) return String(sck_max30105.greenChann); break;
-		case SENSOR_PARTICLE_IR:			if (sck_max30105.getIR(wait)) return String(sck_max30105.IRchann); break;
+		case SENSOR_NOISE_DBA: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(A_WEIGHTING)); break;
+		case SENSOR_NOISE_DBC: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(C_WEIGHTING)); break;
+		case SENSOR_NOISE_DBZ: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(Z_WEIGHTING)); break;
+		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude(wait)) return String(sck_mpl3115A2.altitude); break;
+		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure(wait)) return String(sck_mpl3115A2.pressure); break;
+		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature(wait)) return String(sck_mpl3115A2.temperature); break;
+		case SENSOR_PARTICLE_RED:		if (sck_max30105.getRed(wait)) return String(sck_max30105.redChann); break;
+		case SENSOR_PARTICLE_GREEN:		if (sck_max30105.getGreen(wait)) return String(sck_max30105.greenChann); break;
+		case SENSOR_PARTICLE_IR:		if (sck_max30105.getIR(wait)) return String(sck_max30105.IRchann); break;
 		case SENSOR_PARTICLE_TEMPERATURE:	if (sck_max30105.getTemperature(wait)) return String(sck_max30105.temperature); break;
 		default: break;
 	}
@@ -48,7 +54,8 @@ String SckUrban::getReading(SensorType wichSensor, bool wait) {
 }
 
 // Light
-bool Sck_BH1721FVC::begin() {
+bool Sck_BH1721FVC::begin() 
+{
 
 	return true;
 }

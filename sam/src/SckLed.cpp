@@ -20,6 +20,7 @@ void SckLed::update(ColorName colorName, pulseModes pulse) {
 		ledColor = colors[colorName];
 		disableTimer5();
 	}
+
 	tick();
 }
 void SckLed::tick() {
@@ -47,9 +48,9 @@ void SckLed::tick() {
 			}
 			break;
 		} 
+		case PULSE_STATIC: break;
 		case PULSE_HARD_SLOW: ledInterval = 300;
 		case PULSE_HARD_FAST: ledInterval = 80;
-		case PULSE_STATIC: break;
 		default: {
 			if (millis() - hardTimer > ledInterval) {
 				if (nextIndex == 1) ledColor = currentPulse[24];

@@ -325,3 +325,13 @@ void hello_com(SckBase* base, String parameters) {
 	base->state.helloPending = true;
 	base->sckOut("Waiting for MQTT hello response...");
 }
+void debug_com(SckBase* base, String parameters) {
+
+	if (parameters.length() > 0) {
+		if (parameters.equals("-light")) {
+			base->readLight.debugFlag = !base->readLight.debugFlag;
+			sprintf(base->outBuff, "ReadLight debugFlag: %s", base->readLight.debugFlag  ? "true" : "false");
+			base->sckOut();
+		}
+	}
+}

@@ -8,6 +8,8 @@ WaterTemp_DS18B20 	waterTemp_DS18B20;
 Atlas				atlasPH = Atlas(SENSOR_ATLAS_PH);
 Atlas				atlasEC = Atlas(SENSOR_ATLAS_EC);
 Atlas				atlasDO = Atlas(SENSOR_ATLAS_DO);
+PMsensor			pmSensorA = PMsensor(SLOT_A);
+PMsensor			pmSensorB = PMsensor(SLOT_B);
 
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
@@ -45,6 +47,12 @@ bool AuxBoards::begin(SensorType wichSensor) {
 		case SENSOR_ATLAS_EC_SG: 				return atlasEC.begin(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 				return atlasDO.begin(); break;
+		case SENSOR_PM_A_1:
+		case SENSOR_PM_A_25:
+		case SENSOR_PM_A_10:					return pmSensorA.begin(); break;
+		case SENSOR_PM_B_1:
+		case SENSOR_PM_B_25:
+		case SENSOR_PM_B_10:					return pmSensorB.begin(); break;
 		default: break;
 	}
 
@@ -73,6 +81,12 @@ float AuxBoards::getReading(SensorType wichSensor) {
 		case SENSOR_ATLAS_EC_SG:			return atlasEC.newReadingB; break;
 		case SENSOR_ATLAS_DO:				return atlasDO.newReading; break;
 		case SENSOR_ATLAS_DO_SAT:			return atlasDO.newReadingB; break;
+		case SENSOR_PM_A_1:					return pmSensorA.getReading(1); break;
+		case SENSOR_PM_A_25:				return pmSensorA.getReading(25); break;
+		case SENSOR_PM_A_10:				return pmSensorA.getReading(10); break;
+		case SENSOR_PM_B_1:					return pmSensorB.getReading(1); break;
+		case SENSOR_PM_B_25:				return pmSensorB.getReading(25); break;
+		case SENSOR_PM_B_10:				return pmSensorB.getReading(10); break;
 		default: break;
 	}
 
@@ -590,6 +604,46 @@ uint8_t Atlas::getResponse() {
 		}
     }
 }
+
+bool PMsensor::begin() {
+
+	if (!I2Cdetect(deviceAddress)) return false;
+
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(PM_START);
+	auxWire.endTransmission();
+	return true;
+}
+
+float PMsensor::getReading(uint8_t wichReading) {
+
+	auxWire.beginTransmission(deviceAddress);
+	if (slot == SLOT_A) {
+		auxWire.write(GET_PMA);
+	}
+	if (slot == SLOT_B) {
+		auxWire.write(GET_PMB);
+	}
+	auxWire.endTransmission();
+
+	auxWire.requestFrom(deviceAddress, 6);
+	uint32_t time = millis();
+	while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
+	for (uint8_t i=0; i<6; i++) {
+		values[i] = auxWire.read();
+	}
+
+	readingPM1 = (values[0]<<8) + values[1];
+	readingPM25 = (values[2]<<8) + values[3];
+	readingPM10 = (values[4]<<8) + values[5];
+
+	switch(wichReading) {
+		case 1: return readingPM1; break;
+		case 25: return readingPM25; break;
+		case 10: return readingPM10; break;
+	}
+} 
+
 
 void writeI2C(byte deviceaddress, byte instruction, byte data ) {
   auxWire.beginTransmission(deviceaddress);

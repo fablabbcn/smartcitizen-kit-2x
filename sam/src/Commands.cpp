@@ -321,6 +321,7 @@ void state_com(SckBase* base, String parameters) {
 	base->printState(true);
 }
 void hello_com(SckBase* base, String parameters) {
-	base->helloPending = true;
+
+	base->state.helloPending = true;
 	base->sckOut("Waiting for MQTT hello response...");
 }

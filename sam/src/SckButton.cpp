@@ -9,24 +9,26 @@ void SckBase::buttonEvent() {
 		// Button Down
 		buttonDown = true;
 		buttonStage = BUT_STARTED;
+
 		// setAlarm_TC4(1000);
 		sckOut("Button Down", PRIO_LOW);
-		if (state.sleeping) state.sleeping = false;
-		else if (!state.onSetup) {
-			state.manualSetup = true;
+
+
+		if (state.sleeping) state.sleeping = false; // TODO when sleep mode is ready this should be moved to wakeup function
+
+		if (!state.onSetup) {
 			enterSetup();
 		} else if (state.onSetup) {
-			state.manualMode = true;
-			state.manualSetup = false;
 			state.onSetup = false;
-			if (state.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
-			else if (state.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
+			if (state.mode == MODE_NOT_CONFIGURED) state.mode = MODE_NET;  // This covers user button click on unconfigured device
 		}
 
 	} else {
 
 		// Button Up
 		buttonDown = false;
+		buttonStage = BUT_FREE;
+
 		// setAlarm_TC4();
 		sckOut("Button Up", PRIO_LOW);
 
@@ -34,8 +36,6 @@ void SckBase::buttonEvent() {
 
 			// TODO go to sleep
 		} 
-
-		buttonStage = BUT_FREE;
 	}
 }
 void SckBase::buttonStillDown() {
@@ -45,31 +45,30 @@ void SckBase::buttonStillDown() {
 	if (pressedTime >= buttonLong && buttonStage == BUT_STARTED) {
 
 		buttonStage = BUT_LONG_PRESS;
+
 		sprintf(outBuff, "Button pressed for %lu milliseconds: Long press", millis() - buttonLastEvent);
 		sckOut(PRIO_LOW);
 
 		state.sleeping = true;
-		state.manualSetup = false;
-		state.manualMode = false;
 
 		ESPcontrol(ESP_OFF);
 		led.off();
 
 	} else if (pressedTime >= buttonVeryLong && buttonStage == BUT_LONG_PRESS) {
+
+		buttonStage = BUT_FREE;
 	
 		sprintf(outBuff, "Button pressed for %lu milliseconds: Very long press", millis() - buttonLastEvent);
 		sckOut(PRIO_LOW);
 		
 		state.sleeping = false;
-		state.manualSetup = false;
-		state.manualMode = false;
 		
 		// Factory defaults
 		Configuration defaultConfig;
 		saveConfig(defaultConfig);
-		// TODO user Feedback
-
-		buttonStage = BUT_FREE;
+		// TODO led user Feedback
+		reset();
+		
 	}
 }
 void SckBase::setAlarm_TC4(uint16_t lapse) {

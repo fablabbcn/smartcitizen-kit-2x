@@ -6,7 +6,7 @@
 #include <SPI.h>
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
-#include <SPIFlash.h>
+/* #include <SPIFlash.h> */
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
 #include <RHReliableDatagram.h>
@@ -35,14 +35,14 @@ enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
 enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
 struct SckState {
 	bool onSetup = false;
-	bool manualSetup = false;
-	bool manualMode = false;
 	bool espON = false;
 	bool wifiSet = false;
 	bool onWifi = false;
 	bool wifiError = false;
 	bool tokenSet = false;
+	bool helloPending = false;
 	bool onTime = false;
+	bool timeAsked = false;
 	bool timeError = false;
 	SCKmodes mode = MODE_NET;
 	bool cardPresent = false;
@@ -51,14 +51,14 @@ struct SckState {
 
 	inline bool operator==(SckState a) {
        if (		a.onSetup == onSetup
-       		&& 	a.manualSetup == manualSetup
-       		&& 	a.manualMode == manualMode
        		&& 	a.espON == espON
        		&& 	a.wifiSet == wifiSet
        		&& 	a.onWifi == onWifi
        		&& 	a.wifiError == wifiError
        		&& 	a.tokenSet == tokenSet
+       		&& 	a.helloPending == helloPending
        		&& 	a.onTime == onTime
+       		&& 	a.timeAsked == timeAsked
        		&& 	a.timeError == timeError
        		&& 	a.mode == mode
        		&& 	a.cardPresent == cardPresent
@@ -84,7 +84,6 @@ private:
 
 	// **** Time
 	RTCZero rtc;
-	uint32_t timeAsked = 0;
 	const uint8_t TIME_TIMEOUT = 20;		// seconds
 	void epoch2iso(uint32_t toConvert, char* isoTime);
 
@@ -113,6 +112,7 @@ private:
 	// Configuration
 	Configuration config;
 	void loadConfig();
+	bool parseLightRead();
 
 	// Urban board
 	bool urbanPresent = false;
@@ -132,7 +132,7 @@ private:
 	bool sdSelect();
 	bool sdOpenFile(SckFile wichFile, uint8_t oflag);
 	// Flash memory
-	SPIFlash flash = SPIFlash(pinCS_FLASH);
+	/* SPIFlash flash = SPIFlash(pinCS_FLASH); */
 	void flashSelect();
 
 	// Power
@@ -150,10 +150,9 @@ private:
 public:
 
 	// LightRead
+	//
 	ReadLight readLight;
 	dataLight lightResults;
-
-public:
 
 	void setup();
 	void update();
@@ -193,7 +192,7 @@ public:
 
 	// Output
 	const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
-	OutLevels outputLevel = OUT_NORMAL;
+	OutLevels outputLevel = OUT_VERBOSE;
 	char outBuff[240];
 	void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts String object
 	void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
@@ -226,9 +225,6 @@ public:
 	Task nextTask;
 	void timerAlarm();
 	void setTimer(uint16_t lapse=0, Task task=TASK_COUNT);
-
-	// **** MQTT
-	bool helloPending = false;
 };
 
 void ISR_button();

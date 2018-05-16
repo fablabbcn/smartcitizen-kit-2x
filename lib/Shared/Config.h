@@ -1,11 +1,12 @@
 #pragma once
 #include "Sensors.h"
 
-static const uint32_t minimal_publish_interval = 60;
-static const uint32_t default_publish_interval = 60;
+static const uint32_t minimal_publish_interval = 30;
+static const uint32_t default_publish_interval = 30;
 static const uint32_t max_publish_interval = 3600;		// One hour
 
 enum SCKmodes {
+	MODE_NOT_CONFIGURED,
 	MODE_NET,
 	MODE_SD,
 	MODE_SLEEP,
@@ -14,6 +15,7 @@ enum SCKmodes {
 };
 
 static const char *modeTitles[MODE_COUNT] PROGMEM = {
+	"not configured",	// modeTitles[MODE_NOT_CONFIGURED]
 	"network",			// modeTitles[MODE_NET]
 	"sdcard",			// modeTitles[MODE_SD]
 	"sleep"				// modeTitles[MODE_SLEEP]
@@ -25,7 +27,7 @@ struct Token { bool set=false; char token[7]="null"; };
 
 struct Configuration {
 	bool valid = true;
-	SCKmodes mode = MODE_NET;									// This mode only changes on user configuration, it can only be MODE_SD or MODE_NET
+	SCKmodes mode = MODE_NOT_CONFIGURED;	// This mode only changes on user configuration, it can only be MODE_SD or MODE_NET or MODE_NOT_CONFIGURED
 	uint32_t publishInterval = default_publish_interval; 		// in seconds
 	Credentials credentials;
 	Token token;

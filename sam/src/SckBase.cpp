@@ -18,6 +18,8 @@ AuxBoards auxBoards;
 // Eeprom flash emulation to store persistent variables
 FlashStorage(eepromConfig, Configuration);
 
+bool published = false;	// TODO remove this and put a proper timer
+
 void SckBase::setup() {
 
 	// Led
@@ -89,8 +91,8 @@ void SckBase::setup() {
 	if (urbanPresent) {
 		sckOut("Urban board detected");
 		readLight.setup();
-		// readLight.debugFlag = true;
-	}
+		//readLight.debugFlag = true;
+	} else sckOut("No urban board detected!!");
 
 	// Detect and enable auxiliary boards // TEMP this should be done in aux setup
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -124,37 +126,15 @@ void SckBase::setup() {
 }
 void SckBase::update() {
 
-
-
 	// TEMP 
 	if (state.onSetup) {
 		lightResults = readLight.read();
-		if (lightResults.ok) {
-
-			Configuration lightConfig;
-
-			if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
-				if (lightResults.lines[1].length() > 0) {
-					lightResults.lines[1].toCharArray(lightConfig.credentials.ssid, 64);
-					lightResults.lines[2].toCharArray(lightConfig.credentials.pass, 64);
-					lightConfig.credentials.set = true;
-				}
-			}
-			if (lightResults.lines[0].endsWith(F("auth"))) {
-				if (lightResults.lines[3].length() > 0) {
-					lightResults.lines[3].toCharArray(lightConfig.token.token, 7);
-					lightConfig.token.set = true;
-				}
-				uint32_t receivedInterval = lightResults.lines[4].toInt();
-				if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) lightConfig.publishInterval = receivedInterval;
-			}
-			if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
-
-			// led.configOK();
-		 	readLight.reset();
-		 	helloPending = true;
-			saveConfig(lightConfig);
-		}
+		if (lightResults.ok) parseLightRead();
+	} else if (state.reading) {
+		if (millis() % (config.publishInterval * 1000) == 0 && !published) {
+			published = true; // TODO TEMP make a more elegant solution
+			if (state.mode == MODE_NET) netPublish();
+		} else published = false;
 	}
 
 	if (millis() % 100 == 0) reviewState();
@@ -166,22 +146,24 @@ void SckBase::reviewState() {
 
 	/*
 	struct SckState {
-		bool onSetup = false;
-		bool manualSetup = false;
-		bool espON = false;
-		bool wifiSet = false;
-		bool onWifi = false;
-		bool wifiError = false;		(includes timeout)
-		bool tokenSet = false;
-		bool onTime = false;
-		bool timeError = false;
-		SCKmodes mode = MODE_NET;
-		bool cardPresent = false;
-		bool reading = false;
-		bool sleeping = false;
+		bool onSetup
+		bool espON
+		bool wifiSet
+		bool onWifi
+		bool wifiError 
+		bool tokenSet
+		bool helloPending
+		bool onTime
+		bool timeAsked;
+		bool timeError
+		SCKmodes mode
+		bool cardPresent
+		bool reading
+		bool sleeping
 	};
 
 	state can be changed by:
+		parseLightRead()
 		loadConfig()
 		receiveMessage()
 		setTime()
@@ -189,61 +171,49 @@ void SckBase::reviewState() {
 		buttonEvent();
 	*/
 
-	// TODO this will be implemented in timer library so we dont check it every loop
-	// if (state.espON && !state.onWifi) if ((rtc.getEpoch() - espStarted) > WIFI_TIMEOUT) state.wifiError = true;
-	// if (state.onWifi && timeAsked > 0) if ((rtc.getEpoch() - timeAsked) > TIME_TIMEOUT) state.timeError = true;
-	if (state.manualMode) if ((millis() - buttonLastEvent) > 5500) state.manualMode = false;
-	if (helloPending && state.onWifi) {
-		sckOut("Hello sent!"); 
-		sendMessage(ESPMES_MQTT_HELLO, ""); 
-		helloPending = false;
-	}
-
 	if (!(state == oldState)) {
 
 		printState();
-
 		oldState = state;
 
-		if (state.sleeping || state.manualSetup) return;
+		if (state.mode == MODE_NOT_CONFIGURED) {
+			
+			enterSetup();
 
-		if (state.mode == MODE_NET) {
+		} else if (state.onSetup) {
+			
+			// Start ap mode and webserver on ESP
+
+		
+		} else if (state.mode == MODE_NET) {
 
 			state.reading = false;
 
-			/*
-			** MODE_NET (!wifiSet || !tokenSet ) -> onSetup
-				** MODE_NET (wifiSet && tokenSet && !onTime) -> WAITING_TIME
-					** WAITING_TIME (!onWifi) -> WAITING_WIFI
-						** WAITING_WIFI (!espON) -> ESP_ON
-						** WAITING_WIFI -> (espON && wifiError) -> onSetup
-					** WAITING_TIME (onWifi && timeout) -> onSetup
-				* MODE_NET (wifiSet && tokenSet && onTime) -> updateSensors
-			*/
+			// TODO wifiError and timeError retrys/timeouts
 
-			if (!state.wifiSet || !state.tokenSet) enterSetup();
-			else if (!state.onTime) {		// TODO implement retrys for timeError with wifi working
+			if (!state.wifiSet || !state.tokenSet) led.update(led.BLUE, led.PULSE_HARD_FAST);
+			else if (state.helloPending) {
 				if (!state.onWifi) {
+					if (state.wifiError) led.update(led.BLUE, led.PULSE_HARD_FAST);
 					if (!state.espON) ESPcontrol(ESP_ON);
-					else if (state.wifiError) enterSetup();
 				} else {
-					if (timeAsked == 0) {
-						sckOut("Asking time to ESP...");
-						timeAsked = rtc.getEpoch();
-						sendMessage(ESPMES_GET_TIME, "");
-					} else if (state.timeError) enterSetup();
+					sckOut("Hello sent!"); 
+					sendMessage(ESPMES_MQTT_HELLO, ""); 
+					state.helloPending = false;
 				}
-			} else {
-				// TODO review this...
-				// if (state.wifiError) {	
-				// 	wifiRetrys++; 
-				// 	// ESPcontrol(ESP_OFF);
-				// 	if (wifiRetrys > WIFI_MAX_RETRYS) enterSetup();
-				// }
-				state.onSetup = false;
-				state.reading = true;
-				led.update(led.BLUE, led.PULSE_SOFT);
-			}
+			} else if (!state.onTime) {
+				if (!state.onWifi) {
+					if (state.wifiError) led.update(led.BLUE, led.PULSE_HARD_FAST);
+					if (!state.espON) ESPcontrol(ESP_ON);
+				} else {
+					if (state.timeError) led.update(led.BLUE, led.PULSE_HARD_FAST);
+					if (!state.timeAsked) {
+						sckOut("Asking time to ESP...");
+						sendMessage(ESPMES_GET_TIME, "");
+					}
+				}
+			} else if (!state.reading) state.reading = true;
+
 
 		} else if  (state.mode == MODE_SD) {
 
@@ -258,33 +228,29 @@ void SckBase::reviewState() {
 				* MODE_SD (cardPresent && onTime) -> ESP_OFF && updateSensors
 			*/
 
-			if (!state.cardPresent || (!state.onTime && !state.wifiSet)) enterSetup();
-			else if (!state.onTime) {
-				sckOut("sdcard NOT ON TIME!!");
-				if (!state.onWifi) {
-					if (!state.espON) ESPcontrol(ESP_ON);
-					else if (state.wifiError) enterSetup();
-				} else {				
-					if (timeAsked == 0) {
-						sckOut("Asking time to ESP..."); 
-						timeAsked = rtc.getEpoch();
-						sendMessage(ESPMES_GET_TIME, "");
-					} else if (state.timeError) enterSetup();
-				}
-			} else {
-				ESPcontrol(ESP_OFF);
-				state.onSetup = false;
-				state.reading = true;
-				led.update(led.PINK, led.PULSE_SOFT);
-			}
+			/* if (!state.cardPresent || (!state.onTime && !state.wifiSet)) enterSetup(); */
+			/* else if (!state.onTime) { */
+			/* 	sckOut("sdcard NOT ON TIME!!"); */
+			/* 	if (!state.onWifi) { */
+			/* 		if (!state.espON) ESPcontrol(ESP_ON); */
+			/* 		else if (state.wifiError) enterSetup(); */
+			/* 	} else { */				
+			/* 		sckOut("Asking time to ESP..."); */ 
+			/* 		sendMessage(ESPMES_GET_TIME, ""); */
+			/* 		if (state.timeError) enterSetup(); */
+			/* 	} */
+			/* } else if (!state.sleeping) { */
+			/* 	ESPcontrol(ESP_OFF); */
+			/* 	state.onSetup = false; */
+			/* 	state.reading = true; */
+			/* 	led.update(led.PINK, led.PULSE_SOFT); */
+			/* } */
 		}
 	}
 
 	if (state.reading) updateSensors();
 }
 void SckBase::enterSetup() {
-
-	if (state.manualMode) return;
 
 	state.onSetup = true;
 
@@ -298,8 +264,6 @@ void SckBase::enterSetup() {
 void SckBase::printState(bool all) {
 
 	if ((oldState.onSetup != state.onSetup) | all) sprintf(outBuff, "%sonSetup: %s\r\n", outBuff, state.onSetup  ? "true" : "false");
-	if ((oldState.manualSetup != state.manualSetup) | all) sprintf(outBuff, "%smanualSetup: %s\r\n", outBuff, state.manualSetup  ? "true" : "false");
-	if ((oldState.manualMode != state.manualMode) | all) sprintf(outBuff, "%smanualMode: %s\r\n", outBuff, state.manualMode  ? "true" : "false");
 	if ((oldState.espON != state.espON) | all) sprintf(outBuff, "%sespON: %s\r\n", outBuff, state.espON  ? "true" : "false");
 	if ((oldState.wifiSet != state.wifiSet) | all) sprintf(outBuff, "%swifiSet: %s\r\n", outBuff, state.wifiSet  ? "true" : "false");
 	if ((oldState.onWifi != state.onWifi) | all) sprintf(outBuff, "%sonWifi: %s\r\n", outBuff, state.onWifi  ? "true" : "false");
@@ -448,6 +412,37 @@ void SckBase::saveConfig(Configuration newConfig) {
 Configuration SckBase::getConfig() {
 
 	return config;
+}
+bool SckBase::parseLightRead(){
+	
+	Configuration lightConfig;
+	
+	if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
+		if (lightResults.lines[1].length() > 0) {
+			lightResults.lines[1].toCharArray(lightConfig.credentials.ssid, 64);
+			lightResults.lines[2].toCharArray(lightConfig.credentials.pass, 64);
+			lightConfig.credentials.set = true;
+		}
+	}
+
+	if (lightResults.lines[0].endsWith(F("auth"))) {
+		if (lightResults.lines[3].length() > 0) {
+			lightResults.lines[3].toCharArray(lightConfig.token.token, 7);
+			lightConfig.token.set = true;
+		}
+		uint32_t receivedInterval = lightResults.lines[4].toInt();
+		if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) lightConfig.publishInterval = receivedInterval;
+	}
+
+	if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
+
+	readLight.reset();
+	state.onSetup = false;
+	state.mode = MODE_NET;
+	state.helloPending = true;
+	led.update(led.GREEN, led.PULSE_STATIC);
+	saveConfig(lightConfig);
+	return true;
 }
 
 // **** ESP
@@ -609,11 +604,15 @@ void SckBase::receiveMessage(SAMMessage wichMessage) {
 		case SAMMES_PASS_ERROR: sckOut("ERROR wrong wifi password!!"); state.wifiError = true; break;
 		case SAMMES_WIFI_UNKNOWN_ERROR: sckOut("ERROR unknown wifi error!!"); state.wifiError = true; break;
 		case SAMMES_TIME : {
-
+			state.timeAsked = false;
 			String strTime = String(netBuff);
 			setTime(strTime);
 			break;
-		} case SAMMES_MQTT_HELLO_OK: sckOut("MQTT hello OK!!"); break;
+		} case SAMMES_MQTT_HELLO_OK: {
+			led.update(led.BLUE, led.PULSE_SOFT);
+			sckOut("MQTT hello OK!!");
+			break;
+		} case SAMMES_MQTT_PUBLISH_OK: sckOut("MQTT publish OK!!"); break;
 		default: break;
 	}
 }
@@ -866,12 +865,15 @@ bool SckBase::setTime(String epoch) {
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		state.onTime = true;
-		timeAsked = 0;
+		state.timeError = false;
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
 		sckOut();
 		return true;
-	} else sckOut("RTC update failed!!");
+	} else {
+		state.timeError = true;
+		sckOut("RTC update failed!!");
+	}
 	return false;
 }
 bool SckBase::ISOtime() {

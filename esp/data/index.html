@@ -161,7 +161,6 @@
 
 
           <button id="copied-notification" class="btn bg-cyan" type="button" v-on:click="copyTextToClipboard()">Copy info to clipboard</button>
-          <textarea name="" id='hiddenText' style='opacity:0; transform: scale(0); position: absolute; bottom:10%' rows="8" cols="40"></textarea>
 
           <div id="id-logging">
             <hr />
@@ -624,12 +623,12 @@ var app = new Vue({
     copyTextToClipboard: function(containerid){
       // We need to copy the text temporary into a textBox to be able to copy it to clipboard.
       var textToCopy = document.getElementById('kitinfo').innerText;
-      var textBox = document.getElementById('hiddenText');
-      textBox.innerText = textToCopy;
-
+      var textBox = document.createElement('textarea');
+      textBox.value = textToCopy;
+      document.body.appendChild(textBox);
       textBox.select();
       document.execCommand('copy');
-
+      textBox.remove();
       document.getElementById('copied-notification').innerHTML = 'Text copied!'
     },
     periodic: function (ms) {

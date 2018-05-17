@@ -79,12 +79,12 @@ var app = new Vue({
     copyTextToClipboard: function(containerid){
       // We need to copy the text temporary into a textBox to be able to copy it to clipboard.
       var textToCopy = document.getElementById('kitinfo').innerText;
-      var textBox = document.getElementById('hiddenText');
-      textBox.innerText = textToCopy;
-
+      var textBox = document.createElement('textarea');
+      textBox.value = textToCopy;
+      document.body.appendChild(textBox);
       textBox.select();
       document.execCommand('copy');
-
+      textBox.remove();
       document.getElementById('copied-notification').innerHTML = 'Text copied!'
     },
     periodic: function (ms) {

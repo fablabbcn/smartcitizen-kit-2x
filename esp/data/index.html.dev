@@ -85,7 +85,7 @@
           </div>
           <div class="field-group">
             <label>Password</label>
-            <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password">
+            <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password" autocapitalize="none" >
           </div>
           <button class="btn bg-cyan" type="button" id="connect" v-on:click="jsPost('set','connect')">Connect</button>
 

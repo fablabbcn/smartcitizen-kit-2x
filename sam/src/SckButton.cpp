@@ -29,6 +29,7 @@ void SckBase::buttonEvent()
 			
 			state.onSetup = false;
 			wakingUp = false;
+			if (!sendMessage(ESPMES_STOP_AP, "")) ESPcontrol(ESP_REBOOT);
 			if (state.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);	
 			else { 
 				if (state.mode == MODE_NOT_CONFIGURED) state.mode = MODE_NET;

@@ -52,8 +52,7 @@ void SckESP::setup()
 		tryConnection();
 	} else {
 		ledBlink(LED_FAST);
-		// Notify sam ??? on no token set also???
-		// startAP();	// Or wait for sam order?
+		startAP();
 	}
 
 	if (telnetDebug) {
@@ -69,14 +68,18 @@ void SckESP::update()
 	if (WiFi.getMode() == WIFI_AP) {
 		dnsServer.processNextRequest();
 		// webServer.handleClient();
-	}
-
+	} 
+	
 	if (WiFi.status() != currentWIFIStatus) {
 		currentWIFIStatus = WiFi.status();
 		switch (currentWIFIStatus) {
 			case WL_CONNECTED: ledSet(1); sendMessage(SAMMES_WIFI_CONNECTED); break;
 			case WL_CONNECT_FAILED: ledBlink(LED_FAST); sendMessage(SAMMES_PASS_ERROR); break;
 			case WL_NO_SSID_AVAIL: ledBlink(LED_FAST); sendMessage(SAMMES_SSID_ERROR); break;
+			case WL_DISCONNECTED: 
+					       if (config.credentials.set) ledBlink(LED_SLOW);
+					       else ledBlink(LED_FAST);
+					       break;
 			default: ledBlink(LED_FAST); sendMessage(SAMMES_WIFI_UNKNOWN_ERROR); break;
 		}
 	}
@@ -92,6 +95,7 @@ void SckESP::tryConnection()
 
 		debugOUT(String F("Trying connection to wifi: ") + String(config.credentials.ssid) + " - " + String(config.credentials.pass));
 
+		WiFi.mode(WIFI_STA);
 		// Support for open networks
 		String tp = String(config.credentials.pass);
 		if (tp.length() == 0) WiFi.begin(config.credentials.ssid);
@@ -403,7 +407,9 @@ void SckESP::startAP()
 	IPAddress myIP(192, 168, 1, 1);
 
 	// Start Soft AP
+	WiFi.disconnect(true);
 	WiFi.mode(WIFI_AP);
+	delay(100);
 	WiFi.softAPConfig(myIP, myIP, IPAddress(255, 255, 255, 0));
 	WiFi.softAP((const char *)hostname);
 	delay(500);
@@ -416,10 +422,11 @@ void SckESP::startAP()
 }
 void SckESP::stopAP()
 {
-
 	dnsServer.stop();
 	WiFi.softAPdisconnect(true);
+
 	// TODO stop webserver?
+	tryConnection();
 }
 
 // **** Configuration

@@ -8,23 +8,24 @@ WaterTemp_DS18B20 	waterTemp_DS18B20;
 Atlas				atlasPH = Atlas(SENSOR_ATLAS_PH);
 Atlas				atlasEC = Atlas(SENSOR_ATLAS_EC);
 Atlas				atlasDO = Atlas(SENSOR_ATLAS_DO);
-PMsensor			pmSensorA = PMsensor(SLOT_A);
-PMsensor			pmSensorB = PMsensor(SLOT_B);
+PMsensor			pmSensor = PMsensor(SLOT_AVG);
 
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
 
-bool I2Cdetect(byte address) {
+bool I2Cdetect(byte address)
+{
 
 	auxWire.beginTransmission(address);
     byte error = auxWire.endTransmission();
- 
+
 	if (error == 0) return true;
 	else return false;
 }
 
-bool AuxBoards::begin(SensorType wichSensor) {
-	
+bool AuxBoards::begin(SensorType wichSensor)
+{
+
 	switch (wichSensor) {
 
 		case SENSOR_ALPHADELTA_SLOT_1A:
@@ -35,32 +36,30 @@ bool AuxBoards::begin(SensorType wichSensor) {
 		case SENSOR_ALPHADELTA_SLOT_3W:
 		case SENSOR_ALPHADELTA_HUMIDITY:
 		case SENSOR_ALPHADELTA_TEMPERATURE: 	return alphaDelta.begin(); break;
-		case SENSOR_GROOVE_I2C_ADC: 			return grooveI2C_ADC.begin(); break;
-		case SENSOR_INA219_BUSVOLT: 		
-		case SENSOR_INA219_SHUNT: 			
-		case SENSOR_INA219_CURRENT: 		
-		case SENSOR_INA219_LOADVOLT: 			return ina219.begin(); break;
-		case SENSOR_GROOVE_OLED: 				return groove_OLED.begin(); break;
-		case SENSOR_WATER_TEMP_DS18B20:			return waterTemp_DS18B20.begin(); break;
-		case SENSOR_ATLAS_PH:					return atlasPH.begin();
+		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.begin(); break;
+		case SENSOR_INA219_BUSVOLT:
+		case SENSOR_INA219_SHUNT:
+		case SENSOR_INA219_CURRENT:
+		case SENSOR_INA219_LOADVOLT: 		return ina219.begin(); break;
+		case SENSOR_GROOVE_OLED: 		return groove_OLED.begin(); break;
+		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.begin(); break;
+		case SENSOR_ATLAS_PH:			return atlasPH.begin();
 		case SENSOR_ATLAS_EC:
-		case SENSOR_ATLAS_EC_SG: 				return atlasEC.begin(); break;
+		case SENSOR_ATLAS_EC_SG: 		return atlasEC.begin(); break;
 		case SENSOR_ATLAS_DO:
-		case SENSOR_ATLAS_DO_SAT: 				return atlasDO.begin(); break;
-		case SENSOR_PM_A_1:
-		case SENSOR_PM_A_25:
-		case SENSOR_PM_A_10:					return pmSensorA.begin(); break;
-		case SENSOR_PM_B_1:
-		case SENSOR_PM_B_25:
-		case SENSOR_PM_B_10:					return pmSensorB.begin(); break;
+		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.begin(); break;
+		case SENSOR_PM_1:
+		case SENSOR_PM_25:
+		case SENSOR_PM_10:			return pmSensor.begin(); break;
 		default: break;
 	}
 
 	return false;
 }
 
-float AuxBoards::getReading(SensorType wichSensor) {
-	
+float AuxBoards::getReading(SensorType wichSensor)
+{
+
 	switch (wichSensor) {
 		case SENSOR_ALPHADELTA_SLOT_1A:	 	return alphaDelta.getElectrode(alphaDelta.Slot1.electrode_A); break;
 		case SENSOR_ALPHADELTA_SLOT_1W: 	return alphaDelta.getElectrode(alphaDelta.Slot1.electrode_W); break;
@@ -81,20 +80,18 @@ float AuxBoards::getReading(SensorType wichSensor) {
 		case SENSOR_ATLAS_EC_SG:			return atlasEC.newReadingB; break;
 		case SENSOR_ATLAS_DO:				return atlasDO.newReading; break;
 		case SENSOR_ATLAS_DO_SAT:			return atlasDO.newReadingB; break;
-		case SENSOR_PM_A_1:					return pmSensorA.getReading(1); break;
-		case SENSOR_PM_A_25:				return pmSensorA.getReading(25); break;
-		case SENSOR_PM_A_10:				return pmSensorA.getReading(10); break;
-		case SENSOR_PM_B_1:					return pmSensorB.getReading(1); break;
-		case SENSOR_PM_B_25:				return pmSensorB.getReading(25); break;
-		case SENSOR_PM_B_10:				return pmSensorB.getReading(10); break;
+		case SENSOR_PM_1:				return pmSensor.getReading(1); break;
+		case SENSOR_PM_25:				return pmSensor.getReading(25); break;
+		case SENSOR_PM_10:				return pmSensor.getReading(10); break;
 		default: break;
 	}
 
 	return -9999;
 }
 
-bool AuxBoards::getBusyState(SensorType wichSensor) {
-	
+bool AuxBoards::getBusyState(SensorType wichSensor)
+{
+
 	switch(wichSensor) {
 		case SENSOR_GROOVE_OLED:	return true; break;
 		case SENSOR_ATLAS_PH: 		return atlasPH.getBusyState(); break;
@@ -106,9 +103,10 @@ bool AuxBoards::getBusyState(SensorType wichSensor) {
 	}
 }
 
-String AuxBoards::control(SensorType wichSensor, String command) {
+String AuxBoards::control(SensorType wichSensor, String command)
+{
 	switch(wichSensor) {
-		case SENSOR_ALPHADELTA_SLOT_1A: 
+		case SENSOR_ALPHADELTA_SLOT_1A:
 		case SENSOR_ALPHADELTA_SLOT_1W:
 		case SENSOR_ALPHADELTA_SLOT_2A:
 		case SENSOR_ALPHADELTA_SLOT_2W:
@@ -128,7 +126,7 @@ String AuxBoards::control(SensorType wichSensor, String command) {
 					case SENSOR_ALPHADELTA_SLOT_3W: wichElectrode = alphaDelta.Slot3.electrode_W;
 					default: break;
 				}
-				
+
 				command.replace("set pot", "");
 				command.trim();
 				int wichValue = command.toInt();
@@ -141,10 +139,10 @@ String AuxBoards::control(SensorType wichSensor, String command) {
 			} else {
 				return F("Unrecognized command!! please try again...");
 			}
-			
+
 			break;
 
-		} 
+		}
 		case SENSOR_ATLAS_PH:
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_SG:
@@ -193,12 +191,14 @@ void AuxBoards::print(SensorType wichSensor, String payload) {
 	groove_OLED.print(payload);
 }
 
-void AuxBoards::displayReading(String title, String reading, String unit, String time) {
+void AuxBoards::displayReading(String title, String reading, String unit, String time)
+{
 
 	groove_OLED.displayReading(title, reading, unit, time);
 }
 
-bool GrooveI2C_ADC::begin() {
+bool GrooveI2C_ADC::begin()
+{
 
 	if (!I2Cdetect(deviceAddress)) return false;
 
@@ -209,7 +209,8 @@ bool GrooveI2C_ADC::begin() {
 	return true;
 }
 
-float GrooveI2C_ADC::getReading() {
+float GrooveI2C_ADC::getReading()
+{
 
 	uint32_t data = 0;
 
@@ -228,7 +229,8 @@ float GrooveI2C_ADC::getReading() {
 	return data * V_REF * 2.0 / 4096.0;
 }
 
-bool INA219::begin() {
+bool INA219::begin()
+{
 
 	if (!I2Cdetect(deviceAddress)) return false;
 
@@ -243,7 +245,8 @@ bool INA219::begin() {
 	return true;
 }
 
-float INA219::getReading(typeOfReading wichReading) {
+float INA219::getReading(typeOfReading wichReading)
+{
 
 	switch(wichReading) {
 		case BUS_VOLT: {
@@ -275,20 +278,22 @@ float INA219::getReading(typeOfReading wichReading) {
 	return 0;
 }
 
-bool Groove_OLED::begin() {
+bool Groove_OLED::begin()
+{
 
 	if (!I2Cdetect(deviceAddress)) return false;
 
 	U8g2_oled.begin();
 	U8g2_oled.clearDisplay();
-	
+
 	U8g2_oled.firstPage();
 	do { U8g2_oled.drawXBM( 0, 0, 96, 96, scLogo); } while (U8g2_oled.nextPage());
 
 	return true;;
 }
 
-void Groove_OLED::print(String payload) {
+void Groove_OLED::print(String payload)
+{
 
 	// uint8_t length = payload.length();
 	char charPayload[payload.length()];
@@ -302,7 +307,8 @@ void Groove_OLED::print(String payload) {
 	} while (U8g2_oled.nextPage());
 }
 
-void Groove_OLED::displayReading(String title, String reading, String unit, String time) {
+void Groove_OLED::displayReading(String title, String reading, String unit, String time)
+{
 
 	String date;
 	String hour;
@@ -318,7 +324,7 @@ void Groove_OLED::displayReading(String title, String reading, String unit, Stri
 		// Title
 		U8g2_oled.setFont(u8g2_font_helvB10_tf);
 		if (U8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) {
-			
+
 			String first = title.substring(0, title.indexOf(" "));
 			String second = title.substring(title.indexOf(" ")+1);
 
@@ -337,7 +343,7 @@ void Groove_OLED::displayReading(String title, String reading, String unit, Stri
 		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str());
 
 		if (time.toInt() != 0) {
-			
+
 			// Date
 			U8g2_oled.setFont(u8g2_font_helvB10_tf);
 			U8g2_oled.drawStr(0,96,date.c_str());
@@ -350,7 +356,8 @@ void Groove_OLED::displayReading(String title, String reading, String unit, Stri
 	} while (U8g2_oled.nextPage());
 }
 
-bool WaterTemp_DS18B20::begin() {
+bool WaterTemp_DS18B20::begin()
+{
 
 	if (!I2Cdetect(deviceAddress)) return false;
 
@@ -364,8 +371,9 @@ bool WaterTemp_DS18B20::begin() {
 	return true;
 }
 
-float WaterTemp_DS18B20::getReading() {
-	
+float WaterTemp_DS18B20::getReading()
+{
+
  	while ( !DS_bridge.wireSearch(addr)) {
 
 		DS_bridge.wireResetSearch();
@@ -399,19 +407,20 @@ float WaterTemp_DS18B20::getReading() {
 
 		// If Temperature is negative
 		if (SignBit) TReading = (TReading ^ 0xffff) + 1;
-		
+
 		int Tc_100 = (double)TReading * 0.0625 * 10;
 
 		// If the reading is negative make it efective
 		if (SignBit) Tc_100 = 0 - Tc_100;
-		
+
 		return ((float)(Tc_100) / 10) + 1;
 	}
 
 	return 0;
 }
 
-bool Atlas::begin() {
+bool Atlas::begin()
+{
 
 	if (!I2Cdetect(deviceAddress)) return false;
 
@@ -460,15 +469,17 @@ bool Atlas::begin() {
 	return true;
 }
 
-float Atlas::getReading() {
+float Atlas::getReading()
+{
 
 	return newReading;
 }
 
-bool Atlas::getBusyState() {
+bool Atlas::getBusyState()
+{
 
 	switch (state) {
-		
+
 		case REST: {
 			if (tempCompensation()) state = TEMP_COMP_SENT;
 			break;
@@ -484,7 +495,7 @@ bool Atlas::getBusyState() {
 
 				uint8_t code = getResponse();
 
-				if (code == 254) {	
+				if (code == 254) {
 					// Still working (wait a little more)
 					lastCommandSent = lastCommandSent + 200;
 					break;
@@ -506,7 +517,7 @@ bool Atlas::getBusyState() {
 					break;
 
 				} else {
-					
+
 					// Error
 					state = REST;
 					newReading = 0;
@@ -516,20 +527,22 @@ bool Atlas::getBusyState() {
 				}
 			}
 			break;
-		} 
+		}
 	}
-	
+
 	return true;
 }
 
-void Atlas::goToSleep() {
+void Atlas::goToSleep()
+{
 
 	auxWire.beginTransmission(deviceAddress);
 	auxWire.write("Sleep");
 	auxWire.endTransmission();
 }
 
-bool Atlas::sendCommand(char* command) {
+bool Atlas::sendCommand(char* command)
+{
 
 	uint8_t retrys = 5;
 
@@ -552,7 +565,8 @@ bool Atlas::sendCommand(char* command) {
 	return false;
 }
 
-bool Atlas::tempCompensation() {
+bool Atlas::tempCompensation()
+{
 
 	String stringData;
 	char data[10];
@@ -568,15 +582,16 @@ bool Atlas::tempCompensation() {
 	return false;
 }
 
-uint8_t Atlas::getResponse() {
+uint8_t Atlas::getResponse()
+{
 
 	uint8_t code;
-	
+
 	auxWire.requestFrom(deviceAddress, 20, 1);
 	code = auxWire.read();
 
 	atlasResponse = "";
-	
+
 	switch (code) {
 		case 0: 		// Undefined
 		case 2:			// Error
@@ -587,45 +602,50 @@ uint8_t Atlas::getResponse() {
 			break;
 
 		} default : {
-			
+
 			while (auxWire.available()) {
 				char buff = auxWire.read();
 				atlasResponse += buff;
 			}
 			auxWire.endTransmission();
-			
+
 			goToSleep();
 
 			if (atlasResponse.length() > 0) {
 				return 1;
 			}
-			
+
 			return 2;
 		}
     }
 }
 
-bool PMsensor::begin() {
+bool PMsensor::begin()
+{
 
+	if (alreadyStarted) return true;
 	if (!I2Cdetect(deviceAddress)) return false;
 
 	auxWire.beginTransmission(deviceAddress);
 	auxWire.write(PM_START);
 	auxWire.endTransmission();
+	alreadyStarted = true;
 	return true;
 }
 
-float PMsensor::getReading(uint8_t wichReading) {
-
+float PMsensor::getReading(uint8_t wichReading)
+{
+	// Ask for reading
 	auxWire.beginTransmission(deviceAddress);
-	if (slot == SLOT_A) {
-		auxWire.write(GET_PMA);
-	}
-	if (slot == SLOT_B) {
-		auxWire.write(GET_PMB);
+	switch (slot) {
+		case SLOT_A: auxWire.write(GET_PMA); break;
+		case SLOT_B: auxWire.write(GET_PMB); break;
+		case SLOT_AVG: auxWire.write(GET_PM_AVG); break;
 	}
 	auxWire.endTransmission();
+	delay(2);
 
+	// Get the reading
 	auxWire.requestFrom(deviceAddress, 6);
 	uint32_t time = millis();
 	while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
@@ -642,17 +662,19 @@ float PMsensor::getReading(uint8_t wichReading) {
 		case 25: return readingPM25; break;
 		case 10: return readingPM10; break;
 	}
-} 
+}
 
 
-void writeI2C(byte deviceaddress, byte instruction, byte data ) {
+void writeI2C(byte deviceaddress, byte instruction, byte data )
+{
   auxWire.beginTransmission(deviceaddress);
   auxWire.write(instruction);
   auxWire.write(data);
   auxWire.endTransmission();
 }
 
-byte readI2C(byte deviceaddress, byte instruction) {
+byte readI2C(byte deviceaddress, byte instruction)
+{
   byte  data = 0x0000;
   auxWire.beginTransmission(deviceaddress);
   auxWire.write(instruction);

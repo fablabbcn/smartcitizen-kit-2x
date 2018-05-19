@@ -9,7 +9,8 @@ void TC5_Handler (void) {
 }
 // Button events interrupt
 void ISR_button() {
-	base.buttonEvent();
+	base.butState = digitalRead(pinBUTTON);
+	base.butFeedback();
 }
 // Battery events interrupt
 void ISR_battery() {
@@ -22,11 +23,6 @@ void ISR_sdDetect() {
 // Battery charger interrupt
 void ISR_charger() {
 	base.chargerEvent();
-}
-// Button alarm interrupt
-void TC4_Handler (void) {
-	base.buttonStillDown();
-	TC4->COUNT16.INTFLAG.bit.MC0 = 1;
 }
 void TC3_Handler (void) {
 	base.timerAlarm();

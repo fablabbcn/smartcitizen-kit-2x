@@ -145,6 +145,7 @@ class SckBase
 		uint8_t publishErrors = 0;
 		void updateSensors();
 		bool netPublish();
+		bool sdPublish();
 
 		// Timers
 		bool alarmRunning_TC3 = false;
@@ -175,6 +176,7 @@ class SckBase
 		// **** Sensors
 		AllSensors sensors;
 		bool getReading(SensorType wichSensor, bool wait=true);
+		void publish();
 
 		// Configuration
 		Configuration getConfig();

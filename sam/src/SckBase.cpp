@@ -921,6 +921,8 @@ bool SckBase::netPublish()
 
 	sckOut("Publishing to platform...");
 
+	if (!state.espON) ESPcontrol(ESP_ON);
+
 	// Prepare json for sending
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
@@ -953,6 +955,15 @@ bool SckBase::netPublish()
 	sprintf(netBuff, "%u", ESPMES_MQTT_PUBLISH);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	return sendMessage();
+}
+bool SckBase::sdPublish() {
+	sckOut("To be implemented!!");
+	return false;
+}
+void SckBase::publish() {
+	if (state.mode == MODE_NET) netPublish();
+	else if (state.mode == MODE_SD) sdPublish();
+	else sckOut("Can't publish without been configured!!");
 }
 
 // **** Time

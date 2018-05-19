@@ -164,6 +164,10 @@ void monitorSensor_com(SckBase* base, String parameters)
 	}
 
 }
+void publish_com(SckBase* base, String parameters)
+{
+	base->publish();
+}
 extern "C" char *sbrk(int i);
 void freeRAM_com(SckBase* base, String parameters)
 {

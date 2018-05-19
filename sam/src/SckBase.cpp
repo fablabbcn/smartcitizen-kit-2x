@@ -20,14 +20,12 @@ FlashStorage(eepromConfig, Configuration);
 
 bool published = false;	// TODO remove this and put a proper timer
 
-void SckBase::setup() {
+void SckBase::setup()
+{
 
 	// Led
 	led.setup();
 
-	// Pause for a moment (for uploading firmware in case of problems)
-	delay(2000);
-	
 	// Internal I2C bus setup
 	Wire.begin();
 
@@ -37,6 +35,7 @@ void SckBase::setup() {
 	pinPeripheral(11, PIO_SERCOM);
 	pinPeripheral(13, PIO_SERCOM);
 	auxWire.begin();
+	delay(2000); 				// Give some time for external boards to boot
 
 	// Button
 	pinMode(pinBUTTON, INPUT_PULLUP);
@@ -45,7 +44,7 @@ void SckBase::setup() {
 	// Power management configuration
 	// battSetup();
 	charger.setup();
-	
+
 	// ESP Configuration
 	pinMode(pinPOWER_ESP, OUTPUT);
 	pinMode(pinESP_CH_PD, OUTPUT);
@@ -93,6 +92,7 @@ void SckBase::setup() {
 		readLight.setup();
 		//readLight.debugFlag = true;
 	} else sckOut("No urban board detected!!");
+
 
 	// Detect and enable auxiliary boards // TEMP this should be done in aux setup
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {

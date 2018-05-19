@@ -49,6 +49,7 @@ struct SckState
 	bool cardPresent = false;
 	bool reading = false;
 	bool sleeping = false;
+	bool publishPending = false;
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup
@@ -124,14 +125,12 @@ class SckBase
 		// files
 		struct SckFile {char name[13]; File file;};
 		SckFile configFile {"CONFIG.TXT"};
-		SckFile postFile {"POST.CSV"};
+		SckFile postFile {};
 		SckFile debugFile {"DEBUG.CSV"};
 		// Sd card
 		SdFat sd;
-		bool cardPresent = false;
 		uint32_t cardLastChange = 0;
 		bool sdSelect();
-		bool sdOpenFile(SckFile wichFile, uint8_t oflag);
 		// Flash memory
 		/* SPIFlash flash = SPIFlash(pinCS_FLASH); */
 		void flashSelect();
@@ -147,6 +146,7 @@ class SckBase
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish();
+		bool writeHeader = false;
 
 		// Timers
 		bool alarmRunning_TC3 = false;
@@ -197,7 +197,7 @@ class SckBase
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
-		OutLevels outputLevel = OUT_VERBOSE;
+		OutLevels outputLevel = OUT_NORMAL;
 		char outBuff[240];
 		void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts String object
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string

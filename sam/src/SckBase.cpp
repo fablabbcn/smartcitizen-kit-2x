@@ -211,7 +211,7 @@ void SckBase::reviewState()
 			}
 		} else if (!state.reading) {
 			state.reading = true;
-			netPublish();
+			netPublish();  // TODO implement a retry system
 		}
 
 	} else if  (state.mode == MODE_SD) {
@@ -419,6 +419,9 @@ void SckBase::saveConfig(Configuration newConfig)
 	delay(150);
 	sckOut("Saved configuration!!", PRIO_LOW);
 	if (sendMessage()) sckOut("Saved configuration on ESP!!", PRIO_LOW);
+
+	if (state.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
+	else if (state.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
 
 	state.onSetup = false;
 	sendMessage(ESPMES_STOP_AP, "");
@@ -635,7 +638,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_WIFI_CONNECTED:
 
-			sckOut("Conected to wifi!!"); state.onWifi = true; wifiRetrys = 0; state.wifiError = false; break;
+			sckOut("Conected to wifi!!", PRIO_LOW); state.onWifi = true; wifiRetrys = 0; state.wifiError = false; break;
 
 		case SAMMES_SSID_ERROR:
 
@@ -659,12 +662,12 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_HELLO_OK:
 		{
 				led.update(led.BLUE, led.PULSE_SOFT);
-				sckOut("MQTT hello OK!!");
+				sckOut("Hello OK!!");
 				break;
 		}
 		case SAMMES_MQTT_PUBLISH_OK:
 
-			sckOut("MQTT publish OK!!"); break;
+			sckOut("Network publish OK!!   "); break;
 
 		default: break;
 	}
@@ -687,7 +690,7 @@ bool SckBase::sdDetect()
 bool SckBase::sdSelect()
 {
 
-	if (!cardPresent) return false;
+	if (!state.cardPresent) return false;
 
 	digitalWrite(pinCS_FLASH, HIGH);	// disables Flash
 	digitalWrite(pinCS_SDCARD, LOW);
@@ -699,16 +702,6 @@ bool SckBase::sdSelect()
 		sckOut(F("Sdcard ERROR!!"));
 		return false;
 	}
-}
-bool SckBase::sdOpenFile(SckFile wichFile, uint8_t oflag)
-{
-
-	if (sdSelect()) {
-		if (oflag == O_CREAT) sd.remove(wichFile.name);	// Delete the file if we need a new one.
-		wichFile.file = sd.open(wichFile.name, oflag);
-		return true;
-	}
-	return false;
 }
 
 // **** Flash memory
@@ -900,8 +893,6 @@ void SckBase::getUniqueID()
 bool SckBase::netPublish()
 {
 
-	sckOut("Publishing to platform...");
-
 	if (!state.espON) ESPcontrol(ESP_ON);
 
 	// Prepare json for sending
@@ -927,21 +918,68 @@ bool SckBase::netPublish()
 		}
 	}
 
-	json.printTo(SerialUSB);
+	/* json.printTo(SerialUSB); */
 
-	ISOtime();
-	sprintf(outBuff, "%s: %i sensor readings on the go to platform...", ISOtimeBuff, count);
-	sckOut();
+	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
+	sckOut(PRIO_MED, false);
 
 	sprintf(netBuff, "%u", ESPMES_MQTT_PUBLISH);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
-	return sendMessage();
+	bool result = sendMessage();
+	
+	if (result) sdPublish();
+
+	return result; 
 }
-bool SckBase::sdPublish() {
-	sckOut("To be implemented!!");
+bool SckBase::sdPublish()
+{	
+	if (!sdSelect()) return false;
+
+	sprintf(postFile.name, "%02d-%02d-%02d.CSV", rtc.getYear(), rtc.getMonth(), rtc.getDay());
+	if (!sd.exists(postFile.name)) writeHeader = true;
+
+	postFile.file = sd.open(postFile.name, FILE_WRITE);
+
+	if (postFile.file) {
+
+		// Write headers
+		if (writeHeader) {
+			postFile.file.print("Time,");
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				SensorType wichSensor = static_cast<SensorType>(i);
+				if (sensors[wichSensor].enabled) {
+					postFile.file.print(sensors[wichSensor].title);
+					if (String(sensors[wichSensor].unit).length() > 0) {
+						postFile.file.print("-");
+						postFile.file.print(sensors[wichSensor].unit);	
+					}
+					if (i < SENSOR_COUNT-1) postFile.file.print(",");	
+				}
+			}
+			postFile.file.println("");
+			writeHeader = false;
+		}
+
+		// Write readings
+		ISOtime();
+		postFile.file.print(ISOtimeBuff);
+		postFile.file.print(",");
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
+			if (sensors[wichSensor].enabled) {
+				postFile.file.print(sensors[wichSensor].reading);
+				if (i < SENSOR_COUNT-1) postFile.file.print(",");	
+			}
+		}
+		postFile.file.println("");
+		postFile.file.close();
+		sckOut("Sd card publish OK!!   ", PRIO_MED, false);
+		return true;
+	}
 	return false;
 }
-void SckBase::publish() {
+void SckBase::publish()
+{
 	if (state.mode == MODE_NET) netPublish();
 	else if (state.mode == MODE_SD) sdPublish();
 	else sckOut("Can't publish without been configured!!");

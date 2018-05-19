@@ -19,6 +19,9 @@ public:
 		ORANGE,
 		WHITE,
 		BLACK,
+		RED2,
+		BLUE2,
+		PINK2,
 		COLOR_COUNT
 	};
 
@@ -46,16 +49,19 @@ private:
 	void disableTimer5();
 
 	const Color colors[COLOR_COUNT] = {
-		{250,	4,		6},		// RED
-		{0, 	254, 	0},		// GREEN
+		{250,	4,	0},	// RED
+		{0, 	254, 	0},	// GREEN
 		{0, 	29, 	225},	// BLUE
 		{0, 	254, 	50},	// LIGHT_GREEN
-		{0, 	140, 	114},	// LIGHT_BLUE
+		{0, 	29, 	254},	// LIGHT_BLUE
 		{129, 	12, 	112},	// PINK
-		{154, 	100,	0},		// YELLOW
-		{235, 	30,		0},		// ORANGE
+		{154, 	100,	0},	// YELLOW
+		{235, 	30,	0},	// ORANGE
 		{254,	254,	254},	// WHITE
-		{0,		0,		0}		// BLACK
+		{0,	0,	0},	// BLACK
+		{254,	18,	0},	// RED2
+		{0, 	19, 	254},	// BLUE2
+		{149, 	22, 	132},	// PINK2
 	};
 
 	// Color fades

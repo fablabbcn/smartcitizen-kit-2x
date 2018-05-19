@@ -299,7 +299,7 @@ bool Sck_MICS4514::begin()
 	enable(SENSOR_NO2, 0);
 
 	// Put the load resistor in middle position
-	setNO2load(5000);
+	setNO2load(8000);
 
 	return true;
 }
@@ -528,7 +528,8 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle)
 float Sck_MICS4514::average(uint8_t wichPin)
 {
 
-	uint16_t numReadings = 300;
+	uint32_t started = millis();
+	uint16_t numReadings = 500;
 	long total = 0;
 	float average = 0;
 	for(uint16_t i=0; i<numReadings; i++) {

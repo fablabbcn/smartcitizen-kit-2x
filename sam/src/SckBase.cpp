@@ -250,7 +250,7 @@ void SckBase::reviewState()
 void SckBase::enterSetup()
 {
 
-	sckOut("Entering setup mode");
+	sckOut("Entering setup mode", PRIO_LOW);
 	state.onSetup = true;
 
 	// Update led

@@ -256,7 +256,6 @@ void config_com(SckBase* base, String parameters)
 		if (parameters.indexOf("-defaults") >= 0) {
 			Configuration defaultConfig;
 			base->saveConfig(defaultConfig);
-
 		} else {
 			Configuration thisConfig;
 			thisConfig = base->getConfig();

@@ -139,7 +139,12 @@ void SckBase::update()
 	}
 
 	if (millis() % 100 == 0) reviewState();
-	if (millis() % 50 == 0) if (buttonDown) buttonStillDown();	// TODO replace with interrupt timers
+
+	if (butState != butOldState) {
+		buttonEvent();
+		butOldState = butState;		
+		while(!butState) buttonStillDown();
+	}
 }
 
 // **** Mode Control

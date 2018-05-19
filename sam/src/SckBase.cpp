@@ -94,32 +94,19 @@ void SckBase::setup()
 	} else sckOut("No urban board detected!!");
 
 
-	// Detect and enable auxiliary boards // TEMP this should be done in aux setup
+	// Detect and enable auxiliary boards 
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 
 		// Only try to find auxiliary sensors
 		if (wichSensor->location == BOARD_AUX) {
-
-			sprintf(outBuff, "Detecting: %s... ", wichSensor->title);
-			sckOut(PRIO_MED, false);
-
 			if (auxBoards.begin(wichSensor->type)) {
-
-				if (!wichSensor->enabled) {
-					sckOut("found!!!");
-					// enableSensor(wichSensor);
-				} else {
-					sckOut("found, already enabled!!!");
-					sckOut();
-				}
-
+				sprintf(outBuff, "Found: %s... ", wichSensor->title);
+				sckOut();
+				/* if (!wichSensor->enabled) enableSensor(wichSensor); */
 			} else {
-				if (wichSensor->enabled) {
-					sckOut("not found!!!");
-					// disableSensor(wichSensor);
-				} else sckOut("nothing!");
+				/* if (wichSensor->enabled) disableSensor(wichSensor); */
 			}
 		}
 	}
@@ -138,11 +125,11 @@ void SckBase::update()
 		} else published = false;
 	}
 
-	if (millis() % 100 == 0) reviewState();
+	if (millis() % 500 == 0) reviewState();
 
 	if (butState != butOldState) {
 		buttonEvent();
-		butOldState = butState;		
+		butOldState = butState;
 		while(!butState) buttonStillDown();
 	}
 }
@@ -176,93 +163,87 @@ void SckBase::reviewState()
 	/* sdDetect() */
 	/* buttonEvent(); */
 
-	if (!(state == oldState)) {
 
-		printState();
-		
-		/* if (state.sleeping && !oldState.sleeping) { */
-		
-			// esto hace falta?
 
-		/* } else if (state.mode == MODE_NOT_CONFIGURED) { */
-		if (state.mode == MODE_NOT_CONFIGURED) {
+	printState();
 
-			if (!state.onSetup) enterSetup();
+	if (state.sleeping) {
 
-		} else if (state.onSetup) {
 
-			// check if we need something here
+	} else if (state.onSetup) {
 
-		} else if (state.mode == MODE_NET) {
 
-			state.reading = false;
+	} else if (state.mode == MODE_NOT_CONFIGURED) {
 
-			// TODO wifiError and timeError retrys/timeouts
+		if (!state.onSetup) enterSetup();
 
-			if (!state.wifiSet || !state.tokenSet) led.update(led.BLUE, led.PULSE_HARD_FAST);
-			else if (state.helloPending) {
-				if (!state.onWifi) {
-					if (state.wifiError) led.update(led.BLUE, led.PULSE_HARD_FAST);
-					if (!state.espON) ESPcontrol(ESP_ON);
+	} else if (state.mode == MODE_NET) {
+
+		// TODO wifi, hello and timeError retrys/timeouts
+
+		if (!state.wifiSet || !state.tokenSet) led.update(led.BLUE, led.PULSE_HARD_FAST);
+		else if (state.helloPending) {
+			if (!state.onWifi) {
+				if (state.wifiError) led.update(led.BLUE, led.PULSE_HARD_FAST);
+				if (!state.espON) ESPcontrol(ESP_ON);
+			} else {
+				if (sendMessage(ESPMES_MQTT_HELLO, "")) {
+					sckOut("Hello sent!");
+					state.helloPending = false;
 				} else {
-					if (sendMessage(ESPMES_MQTT_HELLO, "")) {
-						sckOut("Hello sent!");
-						state.helloPending = false;
+					sckOut("ERROR sending Hello!!!");
+				}
+			}
+		} else if (!state.onTime) {
+			if (!state.onWifi) {
+				if (state.wifiError) led.update(led.BLUE, led.PULSE_HARD_FAST);
+				if (!state.espON) ESPcontrol(ESP_ON);
+			} else {
+				if (state.timeError) led.update(led.BLUE, led.PULSE_HARD_FAST);
+				if (!state.timeAsked) {
+					if (sendMessage(ESPMES_GET_TIME, "")) {
+						state.timeAsked = true;
+						sckOut("Asking time to ESP...");
 					} else {
-						sckOut("ERROR sending Hello!!!");
-					}
-					if (!state.onTime) {
-						sckOut("Asking time to ESP...");
-						sendMessage(ESPMES_GET_TIME, "");
-					} else if (!state.reading) state.reading = true;
-				}
-			} else if (!state.onTime) {
-				if (!state.onWifi) {
-					if (state.wifiError) led.update(led.BLUE, led.PULSE_HARD_FAST);
-					if (!state.espON) ESPcontrol(ESP_ON);
-				} else {
-					if (state.timeError) led.update(led.BLUE, led.PULSE_HARD_FAST);
-					if (!state.timeAsked) {
-						sckOut("Asking time to ESP...");
-						sendMessage(ESPMES_GET_TIME, "");
+						sckOut("ERROR Asking time to ESP...");
 					}
 				}
-			} else if (!state.reading) state.reading = true;
-
-
-		} else if  (state.mode == MODE_SD) {
-
-			state.reading = false;
-
-
-			/* MODE_SD (!cardPresent || (!onTime && !wifiSet)) -> onSetup */
-			/* MODE_SD (cardPresent && !onTime && wifiSet) -> WAITING_TIME */
-			/* WAITING_TIME (!onWifi) -> WAITING_WIFI */
-			/* WAITING_WIFI (!espON) -> ESP_ON */
-			/* WAITING_WIFI -> (espON && wifiError || timeError) -> onSetup */
-			/* MODE_SD (cardPresent && onTime) -> ESP_OFF && updateSensors */
-
-
-			/* if (!state.cardPresent || (!state.onTime && !state.wifiSet)) enterSetup(); */
-			/* else if (!state.onTime) { */
-			/* 	sckOut("sdcard NOT ON TIME!!"); */
-			/* 	if (!state.onWifi) { */
-			/* 		if (!state.espON) ESPcontrol(ESP_ON); */
-			/* 		else if (state.wifiError) enterSetup(); */
-			/* 	} else { */
-			/* 		sckOut("Asking time to ESP..."); */
-			/* 		sendMessage(ESPMES_GET_TIME, ""); */
-			/* 		if (state.timeError) enterSetup(); */
-			/* 	} */
-			/* } else if (!state.sleeping) { */
-			/* 	ESPcontrol(ESP_OFF); */
-			/* 	state.onSetup = false; */
-			/* 	state.reading = true; */
-			/* 	led.update(led.PINK, led.PULSE_SOFT); */
-			/* } */
+			}
+		} else if (!state.reading) {
+			state.reading = true;
+			netPublish();
 		}
-		oldState = state;
+
+	} else if  (state.mode == MODE_SD) {
+
+
+		/* MODE_SD (!cardPresent || (!onTime && !wifiSet)) -> onSetup */
+		/* MODE_SD (cardPresent && !onTime && wifiSet) -> WAITING_TIME */
+		/* WAITING_TIME (!onWifi) -> WAITING_WIFI */
+		/* WAITING_WIFI (!espON) -> ESP_ON */
+		/* WAITING_WIFI -> (espON && wifiError || timeError) -> onSetup */
+		/* MODE_SD (cardPresent && onTime) -> ESP_OFF && updateSensors */
+
+
+		/* if (!state.cardPresent || (!state.onTime && !state.wifiSet)) enterSetup(); */
+		/* else if (!state.onTime) { */
+		/* 	sckOut("sdcard NOT ON TIME!!"); */
+		/* 	if (!state.onWifi) { */
+		/* 		if (!state.espON) ESPcontrol(ESP_ON); */
+		/* 		else if (state.wifiError) enterSetup(); */
+		/* 	} else { */
+		/* 		sckOut("Asking time to ESP..."); */
+		/* 		sendMessage(ESPMES_GET_TIME, ""); */
+		/* 		if (state.timeError) enterSetup(); */
+		/* 	} */
+		/* } else if (!state.sleeping) { */
+		/* 	ESPcontrol(ESP_OFF); */
+		/* 	state.onSetup = false; */
+		/* 	state.reading = true; */
+		/* 	led.update(led.PINK, led.PULSE_SOFT); */
+		/* } */
 	}
+	oldState = state;
 
 	if (state.reading) updateSensors();
 }
@@ -298,7 +279,7 @@ void SckBase::printState(bool all)
 	if ((oldState.cardPresent != state.cardPresent) | all) sprintf(outBuff, "%scardPresent: %s\r\n", outBuff, state.cardPresent  ? "true" : "false");
 	if ((oldState.reading != state.reading) | all) sprintf(outBuff, "%sreading: %s\r\n", outBuff, state.reading  ? "true" : "false");
 	if ((oldState.sleeping != state.sleeping) | all) sprintf(outBuff, "%ssleeping: %s\r\n", outBuff, state.sleeping  ? "true" : "false");
-	sckOut(PRIO_LOW, false);
+	if (!(state == oldState) | all) sckOut(PRIO_LOW, false);
 }
 
 // **** Input

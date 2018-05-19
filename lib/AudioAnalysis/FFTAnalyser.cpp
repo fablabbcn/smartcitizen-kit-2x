@@ -109,7 +109,7 @@ bool FFTAnalyser::bufferFilled() {
 	}
 	// TODO solve this I2S hangs, for now we reset if it is hanged
 	SerialUSB.println("CRASHED!!!");
-	/* NVIC_SystemReset(); */
+	NVIC_SystemReset();
 	return false;
 }
 

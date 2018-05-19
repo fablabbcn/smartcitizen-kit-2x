@@ -106,6 +106,7 @@ class SckBase
 		const uint16_t buttonVeryLong = 15000;
 		uint32_t buttonLastEvent = 0;
 		bool butOldState = true;
+		bool wakingUp = false;
 		void buttonEvent();
 		void buttonStillDown();
 

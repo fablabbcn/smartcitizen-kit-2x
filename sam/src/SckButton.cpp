@@ -12,6 +12,7 @@ void SckBase::buttonEvent()
 			
 			// TODO wakeup
 			state.sleeping = false;
+			wakingUp = true;
 		
 		}
 
@@ -24,9 +25,10 @@ void SckBase::buttonEvent()
 
 			// TODO go to sleep
 			
-		} else if (state.onSetup) {
+		} else if (state.onSetup || wakingUp) {
 			
 			state.onSetup = false;
+			wakingUp = false;
 			if (state.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);	
 			else { 
 				if (state.mode == MODE_NOT_CONFIGURED) state.mode = MODE_NET;
@@ -63,11 +65,12 @@ void SckBase::buttonStillDown()
 		reset();
 	}
 }
-void SckBase::butFeedback(){
-
+void SckBase::butFeedback()
+{
 	if (!butState){
-		if (state.onSetup) led.update(led.RED2, led.PULSE_STATIC);
-		else if (state.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC);
-		else if (state.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC);
+		if (state.sleeping) {
+			if (state.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC);
+			else if (state.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC);
+		} else if (state.onSetup) led.update(led.RED2, led.PULSE_STATIC);
 	}
 }

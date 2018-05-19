@@ -5,31 +5,35 @@
 #include <MCP342X.h>
 
 // AlphaDeltaTester
-#ifdef deltaTest 
+#ifdef deltaTest
 #include <AlphaDeltaTester.h>
 #endif
 
 extern TwoWire auxWire;
 
-struct Resistor {
+struct Resistor
+{
 	byte address;
 	byte channel;
 };
 
-struct Electrode {
+struct Electrode
+{
 	MCP342X adc;
 	byte channel;
 	Resistor resistor;
 	uint8_t gain;
 };
 
-struct AlphaSensor {
+struct AlphaSensor
+{
 	Electrode electrode_A;
 	Electrode electrode_W;
 };
 
 // Temperature and Humidity
-class Sck_Aux_SHT31 {
+class Sck_Aux_SHT31
+{
 	// Datasheet
 	// https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/2_Humidity_Sensors/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital.pdf
 	// This code is based on Adafruit SHT31 library, thanks! (https://github.com/adafruit/Adafruit_SHT31)
@@ -38,10 +42,10 @@ class Sck_Aux_SHT31 {
 		uint8_t address = 0x44;
 		const uint16_t SOFT_RESET = 0x30A2;
 		const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
-		
+
 		// TO be removed with state machine asynchronous
 		uint32_t timeout = 20;	// Time in ms to wait for a reading
-		
+
 		void sendComm(uint16_t comm);
 		uint8_t crc8(const uint8_t *data, int len);
 		uint32_t lastUpdate = 0;
@@ -54,19 +58,20 @@ class Sck_Aux_SHT31 {
 };
 
 
-class AlphaDelta {
+class AlphaDelta
+{
 	public:
 
 		// Init functions
 		bool begin();
 		bool alreadyStarted = false;
-		
+
 		// SHT31 Temperature and Humidity Sensor
 		const byte sht31Address = 0x44;
 
 		// Adafruit_SHT31 sht31 = Adafruit_SHT31();
 		Sck_Aux_SHT31 sht31;
-		
+
 		float getTemperature();
 		float getHumidity();
 

@@ -15,18 +15,18 @@ enum ESPMessage {
 
 enum SAMMessage {
 
-	SAMMES_SET_CONFIG,				// ESP->SAM, Sends new config
-	SAMMES_DEBUG,					// ESP->SAM, Send debug info
-	SAMMES_NETINFO,					// ESP->SAM, Send network info
-	SAMMES_WIFI_CONNECTED,			// ESP->SAM, On wifi succesfull conection
-	SAMMES_SSID_ERROR,				// ESP->SAM, On ssid not found
-	SAMMES_PASS_ERROR,				// ESP->SAM, On wrong password
-	SAMMES_WIFI_UNKNOWN_ERROR,		// ESP->SAM, On wifi unknown error
-	SAMMES_TIME,					// ESP->SAM, Epoch time
-	SAMMES_MQTT_HELLO_OK,			// ESP->SAM, On MQTT hello OK
-	SAMMES_MQTT_PUBLISH_OK,			// ESP->SAM, On MQTT publish ok
+	SAMMES_SET_CONFIG,		// ESP->SAM, Sends new config
+	SAMMES_DEBUG,			// ESP->SAM, Send debug info
+	SAMMES_NETINFO,			// ESP->SAM, Send network info
+	SAMMES_WIFI_CONNECTED,		// ESP->SAM, On wifi succesfull conection
+	SAMMES_SSID_ERROR,		// ESP->SAM, On ssid not found
+	SAMMES_PASS_ERROR,		// ESP->SAM, On wrong password
+	SAMMES_WIFI_UNKNOWN_ERROR,	// ESP->SAM, On wifi unknown error
+	SAMMES_TIME,			// ESP->SAM, Epoch time
+	SAMMES_MQTT_HELLO_OK,		// ESP->SAM, On MQTT hello OK
+	SAMMES_MQTT_PUBLISH_OK,		// ESP->SAM, On MQTT publish ok
 
-	SAMMES_COUNT	
+	SAMMES_COUNT
 };
 
 enum NetPacks { TOTAL_PARTS = 0 };

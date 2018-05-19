@@ -27,8 +27,8 @@ private:
   void weighting(void *inputBuffer, int inputSize, WeightingType weighting_type);
   void convert2DB(void *inputVector, void *outputVector, int vectorSize, int factor);
   double rms(void *inputBuffer, int inputSize, int typeRMS, int factor);
-  void fft(void *inputBuffer, void* outputBuffer, int fftBufferSize);  
-  
+  void fft(void *inputBuffer, void* outputBuffer, int fftBufferSize);
+
   //BUFFER Sizes
   int _fftSize;
   int _bufferSize; //Already usable bufferSize

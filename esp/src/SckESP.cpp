@@ -4,7 +4,7 @@
 RH_Serial driver(Serial);
 RHReliableDatagram manager(driver, ESP_ADDRESS);
 
-// Telnet debug 
+// Telnet debug
 RemoteDebug Debug;
 
 // Web Server
@@ -17,7 +17,8 @@ PubSubClient MQTTclient(wclient);
 // DNS for captive portal
 DNSServer dnsServer;
 
-void SckESP::setup() {
+void SckESP::setup()
+{
 
 	// LED outputs
 	pinMode(pinLED, OUTPUT);
@@ -62,7 +63,8 @@ void SckESP::setup() {
 		Debug.setSerialEnabled(false);
 	}
 }
-void SckESP::update() {
+void SckESP::update()
+{
 
 	if (WiFi.getMode() == WIFI_AP) {
 		dnsServer.processNextRequest();
@@ -78,12 +80,13 @@ void SckESP::update() {
 			default: ledBlink(LED_FAST); sendMessage(SAMMES_WIFI_UNKNOWN_ERROR); break;
 		}
 	}
-	
+
 	SAMbusUpdate();
 
 	if (telnetDebug) Debug.handle();
 }
-void SckESP::tryConnection() {
+void SckESP::tryConnection()
+{
 
 	if (WiFi.status() != WL_CONNECTED) {
 
@@ -100,17 +103,19 @@ void SckESP::tryConnection() {
 }
 
 // **** Input/Output
-void SckESP::debugOUT(String strOut) {
+void SckESP::debugOUT(String strOut)
+{
 
 	if (telnetDebug) {
 		strOut += "\r\n";
 		DEBUG(strOut.c_str());
 	}
-	
+
 	if (serialDebug) sendMessage(SAMMES_DEBUG, strOut.c_str());
 }
-void SckESP::SAMbusUpdate() {
-	
+void SckESP::SAMbusUpdate()
+{
+
 	if (manager.available()) {
 
 		uint8_t len = NETPACK_TOTAL_SIZE;
@@ -139,19 +144,22 @@ void SckESP::SAMbusUpdate() {
 		}
 	}
 }
-bool SckESP::sendMessage(SAMMessage wichMessage) {
+bool SckESP::sendMessage(SAMMessage wichMessage)
+{
 
 	// This function is used when &netBuff[1] is already filled with the content
 
 	sprintf(netBuff, "%u", wichMessage);
 	return sendMessage();
 }
-bool SckESP::sendMessage(SAMMessage wichMessage, const char *content) {
+bool SckESP::sendMessage(SAMMessage wichMessage, const char *content)
+{
 
 	sprintf(netBuff, "%u%s", wichMessage, content);
 	return sendMessage();
 }
-bool SckESP::sendMessage() {
+bool SckESP::sendMessage()
+{
 
 	// This function is used when netbuff is already filled with command and content
 
@@ -165,11 +173,14 @@ bool SckESP::sendMessage() {
 	}
 	return true;
 }
-void SckESP::receiveMessage(ESPMessage wichMessage) {
+void SckESP::receiveMessage(ESPMessage wichMessage)
+{
 
-	switch(wichMessage) {
+	switch(wichMessage)
+{
 
-		case ESPMES_SET_CONFIG: {
+	case ESPMES_SET_CONFIG:
+	{
 
 			// TODO put this in a reusable function
 			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
@@ -187,18 +198,30 @@ void SckESP::receiveMessage(ESPMessage wichMessage) {
 			saveConfig(config);
 			break;
 
-		} case ESPMES_GET_NETINFO: sendNetinfo(); break;
-		case ESPMES_GET_TIME: sendTime(); break;
-		case ESPMES_MQTT_HELLO: if (mqttHellow()) sendMessage(SAMMES_MQTT_HELLO_OK, ""); break;
-		case ESPMES_MQTT_PUBLISH: {
+	}
+	case ESPMES_GET_NETINFO:
+
+		sendNetinfo();
+		break;
+
+	case ESPMES_GET_TIME:
+
+		sendTime();
+		break;
+
+	case ESPMES_MQTT_HELLO:
+
+		if (mqttHellow()) sendMessage(SAMMES_MQTT_HELLO_OK, "");
+		break;
+
+	case ESPMES_MQTT_PUBLISH:
+	{
 
 			debugOUT("Receiving new readings...");
 
 			// Parse input
 			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 			JsonObject& json = jsonBuffer.parseObject(netBuff);
-
-			//JsonArray& jsonSensors = jsonBuffer.parseArray(json["sensors"]);
 
 			// Iterate over all sensors
 			uint8_t count = 0;
@@ -207,14 +230,12 @@ void SckESP::receiveMessage(ESPMessage wichMessage) {
 				SensorType wichSensor = static_cast<SensorType>(i);
 
 				// Check if sensor exists in received readings (we asume that missing sensors are disabled)
-				//if (json.containsKey(String(i))) {
 				if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
 
 					sensors[wichSensor].lastReadingTime = json["t"];
 					float temp = json["sensors"][count];
 					count++;
 					sensors[wichSensor].reading = String(temp);
-					//sensors[wichSensor].reading = json.get<String>(String(i));
 					sensors[wichSensor].enabled = true;
 
 				} else {
@@ -230,7 +251,8 @@ void SckESP::receiveMessage(ESPMessage wichMessage) {
 }
 
 // **** MQTT
-bool SckESP::mqttConnect() {
+bool SckESP::mqttConnect()
+{
 
 	if (MQTTclient.connected()) return true;
 
@@ -247,29 +269,31 @@ bool SckESP::mqttConnect() {
 		return false;
 	}
 }
-bool SckESP::mqttHellow() {
+bool SckESP::mqttHellow()
+{
 
 	debugOUT(F("Trying MQTT Hello..."));
 
 	if (mqttConnect()) {
 
 		// prepare the topic title
-   		char myTopic[24];
+		char myTopic[24];
 		sprintf(myTopic, "device/sck/%s/hello", config.token.token);
 
-   		// Prepare the payload
-   		char myPayload[14];
-   		sprintf(myPayload, "%s:Hello", config.token.token);
+		// Prepare the payload
+		char myPayload[14];
+		sprintf(myPayload, "%s:Hello", config.token.token);
 
 		if (MQTTclient.publish(myTopic, myPayload)) {
 			debugOUT(F("MQTT Hello published OK !!!"));
 			return true;
 		}
 		debugOUT(F("MQTT Hello ERROR !!!"));
-	}
+		}
 	return false;
 }
-bool SckESP::mqttPublish() {
+bool SckESP::mqttPublish()
+{
 
 	debugOUT(F("Trying MQTT publish..."));
 
@@ -290,34 +314,34 @@ bool SckESP::mqttPublish() {
 		// 	*/
 
 		// Prepare the payload
-    	char myPayload[1024];
+		char myPayload[1024];
 
-    	// Put time of the first sensor
-    	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-    		SensorType wichSensor = static_cast<SensorType>(i);
-    		if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
-    			sprintf(myPayload, "{\"data\":[{\"recorded_at\":\"%s\",\"sensors\":[", epoch2iso(sensors[wichSensor].lastReadingTime).c_str());
-    		}
-    	}
+		// Put time of the first sensor
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
+			if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
+				sprintf(myPayload, "{\"data\":[{\"recorded_at\":\"%s\",\"sensors\":[", epoch2iso(sensors[wichSensor].lastReadingTime).c_str());
+			}
+		}
 
-    	// Put the readings
-    	bool putComma = false;
-    	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-    		SensorType wichSensor = static_cast<SensorType>(i);
+		// Put the readings
+		bool putComma = false;
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
 
-    		// Only send enabled sensors
+			// Only send enabled sensors
 			if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
 				if (putComma) sprintf(myPayload, "%s,", myPayload);
 				else putComma = true;
 				sprintf(myPayload, "%s{\"id\":%i,\"value\":%s}", myPayload, sensors[wichSensor].id, sensors[wichSensor].reading.c_str());
 			}
-    	}
-    	sprintf(myPayload, "%s]}]}", myPayload);
+		}
+		sprintf(myPayload, "%s]}]}", myPayload);
 
-    	debugOUT(String(myPayload));
+		debugOUT(String(myPayload));
 
-    	// prepare the topic title
-	   	char pubTopic[27];
+		// prepare the topic title
+		char pubTopic[27];
 		sprintf(pubTopic, "device/sck/%s/readings", config.token.token);
 
 		debugOUT(String(pubTopic));
@@ -347,7 +371,8 @@ bool SckESP::sendNetinfo() {
 
 		return sendMessage();
 }
-bool SckESP::sendTime() {
+bool SckESP::sendTime()
+{
 
 	// Update time
 	debugOUT(F("Trying NTP Sync..."));
@@ -357,7 +382,8 @@ bool SckESP::sendTime() {
 }
 
 // **** APmode and WebServer
-void SckESP::startAP(){
+void SckESP::startAP()
+{
 
 	debugOUT(String F("Starting Ap with ssid: ") + String(hostname));
 
@@ -369,22 +395,24 @@ void SckESP::startAP(){
 	WiFi.softAPConfig(myIP, myIP, IPAddress(255, 255, 255, 0));
 	WiFi.softAP((const char *)hostname);
 	delay(500);
-	// espStatus.ap = ESP_AP_ON_EVENT;
 
 	// DNS stuff (captive portal)
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
 	dnsServer.start(DNS_PORT, "*", myIP);
 
-	// startWebServer();
+	/* startWebServer(); */
 }
-void SckESP::stopAP() {
+void SckESP::stopAP()
+{
 
 	dnsServer.stop();
 	WiFi.softAPdisconnect(true);
+	// TODO stop webserver?
 }
 
 // **** Configuration
-bool SckESP::saveConfig(Configuration newConfig) {
+bool SckESP::saveConfig(Configuration newConfig)
+{
 
 	if ((config.credentials.ssid != newConfig.credentials.ssid) || !newConfig.credentials.set) WiFi.disconnect();
 
@@ -414,7 +442,8 @@ bool SckESP::saveConfig(Configuration newConfig) {
 	}
 	return false;
 }
-bool SckESP::loadConfig() {
+bool SckESP::loadConfig()
+{
 
 	if (SPIFFS.exists(configFileName)) {
 
@@ -441,7 +470,7 @@ bool SckESP::loadConfig() {
 		configFile.close();
 		debugOUT("Loaded configuration!!");
 		return true;
-	} 
+	}
 
 	debugOUT("Can't find valid configuration!!! loading defaults...");
 	Configuration newConfig;
@@ -451,97 +480,105 @@ bool SckESP::loadConfig() {
 }
 
 // **** Led
-void SckESP::ledSet(uint8_t value) {
+void SckESP::ledSet(uint8_t value)
+{
 	blink.detach();
 	ledValue = abs(value - 1);
 	digitalWrite(pinLED, ledValue);
 }
-void SckESP::ledBlink(float rate) {
+void SckESP::ledBlink(float rate)
+{
 
 	blink.attach_ms(rate, ledToggle);
 }
-void SckESP::_ledToggle() {
+void SckESP::_ledToggle()
+{
 	ledValue = abs(ledValue - 1);
 	digitalWrite(pinLED, ledValue);
 }
 
 // **** Time
-time_t SckESP::getNtpTime() {
-  IPAddress ntpServerIP;
+time_t SckESP::getNtpTime()
+{
+	IPAddress ntpServerIP;
 
-  while (Udp.parsePacket() > 0) ; // discard any previously received packets
-  WiFi.hostByName(NTP_SERVER_NAME, ntpServerIP);
+	while (Udp.parsePacket() > 0) ; // discard any previously received packets
+	WiFi.hostByName(NTP_SERVER_NAME, ntpServerIP);
 
-  sendNTPpacket(ntpServerIP);
-  uint32_t beginWait = millis();
-  while (millis() - beginWait < 200) {
-    int size = Udp.parsePacket();
-    if (size >= 48) {
-      Udp.read(packetBuffer, 48);  // read packet into the buffer
-      unsigned long secsSince1900;
-      // convert four bytes starting at location 40 to a long integer
-      secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
-      secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
-      secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
-      secsSince1900 |= (unsigned long)packetBuffer[43];
-      
-      debugOUT(F("Time updated!!!"));
-      String epochStr = String(secsSince1900 - 2208988800UL);
-      sendMessage(SAMMES_TIME, epochStr.c_str());
-      return secsSince1900 - 2208988800UL;
-    }
-  }
-  debugOUT(F("No NTP Response!!!"));
-  return 0;
+	sendNTPpacket(ntpServerIP);
+	uint32_t beginWait = millis();
+	while (millis() - beginWait < 200) {
+		int size = Udp.parsePacket();
+		if (size >= 48) {
+			Udp.read(packetBuffer, 48);  // read packet into the buffer
+			unsigned long secsSince1900;
+			// convert four bytes starting at location 40 to a long integer
+			secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
+			secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
+			secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
+			secsSince1900 |= (unsigned long)packetBuffer[43];
+
+			debugOUT(F("Time updated!!!"));
+			String epochStr = String(secsSince1900 - 2208988800UL);
+			sendMessage(SAMMES_TIME, epochStr.c_str());
+			return secsSince1900 - 2208988800UL;
+		}
+	}
+	debugOUT(F("No NTP Response!!!"));
+	return 0;
 }
-void SckESP::sendNTPpacket(IPAddress &address) {
-  memset(packetBuffer, 0, 48);
+void SckESP::sendNTPpacket(IPAddress &address)
+{
+	memset(packetBuffer, 0, 48);
 
-  // Initialize values needed to form NTP request
-  packetBuffer[0] = 0b11100011;
-  packetBuffer[1] = 0;
-  packetBuffer[2] = 6;
-  packetBuffer[3] = 0xEC;
+	// Initialize values needed to form NTP request
+	packetBuffer[0] = 0b11100011;
+	packetBuffer[1] = 0;
+	packetBuffer[2] = 6;
+	packetBuffer[3] = 0xEC;
 
-  packetBuffer[12] = 49;
-  packetBuffer[13] = 0x4E;
-  packetBuffer[14] = 49;
-  packetBuffer[15] = 52;
+	packetBuffer[12] = 49;
+	packetBuffer[13] = 0x4E;
+	packetBuffer[14] = 49;
+	packetBuffer[15] = 52;
 
-  Udp.beginPacket(address, 123);
-  Udp.write(packetBuffer, 48);
-  Udp.endPacket();
+	Udp.beginPacket(address, 123);
+	Udp.write(packetBuffer, 48);
+	Udp.endPacket();
 }
-String SckESP::ISOtime() {
+String SckESP::ISOtime()
+{
 	// Return string.format("%04d-%02d-%02dT%02d:%02d:%02dZ", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
 	if (timeStatus() == timeSet) {
-		String isoTime = String(year()) + "-" + 
-		leadingZeros(String(month()), 2) + "-" + 
-		leadingZeros(String(day()), 2) + "T" +  
-		leadingZeros(String(hour()), 2) + ":" + 
-		leadingZeros(String(minute()), 2) + ":" + 
-		leadingZeros(String(second()), 2) + "Z";
+		String isoTime = String(year()) + "-" +
+			leadingZeros(String(month()), 2) + "-" +
+			leadingZeros(String(day()), 2) + "T" +
+			leadingZeros(String(hour()), 2) + ":" +
+			leadingZeros(String(minute()), 2) + ":" +
+			leadingZeros(String(second()), 2) + "Z";
 		return isoTime;
 	} else {
 		return "0";
 	}
 }
-String SckESP::leadingZeros(String original, int decimalNumber) {
+String SckESP::leadingZeros(String original, int decimalNumber)
+{
 	for (uint8_t i=0; i < (decimalNumber - original.length()); ++i)	{
 		original = "0" + original;
 	}
 	return original;
 }
-String SckESP::epoch2iso(uint32_t toConvert) {
+String SckESP::epoch2iso(uint32_t toConvert)
+{
 
 	time_t tc = toConvert;
 
 	String isoTime = String(year(tc)) + "-" +
-	leadingZeros(String(month(tc)), 2) + "-" + 
-	leadingZeros(String(day(tc)), 2) + "T" +
-	leadingZeros(String(hour(tc)), 2) + ":" + 
-	leadingZeros(String(minute(tc)), 2) + ":" + 
-	leadingZeros(String(second(tc)), 2) + "Z";
-	
+		leadingZeros(String(month(tc)), 2) + "-" +
+		leadingZeros(String(day(tc)), 2) + "T" +
+		leadingZeros(String(hour(tc)), 2) + ":" +
+		leadingZeros(String(minute(tc)), 2) + ":" +
+		leadingZeros(String(second(tc)), 2) + "Z";
+
 	return isoTime;
 }

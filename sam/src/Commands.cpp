@@ -152,6 +152,18 @@ void readSensor_com(SckBase* base, String parameters)
 	else sprintf(base->outBuff, "ERROR reading %s sensor!!!", base->sensors[sensorToRead].title);
 	base->sckOut();
 }
+void monitorSensor_com(SckBase* base, String parameters)
+{
+
+	SensorType sensorToRead = base->sensors.getTypeFromString(parameters);
+
+	while(!SerialUSB.available()) {
+		if (base->getReading(sensorToRead, true)) sprintf(base->outBuff, "%s", base->sensors[sensorToRead].reading.c_str());
+		else sprintf(base->outBuff, "ERROR reading %s sensor!!!", base->sensors[sensorToRead].title);
+		base->sckOut();
+	}
+
+}
 extern "C" char *sbrk(int i);
 void freeRAM_com(SckBase* base, String parameters)
 {

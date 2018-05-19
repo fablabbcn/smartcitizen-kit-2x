@@ -1,7 +1,7 @@
 #include "SckBase.h"
 
-void SckBase::buttonEvent() {
-
+void SckBase::buttonEvent()
+{
 	buttonLastEvent = millis();
 	
 	if (!digitalRead(pinBUTTON)) {
@@ -23,8 +23,8 @@ void SckBase::buttonEvent() {
 			if (state.mode == MODE_NOT_CONFIGURED) state.mode = MODE_NET;  // This covers user button click on unconfigured device
 		}
 
-	} else {
 
+	} else {
 		// Button Up
 		buttonDown = false;
 		buttonStage = BUT_FREE;
@@ -38,8 +38,8 @@ void SckBase::buttonEvent() {
 		} 
 	}
 }
-void SckBase::buttonStillDown() {
-
+void SckBase::buttonStillDown()
+{
 	uint32_t pressedTime = millis() - buttonLastEvent;
 
 	if (pressedTime >= buttonLong && buttonStage == BUT_STARTED) {
@@ -60,15 +60,14 @@ void SckBase::buttonStillDown() {
 	
 		sprintf(outBuff, "Button pressed for %lu milliseconds: Very long press", millis() - buttonLastEvent);
 		sckOut(PRIO_LOW);
-		
+
 		state.sleeping = false;
-		
+
 		// Factory defaults
 		Configuration defaultConfig;
 		saveConfig(defaultConfig);
 		// TODO led user Feedback
 		reset();
-		
 	}
 }
 void SckBase::setAlarm_TC4(uint16_t lapse) {

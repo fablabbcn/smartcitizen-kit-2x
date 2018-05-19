@@ -1,6 +1,7 @@
 #include "SckUrban.h"
 
-bool SckUrban::setup() {
+bool SckUrban::setup()
+{
 
 	// TODO implementar una prueba de deteccion y si falla retornar falso.
 
@@ -18,7 +19,7 @@ bool SckUrban::setup() {
 
 	// Barometric pressure and Altitude
 	if (!sck_mpl3115A2.begin()) return false;
-	
+
 	// Dust Particles
 	if (!sck_max30105.begin()) return false;
 
@@ -54,16 +55,18 @@ String SckUrban::getReading(SensorType wichSensor, bool wait)
 }
 
 // Light
-bool Sck_BH1721FVC::begin() 
+bool Sck_BH1721FVC::begin()
 {
 
 	return true;
 }
-bool Sck_BH1721FVC::stop() {
+bool Sck_BH1721FVC::stop()
+{
 
 	return true;
 }
-bool Sck_BH1721FVC::get(bool wait) {
+bool Sck_BH1721FVC::get(bool wait)
+{
 
 	// 0x00 register - CONTROL
 	uint8_t CONTROL = B00011;
@@ -87,7 +90,7 @@ bool Sck_BH1721FVC::get(bool wait) {
 	// 01h to FFh: Integration time is determined by ITIME value
 	// Integration Time : ITIME_ms = Tint * 964 * (256 - ITIME)
 	// Measurement time : Tmt= ITIME_ms + Tint * 714
-	
+
 	// TIME0 posible values, more time = more resolution
 	// 0xA0 (~3200 values in 260 ms)
 	// 0xB0 (~2100 values in 220 ms)
@@ -107,12 +110,12 @@ bool Sck_BH1721FVC::get(bool wait) {
 	// INT_EN 	4 	0 : Disable interrupt function.
 	// 				1 : Enable interrupt function.
 	// PERSIST 	3:0 Interrupt persistence function.
-	// 				0000 : Interrupt becomes active at each measurement end.
-	// 				0001 : Interrupt status is updated at each measurement end.
-	// 				0010 : Interrupt status is updated if two consecutive threshold judgments are the same.
-	// 				When  set  0011  or  more,  interrupt  status  is  updated  if same threshold judgments continue consecutively same times as the number set in PERSIST. 
-	
-	// 0x03, 0x04 registers - TH_LOW Low interrupt threshold	
+	//	0000 : Interrupt becomes active at each measurement end.
+	//	0001 : Interrupt status is updated at each measurement end.
+	//	0010 : Interrupt status is updated if two consecutive threshold judgments are the same.
+	//	When  set  0011  or  more,  interrupt  status  is  updated  if same threshold judgments continue consecutively same times as the number set in PERSIST.
+
+	// 0x03, 0x04 registers - TH_LOW Low interrupt threshold
 	uint8_t TH_LOW0 = 0x00;		// Lower byte of low interrupt threshold
 	uint8_t TH_LOW1 = 0x00;		// Upper byte of low interrupt threshold
 
@@ -122,12 +125,11 @@ bool Sck_BH1721FVC::get(bool wait) {
 
 	// 0x07 - GAIN
 	uint8_t GAIN = 0x00;
-	// GAIN  2:0	ADC resolution setting 
-	// 				X00 : x1 gain mode
-	// 				X01 : x2 gain mode
-	// 				X10 : x64 gain mode 
-	// 				X11 : x128 gain mode
-
+	// GAIN  2:0	ADC resolution setting
+	//	  X00 : x1 gain mode
+	//	  X01 : x2 gain mode
+	//	  X10 : x64 gain mode
+	//	  X11 : x128 gain mode
 
 	uint8_t DATA[8] = {CONTROL, ITIME0, INTERRUPT, TH_LOW0, TH_LOW1, TH_UP0, TH_UP1, GAIN} ;
 
@@ -142,7 +144,7 @@ bool Sck_BH1721FVC::get(bool wait) {
 
 	// Ask for reading
 	Wire.beginTransmission(address);
-	Wire.write(0x94);  
+	Wire.write(0x94);
 	Wire.endTransmission();
 	Wire.requestFrom(address, 4);
 
@@ -155,7 +157,7 @@ bool Sck_BH1721FVC::get(bool wait) {
 	DATA1 = DATA1 | (Wire.read()<<8);
 
 	// Setup gain
-	uint8_t Gain = 1; 
+	uint8_t Gain = 1;
 	if (GAIN == 0x01) Gain = 2;
 	else if (GAIN == 0x02) Gain = 64;
 	else if (GAIN == 0x03) Gain = 128;
@@ -180,10 +182,11 @@ bool Sck_BH1721FVC::get(bool wait) {
 }
 
 // SHT31 (Temperature and Humidity)
-bool Sck_SHT31::begin() {
+bool Sck_SHT31::begin()
+{
 
 	Wire.begin();
-	
+
 	// Send reset command
 	sendComm(SOFT_RESET);
 
@@ -191,19 +194,21 @@ bool Sck_SHT31::begin() {
 
 	return true;
 }
-bool Sck_SHT31::stop() {
+bool Sck_SHT31::stop()
+{
 
 	// It will go to idle state by itself after 1ms
 	return true;
 }
-bool Sck_SHT31::update(bool wait) {
+bool Sck_SHT31::update(bool wait)
+{
 
 	// If last update was less than 2 sec ago dont do it again
 	if (millis() - lastUpdate < 2000) return true;
 
 	uint8_t readbuffer[6];
 	sendComm(SINGLE_SHOT_HIGH_REP);
-  	
+
   	Wire.requestFrom(address, (uint8_t)6);
 
   	// Wait for answer (datasheet says 15ms is the max)
@@ -245,13 +250,15 @@ bool Sck_SHT31::update(bool wait) {
 
 	return true;
 }
-void Sck_SHT31::sendComm(uint16_t comm) {
+void Sck_SHT31::sendComm(uint16_t comm)
+{
   Wire.beginTransmission(address);
   Wire.write(comm >> 8);
   Wire.write(comm & 0xFF);
-  Wire.endTransmission();  
+  Wire.endTransmission();
 }
-uint8_t Sck_SHT31::crc8(const uint8_t *data, int len) {
+uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
+{
 
  /* CRC-8 formula from page 14 of SHT spec pdf
  *
@@ -276,14 +283,15 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len) {
 }
 
 // Gases
-bool Sck_MICS4514::begin() {
+bool Sck_MICS4514::begin()
+{
 
 	// To protect MICS turn off heaters (HIGH=off, LOW=on)
 	pinMode(pinPWM_HEATER_CO, OUTPUT);
 	pinMode(pinPWM_HEATER_NO2, OUTPUT);
 	digitalWrite(pinPWM_HEATER_CO, HIGH);
 	digitalWrite(pinPWM_HEATER_NO2, HIGH);
-	
+
 	pinMode(pinREAD_CO, INPUT);
 	pinMode(pinREAD_NO2, INPUT);
 
@@ -295,7 +303,8 @@ bool Sck_MICS4514::begin() {
 
 	return true;
 }
-bool Sck_MICS4514::stop() {
+bool Sck_MICS4514::stop()
+{
 
 	// Turn off heaters
 	digitalWrite(pinPWM_HEATER_CO, HIGH);
@@ -303,11 +312,12 @@ bool Sck_MICS4514::stop() {
 
 	return true;
 }
-bool Sck_MICS4514::enable(SensorType wichSensor, uint32_t epoch) {
+bool Sck_MICS4514::enable(SensorType wichSensor, uint32_t epoch)
+{
 
 	switch(wichSensor) {
 		case SENSOR_CO: {
-			
+
 			setPWM(SENSOR_CO, 50.8); 		// This works on proto boards 2.0 rev1 (50.8%)
 			// startHeaterTime_CO = epoch;
 			break;
@@ -321,7 +331,8 @@ bool Sck_MICS4514::enable(SensorType wichSensor, uint32_t epoch) {
 
 	return false;
 }
-bool Sck_MICS4514::disable(SensorType wichSensor) {
+bool Sck_MICS4514::disable(SensorType wichSensor)
+{
 
 	switch (wichSensor) {
 		case SENSOR_CO: {
@@ -337,20 +348,22 @@ bool Sck_MICS4514::disable(SensorType wichSensor) {
 
 	return false;
 }
-bool Sck_MICS4514::getCO(bool wait) {
+bool Sck_MICS4514::getCO(bool wait)
+{
 
 	float sensorVoltage;
-	
+
 	sensorVoltage = ((average(pinREAD_CO) * (float)VCC) / (float)ANALOG_RESOLUTION);
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
 	co = (((VCC - sensorVoltage) / sensorVoltage) * coLoadResistor) / 1000.0;
 
 	return true;
 }
-bool Sck_MICS4514::getNO2(bool wait) {
+bool Sck_MICS4514::getNO2(bool wait)
+{
 
 	float sensorVoltage;
-	
+
 	sensorVoltage = ((average(pinREAD_NO2) * (float)VCC) / (float)ANALOG_RESOLUTION);
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
 
@@ -364,7 +377,7 @@ bool Sck_MICS4514::getNO2(bool wait) {
 
 	// 	// If difference between result and load resistor is greater than 80, try to improve resolution.
 	// 	if (abs(no2LoadResistor - no2_K) > 200 && no2_K > 870 && no2_K < 10000) {
-			
+
 	// 		setNO2load(no2_K);
 
 	// 		// Update reading
@@ -377,16 +390,17 @@ bool Sck_MICS4514::getNO2(bool wait) {
 
 	return true;
 }
-bool Sck_MICS4514::setNO2load(uint32_t value) {
+bool Sck_MICS4514::setNO2load(uint32_t value)
+{
 
 	// Check minimal/maximal safe value for Gas sensor (Datasheet says 820 Ohms minimal) ~ 870 because of the rounding of POT discrete steps
 	if (value < 870) value = 870;
 	else if (value > 10000) value = 10000;
-	
+
 	// Data to be writen (based on datasheet page 59) (http://ww1.microchip.com/downloads/en/DeviceDoc/22107B.pdf)
 	// Sending data in MSB 7 bits (with a zero at the end)
 	byte data = (int)(value / ohmsPerStep);
-	data <<= 1; 
+	data <<= 1;
 
 	const byte MCP4551_CMD_WRITE = 0b00000000;
 
@@ -395,7 +409,8 @@ bool Sck_MICS4514::setNO2load(uint32_t value) {
 	Wire.write(data);
 	return (Wire.endTransmission() == 0);
 }
-bool Sck_MICS4514::getNO2load(bool wait) {
+bool Sck_MICS4514::getNO2load(bool wait)
+{
 
 	const byte MCP4551_CMD_READ	= 0b00001100;
 
@@ -419,7 +434,8 @@ bool Sck_MICS4514::getNO2load(bool wait) {
 
 	return true;
 }
-void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle) {
+void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle)
+{
 
 	// Frequency = GCLK frequency / (2 * N * PER)       where N = prescaler value (CTRLA register)
 
@@ -434,20 +450,20 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle) {
 	// TCC_CTRLA_PRESCALER_DIV1024
 	#define MY_DIVIDER TCC_CTRLA_PRESCALER_DIV1
 
-	
+
  	// With N = 1
 	// FOR 12 bits
 	// Frequency = 48MHz / (2 * 1 * 4096) = 5,859.375 ~ 5.9 kHz
 	// Resolution at 5.9kHz = log(4096 + 1) / log(2) = 12 bits
-	// 
+	//
 	// FOR 10 bits
 	// Frequency = 48MHz / (2 * 1 * 1024) = 23,437.5 ~ 23.4 kHz
 	// Resolution at 23.4kHz = log(1024 + 1) / log(2) = 10 bits
-	// 
+	//
 	// FOR 8 bits
 	// Frequency = 48MHz / (2 * 1 * 256) = 93,750 ~ 93.7 kHz
 	// Resolution at 93.7kHz = log(256 + 1) / log(2) = 8 bits
-	// 
+	//
 	// FOR 6 bits
 	// Frequency = 48MHz / (2 * 1 * 96) = 250 kHz
 	// Resolution at 250kHz = log(96 + 1) / log(2) = 6.6 bits
@@ -469,7 +485,7 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle) {
 	if (wichSensor == SENSOR_CO) {
 		PORT->Group[PORTA].PINCFG[8].bit.PMUXEN = 1;
 	} else {
-		PORT->Group[PORTA].PINCFG[9].bit.PMUXEN = 1;	
+		PORT->Group[PORTA].PINCFG[9].bit.PMUXEN = 1;
 	}
 
 	// Connect the TCC0 timer to pin PA09 - port pins are paired odd PMUO and even PMUXE
@@ -509,7 +525,8 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle) {
 					  TCC_CTRLA_ENABLE;             // Enable the TCC0 output
 	while (TCC1->SYNCBUSY.bit.ENABLE);
 }
-float Sck_MICS4514::average(uint8_t wichPin) {
+float Sck_MICS4514::average(uint8_t wichPin)
+{
 
 	uint16_t numReadings = 300;
 	long total = 0;
@@ -517,7 +534,7 @@ float Sck_MICS4514::average(uint8_t wichPin) {
 	for(uint16_t i=0; i<numReadings; i++) {
 		total = total + analogRead(wichPin);
 	}
-	average = (float)total / numReadings;  
+	average = (float)total / numReadings;
 	return average;
 }
 
@@ -525,16 +542,19 @@ float Sck_MICS4514::average(uint8_t wichPin) {
 
 
 // Barometric pressure and Altitude
-bool Sck_MPL3115A2::begin() {
+bool Sck_MPL3115A2::begin()
+{
 
 	if (Adafruit_mpl3115A2.begin()) return true;
 	return false;
 }
-bool Sck_MPL3115A2::stop() {
-	
+bool Sck_MPL3115A2::stop()
+{
+
 	return true;
 }
-bool Sck_MPL3115A2::getAltitude(bool wait) {
+bool Sck_MPL3115A2::getAltitude(bool wait)
+{
 
 	Adafruit_mpl3115A2.begin();
 
@@ -547,7 +567,8 @@ bool Sck_MPL3115A2::getAltitude(bool wait) {
 
 	return true;
 }
-bool Sck_MPL3115A2::getPressure(bool wait) {
+bool Sck_MPL3115A2::getPressure(bool wait)
+{
 
 	Adafruit_mpl3115A2.begin();
 
@@ -556,7 +577,8 @@ bool Sck_MPL3115A2::getPressure(bool wait) {
 
 	return true;
 }
-bool Sck_MPL3115A2::getTemperature(bool wait) {
+bool Sck_MPL3115A2::getTemperature(bool wait)
+{
 
 	Adafruit_mpl3115A2.begin();
 
@@ -568,17 +590,20 @@ bool Sck_MPL3115A2::getTemperature(bool wait) {
 }
 
 // Dust Particles
-bool Sck_MAX30105::begin() {
+bool Sck_MAX30105::begin()
+{
 
 	if (sparkfun_max30105.begin()) return true;
 	return false;
 }
-bool Sck_MAX30105::stop() {
+bool Sck_MAX30105::stop()
+{
 
 	sparkfun_max30105.shutDown();
 	return true;
 }
-bool Sck_MAX30105::getRed(bool wait) {
+bool Sck_MAX30105::getRed(bool wait)
+{
 
 	sparkfun_max30105.wakeUp();
 
@@ -588,7 +613,8 @@ bool Sck_MAX30105::getRed(bool wait) {
 	sparkfun_max30105.shutDown();
 	return true;
 }
-bool Sck_MAX30105::getGreen(bool wait) {
+bool Sck_MAX30105::getGreen(bool wait)
+{
 
 	sparkfun_max30105.wakeUp();
 
@@ -598,7 +624,8 @@ bool Sck_MAX30105::getGreen(bool wait) {
 	sparkfun_max30105.shutDown();
 	return true;
 }
-bool Sck_MAX30105::getIR(bool wait) {
+bool Sck_MAX30105::getIR(bool wait)
+{
 
 	sparkfun_max30105.wakeUp();
 
@@ -608,7 +635,8 @@ bool Sck_MAX30105::getIR(bool wait) {
 	sparkfun_max30105.shutDown();
 	return true;
 }
-bool Sck_MAX30105::getTemperature(bool wait) {	// NOT WORKING!!! (sparkfun lib)
+bool Sck_MAX30105::getTemperature(bool wait)
+{	// NOT WORKING!!! (sparkfun lib)
 
 	sparkfun_max30105.wakeUp();
 

@@ -72,7 +72,7 @@ void SckBase::setup()
 	attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
 	sdDetect();
 
-	// Flash memory 
+	// Flash memory
 	// TODO disable debug messages from library
 	// flashSelect();
 	// flash.begin();
@@ -83,14 +83,14 @@ void SckBase::setup()
 	loadConfig();
 	if (config.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
 	else if (config.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
-	
+
 	// Urban board
 	analogReadResolution(12);
 	urbanPresent = urban.setup();
 	if (urbanPresent) {
 		sckOut("Urban board detected");
 		readLight.setup();
-		//readLight.debugFlag = true;
+		// readLight.debugFlag = true;
 	} else sckOut("No urban board detected!!");
 
 
@@ -124,9 +124,10 @@ void SckBase::setup()
 		}
 	}
 }
-void SckBase::update() {
+void SckBase::update()
+{
 
-	// TEMP 
+	// TEMP
 	if (state.onSetup) {
 		lightResults = readLight.read();
 		if (lightResults.ok) parseLightRead();
@@ -142,34 +143,33 @@ void SckBase::update() {
 }
 
 // **** Mode Control
-void SckBase::reviewState() {
+void SckBase::reviewState()
+{
 
-	/*
-	struct SckState {
-		bool onSetup
-		bool espON
-		bool wifiSet
-		bool onWifi
-		bool wifiError 
-		bool tokenSet
-		bool helloPending
-		bool onTime
-		bool timeAsked;
-		bool timeError
-		SCKmodes mode
-		bool cardPresent
-		bool reading
-		bool sleeping
-	};
+	/* struct SckState { */
+	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
+	/* bool espON */
+	/* bool wifiSet */
+	/* bool onWifi */
+	/* bool wifiError */
+	/* bool tokenSet */
+	/* bool helloPending */
+	/* bool onTime */
+	/* bool timeAsked; */
+	/* bool timeError */
+	/* SCKmodes mode */
+	/* bool cardPresent */
+	/* bool reading */
+	/* bool sleeping */
+	/* }; */
 
-	state can be changed by:
-		parseLightRead()
-		loadConfig()
-		receiveMessage()
-		setTime()
-		sdDetect()
-		buttonEvent();
-	*/
+	/* state can be changed by: */
+	/* parseLightRead() */
+	/* loadConfig() */
+	/* receiveMessage() */
+	/* setTime() */
+	/* sdDetect() */
+	/* buttonEvent(); */
 
 	if (!(state == oldState)) {
 
@@ -219,14 +219,14 @@ void SckBase::reviewState() {
 
 			state.reading = false;
 
-			/*
-			* MODE_SD (!cardPresent || (!onTime && !wifiSet)) -> onSetup
-				* MODE_SD (cardPresent && !onTime && wifiSet) -> WAITING_TIME
-					* WAITING_TIME (!onWifi) -> WAITING_WIFI
-						* WAITING_WIFI (!espON) -> ESP_ON
-						* WAITING_WIFI -> (espON && wifiError || timeError) -> onSetup
-				* MODE_SD (cardPresent && onTime) -> ESP_OFF && updateSensors
-			*/
+
+			/* MODE_SD (!cardPresent || (!onTime && !wifiSet)) -> onSetup */
+			/* MODE_SD (cardPresent && !onTime && wifiSet) -> WAITING_TIME */
+			/* WAITING_TIME (!onWifi) -> WAITING_WIFI */
+			/* WAITING_WIFI (!espON) -> ESP_ON */
+			/* WAITING_WIFI -> (espON && wifiError || timeError) -> onSetup */
+			/* MODE_SD (cardPresent && onTime) -> ESP_OFF && updateSensors */
+
 
 			/* if (!state.cardPresent || (!state.onTime && !state.wifiSet)) enterSetup(); */
 			/* else if (!state.onTime) { */
@@ -234,8 +234,8 @@ void SckBase::reviewState() {
 			/* 	if (!state.onWifi) { */
 			/* 		if (!state.espON) ESPcontrol(ESP_ON); */
 			/* 		else if (state.wifiError) enterSetup(); */
-			/* 	} else { */				
-			/* 		sckOut("Asking time to ESP..."); */ 
+			/* 	} else { */
+			/* 		sckOut("Asking time to ESP..."); */
 			/* 		sendMessage(ESPMES_GET_TIME, ""); */
 			/* 		if (state.timeError) enterSetup(); */
 			/* 	} */
@@ -250,7 +250,8 @@ void SckBase::reviewState() {
 
 	if (state.reading) updateSensors();
 }
-void SckBase::enterSetup() {
+void SckBase::enterSetup()
+{
 
 	state.onSetup = true;
 
@@ -261,7 +262,8 @@ void SckBase::enterSetup() {
 	if (!state.espON) ESPcontrol(ESP_ON);
 	// TODO APmode on esp. decide how to manage wifiSet && !tokenSet
 }
-void SckBase::printState(bool all) {
+void SckBase::printState(bool all)
+{
 
 	if ((oldState.onSetup != state.onSetup) | all) sprintf(outBuff, "%sonSetup: %s\r\n", outBuff, state.onSetup  ? "true" : "false");
 	if ((oldState.espON != state.espON) | all) sprintf(outBuff, "%sespON: %s\r\n", outBuff, state.espON  ? "true" : "false");
@@ -279,7 +281,8 @@ void SckBase::printState(bool all) {
 }
 
 // **** Input
-void SckBase::inputUpdate() {
+void SckBase::inputUpdate()
+{
 
 	if (SerialUSB.available()) {
 
@@ -300,13 +303,13 @@ void SckBase::inputUpdate() {
 			serialBuff = "";
 			prompt();
 
-		// Backspace
+			// Backspace
 		} else if (buff == 127) {
 
 			if (blen > 0) SerialUSB.print("\b \b");
 			serialBuff.remove(blen-1);
 
-		// Up arrow (previous command)
+			// Up arrow (previous command)
 		} else if (buff == 27) {
 
 			delayMicroseconds(200);
@@ -320,7 +323,7 @@ void SckBase::inputUpdate() {
 				serialBuff = previousCommand;
 			}
 
-		// Normal char
+			// Normal char
 		} else {
 
 			serialBuff += buff;
@@ -333,15 +336,18 @@ void SckBase::inputUpdate() {
 }
 
 // **** Output
-void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine) {
+void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine)
+{
 	strOut.toCharArray(outBuff, strOut.length()+1);
 	sckOut(priority, newLine);
 }
-void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine) {
+void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
+{
 	strncpy(outBuff, strOut, 240);
 	sckOut(priority, newLine);
 }
-void SckBase::sckOut(PrioLevels priority, bool newLine) {
+void SckBase::sckOut(PrioLevels priority, bool newLine)
+{
 
 	// Output via USB console
 	if (onUSB) {
@@ -352,16 +358,18 @@ void SckBase::sckOut(PrioLevels priority, bool newLine) {
 	} else  {
 		digitalWrite(pinLED_USB, HIGH);
 	}
-	
+
 	strncpy(outBuff, "", 240);
 }
-void SckBase::prompt() {
+void SckBase::prompt()
+{
 
 	sckOut("SCK > ", PRIO_MED, false);
 }
 
 // **** Config
-void SckBase::loadConfig() {
+void SckBase::loadConfig()
+{
 
 	sckOut("Loading configuration from eeprom...");
 
@@ -382,7 +390,8 @@ void SckBase::loadConfig() {
 	state.tokenSet = config.token.set;
 	state.mode = config.mode;
 }
-void SckBase::saveConfig(Configuration newConfig) {
+void SckBase::saveConfig(Configuration newConfig)
+{
 
 	eepromConfig.write(newConfig);
 	config = newConfig;
@@ -409,14 +418,16 @@ void SckBase::saveConfig(Configuration newConfig) {
 	sckOut("Saved configuration!!", PRIO_LOW);
 	if (sendMessage()) sckOut("Saved configuration on ESP!!", PRIO_LOW);
 }
-Configuration SckBase::getConfig() {
+Configuration SckBase::getConfig()
+{
 
 	return config;
 }
-bool SckBase::parseLightRead(){
-	
+bool SckBase::parseLightRead()
+{
+
 	Configuration lightConfig;
-	
+
 	if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
 		if (lightResults.lines[1].length() > 0) {
 			lightResults.lines[1].toCharArray(lightConfig.credentials.ssid, 64);
@@ -446,72 +457,85 @@ bool SckBase::parseLightRead(){
 }
 
 // **** ESP
-void SckBase::ESPcontrol(ESPcontrols controlCommand) {
+void SckBase::ESPcontrol(ESPcontrols controlCommand)
+{
 	switch(controlCommand){
-		case ESP_OFF: {
-			sckOut("ESP off...");
-			state.espON = false;
-			digitalWrite(pinESP_CH_PD, LOW);
-			digitalWrite(pinPOWER_ESP, HIGH);
-			digitalWrite(pinESP_GPIO0, LOW);
-			espStarted = 0;
-			break;
+		case ESP_OFF:
+		{
+				sckOut("ESP off...");
+				state.espON = false;
+				digitalWrite(pinESP_CH_PD, LOW);
+				digitalWrite(pinPOWER_ESP, HIGH);
+				digitalWrite(pinESP_GPIO0, LOW);
+				espStarted = 0;
+				break;
 
-		} case ESP_FLASH: {
+		}
+		case ESP_FLASH:
+		{
 
-			sckOut("Putting ESP in flash mode...");
+				sckOut("Putting ESP in flash mode...");
 
-			SerialUSB.begin(ESP_FLASH_SPEED);
-			SerialESP.begin(ESP_FLASH_SPEED);
-			delay(100);
+				SerialUSB.begin(ESP_FLASH_SPEED);
+				SerialESP.begin(ESP_FLASH_SPEED);
+				delay(100);
 
-			digitalWrite(pinESP_CH_PD, LOW);
-			digitalWrite(pinPOWER_ESP, HIGH);
-			digitalWrite(pinESP_GPIO0, LOW);	// LOW for flash mode
-			delay(100);
+				digitalWrite(pinESP_CH_PD, LOW);
+				digitalWrite(pinPOWER_ESP, HIGH);
+				digitalWrite(pinESP_GPIO0, LOW);	// LOW for flash mode
+				delay(100);
 
-			digitalWrite(pinESP_CH_PD, HIGH);
-			digitalWrite(pinPOWER_ESP, LOW);
+				digitalWrite(pinESP_CH_PD, HIGH);
+				digitalWrite(pinPOWER_ESP, LOW);
 
-			led.update(led.WHITE, led.PULSE_STATIC);
+				led.update(led.WHITE, led.PULSE_STATIC);
 
-			uint32_t flashTimeout = millis();
-			uint32_t startTimeout = millis();
-			while(1) {
-				if (SerialUSB.available()) {
-					SerialESP.write(SerialUSB.read());
-					flashTimeout = millis();	// If something is received restart timer
+				uint32_t flashTimeout = millis();
+				uint32_t startTimeout = millis();
+				while(1) {
+					if (SerialUSB.available()) {
+						SerialESP.write(SerialUSB.read());
+						flashTimeout = millis();	// If something is received restart timer
+					}
+					if (SerialESP.available()) {
+						SerialUSB.write(SerialESP.read());
+					}
+					if (millis() - flashTimeout > 1000) {
+						if (millis() - startTimeout > 5000) reset();		// Giva an initial 5 seconds for the flashing to start
+					}
 				}
-				if (SerialESP.available()) {
-					SerialUSB.write(SerialESP.read());
-				} 
-				if (millis() - flashTimeout > 1000) {
-					if (millis() - startTimeout > 5000) reset();		// Giva an initial 5 seconds for the flashing to start
-				}
-			}
-			break;
+				break;
 
-		} case ESP_ON: {
+		}
+		case ESP_ON:
+		{
 
-			sckOut("ESP on...");
 			digitalWrite(pinESP_CH_PD, HIGH);
 			digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 			digitalWrite(pinPOWER_ESP, LOW);
 			state.espON = true;
 			espStarted = rtc.getEpoch();
+				digitalWrite(pinESP_CH_PD, HIGH);
+				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
+				digitalWrite(pinPOWER_ESP, LOW);
+				state.espON = true;
+				espStarted = rtc.getEpoch();
 
-			break;
+				break;
 
-		} case ESP_REBOOT: {
-			sckOut("Restarting ESP...");
-			ESPcontrol(ESP_OFF);
-			delay(10);
-			ESPcontrol(ESP_ON);
-			break;
+		}
+		case ESP_REBOOT:
+		{
+				sckOut("Restarting ESP...");
+				ESPcontrol(ESP_OFF);
+				delay(10);
+				ESPcontrol(ESP_ON);
+				break;
 		}
 	}
 }
-void SckBase::ESPbusUpdate() {
+void SckBase::ESPbusUpdate()
+{
 
 	if (manager.available()) {
 
@@ -541,19 +565,22 @@ void SckBase::ESPbusUpdate() {
 		}
 	}
 }
-bool SckBase::sendMessage(ESPMessage wichMessage) {
+bool SckBase::sendMessage(ESPMessage wichMessage)
+{
 
 	// This function is used when &netBuff[1] is already filled with the content
 
 	sprintf(netBuff, "%u", wichMessage);
 	return sendMessage();
 }
-bool SckBase::sendMessage(ESPMessage wichMessage, const char *content) {
+bool SckBase::sendMessage(ESPMessage wichMessage, const char *content)
+{
 
 	sprintf(netBuff, "%u%s", wichMessage, content);
 	return sendMessage();
 }
-bool SckBase::sendMessage() {
+bool SckBase::sendMessage()
+{
 
 	// This function is used when netbuff is already filled with command and content
 
@@ -573,52 +600,79 @@ bool SckBase::sendMessage() {
 
 	return true;
 }
-void SckBase::receiveMessage(SAMMessage wichMessage) {
+void SckBase::receiveMessage(SAMMessage wichMessage)
+{
 
 	switch(wichMessage) {
-		case SAMMES_SET_CONFIG: {
+		case SAMMES_SET_CONFIG:
+		{
 
-			sckOut("Received new config from ESP");
-			sckOut(netBuff);
-			break;
+				sckOut("Received new config from ESP");
+				sckOut(netBuff);
+				break;
 
-		} case SAMMES_DEBUG: {
+		}
+		case SAMMES_DEBUG:
+		{
 
-			SerialUSB.print("ESP --> ");
-			SerialUSB.print(netBuff);
-			break;
+				SerialUSB.print("ESP --> ");
+				SerialUSB.print(netBuff);
+				break;
 
-		} case SAMMES_NETINFO: {
+		}
+		case SAMMES_NETINFO:
+		{
 
-			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-			JsonObject& json = jsonBuffer.parseObject(netBuff);
-			const char* tip = json["ip"];
-			const char* tmac = json["mac"];
-			const char* thostname = json["hn"];
-			sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", thostname, tip, tmac);
-			sckOut();
-			break;
+				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+				JsonObject& json = jsonBuffer.parseObject(netBuff);
+				const char* tip = json["ip"];
+				const char* tmac = json["mac"];
+				const char* thostname = json["hn"];
+				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", thostname, tip, tmac);
+				sckOut();
+				break;
 
-		} case SAMMES_WIFI_CONNECTED: sckOut("Conected to wifi!!"); state.onWifi = true; wifiRetrys = 0; state.wifiError = false; break;
-		case SAMMES_SSID_ERROR: sckOut("ERROR Access point not found!!"); state.wifiError = true; break;
-		case SAMMES_PASS_ERROR: sckOut("ERROR wrong wifi password!!"); state.wifiError = true; break;
-		case SAMMES_WIFI_UNKNOWN_ERROR: sckOut("ERROR unknown wifi error!!"); state.wifiError = true; break;
-		case SAMMES_TIME : {
-			state.timeAsked = false;
-			String strTime = String(netBuff);
-			setTime(strTime);
-			break;
-		} case SAMMES_MQTT_HELLO_OK: {
-			led.update(led.BLUE, led.PULSE_SOFT);
-			sckOut("MQTT hello OK!!");
-			break;
-		} case SAMMES_MQTT_PUBLISH_OK: sckOut("MQTT publish OK!!"); break;
+		}
+		case SAMMES_WIFI_CONNECTED:
+
+			sckOut("Conected to wifi!!"); state.onWifi = true; wifiRetrys = 0; state.wifiError = false; break;
+
+		case SAMMES_SSID_ERROR:
+
+			sckOut("ERROR Access point not found!!"); state.wifiError = true; break;
+
+		case SAMMES_PASS_ERROR:
+
+			sckOut("ERROR wrong wifi password!!"); state.wifiError = true; break;
+
+		case SAMMES_WIFI_UNKNOWN_ERROR:
+
+			sckOut("ERROR unknown wifi error!!"); state.wifiError = true; break;
+
+		case SAMMES_TIME:
+		{
+				state.timeAsked = false;
+				String strTime = String(netBuff);
+				setTime(strTime);
+				break;
+		}
+		case SAMMES_MQTT_HELLO_OK:
+		{
+				led.update(led.BLUE, led.PULSE_SOFT);
+				sckOut("MQTT hello OK!!");
+				break;
+		}
+		case SAMMES_MQTT_PUBLISH_OK:
+
+			sckOut("MQTT publish OK!!"); break;
+
 		default: break;
 	}
 }
 
 // **** SD card
-bool SckBase::sdDetect() {
+bool SckBase::sdDetect()
+{
 
 	// Wait 100 ms to avoid multiple triggered interrupts
 	if (millis() - cardLastChange < 100) return state.cardPresent;
@@ -630,13 +684,14 @@ bool SckBase::sdDetect() {
 	else sckOut("No Sdcard found!!");
 	return false;
 }
-bool SckBase::sdSelect() {
+bool SckBase::sdSelect()
+{
 
 	if (!cardPresent) return false;
 
 	digitalWrite(pinCS_FLASH, HIGH);	// disables Flash
 	digitalWrite(pinCS_SDCARD, LOW);
-	
+
 	if (sd.begin(pinCS_SDCARD)) {
 		sckOut(F("Sdcard ready!!"), PRIO_LOW);
 		return true;
@@ -645,7 +700,8 @@ bool SckBase::sdSelect() {
 		return false;
 	}
 }
-bool SckBase::sdOpenFile(SckFile wichFile, uint8_t oflag) {
+bool SckBase::sdOpenFile(SckFile wichFile, uint8_t oflag)
+{
 
 	if (sdSelect()) {
 		if (oflag == O_CREAT) sd.remove(wichFile.name);	// Delete the file if we need a new one.
@@ -656,14 +712,16 @@ bool SckBase::sdOpenFile(SckFile wichFile, uint8_t oflag) {
 }
 
 // **** Flash memory
-void SckBase::flashSelect() {
+void SckBase::flashSelect()
+{
 
 	digitalWrite(pinCS_SDCARD, HIGH);	// disables SDcard
 	digitalWrite(pinCS_FLASH, LOW);
 }
 
 // **** Power
-void SckBase::battSetup() {
+void SckBase::battSetup()
+{
 
 	pinMode(pinBATTERY_ALARM, INPUT_PULLUP);
 	attachInterrupt(pinBATTERY_ALARM, ISR_battery, LOW);
@@ -675,7 +733,8 @@ void SckBase::battSetup() {
 	lipo.setSOCIDelta(1);
 	lipo.exitConfig();
 }
-void SckBase::batteryEvent(){
+void SckBase::batteryEvent()
+{
 
 	SerialUSB.println("battery event");
 
@@ -704,7 +763,8 @@ void SckBase::batteryEvent(){
 	// }
 	// sckOut();
 }
-void SckBase::batteryReport() {
+void SckBase::batteryReport()
+{
 
 	SerialUSB.println(lipo.voltage());
 
@@ -718,12 +778,13 @@ void SckBase::batteryReport() {
 	// );
 	// sckOut();
 }
-void SckBase::reset() {
+void SckBase::reset()
+{
 	sckOut("Bye!!");
 	NVIC_SystemReset();
 }
-void SckBase::chargerEvent() {
-	// If charge is finished disable it, to avoid multiple interrupts 
+void SckBase::chargerEvent()
+{
 	// Maybe when we have batt detection on top this is not necesary!!!
 	if (charger.getChargeStatus() == charger.CHRG_CHARGE_TERM_DONE) {
 		sckOut("Batterry fully charged... or removed");
@@ -732,15 +793,15 @@ void SckBase::chargerEvent() {
 	}
 
 	while (charger.getDPMstatus()) {} // Wait for DPM detection finish
-	
+
 	if (charger.getPowerGoodStatus()) {
-		
+
 		onUSB = true;
 		// led.update(led.GREEN, led.PULSE_STATIC);
 		// charger.OTG(false);
-		
-	} else { 
-		
+
+	} else {
+
 		onUSB = false;
 		// led.update(led.BLUE, led.PULSE_STATIC);
 		// charger.OTG(true);
@@ -752,53 +813,69 @@ void SckBase::chargerEvent() {
 		sckOut("Charger fault!!!");
 		// led.update(led.YELLOW, led.PULSE_STATIC);
 	}
-	
+
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }
 
 // **** Sensors
-void SckBase::updateSensors() {
-	/*
-	** updateSensors
-		* reading (publishErrors < retrys) -> PUBLISH
-				* PUBLISH (!onWifi) -> WAITING_WIFI
-					* WAITING_WIFI (!espON) -> ESP_ON
-					* WAITING_WIFI -> (espON && wifiError || timeout) -> errors ++
-				* PUBLISH (onWifi) -> WAITING_MQTT_RESPONSE
-					* WAITING_MQTT_RESPONSE (mqttError || timeout) -> errors ++
-	*/
+void SckBase::updateSensors()
+{
+
+	/* updateSensors */
+	/* reading (publishErrors < retrys) -> PUBLISH */
+	/* PUBLISH (!onWifi) -> WAITING_WIFI */
+	/* WAITING_WIFI (!espON) -> ESP_ON */
+	/* WAITING_WIFI -> (espON && wifiError || timeout) -> errors ++ */
+	/* PUBLISH (onWifi) -> WAITING_MQTT_RESPONSE */
+	/* WAITING_MQTT_RESPONSE (mqttError || timeout) -> errors ++ */
+
 }
-bool SckBase::getReading(SensorType wichSensor, bool wait) {
+bool SckBase::getReading(SensorType wichSensor, bool wait)
+{
 
 	sensors[wichSensor].valid = false;
 	String result = "none";
 
 	switch (sensors[wichSensor].location) {
-		case BOARD_BASE: {
-			switch (wichSensor) {
-				case SENSOR_BATT_PERCENT: {
+		case BOARD_BASE:
+		{
+				switch (wichSensor) {
+					case SENSOR_BATT_PERCENT:
+					{
 
-					uint32_t thisPercent = lipo.soc();
-					if (thisPercent > 100) thisPercent = 0;
-					result = String(thisPercent); 
-					
-					break;
-				} case SENSOR_BATT_VOLTAGE: result = String(lipo.voltage()); break;
-				case SENSOR_BATT_CHARGE_RATE: result = String(lipo.current(AVG)); break;
-				case SENSOR_VOLTIN: {
+							uint32_t thisPercent = lipo.soc();
+							if (thisPercent > 100) thisPercent = 0;
+							result = String(thisPercent);
 
-					break;
-				} default: break;
-			}
-			break;
-		} case BOARD_URBAN: {
-			result = urban.getReading(wichSensor, wait);
-			if (result.startsWith("none")) return false;
-			break;
+							break;
+					}
+					case SENSOR_BATT_VOLTAGE:
+
+						result = String(lipo.voltage()); break;
+
+					case SENSOR_BATT_CHARGE_RATE:
+
+						result = String(lipo.current(AVG)); break;
+
+					case SENSOR_VOLTIN:
+					{
+
+							break;
+					}
+					default: break;
+				}
+				break;
 		}
-		case BOARD_AUX: {
-			result = String(auxBoards.getReading(wichSensor));	// TODO por auxBoards to String mode
-			break;
+		case BOARD_URBAN:
+		{
+				result = urban.getReading(wichSensor, wait);
+				if (result.startsWith("none")) return false;
+				break;
+		}
+		case BOARD_AUX:
+		{
+				result = String(auxBoards.getReading(wichSensor));	// TODO por auxBoards to String mode
+				break;
 		}
 	}
 
@@ -807,7 +884,8 @@ bool SckBase::getReading(SensorType wichSensor, bool wait) {
 	sensors[wichSensor].valid = true;
 	return true;;
 }
-void SckBase::getUniqueID() {
+void SckBase::getUniqueID()
+{
 
 	volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
 	uniqueID[0] = *ptr1;
@@ -819,14 +897,15 @@ void SckBase::getUniqueID() {
 	ptr++;
 	uniqueID[3] = *ptr;
 }
-bool SckBase::netPublish()  {
-	
+bool SckBase::netPublish()
+{
+
 	sckOut("Publishing to platform...");
 
 	// Prepare json for sending
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
-	
+
 	// Epoch time of the grouped readings
 	json["t"] = rtc.getEpoch();
 
@@ -839,9 +918,7 @@ bool SckBase::netPublish()  {
 		SensorType wichSensor = static_cast<SensorType>(sensorIndex);
 
 		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
-			//SerialUSB.print(wichSensor);
 			if (getReading(wichSensor, true)) {
-				//json[String(sensorIndex)] = sensors[wichSensor].reading;
 				jsonSensors.add(sensors[wichSensor].reading);
 				count ++;
 			}
@@ -860,7 +937,8 @@ bool SckBase::netPublish()  {
 }
 
 // **** Time
-bool SckBase::setTime(String epoch) {
+bool SckBase::setTime(String epoch)
+{
 
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
@@ -876,7 +954,8 @@ bool SckBase::setTime(String epoch) {
 	}
 	return false;
 }
-bool SckBase::ISOtime() {
+bool SckBase::ISOtime()
+{
 
 	if (state.onTime) {
 		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
@@ -886,16 +965,17 @@ bool SckBase::ISOtime() {
 		return false;
 	}
 }
-void SckBase::epoch2iso(uint32_t toConvert, char* isoTime) {
+void SckBase::epoch2iso(uint32_t toConvert, char* isoTime)
+{
 
 	time_t tc = toConvert;
-    struct tm* tmp = gmtime(&tc);
+	struct tm* tmp = gmtime(&tc);
 
-    sprintf(isoTime, "20%02d-%02d-%02dT%02d:%02d:%02dZ", 
-    	tmp->tm_year - 100, 
-    	tmp->tm_mon + 1,
-    	tmp->tm_mday,
-		tmp->tm_hour,
-		tmp->tm_min,
-		tmp->tm_sec);
+	sprintf(isoTime, "20%02d-%02d-%02dT%02d:%02d:%02dZ",
+			tmp->tm_year - 100,
+			tmp->tm_mon + 1,
+			tmp->tm_mday,
+			tmp->tm_hour,
+			tmp->tm_min,
+			tmp->tm_sec);
 }

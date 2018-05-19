@@ -19,14 +19,16 @@
 // * Barometric pressure - MPL3115 -> (0x60)
 // * Dust Particles - MAX30105 -> (0x57)
 
-enum SensorState {
+enum SensorState
+{
 	SENSOR_BUSY,
 	SENSOR_READY,
-	SENSOR_ERROR	
+	SENSOR_ERROR
 };
 
 // Light
-class Sck_BH1721FVC {
+class Sck_BH1721FVC
+{
 	// Datasheet
 	// http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1721fvc-e.pdf
 
@@ -43,7 +45,8 @@ class Sck_BH1721FVC {
 };
 
 // Temperature and Humidity
-class Sck_SHT31 {
+class Sck_SHT31
+{
 	// Datasheet
 	// https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/2_Humidity_Sensors/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital.pdf
 	// This code is based on Adafruit SHT31 library, thanks! (https://github.com/adafruit/Adafruit_SHT31)
@@ -52,10 +55,10 @@ class Sck_SHT31 {
 		uint8_t address = 0x44;
 		const uint16_t SOFT_RESET = 0x30A2;
 		const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
-		
+
 		// TO be removed with state machine asynchronous
 		uint32_t timeout = 20;	// Time in ms to wait for a reading
-		
+
 		void sendComm(uint16_t comm);
 		uint8_t crc8(const uint8_t *data, int len);
 		uint32_t lastUpdate = 0;
@@ -68,8 +71,9 @@ class Sck_SHT31 {
 };
 
 // Gases CO and NO2
-class Sck_MICS4514 {
-	// Datasheet 
+class Sck_MICS4514
+{
+	// Datasheet
 	// http://files.manylabs.org/datasheets/MICS-4514.pdf
 	private:
 
@@ -111,7 +115,8 @@ class Sck_MICS4514 {
 };
 
 // Noise
-class Sck_Noise {
+class Sck_Noise
+{
 
 	private:
 
@@ -123,7 +128,8 @@ class Sck_Noise {
 };
 
 // Barometric pressure and Altitude
-class Sck_MPL3115A2 {
+class Sck_MPL3115A2
+{
 	// Datasheet
 	// https://cache.freescale.com/files/sensors/doc/data_sheet/MPL3115A2.pdf
 
@@ -143,7 +149,8 @@ class Sck_MPL3115A2 {
 };
 
 // Dust Particles
-class Sck_MAX30105 {
+class Sck_MAX30105
+{
 	// Datasheet
 	// https://datasheets.maximintegrated.com/en/ds/MAX30105.pdf
 
@@ -164,8 +171,8 @@ class Sck_MAX30105 {
 		bool getTemperature(bool wait=true);	// NOT WORKING!!! (sparkfun lib)
 };
 
-
-class SckUrban {
+class SckUrban
+{
 	private:
 		struct Resistor {
 			byte deviceAddress;
@@ -181,7 +188,7 @@ class SckUrban {
 		// Light
 		Sck_BH1721FVC sck_bh1721fvc;
 
-		// Temperature and Humidity 
+		// Temperature and Humidity
 		Sck_SHT31 sck_sht31;
 
 		// Gases CO and NO2

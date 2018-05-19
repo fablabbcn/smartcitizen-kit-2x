@@ -1,13 +1,16 @@
 #include "SckLed.h"
 
-void SckLed::setup() {
+
+void SckLed::setup()
+{
 	pinMode(pinRED, OUTPUT);
 	pinMode(pinGREEN, OUTPUT);
 	pinMode(pinBLUE, OUTPUT);
 
 	setRGBColor(colors[GREEN]);
 }
-void SckLed::update(ColorName colorName, pulseModes pulse) {
+void SckLed::update(ColorName colorName, pulseModes pulse)
+{
 
 	pulseMode = pulse;
 
@@ -23,53 +26,55 @@ void SckLed::update(ColorName colorName, pulseModes pulse) {
 
 	tick();
 }
-void SckLed::tick() {
+void SckLed::tick()
+{
 
 	uint16_t ledInterval = 0;
 
 	switch(pulseMode) {
-		case PULSE_SOFT:{
+		case PULSE_SOFT: {
 
-			ledColor = *(currentPulse + colorIndex);
+					 ledColor = *(currentPulse + colorIndex);
 
-			if (colorIndex == 24) nextIndex = -1;
-			else if (colorIndex == 0) nextIndex = 1;
-			colorIndex += nextIndex;
-			
-			if (charging) {
-				if (colorIndex == 0 || colorIndex == 1) ledColor = colors[ORANGE];
+					 if (colorIndex == 24) nextIndex = -1;
+					 else if (colorIndex == 0) nextIndex = 1;
+					 colorIndex += nextIndex;
 
-			} else if (batFull) {
-				if (colorIndex == 0 || colorIndex == 1) ledColor = colors[GREEN];
-			
-			} else if (lowBatt) {
-				if (colorIndex == 1 || colorIndex == 3) ledColor = colors[ORANGE];
-				else ledColor = colors[BLACK];
-			}
-			break;
-		} 
+					 if (charging) {
+						 if (colorIndex == 0 || colorIndex == 1) ledColor = colors[ORANGE];
+
+					 } else if (batFull) {
+						 if (colorIndex == 0 || colorIndex == 1) ledColor = colors[GREEN];
+
+					 } else if (lowBatt) {
+						 if (colorIndex == 1 || colorIndex == 3) ledColor = colors[ORANGE];
+						 else ledColor = colors[BLACK];
+					 }
+					 break;
+				 }
 		case PULSE_STATIC: break;
 		case PULSE_HARD_SLOW: ledInterval = 300;
 		case PULSE_HARD_FAST: ledInterval = 80;
 		default: {
-			if (millis() - hardTimer > ledInterval) {
-				if (nextIndex == 1) ledColor = currentPulse[24];
-				else ledColor = colors[BLACK];
-				hardTimer = millis();
-				nextIndex *= -1;
-			}
-		}
+				if (millis() - hardTimer > ledInterval) {
+					if (nextIndex == 1) ledColor = currentPulse[24];
+					else ledColor = colors[BLACK];
+					hardTimer = millis();
+					nextIndex *= -1;
+				}
+			 }
 	}
 
 	setRGBColor(ledColor);
 }
-void SckLed::setRGBColor(Color myColor) {
+void SckLed::setRGBColor(Color myColor)
+{
 
 	if (myColor.r == 0) {
 		pinMode(pinRED, OUTPUT);
 		digitalWrite(pinRED, HIGH);
 	} else analogWrite(pinRED, 255 - myColor.r);
-	
+
 	if (myColor.g == 0) {
 		pinMode(pinGREEN, OUTPUT);
 		digitalWrite(pinGREEN, HIGH);
@@ -79,10 +84,12 @@ void SckLed::setRGBColor(Color myColor) {
 		pinMode(pinBLUE, OUTPUT);
 		digitalWrite(pinBLUE, HIGH);
 	} else analogWrite(pinBLUE, 255 - myColor.b);
+
 }
-void SckLed::off() {
+void SckLed::off()
+{
 	disableTimer5();
-	
+
 	colorIndex = 0;
 	ledColor = colors[BLACK];
 	pulseMode = PULSE_STATIC;
@@ -90,12 +97,13 @@ void SckLed::off() {
 	pinMode(pinRED, OUTPUT);
 	pinMode(pinGREEN, OUTPUT);
 	pinMode(pinBLUE, OUTPUT);
-	
+
 	digitalWrite(pinRED, HIGH);
 	digitalWrite(pinGREEN, HIGH);
 	digitalWrite(pinBLUE, HIGH);
 }
-void SckLed::configureTimer5(uint16_t periodMS) {
+void SckLed::configureTimer5(uint16_t periodMS)
+{
 
 	if (!timer5_Runing) {
 
@@ -119,9 +127,9 @@ void SckLed::configureTimer5(uint16_t periodMS) {
 		TC5->COUNT16.CC[0].reg = uint16_t(46.875 * periodMS);
 
 		// TC5->COUNT16.CC[0].reg = (uint16_t) 187; //0.5us = 240 clock cycle at 48MHz (core clock)
-													// 4ms = 187 clock cycle at 46875
+		// 4ms = 187 clock cycle at 46875
 		while(TC5->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
-		
+
 		// Configure interrupt request
 		NVIC_DisableIRQ(TC5_IRQn);
 		NVIC_ClearPendingIRQ(TC5_IRQn);
@@ -131,7 +139,7 @@ void SckLed::configureTimer5(uint16_t periodMS) {
 		// Enable the TC5 interrupt request
 		TC5->COUNT16.INTENSET.bit.MC0 = 1;
 		while(TC5->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
-		
+
 		//enable the counter (from now your getting interrupt)
 		TC5->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
 		while(TC5->COUNT16.STATUS.reg & TC_STATUS_SYNCBUSY);
@@ -139,7 +147,8 @@ void SckLed::configureTimer5(uint16_t periodMS) {
 		timer5_Runing = true;
 	}
 }
-void SckLed::disableTimer5() {
+void SckLed::disableTimer5()
+{
 
 	if(timer5_Runing) {
 		//use this to disable the counter :

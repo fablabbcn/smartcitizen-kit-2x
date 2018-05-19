@@ -2,7 +2,8 @@
 #include "SckBase.h"
 
 
-void AllCommands::in(SckBase* base, String strIn) {
+void AllCommands::in(SckBase* base, String strIn)
+{
 
 	if (strIn.length() <= 0) return;
 
@@ -27,11 +28,13 @@ void AllCommands::in(SckBase* base, String strIn) {
 	else base->sckOut("Unrecognized command!!");
 }
 
-void reset_com(SckBase* base, String parameters) {
+void reset_com(SckBase* base, String parameters)
+{
 
 	base->reset();
 }
-void getVersion_com(SckBase* base, String parameters) {
+void getVersion_com(SckBase* base, String parameters)
+{
 	base->sckOut("Hardware Version: ");
 	base->sckOut("SAM Version: ");
 	base->sckOut("ESP version: ");
@@ -40,7 +43,8 @@ void getVersion_com(SckBase* base, String parameters) {
 	sprintf(base->outBuff, "Hardware ID: %lx-%lx-%lx-%lx", base->uniqueID[0], base->uniqueID[1], base->uniqueID[2], base->uniqueID[3]);
 	base->sckOut();
 }
-void resetCause_com(SckBase* base, String parameters) {
+void resetCause_com(SckBase* base, String parameters)
+{
 
 	uint8_t resetCause = PM->RCAUSE.reg;
 
@@ -65,19 +69,20 @@ void resetCause_com(SckBase* base, String parameters) {
 			break;
 	}
 }
-void outlevel_com(SckBase* base, String parameters) {
+void outlevel_com(SckBase* base, String parameters)
+{
 
 	// get
 	if (parameters.length() <= 0) {
-	
+
 		sprintf(base->outBuff, "Current output level: %s", base->outLevelTitles[base->outputLevel]);
 		base->sckOut();
-	
-	// set
+
+		// set
 	} else {
-		
+
 		uint8_t newLevel = parameters.toInt();
-		
+
 		// Parameter sanity check
 		if (newLevel >= 0 && newLevel < OUT_COUNT) {
 			OutLevels thisLevel = static_cast<OutLevels>(newLevel);
@@ -90,7 +95,8 @@ void outlevel_com(SckBase* base, String parameters) {
 		}
 	}
 }
-void help_com(SckBase* base, String parameters) {
+void help_com(SckBase* base, String parameters)
+{
 
 	// TODO manage multiline help. Maybe a simple general help and a per command help: "help config"
 	base->sckOut();
@@ -107,14 +113,16 @@ void help_com(SckBase* base, String parameters) {
 	}
 	base->sckOut();
 }
-void pinmux_com(SckBase* base, String parameters){
+void pinmux_com(SckBase* base, String parameters)
+{
 
 	for (uint8_t pin=0; pin<PINS_COUNT; pin++) {  // For all defined pins
-    	pinmux_report(pin, base->outBuff, 0);
-    	base->sckOut();	
+		pinmux_report(pin, base->outBuff, 0);
+		base->sckOut();
 	}
 }
-void listSensor_com(SckBase* base, String parameters) {
+void listSensor_com(SckBase* base, String parameters)
+{
 
 	SensorType thisType = SENSOR_COUNT;
 
@@ -135,7 +143,8 @@ void listSensor_com(SckBase* base, String parameters) {
 		if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].interval) + " sec)");
 	}
 }
-void readSensor_com(SckBase* base, String parameters) {
+void readSensor_com(SckBase* base, String parameters)
+{
 
 	SensorType sensorToRead = base->sensors.getTypeFromString(parameters);
 
@@ -144,18 +153,21 @@ void readSensor_com(SckBase* base, String parameters) {
 	base->sckOut();
 }
 extern "C" char *sbrk(int i);
-void freeRAM_com(SckBase* base, String parameters) {
-	
+void freeRAM_com(SckBase* base, String parameters)
+{
+
 	char stack_dummy = 0;
 	uint32_t free = &stack_dummy - sbrk(0);
 	sprintf(base->outBuff, "Free RAM: %lu bytes", free);
 	base->sckOut();
 }
-void battReport_com(SckBase* base, String parameters) {
+void battReport_com(SckBase* base, String parameters)
+{
 
 	base->batteryReport();
 }
-void i2cDetect_com(SckBase* base, String parameters) {
+void i2cDetect_com(SckBase* base, String parameters)
+{
 
 	for (uint8_t wichWire=0; wichWire<2; wichWire++) {
 
@@ -187,9 +199,10 @@ void i2cDetect_com(SckBase* base, String parameters) {
 		base->sckOut();
 	}
 }
-void getCharger_com(SckBase* base, String parameters) {
+void getCharger_com(SckBase* base, String parameters)
+{
 
-	// sprintf(base->outBuff, "%u", base->charger.chargeTimer(parameters.toInt()));	
+	// sprintf(base->outBuff, "%u", base->charger.chargeTimer(parameters.toInt()));
 	// base->sckOut();
 
 	if (parameters.endsWith("otg")) base->charger.OTG(0);
@@ -218,7 +231,8 @@ void getCharger_com(SckBase* base, String parameters) {
 	sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
 	base->sckOut();
 }
-void config_com(SckBase* base, String parameters) {
+void config_com(SckBase* base, String parameters)
+{
 
 	// Set
 	if (parameters.length() > 0) {
@@ -237,13 +251,13 @@ void config_com(SckBase* base, String parameters) {
 				String modeC = parameters.substring(modeI+6);
 				modeC.toLowerCase();
 				if (modeC.startsWith("sd")) thisConfig.mode = MODE_SD;
-				else if (modeC.startsWith("net")) thisConfig.mode = MODE_NET; 
+				else if (modeC.startsWith("net")) thisConfig.mode = MODE_NET;
 			}
 			uint16_t pubIntI = parameters.indexOf("-pubint");
 			if (pubIntI >= 0) {
 				String pubIntC = parameters.substring(pubIntI+8);
 				uint32_t pubIntV = pubIntC.toInt();
-				if (pubIntV > minimal_publish_interval && pubIntV < max_publish_interval) thisConfig.publishInterval = pubIntV; 
+				if (pubIntV > minimal_publish_interval && pubIntV < max_publish_interval) thisConfig.publishInterval = pubIntV;
 			}
 			uint16_t credI = parameters.indexOf("-wifi");
 			if (credI >= 0) {
@@ -271,7 +285,7 @@ void config_com(SckBase* base, String parameters) {
 		}
 		sprintf(base->outBuff, "-- New config --\r\n");
 
-	// Get
+		// Get
 	} else base->outBuff[0] = 0;
 
 	Configuration currentConfig = base->getConfig();
@@ -287,7 +301,8 @@ void config_com(SckBase* base, String parameters) {
 	else sprintf(base->outBuff, "%snot configured", base->outBuff);
 	base->sckOut();
 }
-void esp_com(SckBase* base, String parameters) {
+void esp_com(SckBase* base, String parameters)
+{
 
 	if (parameters.length() <= 0) {
 		base->sckOut("Parameters: on/off/reboot/flash/debug");
@@ -299,16 +314,18 @@ void esp_com(SckBase* base, String parameters) {
 		// TODO toggle esp debug
 	}
 }
-void netInfo_com(SckBase* base, String parameters) {
+void netInfo_com(SckBase* base, String parameters)
+{
 
 	base->sendMessage(ESPMES_GET_NETINFO);
 }
-void time_com(SckBase* base, String parameters) {
+void time_com(SckBase* base, String parameters)
+{
 
 	if (parameters.length() <= 0) {
 
 		if (base->ISOtime()) {
-			sprintf(base->outBuff, "Time: %s", base->ISOtimeBuff); 
+			sprintf(base->outBuff, "Time: %s", base->ISOtimeBuff);
 			base->sckOut();
 		} else {
 			base->sckOut("Time is not synced, trying to sync...");
@@ -316,16 +333,19 @@ void time_com(SckBase* base, String parameters) {
 		}
 	} else if (parameters.toInt() > 0) base->setTime(parameters);
 }
-void state_com(SckBase* base, String parameters) {
+void state_com(SckBase* base, String parameters)
+{
 
 	base->printState(true);
 }
-void hello_com(SckBase* base, String parameters) {
+void hello_com(SckBase* base, String parameters)
+{
 
 	base->state.helloPending = true;
 	base->sckOut("Waiting for MQTT hello response...");
 }
-void debug_com(SckBase* base, String parameters) {
+void debug_com(SckBase* base, String parameters)
+{
 
 	if (parameters.length() > 0) {
 		if (parameters.equals("-light")) {

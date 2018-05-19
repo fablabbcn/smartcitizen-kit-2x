@@ -3,12 +3,13 @@
 #include <Arduino.h>
 #include "Pins.h"
 
-class SckLed {
+class SckLed
+{
 public:
 
 	struct Color { uint8_t r; uint8_t g; uint8_t b; };
 	enum ColorName {
-		RED,	
+		RED,
 		GREEN,
 		BLUE,
 		LIGHT_GREEN,
@@ -22,17 +23,17 @@ public:
 	};
 
 	enum pulseModes {
-		PULSE_SOFT, 
-		PULSE_HARD_SLOW, 
-		PULSE_HARD_FAST, 
+		PULSE_SOFT,
+		PULSE_HARD_SLOW,
+		PULSE_HARD_FAST,
 		PULSE_STATIC
 	};
-	
+
 	void setup();
 	void update(ColorName colorName, pulseModes pulse);
 	void off();
 	void tick();
-	
+
 	// Powerfeedback
 	bool charging = false;
 	bool lowBatt = false;
@@ -69,7 +70,7 @@ private:
 	// Timer stuff for hard pulses
 	const uint16_t slowInterval = 300;
 	const uint16_t fastInterval = 80;
-	uint32_t hardTimer; 
+	uint32_t hardTimer;
 
 	// Manage color an pulseModes
 	pulseModes pulseMode = PULSE_SOFT;

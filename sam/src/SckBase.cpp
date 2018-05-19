@@ -179,17 +179,20 @@ void SckBase::reviewState()
 	if (!(state == oldState)) {
 
 		printState();
-		oldState = state;
+		
+		/* if (state.sleeping && !oldState.sleeping) { */
+		
+			// esto hace falta?
 
+		/* } else if (state.mode == MODE_NOT_CONFIGURED) { */
 		if (state.mode == MODE_NOT_CONFIGURED) {
-			
-			enterSetup();
+
+			if (!state.onSetup) enterSetup();
 
 		} else if (state.onSetup) {
-			
-			// Start ap mode and webserver on ESP
 
-		
+			// check if we need something here
+
 		} else if (state.mode == MODE_NET) {
 
 			state.reading = false;
@@ -202,9 +205,16 @@ void SckBase::reviewState()
 					if (state.wifiError) led.update(led.BLUE, led.PULSE_HARD_FAST);
 					if (!state.espON) ESPcontrol(ESP_ON);
 				} else {
-					sckOut("Hello sent!"); 
-					sendMessage(ESPMES_MQTT_HELLO, ""); 
-					state.helloPending = false;
+					if (sendMessage(ESPMES_MQTT_HELLO, "")) {
+						sckOut("Hello sent!");
+						state.helloPending = false;
+					} else {
+						sckOut("ERROR sending Hello!!!");
+					}
+					if (!state.onTime) {
+						sckOut("Asking time to ESP...");
+						sendMessage(ESPMES_GET_TIME, "");
+					} else if (!state.reading) state.reading = true;
 				}
 			} else if (!state.onTime) {
 				if (!state.onWifi) {
@@ -251,6 +261,7 @@ void SckBase::reviewState()
 			/* 	led.update(led.PINK, led.PULSE_SOFT); */
 			/* } */
 		}
+		oldState = state;
 	}
 
 	if (state.reading) updateSensors();
@@ -258,6 +269,7 @@ void SckBase::reviewState()
 void SckBase::enterSetup()
 {
 
+	sckOut("Entering setup mode");
 	state.onSetup = true;
 
 	// Update led
@@ -265,7 +277,10 @@ void SckBase::enterSetup()
 
 	// Start wifi APmode
 	if (!state.espON) ESPcontrol(ESP_ON);
-	// TODO APmode on esp. decide how to manage wifiSet && !tokenSet
+	sendMessage(ESPMES_START_AP, "");
+	// TODO decide how to manage wifiSet && !tokenSet maybe with station/ap mode at the same time??
+	// TODO webserver on ESP
+
 }
 void SckBase::printState(bool all)
 {
@@ -276,6 +291,7 @@ void SckBase::printState(bool all)
 	if ((oldState.onWifi != state.onWifi) | all) sprintf(outBuff, "%sonWifi: %s\r\n", outBuff, state.onWifi  ? "true" : "false");
 	if ((oldState.wifiError != state.wifiError) | all) sprintf(outBuff, "%swifiError: %s\r\n", outBuff, state.wifiError  ? "true" : "false");
 	if ((oldState.tokenSet != state.tokenSet) | all) sprintf(outBuff, "%stokenSet: %s\r\n", outBuff, state.tokenSet  ? "true" : "false");
+	if ((oldState.helloPending!= state.helloPending) | all) sprintf(outBuff, "%shelloPending: %s\r\n", outBuff, state.helloPending  ? "true" : "false");
 	if ((oldState.onTime != state.onTime) | all) sprintf(outBuff, "%sonTime: %s\r\n", outBuff, state.onTime  ? "true" : "false");
 	if ((oldState.timeError != state.timeError) | all) sprintf(outBuff, "%stimeError: %s\r\n", outBuff, state.timeError  ? "true" : "false");
 	if ((oldState.mode != state.mode) | all) sprintf(outBuff, "%smode: %s\r\n", outBuff, modeTitles[state.mode]);
@@ -422,6 +438,9 @@ void SckBase::saveConfig(Configuration newConfig)
 	delay(150);
 	sckOut("Saved configuration!!", PRIO_LOW);
 	if (sendMessage()) sckOut("Saved configuration on ESP!!", PRIO_LOW);
+
+	state.onSetup = false;
+	sendMessage(ESPMES_STOP_AP, "");
 }
 Configuration SckBase::getConfig()
 {
@@ -453,8 +472,7 @@ bool SckBase::parseLightRead()
 	if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
 
 	readLight.reset();
-	state.onSetup = false;
-	state.mode = MODE_NET;
+	lightConfig.mode = MODE_NET;
 	state.helloPending = true;
 	led.update(led.GREEN, led.PULSE_STATIC);
 	saveConfig(lightConfig);
@@ -515,11 +533,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		case ESP_ON:
 		{
 
-			digitalWrite(pinESP_CH_PD, HIGH);
-			digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
-			digitalWrite(pinPOWER_ESP, LOW);
-			state.espON = true;
-			espStarted = rtc.getEpoch();
+				sckOut("ESP on...");
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 				digitalWrite(pinPOWER_ESP, LOW);

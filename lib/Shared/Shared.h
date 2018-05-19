@@ -4,11 +4,13 @@ const uint32_t serialBaudrate = 230400;
 
 enum ESPMessage {
 
-	ESPMES_SET_CONFIG,				// SAM->ESP, Sends new config
-	ESPMES_GET_NETINFO,				// SAM->ESP, ESP return network info
-	ESPMES_GET_TIME,				// SAM->ESP, ESP returns epoch time
-	ESPMES_MQTT_HELLO,				// SAM->ESP, ESP publish Hello and returns result
-	ESPMES_MQTT_PUBLISH,			// SAM->ESP, ESP publish readings and returns results
+	ESPMES_SET_CONFIG,		// SAM->ESP, Sends new config
+	ESPMES_GET_NETINFO,		// SAM->ESP, ESP return network info
+	ESPMES_GET_TIME,		// SAM->ESP, ESP returns epoch time
+	ESPMES_MQTT_HELLO,		// SAM->ESP, ESP publish Hello and returns result
+	ESPMES_MQTT_PUBLISH,		// SAM->ESP, ESP publish readings and returns results
+	ESPMES_START_AP, 		// SAM->ESP, ESP starts AP
+	ESPMES_STOP_AP, 		// SAM->ESP, ESP stops AP
 
 	ESPMES_COUNT
 };

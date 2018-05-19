@@ -245,9 +245,20 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 
 			if (mqttPublish()) sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
 			break;
-		}
-	 	default: break;
+
 	}
+	case ESPMES_START_AP:
+
+		startAP();
+		break;
+
+	case ESPMES_STOP_AP:
+
+		stopAP();
+		break;
+
+	default: break;
+}
 }
 
 // **** MQTT
@@ -357,19 +368,20 @@ bool SckESP::mqttPublish()
 
 
 // **** Notifications
-bool SckESP::sendNetinfo() {
-		
-		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-		JsonObject& jsonSend = jsonBuffer.createObject();
-		jsonSend["hn"] = hostname;
-		ipAddr = WiFi.localIP().toString();
-		jsonSend["ip"] = ipAddr;
-		jsonSend["mac"] = macAddr;
+bool SckESP::sendNetinfo()
+{
 
-		sprintf(netBuff, "%u", SAMMES_NETINFO);
-		jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& jsonSend = jsonBuffer.createObject();
+	jsonSend["hn"] = hostname;
+	ipAddr = WiFi.localIP().toString();
+	jsonSend["ip"] = ipAddr;
+	jsonSend["mac"] = macAddr;
 
-		return sendMessage();
+	sprintf(netBuff, "%u", SAMMES_NETINFO);
+	jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
+
+	return sendMessage();
 }
 bool SckESP::sendTime()
 {

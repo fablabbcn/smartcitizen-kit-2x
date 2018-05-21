@@ -79,7 +79,7 @@ class Sck_MICS4514
 
 		// Carbon Monoxide
 		const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_5;		// PA8 - HEAT_CO
-		const uint8_t pinREAD_CO = pinBOARD_CONN_9;				// PB3 - READ_CO
+		const uint8_t pinREAD_CO = pinBOARD_CONN_9;			// PB3 - READ_CO
 
 		// Nitrogen Dioxide
 		const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_3;		// PA9 - HEAT_NO2

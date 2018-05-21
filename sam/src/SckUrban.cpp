@@ -528,14 +528,12 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle)
 float Sck_MICS4514::average(uint8_t wichPin)
 {
 
-	uint32_t started = millis();
 	uint16_t numReadings = 500;
 	long total = 0;
-	float average = 0;
 	for(uint16_t i=0; i<numReadings; i++) {
 		total = total + analogRead(wichPin);
 	}
-	average = (float)total / numReadings;
+	float average = (float)total / numReadings;
 	return average;
 }
 

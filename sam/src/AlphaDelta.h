@@ -25,10 +25,26 @@ struct Electrode
 	uint8_t gain;
 };
 
+enum ALPHA_GAS 
+{
+	ALPHA_CO, 
+	ALPHA_NO2, 
+	ALPHA_NO2_O3
+};
+
+struct CalibrationData
+{
+	ALPHA_GAS GAS;
+	float ZERO_CURR_W;
+	float ZERO_CURR_A;
+	float SENSITIVITY[2];
+};
+
 struct AlphaSensor
 {
 	Electrode electrode_A;
 	Electrode electrode_W;
+	CalibrationData calData;
 };
 
 // Temperature and Humidity
@@ -57,7 +73,6 @@ class Sck_Aux_SHT31
 		bool update(bool wait=true);
 };
 
-
 class AlphaDelta
 {
 	public:
@@ -85,19 +100,26 @@ class AlphaDelta
 		// Slot 1 sensor
 		AlphaSensor Slot1 = {
 			{ADC_1, MCP342X_CHANNEL_1, {0x55, 0x01}, initGain},		// Electrode A
-			{ADC_1, MCP342X_CHANNEL_2, {0x55, 0x00}, initGain}		// Electrode W
+			{ADC_1, MCP342X_CHANNEL_2, {0x55, 0x00}, initGain},		// Electrode W
+			{ALPHA_CO, (-68.1), (-13.9), {601.9, 0}} // board U		// Gas type, zero current W, zero current A, sensitivity TODO move this to eeprom inside alpha board
+			/* {ALPHA_CO, (-69.4), (-18.6), {493.1, 0}} // board 1 */
 		};
 
 		// Slot 2 sensor
 		AlphaSensor Slot2 = {
 			{ADC_2_3, MCP342X_CHANNEL_3, {0x56, 0x01}, initGain},		// Electrode A
-			{ADC_2_3, MCP342X_CHANNEL_4, {0x56, 0x00}, initGain}		// Electrode W
+			{ADC_2_3, MCP342X_CHANNEL_4, {0x56, 0x00}, initGain},		// Electrode W
+			{ALPHA_NO2, 31.5, 17.7, {(-383.7), 0}} // Board U
+			/* {ALPHA_NO2, 25.9, 15.4, {(-384.9), 0}} // Board 1 */
 		};
 
 		// Slot 3 sensor
 		AlphaSensor Slot3 = {
 			{ADC_2_3, MCP342X_CHANNEL_1, {0x54, 0x01}, initGain},		// Electrode A
-			{ADC_2_3, MCP342X_CHANNEL_2, {0x54, 0x00}, initGain}		// Electrode W
+			{ADC_2_3, MCP342X_CHANNEL_2, {0x54, 0x00}, initGain},		// Electrode W
+			{ALPHA_NO2_O3, 23.01, 14.5, {(-446.36), (-506.96)}} // Board U
+			/* {ALPHA_NO2_O3, 23.33, 19.86, {(-466.29), (-466.29)}} // Board 1 */
+
 		};
 
 		uint32_t getPot(Electrode wichElectrode);				// Return value in Ohms
@@ -105,6 +127,7 @@ class AlphaDelta
 		uint8_t getPGAgain(MCP342X adc);
 		float getElectrodeGain(Electrode wichElectrode);
 		double getElectrode(Electrode wichElectrode);
+		float getPPM(AlphaSensor wichSlot);
 		String getUID();
 		bool writeByte(uint8_t dataAddress, uint8_t data);
 		uint8_t readByte(uint8_t dataAddress);

@@ -74,6 +74,7 @@ class SckESP
 		Configuration config;
 		const char *configFileName = "/config.txt";
 		bool saveConfig(Configuration newConfig);
+		bool saveConfig();
 		bool loadConfig();
 
 		// AP mode

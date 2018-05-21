@@ -97,6 +97,7 @@ class OneSensor
 		uint8_t id;
 		uint32_t interval;
 		bool enabled;
+		bool defaultEnabled;
 		bool busy;
 
 		OneSensor(SensorLocation nLocation, SensorType nType, const char *nTitle, uint8_t nId=0, bool nEnabled=false, bool nControllable=false, const char *nUnit="") {
@@ -110,7 +111,8 @@ class OneSensor
 			controllable = nControllable;
 			id = nId;
 			interval = default_sensor_reading_interval;
-			enabled = nEnabled;
+			enabled = nEnabled; 
+			defaultEnabled = nEnabled;
 			busy = false;
 		}
 };
@@ -124,48 +126,48 @@ class AllSensors
 			//		SensorLocation 		SensorType 				title 						id		enabled		controllable	unit
 
 			// Base Sensors
-			OneSensor {	BOARD_BASE, 		SENSOR_BATT_PERCENT,			"Battery", 					10,		true,		false,			"%"},
-			OneSensor {	BOARD_BASE, 		SENSOR_BATT_VOLTAGE,			"Battery voltage",				0,		false,		false,			"V"},
-			OneSensor {	BOARD_BASE, 		SENSOR_BATT_CHARGE_RATE,		"Battery charge rate",				0,		false,		false,			"mA"},
-			OneSensor {	BOARD_BASE, 		SENSOR_VOLTIN,				"Input voltage", 				0,		false,		false,			"V"},
+			OneSensor { BOARD_BASE, 		SENSOR_BATT_PERCENT,			"Battery", 					10,		true,		false,			"%"},
+			OneSensor { BOARD_BASE, 		SENSOR_BATT_VOLTAGE,			"Battery voltage",				0,		false,		false,			"V"},
+			OneSensor { BOARD_BASE, 		SENSOR_BATT_CHARGE_RATE,		"Battery charge rate",				0,		false,		false,			"mA"},
+			OneSensor { BOARD_BASE, 		SENSOR_VOLTIN,				"Input voltage", 				0,		false,		false,			"V"},
 
 			// Urban Sensors
-			OneSensor {	BOARD_URBAN, 		SENSOR_LIGHT, 				"Light", 					14,		true,		false,			"Lux"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_TEMPERATURE, 			"Temperature", 					55,		true,		false,			"C"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_HUMIDITY,			"Humidity", 					56,		true,		false,			"%"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_CO, 				"Carbon monoxide", 				16,		true,		true,			"kOhm/ppm"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"Carbon monoxide heat time",			0,		false,		false,			"sec"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_CURRENT, 		"Carbon monoxide heat current",			0,		false,		false,			"mA"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_SUPPLY_VOLTAGE, 		"Carbon monoxide heat supply voltage",		0,		false,		false,			"mV"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_CO_HEAT_DROP_VOLTAGE, 		"Carbon monoxide heat drop voltage",		0,		false,		false,			"mV"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_CO_LOAD_RESISTANCE, 		"Carbon monoxide load resistance",		0,		false,		false,			"Ohms"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_NO2, 				"Nitrogen dioxide",				15,		true,		true,			"kOhm/ppm"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"Nitrogen dioxide heat time",			0,		false,		false,			"sec"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_CURRENT, 		"Nitrogen dioxide heat current",		0,		false,		false,			"mA"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_SUPPLY_VOLTAGE, 	"Nitrogen dioxide heat supply voltage",		0,		false,		false,			"mV"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_NO2_HEAT_DROP_VOLTAGE, 		"Nitrogen dioxide heat drop voltage",		0,		false,		false,			"mV"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_NO2_LOAD_RESISTANCE, 		"Nitrogen dioxide load resistance",		0,		false,		false,			"Ohms"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"Noise dBA", 					53,		true,		false,			"dBA"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"Noise dBC", 					0,		false,		false,			"dBC"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_NOISE_DBZ, 			"Noise dBZ", 					0,		false,		false,			"dBZ"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_ALTITUDE, 			"Altitude", 					0,		false,		false,			"M"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_PRESSURE, 			"Barometric pressure",				58,		true,		false,			"kPa"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_PRESSURE_TEMP,			"Pressure internal temperature", 		0,		false,		false,			"C"},
-			OneSensor {	BOARD_URBAN, 		SENSOR_PARTICLE_RED,			"Dust particle Red Channel",	 		0,		false,		false,			},
-			OneSensor {	BOARD_URBAN, 		SENSOR_PARTICLE_GREEN,			"Dust particle Green Channel",	 		0,		false,		false,			},
-			OneSensor {	BOARD_URBAN, 		SENSOR_PARTICLE_IR,			"Dust particle InfraRed Channel",	 	0,		false,		false,			},
-			OneSensor {	BOARD_URBAN, 		SENSOR_PARTICLE_TEMPERATURE,		"Dust particle internal temperature",		0,		false,		false,			"C"},
+			OneSensor { BOARD_URBAN, 		SENSOR_LIGHT, 				"Light", 					14,		true,		false,			"Lux"},
+			OneSensor { BOARD_URBAN, 		SENSOR_TEMPERATURE, 			"Temperature", 					55,		true,		false,			"C"},
+			OneSensor { BOARD_URBAN, 		SENSOR_HUMIDITY,			"Humidity", 					56,		true,		false,			"%"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"Carbon monoxide", 				16,		true,		true,			"kOhm/ppm"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"Carbon monoxide heat time",			0,		false,		false,			"sec"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_CURRENT, 		"Carbon monoxide heat current",			0,		false,		false,			"mA"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_SUPPLY_VOLTAGE, 		"Carbon monoxide heat supply voltage",		0,		false,		false,			"mV"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_DROP_VOLTAGE, 		"Carbon monoxide heat drop voltage",		0,		false,		false,			"mV"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_LOAD_RESISTANCE, 		"Carbon monoxide load resistance",		0,		false,		false,			"Ohms"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"Nitrogen dioxide",				15,		true,		true,			"kOhm/ppm"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"Nitrogen dioxide heat time",			0,		false,		false,			"sec"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_CURRENT, 		"Nitrogen dioxide heat current",		0,		false,		false,			"mA"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_SUPPLY_VOLTAGE, 	"Nitrogen dioxide heat supply voltage",		0,		false,		false,			"mV"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_DROP_VOLTAGE, 		"Nitrogen dioxide heat drop voltage",		0,		false,		false,			"mV"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_LOAD_RESISTANCE, 		"Nitrogen dioxide load resistance",		0,		false,		false,			"Ohms"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"Noise dBA", 					53,		true,		false,			"dBA"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"Noise dBC", 					0,		false,		false,			"dBC"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBZ, 			"Noise dBZ", 					0,		false,		false,			"dBZ"},
+			OneSensor { BOARD_URBAN, 		SENSOR_ALTITUDE, 			"Altitude", 					0,		false,		false,			"M"},
+			OneSensor { BOARD_URBAN, 		SENSOR_PRESSURE, 			"Barometric pressure",				58,		true,		false,			"kPa"},
+			OneSensor { BOARD_URBAN, 		SENSOR_PRESSURE_TEMP,			"Pressure internal temperature", 		0,		false,		false,			"C"},
+			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_RED,			"Dust particle Red Channel",	 		0,		false,		false,			},
+			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_GREEN,			"Dust particle Green Channel",	 		0,		false,		false,			},
+			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_IR,			"Dust particle InfraRed Channel",	 	0,		false,		false,			},
+			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_TEMPERATURE,		"Dust particle internal temperature",		0,		false,		false,			"C"},
 
 			// I2C Auxiliary Sensors
 			// Alphasense Delta board (3 Gas sensor Slots, + SHT31 Temp-Humidity)
-			OneSensor {	BOARD_AUX, 		SENSOR_ALPHADELTA_SLOT_1A,		"AlphaDelta 1A",				68,		false,		true,			"mV"},
-			OneSensor {	BOARD_AUX, 		SENSOR_ALPHADELTA_SLOT_1W,		"AlphaDelta 1W",				67,		false,		true,			"mV"},
-			OneSensor {	BOARD_AUX, 		SENSOR_ALPHADELTA_SLOT_2A,		"AlphaDelta 2A",				62,		false,		true,			"mV"},
-			OneSensor {	BOARD_AUX, 		SENSOR_ALPHADELTA_SLOT_2W, 		"AlphaDelta 2W",				61,		false,		true,			"mV"},
-			OneSensor {	BOARD_AUX, 		SENSOR_ALPHADELTA_SLOT_3A, 		"AlphaDelta 3A",				65,		false,		true,			"mV"},
-			OneSensor {	BOARD_AUX, 		SENSOR_ALPHADELTA_SLOT_3W, 		"AlphaDelta 3W",				64,		false,		true,			"mV"},
-			OneSensor {	BOARD_AUX, 		SENSOR_ALPHADELTA_TEMPERATURE, 		"AlphaDelta Temperature", 			79,		false,		false,			"C"},
-			OneSensor {	BOARD_AUX, 		SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity",				80,		false,		false,			"%"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1A,		"AlphaDelta 1A",				68,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1W,		"AlphaDelta 1W",				67,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2A,		"AlphaDelta 2A",				62,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2W, 		"AlphaDelta 2W",				61,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3A, 		"AlphaDelta 3A",				65,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3W, 		"AlphaDelta 3W",				64,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_TEMPERATURE, 		"AlphaDelta Temperature", 			79,		false,		false,			"C"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity",				80,		false,		false,			"%"},
 
 			// Groove I2C ADC
 			OneSensor { BOARD_AUX,			SENSOR_GROOVE_I2C_ADC,			"Groove ADC",					0,		false,		false,			"V"},

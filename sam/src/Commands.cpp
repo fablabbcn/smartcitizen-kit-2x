@@ -121,26 +121,49 @@ void pinmux_com(SckBase* base, String parameters)
 		base->sckOut();
 	}
 }
-void listSensor_com(SckBase* base, String parameters)
+void sensorConfig_com(SckBase* base, String parameters)
 {
+	// Get
+	if (parameters.length() <= 0) {
 
-	SensorType thisType = SENSOR_COUNT;
+		SensorType thisType = SENSOR_COUNT;
 
-	sprintf(base->outBuff, "\r\nDisabled\r\n----------");
-	base->sckOut();
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-		thisType = static_cast<SensorType>(i);
+		sprintf(base->outBuff, "\r\nDisabled\r\n----------");
+		base->sckOut();
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			thisType = static_cast<SensorType>(i);
 
-		if (!base->sensors[thisType].enabled) base->sckOut(base->sensors[thisType].title);
-	}
+			if (!base->sensors[thisType].enabled) base->sckOut(base->sensors[thisType].title);
+		}
 
-	sprintf(base->outBuff, "\r\nEnabled\r\n----------");
-	base->sckOut();
-	// Get sensor type
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-		thisType = static_cast<SensorType>(i);
+		sprintf(base->outBuff, "\r\nEnabled\r\n----------");
+		base->sckOut();
+		// Get sensor type
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			thisType = static_cast<SensorType>(i);
 
-		if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].interval) + " sec)");
+			if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].interval) + " sec)");
+		}
+
+	} else {
+		Configuration thisConfig = base->getConfig();
+
+		uint16_t sensorIndex = parameters.indexOf(" ", parameters.indexOf("-"));
+		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(sensorIndex));
+
+		if (parameters.indexOf("-enable") >=0) {
+			thisConfig.sensors[sensorToChange].enabled = true;
+		} else if (parameters.indexOf("-disable") >=0) {
+			thisConfig.sensors[sensorToChange].enabled = false;
+		} else if (parameters.indexOf("-interval") >=0) {
+			sensorIndex = parameters.indexOf(" ", parameters.indexOf("-interval"));
+			uint16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
+			String strInterval = parameters.substring(intervalIndex);
+			uint32_t intervalInt = strInterval.toInt();
+			if (intervalInt > minimal_sensor_reading_interval && intervalInt < max_sensor_reading_interval)	thisConfig.sensors[sensorToChange].interval = strInterval.toInt();
+		}
+
+		base->saveConfig(thisConfig);
 	}
 }
 void readSensor_com(SckBase* base, String parameters)
@@ -254,8 +277,7 @@ void config_com(SckBase* base, String parameters)
 	if (parameters.length() > 0) {
 
 		if (parameters.indexOf("-defaults") >= 0) {
-			Configuration defaultConfig;
-			base->saveConfig(defaultConfig);
+			base->saveConfig(true);
 		} else {
 			Configuration thisConfig;
 			thisConfig = base->getConfig();

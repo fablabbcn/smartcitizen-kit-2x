@@ -95,21 +95,26 @@ void SckBase::setup()
 
 
 	// Detect and enable auxiliary boards 
+	bool saveNeeded = false;
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 
-		// Only try to find auxiliary sensors
 		if (wichSensor->location == BOARD_AUX) {
 			if (auxBoards.begin(wichSensor->type)) {
 				sprintf(outBuff, "Found: %s... ", wichSensor->title);
 				sckOut();
-				/* if (!wichSensor->enabled) enableSensor(wichSensor); */
-			} else {
-				/* if (wichSensor->enabled) disableSensor(wichSensor); */
+				config.sensors[i].enabled = true;	
+				saveNeeded = true;
+			} else if (config.sensors[i].enabled)  {
+				sprintf(outBuff, "Removed: %s... ", wichSensor->title);
+				sckOut();
+				config.sensors[i].enabled = false;	
+				saveNeeded = true;
 			}
 		}
 	}
+	if (saveNeeded) saveConfig();
 }
 void SckBase::update()
 {
@@ -379,13 +384,15 @@ void SckBase::loadConfig()
 
 	if (savedConf.valid) config = savedConf;
 	else {
-
 		// TODO check if there is a valid sdcard config and load it
 		sckOut("Can't find valid configuration!!! loading defaults...");
-		Configuration  newConfig;
-		newConfig.valid = true;
-		config = newConfig;
-		saveConfig(config);
+		saveConfig(true);
+	}
+
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+		wichSensor->enabled = config.sensors[i].enabled;
+		wichSensor->interval = config.sensors[i].interval;
 	}
 
 	state.wifiSet = config.credentials.set;
@@ -394,9 +401,21 @@ void SckBase::loadConfig()
 }
 void SckBase::saveConfig(Configuration newConfig)
 {
-
-	eepromConfig.write(newConfig);
 	config = newConfig;
+	saveConfig();
+}
+void SckBase::saveConfig(bool defaults)
+{
+	sckOut("Saving config...", PRIO_LOW);
+	if (defaults) {
+		Configuration defaultConfig;
+		config = defaultConfig;
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
+			config.sensors[i].interval = default_sensor_reading_interval;
+		}
+	} 
+	eepromConfig.write(config);
 
 	state.mode = config.mode;
 	state.wifiSet = config.credentials.set;
@@ -413,12 +432,21 @@ void SckBase::saveConfig(Configuration newConfig)
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
 
+	char enabledSensors[SENSOR_COUNT+1] = "";
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+		wichSensor->enabled = config.sensors[i].enabled;
+		wichSensor->interval = config.sensors[i].interval;
+		sprintf(enabledSensors, "%s%u", enabledSensors, wichSensor->enabled);
+	}
+	json["se"] = enabledSensors;
+
 	sprintf(netBuff, "%u", ESPMES_SET_CONFIG);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	if (!state.espON) ESPcontrol(ESP_ON);
 	delay(150);
 	sckOut("Saved configuration!!", PRIO_LOW);
-	if (sendMessage()) sckOut("Saved configuration on ESP!!", PRIO_LOW);
+	if (sendMessage()) sckOut("Saved configuration on ESP!!", PRIO_LOW); 	// TODO if this fails number of sensors are out of sync, readings WILL be wrong
 
 	if (state.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
 	else if (state.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
@@ -433,33 +461,30 @@ Configuration SckBase::getConfig()
 }
 bool SckBase::parseLightRead()
 {
-
-	Configuration lightConfig;
-
 	if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
 		if (lightResults.lines[1].length() > 0) {
-			lightResults.lines[1].toCharArray(lightConfig.credentials.ssid, 64);
-			lightResults.lines[2].toCharArray(lightConfig.credentials.pass, 64);
-			lightConfig.credentials.set = true;
+			lightResults.lines[1].toCharArray(config.credentials.ssid, 64);
+			lightResults.lines[2].toCharArray(config.credentials.pass, 64);
+			config.credentials.set = true;
 		}
 	}
 
 	if (lightResults.lines[0].endsWith(F("auth"))) {
 		if (lightResults.lines[3].length() > 0) {
-			lightResults.lines[3].toCharArray(lightConfig.token.token, 7);
-			lightConfig.token.set = true;
+			lightResults.lines[3].toCharArray(config.token.token, 7);
+			config.token.set = true;
 		}
 		uint32_t receivedInterval = lightResults.lines[4].toInt();
-		if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) lightConfig.publishInterval = receivedInterval;
+		if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) config.publishInterval = receivedInterval;
 	}
 
 	if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
 
 	readLight.reset();
-	lightConfig.mode = MODE_NET;
+	config.mode = MODE_NET;
 	state.helloPending = true;
 	led.update(led.GREEN, led.PULSE_STATIC);
-	saveConfig(lightConfig);
+	saveConfig();
 	return true;
 }
 
@@ -913,12 +938,12 @@ bool SckBase::netPublish()
 		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
 			if (getReading(wichSensor, true)) {
 				jsonSensors.add(sensors[wichSensor].reading);
-				count ++;
+			} else {
+				jsonSensors.add(0);
 			}
+			count ++;
 		}
 	}
-
-	/* json.printTo(SerialUSB); */
 
 	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
 	sckOut(PRIO_MED, false);

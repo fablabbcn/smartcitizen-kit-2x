@@ -182,6 +182,7 @@ class SckBase
 		// Configuration
 		Configuration getConfig();
 		void saveConfig(Configuration newConfig);
+		void saveConfig(bool defaults=false);
 
 		// Input/Output
 		void inputUpdate();

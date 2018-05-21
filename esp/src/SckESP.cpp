@@ -199,6 +199,13 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			config.token.set = json["ts"];
 			strcpy(config.token.token, json["to"]);
 
+			char enabledSensors[SENSOR_COUNT+1] = "";
+			strcpy(enabledSensors, json["se"]);
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				String bb = String(enabledSensors[i]);
+				config.sensors[i].enabled = (bool)bb.toInt();
+			}
+
 			saveConfig(config);
 			break;
 
@@ -331,7 +338,7 @@ bool SckESP::mqttPublish()
 		// Prepare the payload
 		char myPayload[1024];
 
-		// Put time of the first sensor
+		// Put time
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
@@ -432,10 +439,14 @@ void SckESP::stopAP()
 // **** Configuration
 bool SckESP::saveConfig(Configuration newConfig)
 {
-
-	if ((config.credentials.ssid != newConfig.credentials.ssid) || !newConfig.credentials.set) WiFi.disconnect();
-
+	
 	config = newConfig;
+	saveConfig();
+}
+bool SckESP::saveConfig()
+{
+	debugOUT("Saving config...");
+	if ((config.credentials.ssid != config.credentials.ssid) || !config.credentials.set) WiFi.disconnect();
 
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
@@ -446,6 +457,15 @@ bool SckESP::saveConfig(Configuration newConfig)
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
+	
+	char enabledSensors[SENSOR_COUNT+1] = "";
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+		if (wichSensor->enabled != config.sensors[i].enabled) debugOUT(String(wichSensor->title) + " changed!!");
+		wichSensor->enabled = config.sensors[i].enabled;
+		sprintf(enabledSensors, "%s%u", enabledSensors, wichSensor->enabled);
+	}
+	json["se"] = enabledSensors;
 
 	File configFile = SPIFFS.open(configFileName, "w");
 	if (configFile) {
@@ -463,7 +483,6 @@ bool SckESP::saveConfig(Configuration newConfig)
 }
 bool SckESP::loadConfig()
 {
-
 	if (SPIFFS.exists(configFileName)) {
 
 		File configFile = SPIFFS.open(configFileName, "r");
@@ -485,6 +504,19 @@ bool SckESP::loadConfig()
 
 			config.token.set = json["ts"];
 			strcpy(config.token.token, json["to"]);
+
+			char enabledSensors[SENSOR_COUNT+1] = "";
+			strcpy(enabledSensors, json["se"]);
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				String bb = String(enabledSensors[i]);
+				config.sensors[i].enabled = (bool)bb.toInt();
+
+				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+				wichSensor->enabled = config.sensors[i].enabled;
+				debugOUT(sensors[static_cast<SensorType>(i)].title);
+				debugOUT(String(sensors[static_cast<SensorType>(i)].enabled));
+			}
+
 		}
 		configFile.close();
 		debugOUT("Loaded configuration!!");

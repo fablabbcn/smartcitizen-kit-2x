@@ -48,10 +48,13 @@ enum SensorType
 	// I2C Auxiliary Sensors
 	SENSOR_ALPHADELTA_SLOT_1A,
 	SENSOR_ALPHADELTA_SLOT_1W,
+	SENSOR_ALPHADELTA_SLOT_1_CAL,
 	SENSOR_ALPHADELTA_SLOT_2A,
 	SENSOR_ALPHADELTA_SLOT_2W,
+	SENSOR_ALPHADELTA_SLOT_2_CAL,
 	SENSOR_ALPHADELTA_SLOT_3A,
 	SENSOR_ALPHADELTA_SLOT_3W,
+	SENSOR_ALPHADELTA_SLOT_3_CAL,
 	SENSOR_ALPHADELTA_TEMPERATURE,
 	SENSOR_ALPHADELTA_HUMIDITY,
 
@@ -162,10 +165,13 @@ class AllSensors
 			// Alphasense Delta board (3 Gas sensor Slots, + SHT31 Temp-Humidity)
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1A,		"AlphaDelta 1A",				68,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1W,		"AlphaDelta 1W",				67,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1_CAL,		"AlphaDelta 1cal",				0,		false,		true,			"ppm"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2A,		"AlphaDelta 2A",				62,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2W, 		"AlphaDelta 2W",				61,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2_CAL,		"AlphaDelta 2cal",				0,		false,		true,			"ppm"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3A, 		"AlphaDelta 3A",				65,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3W, 		"AlphaDelta 3W",				64,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3_CAL,		"AlphaDelta 3cal",				0,		false,		true,			"ppm"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_TEMPERATURE, 		"AlphaDelta Temperature", 			79,		false,		false,			"C"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity",				80,		false,		false,			"%"},
 

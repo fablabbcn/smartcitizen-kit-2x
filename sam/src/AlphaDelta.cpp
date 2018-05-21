@@ -79,6 +79,32 @@ double AlphaDelta::getElectrode(Electrode wichElectrode)
 
 	return (result * 0.015625) / getPGAgain(wichElectrode.adc);
 }
+float AlphaDelta::getPPM(AlphaSensor wichSlot)
+{
+	switch(wichSlot.calData.GAS) {
+	
+		case ALPHA_CO:
+			// CO [ppm] = (((6.36 * WE) - ZERO_CURR_W) - ((6.36 * AE) + ZERO_CURR_A)) / SENSITIVITY
+			return  ((6.36 * getElectrode(wichSlot.electrode_W)) - wichSlot.calData.ZERO_CURR_W -  
+				  (6.36 * getElectrode(wichSlot.electrode_A)) + wichSlot.calData.ZERO_CURR_A) /
+				  wichSlot.calData.SENSITIVITY[0];
+			break;
+
+		case ALPHA_NO2:
+			// NO2 [ppm] = (((6.36 * WE) + ZERO_CURR_W) - ((6.36 * AE) - ZERO_CURR_A)) / abs(SENSITIVITY) 	
+			return 	((6.36 * getElectrode(wichSlot.electrode_W)) + wichSlot.calData.ZERO_CURR_W - 
+				(6.36 * getElectrode(wichSlot.electrode_A)) - wichSlot.calData.ZERO_CURR_A) /
+				abs(wichSlot.calData.SENSITIVITY[0]);
+			break;
+
+		case ALPHA_NO2_O3:
+
+			return 0; 	// TODO define formula for this gas sensor
+			break;
+	}
+
+
+}
 String AlphaDelta::getUID()
 {
 

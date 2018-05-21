@@ -34,6 +34,9 @@ bool AuxBoards::begin(SensorType wichSensor)
 		case SENSOR_ALPHADELTA_SLOT_2W:
 		case SENSOR_ALPHADELTA_SLOT_3A:
 		case SENSOR_ALPHADELTA_SLOT_3W:
+		case SENSOR_ALPHADELTA_SLOT_1_CAL:
+		case SENSOR_ALPHADELTA_SLOT_2_CAL:
+		case SENSOR_ALPHADELTA_SLOT_3_CAL:
 		case SENSOR_ALPHADELTA_HUMIDITY:
 		case SENSOR_ALPHADELTA_TEMPERATURE: 	return alphaDelta.begin(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.begin(); break;
@@ -67,6 +70,9 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_ALPHADELTA_SLOT_2W: 	return alphaDelta.getElectrode(alphaDelta.Slot2.electrode_W); break;
 		case SENSOR_ALPHADELTA_SLOT_3A: 	return alphaDelta.getElectrode(alphaDelta.Slot3.electrode_A); break;
 		case SENSOR_ALPHADELTA_SLOT_3W: 	return alphaDelta.getElectrode(alphaDelta.Slot3.electrode_W); break;
+		case SENSOR_ALPHADELTA_SLOT_1_CAL: 	return alphaDelta.getPPM(alphaDelta.Slot1); break;
+		case SENSOR_ALPHADELTA_SLOT_2_CAL: 	return alphaDelta.getPPM(alphaDelta.Slot2); break;
+		case SENSOR_ALPHADELTA_SLOT_3_CAL: 	return alphaDelta.getPPM(alphaDelta.Slot3); break;
 		case SENSOR_ALPHADELTA_HUMIDITY: 	return alphaDelta.getHumidity(); break;
 		case SENSOR_ALPHADELTA_TEMPERATURE: return alphaDelta.getTemperature(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.getReading(); break;
@@ -662,6 +668,8 @@ float PMsensor::getReading(uint8_t wichReading)
 		case 25: return readingPM25; break;
 		case 10: return readingPM10; break;
 	}
+
+	return 0;
 }
 
 

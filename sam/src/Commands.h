@@ -42,7 +42,7 @@ void resetCause_com(SckBase* base, String parameters);
 void outlevel_com(SckBase* base, String parameters);
 void help_com(SckBase* base, String parameters);
 void pinmux_com(SckBase* base, String parameters);
-void listSensor_com(SckBase* base, String parameters);
+void sensorConfig_com(SckBase* base, String parameters);
 void readSensor_com(SckBase* base, String parameters);
 void monitorSensor_com(SckBase* base, String parameters);
 void publish_com(SckBase* base, String parameters);
@@ -89,7 +89,7 @@ class AllCommands {
 			OneCom {	40,	COM_OUTLEVEL,			"outlevel",			"Shows/sets outlevel [0:silent, 1:normal, 2:verbose]",											outlevel_com},
 			OneCom {	50,	COM_HELP,			"help",				"Duhhhh!!",																help_com},
 			OneCom {	60,	COM_PINMUX,			"pinmux",			"Shows SAMD pin mapping status",													pinmux_com},
-			OneCom {	80,	COM_LIST_SENSOR,		"sensors",			"Shows a list of enabled/disabled sensors",												listSensor_com},
+			OneCom {	80,	COM_LIST_SENSOR,		"sensor",			"Shows/sets enabled/disabled sensor [-enable or -disable sensor-name] or [-interval sensor-name interval(seconds)]",			sensorConfig_com},
 			OneCom {	90,	COM_READ_SENSOR,		"read",				"Reads sensor [sensorName]",														readSensor_com},
 			OneCom {	90,	COM_MONITOR_SENSOR,		"monitor",			"Continously read sensor [sensorName]",													monitorSensor_com},
 			OneCom {	90,	COM_PUBLISH,			"publish",			"Publish sensor readings",														publish_com},

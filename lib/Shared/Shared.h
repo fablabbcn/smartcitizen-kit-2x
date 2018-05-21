@@ -35,7 +35,7 @@ enum NetPacks { TOTAL_PARTS = 0 };
 #define NETPACK_TOTAL_SIZE 60
 #define NETPACK_CONTENT_SIZE (NETPACK_TOTAL_SIZE - 1)	// 60 - 1 = 59 bytes
 
-#define NETBUFF_SIZE (NETPACK_CONTENT_SIZE * 8)
+#define NETBUFF_SIZE (NETPACK_CONTENT_SIZE * 10)
 #define JSON_BUFFER_SIZE (NETBUFF_SIZE - 1)				// 1 for the command
 
 #define SAM_ADDRESS 1

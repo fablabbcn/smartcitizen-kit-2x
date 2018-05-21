@@ -94,7 +94,7 @@ void SckBase::setup()
 	} else sckOut("No urban board detected!!");
 
 
-	// Detect and enable auxiliary boards 
+	// Detect and enable auxiliary boards
 	bool saveNeeded = false;
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
@@ -104,12 +104,12 @@ void SckBase::setup()
 			if (auxBoards.begin(wichSensor->type)) {
 				sprintf(outBuff, "Found: %s... ", wichSensor->title);
 				sckOut();
-				config.sensors[i].enabled = true;	
+				config.sensors[i].enabled = true;
 				saveNeeded = true;
 			} else if (config.sensors[i].enabled)  {
 				sprintf(outBuff, "Removed: %s... ", wichSensor->title);
 				sckOut();
-				config.sensors[i].enabled = false;	
+				config.sensors[i].enabled = false;
 				saveNeeded = true;
 			}
 		}
@@ -123,7 +123,7 @@ void SckBase::update()
 	if (state.onSetup) {
 		lightResults = readLight.read();
 		if (lightResults.ok) parseLightRead();
-	} else if (state.reading) {
+	} else if (state.reading && !state.sleeping) {
 		if (millis() % (config.publishInterval * 1000) == 0 && !published) {
 			published = true; // TODO TEMP make a more elegant solution
 			if (state.mode == MODE_NET) netPublish();
@@ -414,7 +414,7 @@ void SckBase::saveConfig(bool defaults)
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].interval = default_sensor_reading_interval;
 		}
-	} 
+	}
 	eepromConfig.write(config);
 
 	state.mode = config.mode;
@@ -533,7 +533,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 						SerialUSB.write(SerialESP.read());
 					}
 					if (millis() - flashTimeout > 1000) {
-						if (millis() - startTimeout > 5000) reset();		// Giva an initial 5 seconds for the flashing to start
+						if (millis() - startTimeout > 8000) reset();		// Giva an initial 5 seconds for the flashing to start
 					}
 				}
 				break;
@@ -936,6 +936,7 @@ bool SckBase::netPublish()
 		SensorType wichSensor = static_cast<SensorType>(sensorIndex);
 
 		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
+			// TODO update sensors should manage update readings, remove this when update is ready
 			if (getReading(wichSensor, true)) {
 				jsonSensors.add(sensors[wichSensor].reading);
 			} else {
@@ -951,13 +952,13 @@ bool SckBase::netPublish()
 	sprintf(netBuff, "%u", ESPMES_MQTT_PUBLISH);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	bool result = sendMessage();
-	
+
 	if (result) sdPublish();
 
-	return result; 
+	return result;
 }
 bool SckBase::sdPublish()
-{	
+{
 	if (!sdSelect()) return false;
 
 	sprintf(postFile.name, "%02d-%02d-%02d.CSV", rtc.getYear(), rtc.getMonth(), rtc.getDay());
@@ -976,9 +977,9 @@ bool SckBase::sdPublish()
 					postFile.file.print(sensors[wichSensor].title);
 					if (String(sensors[wichSensor].unit).length() > 0) {
 						postFile.file.print("-");
-						postFile.file.print(sensors[wichSensor].unit);	
+						postFile.file.print(sensors[wichSensor].unit);
 					}
-					if (i < SENSOR_COUNT-1) postFile.file.print(",");	
+					if (i < SENSOR_COUNT-1) postFile.file.print(",");
 				}
 			}
 			postFile.file.println("");
@@ -992,8 +993,13 @@ bool SckBase::sdPublish()
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled) {
+					// This allows sdcard saving of enabled sensors that don't have a platform ID
+					// TODO get readings should be managed from outside net ans sd publish (in update sensors) this will be remove when that is ready
+					if (sensors[wichSensor].id == 0) {
+						getReading(wichSensor, true);
+					}
 				postFile.file.print(sensors[wichSensor].reading);
-				if (i < SENSOR_COUNT-1) postFile.file.print(",");	
+				if (i < SENSOR_COUNT-1) postFile.file.print(",");
 			}
 		}
 		postFile.file.println("");

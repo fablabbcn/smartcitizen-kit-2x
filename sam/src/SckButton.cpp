@@ -61,15 +61,14 @@ void SckBase::buttonStillDown()
 		state.sleeping = false;
 
 		// Factory defaults
-		Configuration defaultConfig;
-		saveConfig(defaultConfig);
+		saveConfig(true);
 		reset();
 	}
 }
 void SckBase::butFeedback()
 {
 	if (!butState){
-		if (state.sleeping) {
+		if (state.sleeping || !state.onSetup) {
 			if (state.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC);
 			else if (state.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC);
 		} else if (state.onSetup) led.update(led.RED2, led.PULSE_STATIC);

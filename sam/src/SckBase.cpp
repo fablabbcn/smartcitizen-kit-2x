@@ -975,8 +975,15 @@ bool SckBase::sdPublish()
 				SensorType wichSensor = static_cast<SensorType>(i);
 				if (sensors[wichSensor].enabled) {
 					postFile.file.print(sensors[wichSensor].title);
+					if (i < SENSOR_COUNT-1) postFile.file.print(",");
+				}
+			}
+			postFile.file.println("");
+			postFile.file.print("ISO 8601,");
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				SensorType wichSensor = static_cast<SensorType>(i);
+				if (sensors[wichSensor].enabled) {
 					if (String(sensors[wichSensor].unit).length() > 0) {
-						postFile.file.print("-");
 						postFile.file.print(sensors[wichSensor].unit);
 					}
 					if (i < SENSOR_COUNT-1) postFile.file.print(",");

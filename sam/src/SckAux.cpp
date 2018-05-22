@@ -1,14 +1,15 @@
 #include "SckAux.h"
 
-AlphaDelta			alphaDelta;
+AlphaDelta		alphaDelta;
 GrooveI2C_ADC		grooveI2C_ADC;
-INA219				ina219;
-Groove_OLED			groove_OLED;
+INA219			ina219;
+Groove_OLED		groove_OLED;
 WaterTemp_DS18B20 	waterTemp_DS18B20;
-Atlas				atlasPH = Atlas(SENSOR_ATLAS_PH);
-Atlas				atlasEC = Atlas(SENSOR_ATLAS_EC);
-Atlas				atlasDO = Atlas(SENSOR_ATLAS_DO);
-PMsensor			pmSensor = PMsensor(SLOT_AVG);
+Atlas			atlasPH = Atlas(SENSOR_ATLAS_PH);
+Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
+Atlas			atlasDO = Atlas(SENSOR_ATLAS_DO);
+PMsensor		pmSensor = PMsensor(SLOT_AVG);
+Ext_SHT31 		sht31;
 
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
@@ -54,6 +55,11 @@ bool AuxBoards::begin(SensorType wichSensor)
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
 		case SENSOR_PM_10:			return pmSensor.begin(); break;
+		case SENSOR_SHT31_TEMP:
+		case SENSOR_SHT31_HUM:
+			if (sht31.begin() && !alphaDelta.begin()) return true;
+			else return false;
+			break;
 		default: break;
 	}
 
@@ -81,14 +87,16 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_INA219_CURRENT: 		return ina219.getReading(ina219.CURRENT); break;
 		case SENSOR_INA219_LOADVOLT: 		return ina219.getReading(ina219.LOAD_VOLT); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.getReading(); break;
-		case SENSOR_ATLAS_PH:				return atlasPH.newReading; break;
-		case SENSOR_ATLAS_EC:				return atlasEC.newReading; break;
-		case SENSOR_ATLAS_EC_SG:			return atlasEC.newReadingB; break;
-		case SENSOR_ATLAS_DO:				return atlasDO.newReading; break;
-		case SENSOR_ATLAS_DO_SAT:			return atlasDO.newReadingB; break;
-		case SENSOR_PM_1:				return pmSensor.getReading(1); break;
-		case SENSOR_PM_25:				return pmSensor.getReading(25); break;
-		case SENSOR_PM_10:				return pmSensor.getReading(10); break;
+		case SENSOR_ATLAS_PH:			return atlasPH.newReading; break;
+		case SENSOR_ATLAS_EC:			return atlasEC.newReading; break;
+		case SENSOR_ATLAS_EC_SG:		return atlasEC.newReadingB; break;
+		case SENSOR_ATLAS_DO:			return atlasDO.newReading; break;
+		case SENSOR_ATLAS_DO_SAT:		return atlasDO.newReadingB; break;
+		case SENSOR_PM_1:			return pmSensor.getReading(1); break;
+		case SENSOR_PM_25:			return pmSensor.getReading(25); break;
+		case SENSOR_PM_10:			return pmSensor.getReading(10); break;
+		case SENSOR_SHT31_TEMP: 		if (sht31.update(true)) return sht31.temperature; break;
+		case SENSOR_SHT31_HUM: 			if (sht31.update(true)) return sht31.humidity; break;
 		default: break;
 	}
 
@@ -670,6 +678,109 @@ float PMsensor::getReading(uint8_t wichReading)
 	}
 
 	return 0;
+}
+
+bool Ext_SHT31::begin()
+{
+
+	auxWire.begin();
+
+	// Send reset command
+	sendComm(SOFT_RESET);
+
+	update();
+
+	return true;
+}
+
+bool Ext_SHT31::stop()
+{
+
+	// It will go to idle state by itself after 1ms
+	return true;
+}
+
+bool Ext_SHT31::update(bool wait)
+{
+
+	// If last update was less than 2 sec ago dont do it again
+	if (millis() - lastUpdate < 2000) return true;
+
+	uint8_t readbuffer[6];
+	sendComm(SINGLE_SHOT_HIGH_REP);
+
+  	auxWire.requestFrom(address, (uint8_t)6);
+
+  	// Wait for answer (datasheet says 15ms is the max)
+  	uint32_t started = millis();
+  	while(auxWire.available() != 6) {
+  		if (millis() - started > timeout) return 0;
+   	}
+
+  	// Read response
+	for (uint8_t i=0; i<6; i++) readbuffer[i] = auxWire.read();
+
+	uint16_t ST, SRH;
+	ST = readbuffer[0];
+	ST <<= 8;
+	ST |= readbuffer[1];
+
+	// Check Temperature crc
+	if (readbuffer[2] != crc8(readbuffer, 2)) return false;
+
+	SRH = readbuffer[3];
+	SRH <<= 8;
+	SRH |= readbuffer[4];
+
+	// check Humidity crc
+	if (readbuffer[5] != crc8(readbuffer+3, 2)) return false;
+
+	double temp = ST;
+	temp *= 175;
+	temp /= 0xffff;
+	temp = -45 + temp;
+	temperature = (float)temp;
+
+	double shum = SRH;
+	shum *= 100;
+	shum /= 0xFFFF;
+	humidity = (float)shum;
+
+	lastUpdate = millis();
+
+	return true;
+}
+
+void Ext_SHT31::sendComm(uint16_t comm)
+{
+  auxWire.beginTransmission(address);
+  auxWire.write(comm >> 8);
+  auxWire.write(comm & 0xFF);
+  auxWire.endTransmission();
+}
+uint8_t Ext_SHT31::crc8(const uint8_t *data, int len)
+{
+
+ /* CRC-8 formula from page 14 of SHT spec pdf
+ *
+ * Test data 0xBE, 0xEF should yield 0x92
+ *
+ * Initialization data 0xFF
+ * Polynomial 0x31 (x8 + x5 +x4 +1)
+ * Final XOR 0x00
+ */
+	const uint8_t POLYNOMIAL(0x31);
+	uint8_t crc(0xFF);
+
+	for ( int j = len; j; --j ) {
+		crc ^= *data++;
+		for ( int i = 8; i; --i ) {
+			crc = ( crc & 0x80 )
+			? (crc << 1) ^ POLYNOMIAL
+			: (crc << 1);
+		}
+	}
+	return crc;
 }
 
 

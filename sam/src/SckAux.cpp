@@ -684,8 +684,9 @@ bool Ext_SHT31::begin()
 {
 
 	auxWire.begin();
-
-	// Send reset command
+	
+	if (!I2Cdetect(address)) return false;
+			
 	sendComm(SOFT_RESET);
 
 	update();

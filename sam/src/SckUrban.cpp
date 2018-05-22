@@ -68,24 +68,29 @@ bool Sck_BH1721FVC::stop()
 bool Sck_BH1721FVC::get(bool wait)
 {
 
+	// Datasheet http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1730fvc-e.pdf
+
 	// 0x00 register - CONTROL
-	uint8_t CONTROL = B00011;
-	// ADC_INTR: 	5	*0:Interrupt is inactive.
-	// 					1:Interrupt is active.
-	// ADC_VALID:	4	*0:ADC data is not updated after last reading.
-	// 					1:ADC data is updated after last reading.
-	// ONE_TIME:	3	*0:ADC measurement is continuous.
-	// 					1:ADC measurement is one time.
-	// 					ADC	transits to power down automatically.
-	// DATA_SEL:	2	*0:ADC measurement Type0 and Type1.
-	// 					1:ADC measurement Type0 only.
-	// ADC_EN:		1	0:ADC measurement stop.
-	// 					*1:ADC measurement start.
-	// POWER:		0	0:ADC power down.
-	// 					*1:ADC power on.
+	uint8_t CONTROL = B000011;
+	// ADC_INTR: 	5	0:Interrupt is inactive.
+	// 			1:Interrupt is active.
+	// ADC_VALID:	4	0:ADC data is not updated after last reading.
+	// 			1:ADC data is updated after last reading.
+	// ONE_TIME:	3	0:ADC measurement is continuous.
+	// 			1:ADC measurement is one time.
+	// 			ADC	transits to power down automatically.
+	// DATA_SEL:	2	0:ADC measurement Type0 and Type1.
+	// 			1:ADC measurement Type0 only.
+	// ADC_EN:	1	0:ADC measurement stop.
+	// 			1:ADC measurement start.
+	// POWER:	0	0:ADC power down.
+	// 			1:ADC power on.
 
 	// 0x01 register - TIMMING
-	uint8_t ITIME0  = 0xA0;
+	/* uint8_t ITIME0  = 0xA0; */
+	uint8_t ITIME0  = 0xE0;
+	float TOP = 26500.0; 	 // This is relative to the value above (less resolution more range) TODO define max based on calibration curve (to be implemented)
+
 	// 00h: Start / Stop of measurement is set by special command. (ADC manual integration mode)
 	// 01h to FFh: Integration time is determined by ITIME value
 	// Integration Time : ITIME_ms = Tint * 964 * (256 - ITIME)
@@ -163,18 +168,20 @@ bool Sck_BH1721FVC::get(bool wait)
 	else if (GAIN == 0x03) Gain = 128;
 
 
-	float ITIME = (256 - ITIME0) * 2.7;
+	// TODO calibration curve
+	float Tint = 3.6; 	// From datasheet (2.8 typ -- 4.0 max)
+	float ITIME_ms = (Tint * 964 * (256 - ITIME0)) / 1000;
 
 	float Lx = 0;
-	float cons = (Gain * 100) / ITIME;
-	float comp = (float)DATA1/DATA0;
+	if (DATA0 !=0) {
+	if (DATA1/DATA0 < 0.26) Lx = (1.290 * DATA0 - 2.733 * DATA1) / Gain * 102.6 / ITIME_ms;
+	else if (DATA1/DATA0 < 0.55) Lx = (0.795 * DATA0 - 0.859 * DATA1) / Gain * 102.6 / ITIME_ms;
+	else if (DATA1/DATA0 < 1.09) Lx = (0.510 * DATA0 - 0.345 * DATA1) / Gain * 102.6 / ITIME_ms;
+	else if (DATA1/DATA0 < 2.13) Lx = (0.276 * DATA0 - 0.130 * DATA1) / Gain * 102.6 / ITIME_ms;
+	else Lx = 0;	
+	}
 
-
-	if (comp<0.26) Lx = ( 1.290*DATA0 - 2.733*DATA1 ) / cons;
-	else if (comp < 0.55) Lx = ( 0.795*DATA0 - 0.859*DATA1 ) / cons;
-	else if (comp < 1.09) Lx = ( 0.510*DATA0 - 0.345*DATA1 ) / cons;
-	else if (comp < 2.13) Lx = ( 0.276*DATA0 - 0.130*DATA1 ) / cons;
-	else Lx=0;
+	if (Lx < 0) Lx = TOP; 
 
 	reading  = Lx;
 

@@ -75,6 +75,9 @@ enum SensorType
 	SENSOR_PM_1,
 	SENSOR_PM_25,
 	SENSOR_PM_10,
+	
+	SENSOR_SHT31_TEMP,
+	SENSOR_SHT31_HUM,
 
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
@@ -82,8 +85,8 @@ enum SensorType
 	SENSOR_COUNT
 };
 
-const uint32_t minimal_sensor_reading_interval = 30;
-const uint32_t default_sensor_reading_interval = 60;
+const uint32_t minimal_sensor_reading_interval = 10;
+const uint32_t default_sensor_reading_interval = 30;
 const uint32_t max_sensor_reading_interval = 86400;		// One day
 
 class OneSensor
@@ -195,6 +198,8 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_PM_25,				"PM 2.5",					71,		false,		false,			"ug/m3"},
 			OneSensor { BOARD_AUX,			SENSOR_PM_10,				"PM 10.0",					72,		false,		false,			"ug/m3"},
 
+			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"External Temperature",				0,		false,		false,			"C"},
+			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"External Humidity",				0,		false,		false,			"%"},
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96
 			OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,			"Groove OLED",					0,		false,		false,			},

@@ -7,21 +7,35 @@ void SckLed::setup()
 	pinMode(pinGREEN, OUTPUT);
 	pinMode(pinBLUE, OUTPUT);
 
-	setRGBColor(colors[GREEN]);
+	ledColor = colors[GREEN];
+	pulseMode = PULSE_STATIC;
+	tick();
 }
 void SckLed::update(ColorName colorName, pulseModes pulse)
 {
+	
+	if (pulse == pulseMode && colorName == ledColor.name) return;
 
 	pulseMode = pulse;
+	ledColor = colors[colorName];
+	disableTimer5();
 
-	if (pulse != PULSE_STATIC) {
-		if (colorName == RED) currentPulse = pulseRed;
-		else if (colorName == BLUE) currentPulse = pulseBlue;
-		else if (colorName == PINK) currentPulse = pulsePink;
-		configureTimer5(refreshPeriod);
-	} else {
-		ledColor = colors[colorName];
-		disableTimer5();
+	switch (pulseMode) {
+		case PULSE_STATIC:
+			break;
+		case PULSE_HARD_SLOW:
+			blinkON = true;
+			configureTimer5(slowInterval);
+			break;
+		case PULSE_HARD_FAST:
+			blinkON = true;
+			configureTimer5(fastInterval);
+			break;
+		case PULSE_SOFT:
+			if (colorName == RED) currentPulse = pulseRed;
+			else if (colorName == BLUE) currentPulse = pulseBlue;
+			else if (colorName == PINK) currentPulse = pulsePink;
+			configureTimer5(refreshPeriod);
 	}
 
 	tick();
@@ -29,74 +43,37 @@ void SckLed::update(ColorName colorName, pulseModes pulse)
 void SckLed::tick()
 {
 
-	uint16_t ledInterval = 0;
-
-	switch(pulseMode) {
-		case PULSE_SOFT: {
-
-					 ledColor = *(currentPulse + colorIndex);
-
-					 if (colorIndex == 24) nextIndex = -1;
-					 else if (colorIndex == 0) nextIndex = 1;
-					 colorIndex += nextIndex;
-
-					 if (charging) {
-						 if (colorIndex == 0 || colorIndex == 1) ledColor = colors[ORANGE];
-
-					 } else if (batFull) {
-						 if (colorIndex == 0 || colorIndex == 1) ledColor = colors[GREEN];
-
-					 } else if (lowBatt) {
-						 if (colorIndex == 1 || colorIndex == 3) ledColor = colors[ORANGE];
-						 else ledColor = colors[BLACK];
-					 }
-					 break;
-				 }
-		case PULSE_STATIC: break;
-		case PULSE_HARD_SLOW: ledInterval = 300;
-		case PULSE_HARD_FAST: ledInterval = 80;
-		default: {
-				if (millis() - hardTimer > ledInterval) {
-					if (nextIndex == 1) ledColor = currentPulse[24];
-					else ledColor = colors[BLACK];
-					hardTimer = millis();
-					nextIndex *= -1;
-				}
-			 }
+	if (pulseMode == PULSE_SOFT) {
+		Color c = *(currentPulse + colorIndex);
+		analogWrite(pinRED, 255 - c.r);
+		analogWrite(pinGREEN, 255 - c.g);
+		analogWrite(pinBLUE, 255 - c.b);
+		if (colorIndex == 24) direction = -1;
+		else if (colorIndex == 0) direction = 1;
+		colorIndex += direction; 
+	} else if (pulseMode == PULSE_STATIC) { 
+		analogWrite(pinRED, 255 - ledColor.r);
+		analogWrite(pinGREEN, 255 - ledColor.g);
+		analogWrite(pinBLUE, 255 - ledColor.b);
+	} else {
+		if (blinkON) {
+			analogWrite(pinRED, 255 - ledColor.r);
+			analogWrite(pinGREEN, 255 - ledColor.g);
+			analogWrite(pinBLUE, 255 - ledColor.b);
+		} else {
+			analogWrite(pinRED, 255);
+			analogWrite(pinGREEN, 255);
+			analogWrite(pinBLUE, 255);
+		}
+		blinkON = !blinkON;
 	}
-
-	setRGBColor(ledColor);
-}
-void SckLed::setRGBColor(Color myColor)
-{
-
-	if (myColor.r == 0) {
-		pinMode(pinRED, OUTPUT);
-		digitalWrite(pinRED, HIGH);
-	} else analogWrite(pinRED, 255 - myColor.r);
-
-	if (myColor.g == 0) {
-		pinMode(pinGREEN, OUTPUT);
-		digitalWrite(pinGREEN, HIGH);
-	} else analogWrite(pinGREEN, 255 - myColor.g);
-
-	if (myColor.b == 0) {
-		pinMode(pinBLUE, OUTPUT);
-		digitalWrite(pinBLUE, HIGH);
-	} else analogWrite(pinBLUE, 255 - myColor.b);
-
 }
 void SckLed::off()
 {
 	disableTimer5();
 
 	colorIndex = 0;
-	ledColor = colors[BLACK];
 	pulseMode = PULSE_STATIC;
-
-	pinMode(pinRED, OUTPUT);
-	pinMode(pinGREEN, OUTPUT);
-	pinMode(pinBLUE, OUTPUT);
 
 	digitalWrite(pinRED, HIGH);
 	digitalWrite(pinGREEN, HIGH);

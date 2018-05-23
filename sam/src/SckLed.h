@@ -7,7 +7,6 @@ class SckLed
 {
 public:
 
-	struct Color { uint8_t r; uint8_t g; uint8_t b; };
 	enum ColorName {
 		RED,
 		GREEN,
@@ -24,6 +23,7 @@ public:
 		PINK2,
 		COLOR_COUNT
 	};
+	struct Color { uint8_t r; uint8_t g; uint8_t b; ColorName name; };
 
 	enum pulseModes {
 		PULSE_SOFT,
@@ -44,24 +44,24 @@ public:
 
 private:
 
-	void setRGBColor(Color myColor);
+	/* void setRGBColor(Color myColor); */
 	void configureTimer5(uint16_t periodMS);
 	void disableTimer5();
 
 	const Color colors[COLOR_COUNT] = {
-		{250,	4,	0},	// RED
-		{0, 	254, 	0},	// GREEN
-		{0, 	29, 	225},	// BLUE
-		{0, 	254, 	50},	// LIGHT_GREEN
-		{0, 	29, 	254},	// LIGHT_BLUE
-		{129, 	12, 	112},	// PINK
-		{154, 	100,	0},	// YELLOW
-		{235, 	30,	0},	// ORANGE
-		{254,	254,	254},	// WHITE
-		{0,	0,	0},	// BLACK
-		{254,	18,	0},	// RED2
-		{0, 	19, 	254},	// BLUE2
-		{149, 	22, 	132},	// PINK2
+		{250,	4,	0, 	RED},		// RED
+		{0, 	254, 	0, 	GREEN},		// GREEN
+		{0, 	29, 	225, 	BLUE},		// BLUE
+		{0, 	254, 	50, 	LIGHT_GREEN},	// LIGHT_GREEN
+		{0, 	29, 	254, 	LIGHT_BLUE},	// LIGHT_BLUE
+		{129, 	12, 	112, 	PINK},		// PINK
+		{154, 	100,	0, 	YELLOW},	// YELLOW
+		{235, 	30,	0, 	ORANGE},	// ORANGE
+		{254,	254,	254, 	WHITE},		// WHITE
+		{0,	0,	0, 	BLACK},		// BLACK
+		{255,	10,	0, 	RED2},		// RED2
+		{0, 	39, 	255, 	BLUE2},		// BLUE2
+		{149, 	22, 	132, 	PINK2},		// PINK2
 	};
 
 	// Color fades
@@ -75,13 +75,14 @@ private:
 
 	// Timer stuff for hard pulses
 	const uint16_t slowInterval = 300;
-	const uint16_t fastInterval = 80;
-	uint32_t hardTimer;
+	const uint16_t fastInterval = 150;
 
 	// Manage color an pulseModes
-	pulseModes pulseMode = PULSE_SOFT;
-	uint8_t colorIndex = 0;
-	uint8_t nextIndex = 1;
+	volatile uint8_t colorIndex = 0;
+	volatile bool blinkON;
+	volatile int8_t direction = 1;
+
+	volatile pulseModes pulseMode = PULSE_SOFT;
 	Color ledColor;
 	const Color *currentPulse;
 };

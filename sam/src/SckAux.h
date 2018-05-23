@@ -10,7 +10,7 @@
 #include <AlphaDelta.h>
 
 // Groove_OLED libs
-#include <U8g2lib.h>
+/* #include <U8g2lib.h> */
 
 // DS2482 library (I2C-1Wire bridge)
 #include <DS2482.h>
@@ -199,20 +199,20 @@ static const unsigned char scLogo[] PROGMEM =
 	0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-class Groove_OLED
-{
-	public:
+/* class Groove_OLED */
+/* { */
+/* 	public: */
 
-		const byte deviceAddress = 0x3c;
+/* 		const byte deviceAddress = 0x3c; */
 
-		U8G2_SSD1327_SEEED_96X96_F_HW_I2C U8g2_oled = U8G2_SSD1327_SEEED_96X96_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL, SDA);
+/* 		U8G2_SSD1327_SEEED_96X96_F_HW_I2C U8g2_oled = U8G2_SSD1327_SEEED_96X96_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL, SDA); */
 
-		bool begin();
-		void print(String payload);
-		void displayReading(String title, String reading, String unit, String time);
+/* 		bool begin(); */
+/* 		void print(String payload); */
+/* 		void displayReading(String title, String reading, String unit, String time); */
 
-	private:
-};
+/* 	private: */
+/* }; */
 
 /*! @class DS2482_100
  *  @brief class for handling the DS18B20 temperature sensor connected to the I2C port

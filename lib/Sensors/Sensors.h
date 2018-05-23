@@ -80,7 +80,7 @@ enum SensorType
 	SENSOR_SHT31_HUM,
 
 	// Actuators (This is temp)
-	SENSOR_GROOVE_OLED,
+	/* SENSOR_GROOVE_OLED, */
 
 	SENSOR_COUNT
 };
@@ -202,7 +202,7 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"External Humidity",				0,		false,		false,			"%"},
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96
-			OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,			"Groove OLED",					0,		false,		false,			},
+			/* OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,			"Groove OLED",					0,		false,		false,			}, */
 			OneSensor { BOARD_BASE, 		SENSOR_COUNT,				"Not found",					0,		false,		false,			}
 
 			// Add New Sensor Here!!!

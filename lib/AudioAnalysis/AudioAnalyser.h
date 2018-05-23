@@ -1,14 +1,13 @@
-#ifndef _AUDIO_ANALYZER_H_INCLUDED
-#define _AUDIO_ANALYZER_H_INCLUDED
+/* #ifndef _AUDIO_ANALYZER_H_INCLUDED */
+/* #define _AUDIO_ANALYZER_H_INCLUDED */
 
 #include <I2S.h>
 #include <Arduino.h>
 
+#include "ConstantsSound.h"
+
 #define ARM_MATH_CM0PLUS
 #include <arm_math.h>
-#include <stddef.h>
-
-#include "ConstantsSound.h"
 
 enum WeightingType{
 	A_WEIGHTING,
@@ -28,4 +27,3 @@ public:
 
 };
 
-#endif

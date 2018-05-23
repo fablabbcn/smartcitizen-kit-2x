@@ -1,13 +1,12 @@
-#ifndef _FFT_ANALYSER_H_INCLUDED
-#define _FFT_ANALYSER_H_INCLUDED
+/* #ifndef _FFT_ANALYSER_H_INCLUDED */
+/* #define _FFT_ANALYSER_H_INCLUDED */
 
 #include <Arduino.h>
 
-#define ARM_MATH_CM0PLUS
-#include <arm_math.h>
+/* #define ARM_MATH_CM0PLUS */
+/* #include <arm_math.h> */
 
 #include "AudioAnalyser.h"
-#include "ConstantsSound.h"
 
 //CLASS
 class FFTAnalyser : public AudioAnalyser
@@ -45,4 +44,4 @@ private:
   arm_rfft_instance_q31 _S31;
 };
 
-#endif
+/* #endif */

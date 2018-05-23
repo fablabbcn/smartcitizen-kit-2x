@@ -229,9 +229,9 @@ void FFTAnalyser::weighting(void *inputBuffer, int inputSize, WeightingType weig
         weighingfactor = A_WEIGHTINGTAB[i];
         break;
 
-      case C_WEIGHTING: //C_WEIGHTING
-        weighingfactor = C_WEIGHTINGTAB[i];
-        break;
+      /* case C_WEIGHTING: //C_WEIGHTING */
+      /*   weighingfactor = C_WEIGHTINGTAB[i]; */
+      /*   break; */
     }
 
     *spB *= weighingfactor;

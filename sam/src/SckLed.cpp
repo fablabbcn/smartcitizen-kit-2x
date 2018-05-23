@@ -75,6 +75,10 @@ void SckLed::off()
 	colorIndex = 0;
 	pulseMode = PULSE_STATIC;
 
+	pinMode(pinRED, OUTPUT);
+	pinMode(pinGREEN, OUTPUT);
+	pinMode(pinBLUE, OUTPUT);
+
 	digitalWrite(pinRED, HIGH);
 	digitalWrite(pinGREEN, HIGH);
 	digitalWrite(pinBLUE, HIGH);

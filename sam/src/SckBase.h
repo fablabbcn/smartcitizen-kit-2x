@@ -33,43 +33,59 @@
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
 enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
+class Status
+{
+	
+	private:
+		uint32_t _lastTryMillis;
+		uint32_t _timeout; 	// ms
+		uint8_t _maxRetrys;
+
+	public:
+		bool ok = false;
+		bool error = false;
+		uint8_t retrys = 0;
+
+		bool retry();
+		void setOk();
+		void reset();
+
+	Status(uint8_t maxRetrys=5, uint32_t timeout=1000)
+    	{
+		_maxRetrys = maxRetrys;
+		_timeout = timeout;
+    	}
+};
+
 struct SckState
 {
 	bool onSetup = false;
 	bool espON = false;
 	bool wifiSet = false;
-	bool onWifi = false;
-	bool wifiError = false;
 	bool tokenSet = false;
 	bool helloPending = false;
-	bool onTime = false;
-	bool timeAsked = false;
-	bool timeError = false;
 	SCKmodes mode = MODE_NET;
 	bool cardPresent = false;
-	bool reading = false;
 	bool sleeping = false;
 	bool publishPending = false;
+	Status wifiStat = Status(2, 20000);
+	Status timeStat;
+	Status helloStat = Status(3, 1000);
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup
 				&& a.espON == espON
 				&& a.wifiSet == wifiSet
-				&& a.onWifi == onWifi
-				&& a.wifiError == wifiError
 				&& a.tokenSet == tokenSet
 				&& a.helloPending == helloPending
-				&& a.onTime == onTime
-				&& a.timeAsked == timeAsked
-				&& a.timeError == timeError
 				&& a.mode == mode
 				&& a.cardPresent == cardPresent
-				&& a.reading == reading
 				&& a.sleeping == sleeping
 		   ) return true;
 		else return false;
 	}
 };
+
 
 class SckBase
 {
@@ -81,9 +97,6 @@ class SckBase
 
 		// **** ESP control
 		uint32_t espStarted;
-		const uint8_t WIFI_TIMEOUT = 20;		// seconds
-		uint8_t wifiRetrys = 0;
-		const uint8_t WIFI_MAX_RETRYS = 3;
 
 		// **** Time
 		RTCZero rtc;
@@ -91,7 +104,6 @@ class SckBase
 		void epoch2iso(uint32_t toConvert, char* isoTime);
 
 		// **** Mode Control
-		SckState oldState;
 		void reviewState();
 		void enterSetup();
 
@@ -140,9 +152,12 @@ class SckBase
 		bool batteryPresent = false;
 		bool onUSB = true;
 		void battSetup();
+		uint32_t sleepTime;
+		void goToSleep();
+
 
 		// **** Sensors
-		uint8_t publishErrors = 0;
+		uint32_t lastPublishTime = 0; 	// seconds
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish();
@@ -154,7 +169,6 @@ class SckBase
 	public:
 
 		// LightRead
-		//
 		ReadLight readLight;
 		dataLight lightResults;
 
@@ -162,8 +176,8 @@ class SckBase
 		void update();
 
 		// **** Mode Control
-		SckState state;
-		void printState(bool all=false);
+		SckState st;
+		void printState();
 
 		// **** Time
 		char ISOtimeBuff[20];
@@ -198,7 +212,7 @@ class SckBase
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
-		OutLevels outputLevel = OUT_NORMAL;
+		OutLevels outputLevel = OUT_VERBOSE;
 		char outBuff[240];
 		void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts String object
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string

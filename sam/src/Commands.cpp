@@ -373,12 +373,12 @@ void time_com(SckBase* base, String parameters)
 void state_com(SckBase* base, String parameters)
 {
 
-	base->printState(true);
+	base->printState();
 }
 void hello_com(SckBase* base, String parameters)
 {
 
-	base->state.helloPending = true;
+	base->st.helloPending = true;
 	base->sckOut("Waiting for MQTT hello response...");
 }
 void debug_com(SckBase* base, String parameters)
@@ -392,3 +392,4 @@ void debug_com(SckBase* base, String parameters)
 		}
 	}
 }
+

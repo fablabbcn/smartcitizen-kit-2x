@@ -114,6 +114,22 @@ void SckBase::setup()
 			}
 		}
 	}
+
+	// TEMP for automatic living lab setup
+	// Enables only calibrated alphasense (plus temp and hum) and disable urban board temp and hum
+	if (config.sensors[SENSOR_ALPHADELTA_SLOT_1A].enabled) {
+
+		config.sensors[SENSOR_ALPHADELTA_SLOT_1A].enabled = false;
+                config.sensors[SENSOR_ALPHADELTA_SLOT_1W].enabled = false;
+                config.sensors[SENSOR_ALPHADELTA_SLOT_2A].enabled = false;
+                config.sensors[SENSOR_ALPHADELTA_SLOT_2W].enabled = false;
+                config.sensors[SENSOR_ALPHADELTA_SLOT_3A].enabled = false;
+                config.sensors[SENSOR_ALPHADELTA_SLOT_3W].enabled = false;
+
+                config.sensors[SENSOR_TEMPERATURE].enabled = false;
+                config.sensors[SENSOR_HUMIDITY].enabled = false;
+	}
+
 	if (saveNeeded) saveConfig();
 }
 void SckBase::update()

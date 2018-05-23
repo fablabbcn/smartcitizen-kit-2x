@@ -141,13 +141,15 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_LIGHT, 				"Light", 					14,		true,		false,			"Lux"},
 			OneSensor { BOARD_URBAN, 		SENSOR_TEMPERATURE, 			"Temperature", 					55,		true,		false,			"C"},
 			OneSensor { BOARD_URBAN, 		SENSOR_HUMIDITY,			"Humidity", 					56,		true,		false,			"%"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"Carbon monoxide", 				16,		true,		true,			"kOhm/ppm"},
+			/* OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"Carbon monoxide", 				16,		true,		true,			"kOhm/ppm"}, */
+			OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"Carbon monoxide", 				82,		true,		true,			"ppm"},
 			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"Carbon monoxide heat time",			0,		false,		false,			"sec"},
 			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_CURRENT, 		"Carbon monoxide heat current",			0,		false,		false,			"mA"},
 			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_SUPPLY_VOLTAGE, 		"Carbon monoxide heat supply voltage",		0,		false,		false,			"mV"},
 			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_DROP_VOLTAGE, 		"Carbon monoxide heat drop voltage",		0,		false,		false,			"mV"},
 			OneSensor { BOARD_URBAN, 		SENSOR_CO_LOAD_RESISTANCE, 		"Carbon monoxide load resistance",		0,		false,		false,			"Ohms"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"Nitrogen dioxide",				15,		true,		true,			"kOhm/ppm"},
+			/* OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"Nitrogen dioxide",				15,		true,		true,			"kOhm/ppm"}, */
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"Nitrogen dioxide",				81,		true,		true,			"ppm"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"Nitrogen dioxide heat time",			0,		false,		false,			"sec"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_CURRENT, 		"Nitrogen dioxide heat current",		0,		false,		false,			"mA"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_SUPPLY_VOLTAGE, 	"Nitrogen dioxide heat supply voltage",		0,		false,		false,			"mV"},
@@ -168,13 +170,13 @@ class AllSensors
 			// Alphasense Delta board (3 Gas sensor Slots, + SHT31 Temp-Humidity)
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1A,		"AlphaDelta 1A",				68,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1W,		"AlphaDelta 1W",				67,		false,		true,			"mV"},
-			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1_CAL,		"AlphaDelta 1cal",				0,		false,		true,			"ppm"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1_CAL,		"AlphaDelta CO",				84,		false,		true,			"ppm"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2A,		"AlphaDelta 2A",				62,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2W, 		"AlphaDelta 2W",				61,		false,		true,			"mV"},
-			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2_CAL,		"AlphaDelta 2cal",				0,		false,		true,			"ppm"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2_CAL,		"AlphaDelta NO2",				83,		false,		true,			"ppm"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3A, 		"AlphaDelta 3A",				65,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3W, 		"AlphaDelta 3W",				64,		false,		true,			"mV"},
-			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3_CAL,		"AlphaDelta 3cal",				0,		false,		true,			"ppm"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3_CAL,		"AlphaDelta OX",				85,		false,		true,			"ppm"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_TEMPERATURE, 		"AlphaDelta Temperature", 			79,		false,		false,			"C"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_HUMIDITY, 		"AlphaDelta Humidity",				80,		false,		false,			"%"},
 
@@ -194,9 +196,9 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO,			"Atlas Dissolved Oxygen",			48,		false,		true,			"mg/L"},
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,			"Atlas DO Saturation",				49,		false,		true,			"%"},
 
-			OneSensor { BOARD_AUX,			SENSOR_PM_1,				"PM 1.0",					73,		false,		false,			"ug/m3"},
-			OneSensor { BOARD_AUX,			SENSOR_PM_25,				"PM 2.5",					71,		false,		false,			"ug/m3"},
-			OneSensor { BOARD_AUX,			SENSOR_PM_10,				"PM 10.0",					72,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_PM_1,				"PM 1.0",					89,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_PM_25,				"PM 2.5",					87,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_PM_10,				"PM 10.0",					88,		false,		false,			"ug/m3"},
 
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"External Temperature",				0,		false,		false,			"C"},
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"External Humidity",				0,		false,		false,			"%"},

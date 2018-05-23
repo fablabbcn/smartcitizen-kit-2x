@@ -3,7 +3,7 @@
 AlphaDelta		alphaDelta;
 GrooveI2C_ADC		grooveI2C_ADC;
 INA219			ina219;
-Groove_OLED		groove_OLED;
+/* Groove_OLED		groove_OLED; */
 WaterTemp_DS18B20 	waterTemp_DS18B20;
 Atlas			atlasPH = Atlas(SENSOR_ATLAS_PH);
 Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
@@ -45,7 +45,7 @@ bool AuxBoards::begin(SensorType wichSensor)
 		case SENSOR_INA219_SHUNT:
 		case SENSOR_INA219_CURRENT:
 		case SENSOR_INA219_LOADVOLT: 		return ina219.begin(); break;
-		case SENSOR_GROOVE_OLED: 		return groove_OLED.begin(); break;
+		/* case SENSOR_GROOVE_OLED: 		return groove_OLED.begin(); break; */
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.begin(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.begin();
 		case SENSOR_ATLAS_EC:
@@ -107,7 +107,7 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 {
 
 	switch(wichSensor) {
-		case SENSOR_GROOVE_OLED:	return true; break;
+		/* case SENSOR_GROOVE_OLED:	return true; break; */
 		case SENSOR_ATLAS_PH: 		return atlasPH.getBusyState(); break;
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_SG: 	return atlasEC.getBusyState(); break;
@@ -202,13 +202,13 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 void AuxBoards::print(SensorType wichSensor, String payload) {
 
-	groove_OLED.print(payload);
+	/* groove_OLED.print(payload); */
 }
 
 void AuxBoards::displayReading(String title, String reading, String unit, String time)
 {
 
-	groove_OLED.displayReading(title, reading, unit, time);
+	/* groove_OLED.displayReading(title, reading, unit, time); */
 }
 
 bool GrooveI2C_ADC::begin()
@@ -292,83 +292,82 @@ float INA219::getReading(typeOfReading wichReading)
 	return 0;
 }
 
-bool Groove_OLED::begin()
-{
+/* { */
 
-	if (!I2Cdetect(deviceAddress)) return false;
+/* 	if (!I2Cdetect(deviceAddress)) return false; */
 
-	U8g2_oled.begin();
-	U8g2_oled.clearDisplay();
+/* 	U8g2_oled.begin(); */
+/* 	U8g2_oled.clearDisplay(); */
 
-	U8g2_oled.firstPage();
-	do { U8g2_oled.drawXBM( 0, 0, 96, 96, scLogo); } while (U8g2_oled.nextPage());
+/* 	U8g2_oled.firstPage(); */
+/* 	do { U8g2_oled.drawXBM( 0, 0, 96, 96, scLogo); } while (U8g2_oled.nextPage()); */
 
-	return true;;
-}
+/* 	return true;; */
+/* } */
 
-void Groove_OLED::print(String payload)
-{
+/* void Groove_OLED::print(String payload) */
+/* { */
 
-	// uint8_t length = payload.length();
-	char charPayload[payload.length()];
-	payload.toCharArray(charPayload, payload.length()+1);
+/* 	// uint8_t length = payload.length(); */
+/* 	char charPayload[payload.length()]; */
+/* 	payload.toCharArray(charPayload, payload.length()+1); */
 
-	U8g2_oled.firstPage();
+/* 	U8g2_oled.firstPage(); */
 
-	do {
-		U8g2_oled.setFont(u8g2_font_ncenB14_tr);
-		U8g2_oled.drawStr(0,24, charPayload);
-	} while (U8g2_oled.nextPage());
-}
+/* 	do { */
+/* 		U8g2_oled.setFont(u8g2_font_ncenB14_tr); */
+/* 		U8g2_oled.drawStr(0,24, charPayload); */
+/* 	} while (U8g2_oled.nextPage()); */
+/* } */
 
-void Groove_OLED::displayReading(String title, String reading, String unit, String time)
-{
+/* void Groove_OLED::displayReading(String title, String reading, String unit, String time) */
+/* { */
 
-	String date;
-	String hour;
+/* 	String date; */
+/* 	String hour; */
 
-	if (time.toInt() != 0) {
-		date = time.substring(8,10) + "/" + time.substring(5,7) + "/" + time.substring(2,4);
-		hour = time.substring(11,16);
-	}
+/* 	if (time.toInt() != 0) { */
+/* 		date = time.substring(8,10) + "/" + time.substring(5,7) + "/" + time.substring(2,4); */
+/* 		hour = time.substring(11,16); */
+/* 	} */
 
-	U8g2_oled.firstPage();
-	do {
+/* 	U8g2_oled.firstPage(); */
+/* 	do { */
 
-		// Title
-		U8g2_oled.setFont(u8g2_font_helvB10_tf);
-		if (U8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) {
+/* 		// Title */
+/* 		U8g2_oled.setFont(u8g2_font_helvB10_tf); */
+/* 		if (U8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) { */
 
-			String first = title.substring(0, title.indexOf(" "));
-			String second = title.substring(title.indexOf(" ")+1);
+/* 			String first = title.substring(0, title.indexOf(" ")); */
+/* 			String second = title.substring(title.indexOf(" ")+1); */
 
-			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(first.c_str()))/2,11, first.c_str());
-			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(second.c_str()))/2,23, second.c_str());
+/* 			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(first.c_str()))/2,11, first.c_str()); */
+/* 			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(second.c_str()))/2,23, second.c_str()); */
 
-		} else U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(title.c_str()))/2,11, title.c_str());
+/* 		} else U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(title.c_str()))/2,11, title.c_str()); */
 
-		// Reading
-		U8g2_oled.setFont(u8g2_font_helvB24_tf);
-		if (U8g2_oled.getStrWidth(reading.c_str()) > 96) U8g2_oled.setFont(u8g2_font_helvB18_tf);
-		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(reading.c_str()))/2, 55,  reading.c_str());
+/* 		// Reading */
+/* 		U8g2_oled.setFont(u8g2_font_helvB24_tf); */
+/* 		if (U8g2_oled.getStrWidth(reading.c_str()) > 96) U8g2_oled.setFont(u8g2_font_helvB18_tf); */
+/* 		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(reading.c_str()))/2, 55,  reading.c_str()); */
 
-		// Unit
-		U8g2_oled.setFont(u8g2_font_helvB12_tf);
-		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str());
+/* 		// Unit */
+/* 		U8g2_oled.setFont(u8g2_font_helvB12_tf); */
+/* 		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str()); */
 
-		if (time.toInt() != 0) {
+/* 		if (time.toInt() != 0) { */
 
-			// Date
-			U8g2_oled.setFont(u8g2_font_helvB10_tf);
-			U8g2_oled.drawStr(0,96,date.c_str());
+/* 			// Date */
+/* 			U8g2_oled.setFont(u8g2_font_helvB10_tf); */
+/* 			U8g2_oled.drawStr(0,96,date.c_str()); */
 
-			// Time
-			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
-			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
-		}
+/* 			// Time */
+/* 			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str()); */
+/* 			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str()); */
+/* 		} */
 
-	} while (U8g2_oled.nextPage());
-}
+/* 	} while (U8g2_oled.nextPage()); */
+/* } */
 
 bool WaterTemp_DS18B20::begin()
 {

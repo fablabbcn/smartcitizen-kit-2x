@@ -71,6 +71,7 @@ struct SckState
 	Status wifiStat = Status(2, 20000);
 	Status timeStat;
 	Status helloStat = Status(3, 1000);
+	Status publishStat = Status(3, 3000);
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup

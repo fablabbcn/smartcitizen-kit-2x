@@ -88,7 +88,7 @@ bool Sck_BH1721FVC::get(bool wait)
 
 	// 0x01 register - TIMMING
 	/* uint8_t ITIME0  = 0xA0; */
-	uint8_t ITIME0  = 0xE0;
+	uint8_t ITIME0  = 0xDA;
 	float TOP = 26500.0; 	 // This is relative to the value above (less resolution more range) TODO define max based on calibration curve (to be implemented)
 
 	// 00h: Start / Stop of measurement is set by special command. (ADC manual integration mode)
@@ -143,9 +143,16 @@ bool Sck_BH1721FVC::get(bool wait)
   	Wire.write(0x80);
   	for (int i= 0; i<8; i++) Wire.write(DATA[i]);
 	Wire.endTransmission();
-
+	
+	
+	// TODO calibration curve
+	float Tint = 2.8; 	// From datasheet (2.8 typ -- 4.0 max)
+	/* float Tint = 3.6; 	// From datasheet (2.8 typ -- 4.0 max) */
+	float ITIME_ms = (Tint * 964 * (256 - ITIME0)) / 1000;
+	/* float Tmt = ITIME_ms + Tint * 714; */
 	// Esto debe ser reemplazado por un busy state...
-	delay (300);
+	delay (ITIME_ms);
+	/* delay(300); */
 
 	// Ask for reading
 	Wire.beginTransmission(address);
@@ -167,11 +174,6 @@ bool Sck_BH1721FVC::get(bool wait)
 	else if (GAIN == 0x02) Gain = 64;
 	else if (GAIN == 0x03) Gain = 128;
 
-
-	// TODO calibration curve
-	float Tint = 3.6; 	// From datasheet (2.8 typ -- 4.0 max)
-	float ITIME_ms = (Tint * 964 * (256 - ITIME0)) / 1000;
-
 	float Lx = 0;
 	if (DATA0 !=0) {
 	if (DATA1/DATA0 < 0.26) Lx = (1.290 * DATA0 - 2.733 * DATA1) / Gain * 102.6 / ITIME_ms;
@@ -181,8 +183,8 @@ bool Sck_BH1721FVC::get(bool wait)
 	else Lx = 0;	
 	}
 
-	if (Lx < 0) Lx = TOP; 
 
+	Lx = max(0, Lx);
 	reading  = Lx;
 
 	return true;

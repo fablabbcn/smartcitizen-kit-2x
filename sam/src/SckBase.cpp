@@ -41,7 +41,7 @@ void SckBase::setup()
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
 
 	// Power management configuration
-	// battSetup();
+	/* battSetup(); */
 	charger.setup();
 
 	// ESP Configuration
@@ -184,6 +184,8 @@ void SckBase::reviewState()
 
 	} else if (st.mode == MODE_NET) {
 
+		// TODO poner retrys al net publish
+
 		if (st.helloPending) {
 
 			if (st.wifiStat.ok) {
@@ -210,21 +212,31 @@ void SckBase::reviewState()
 				}
 			}
 		}
-		if (!st.wifiStat.ok) {
-			if (st.wifiStat.retrys == 0) {
-				if (!st.espON) ESPcontrol(ESP_ON);
-			} else if (st.wifiStat.retry()) {
-				ESPcontrol(ESP_REBOOT);
-			}
-			if (st.wifiStat.error) {
-				// TODO turn off ESP, go to sleep and try again later
-			}
-		} else if (st.timeStat.ok && !st.helloPending) {
+		if (st.timeStat.ok && !st.helloPending) {
 			if (rtc.getEpoch() - lastPublishTime > config.publishInterval) {
-				if (netPublish()) {
-					// TODO go to sleep
+				if (!st.wifiStat.ok) {
+					if (st.wifiStat.retrys == 0) {
+						if (!st.espON) ESPcontrol(ESP_ON);
+					} else if (st.wifiStat.retry()) {
+						ESPcontrol(ESP_REBOOT);
+					}
+					if (st.wifiStat.error) {
+						// TODO turn off ESP, go to sleep and try again later
+					}
+				} else {
+					if (st.publishStat.retry()) {
+						if (netPublish()) {
+							// TODO go to sleep
+						}
+					}
 				}
 			}
+		}
+
+		if (st.publishStat.error) {
+			sdPublish();
+			ESPcontrol(ESP_OFF);
+			lastPublishTime = rtc.getEpoch(); 	// TODO save this readings on flash and try after next interval
 		}
 
 		// Led feedback
@@ -706,7 +718,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_MQTT_PUBLISH_OK:
 
-			sckOut("Network publish OK!!   "); break;
+			st.publishStat.setOk();
+			sckOut("Network publish OK!!   "); 
+			ESPcontrol(ESP_OFF);
+			break;
 
 		default: break;
 	}
@@ -849,6 +864,42 @@ void SckBase::chargerEvent()
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }
 
+void SckBase::goToSleep()
+{
+
+	if (sleepTime > 0) sprintf(outBuff, "Sleeping for %lu seconds", (sleepTime) / 1000);
+	else sprintf(outBuff, "Sleeping forever!!! (until a button click)");
+	sckOut();
+
+	digitalWrite(pinLED_USB, HIGH);
+	led.off();
+	ESPcontrol(ESP_OFF);
+
+	// ESP control pins savings
+	digitalWrite(pinESP_CH_PD, LOW);
+	digitalWrite(pinESP_GPIO0, LOW);
+	digitalWrite(pinESP_RX_WIFI, LOW);
+	digitalWrite(pinESP_TX_WIFI, LOW);
+
+	
+	// TODO MICS heaters saving
+	// TODO checke every component for power optimizations
+
+	// Disconnect USB
+	/* USBDevice.detach(); */
+	/* USBDeviceAttached = false; */
+
+	uint32_t localSleepTime = sleepTime;
+	sleepTime = 0;
+
+	if (localSleepTime > 0) LowPower.deepSleep(localSleepTime);
+	else LowPower.deepSleep();
+}
+/* void SckBase::wakeUp() */
+/* { */
+/* 	sckOut("Waked up!!!"); */
+/* } */
+
 // **** Sensors
 void SckBase::updateSensors()
 {
@@ -926,7 +977,10 @@ void SckBase::getUniqueID()
 bool SckBase::netPublish()
 {
 
-	if (!st.espON) ESPcontrol(ESP_ON);
+	if (!st.espON) {
+		ESPcontrol(ESP_ON);
+		return false;
+	}
 
 	// Prepare json for sending
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;

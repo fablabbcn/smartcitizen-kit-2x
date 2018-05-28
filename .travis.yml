@@ -40,6 +40,7 @@ install:
 before_script:
     - npm run api &
     - npm run web &
+    - cd ../sam; pio run
     - sleep 2
 
 script:

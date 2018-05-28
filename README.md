@@ -36,17 +36,17 @@ After clonning the repository:
 
   * `pio run`
   
-  	This step will **take a while** and end with an error because a bug... **don't worry* *** go to next step)
+  	This step will **take a while** and end with an error because a bug... **don't worry*** go to next step)
   
   * `pio run -t upload`
 
 2. in folder ./esp/ do:
 
-  `pio run -t upload`
+  * `pio run -t upload`
 
 3. To upload the Frontend website code to the filesystem do:
 
-  `pio run -t uploadfs`
+  * `pio run -t uploadfs`
 
 
 ### Frontend + api setup

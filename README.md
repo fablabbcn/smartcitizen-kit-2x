@@ -24,9 +24,15 @@ The technology used:
 
 #### Uploading the firmware to the kit
 
+After clonning the repository:
+
 1. In folder ./sam/ do:
 
-  `pio run -t upload`
+  * `pio run`
+  
+  	This step will **take a while** and end with an error because a bug... **don't worry* *** go to next step)
+  
+  * `pio run -t upload`
 
 2. in folder ./esp/ do:
 

@@ -1,12 +1,11 @@
 Import("env")
-import serial, time
+import serial, time, os, subprocess
 
 #
 # Upload actions
 #
-
 def after_upload(source, target, env):
-	time.sleep(1);
+	time.sleep(1)
 	print "Setting default config..."
 	myPort = serial.Serial("/dev/" + env.get("UPLOAD_PORT"))
 	myPort.write("\r\nconfig -defaults\r\n")
@@ -19,15 +18,20 @@ env.AddPostAction("upload", after_upload)
 #
 # Custom actions when building program/firmware
 #
+def before_build():
+    if not os.path.isdir(".platformio/packges/framework-arduinosam/variants/sck2"):
+        checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduinosam/variants/sck2"])
+        checkout.wait()
 
-# env.AddPreAction("buildprog", callback...)
+before_build() 
+# env.AddPreAction("buildprog", before_build)
 # env.AddPostAction("buildprog", callback...)
 
 # #
 # # Custom actions for specific files/objects
 # #
 
-# env.AddPreAction("$BUILD_DIR/firmware.elf", [callback1, callback2,...])
+# env.AddPreAction("$BUILD_DIR/firmware.elf", before_build)
 # env.AddPostAction("$BUILD_DIR/firmware.hex", callback...)
 
 # # custom action before building SPIFFS image. For example, compress HTML, etc.

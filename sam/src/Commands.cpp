@@ -178,14 +178,48 @@ void readSensor_com(SckBase* base, String parameters)
 void monitorSensor_com(SckBase* base, String parameters)
 {
 
-	SensorType sensorToRead = base->sensors.getTypeFromString(parameters);
 
-	while(!SerialUSB.available()) {
-		if (base->getReading(sensorToRead, true)) sprintf(base->outBuff, "%s", base->sensors[sensorToRead].reading.c_str());
-		else sprintf(base->outBuff, "ERROR reading %s sensor!!!", base->sensors[sensorToRead].title);
-		base->sckOut();
+	SensorType sensorsToMonitor[SENSOR_COUNT];
+	uint8_t index = 0;
+
+	if (parameters.length() > 0) {
+		while (parameters.length() > 0) {
+			uint8_t sep = parameters.indexOf(",");
+			if (sep == 0) sep = parameters.length();
+			String thisSensor = parameters.substring(0, sep);
+			parameters.remove(0, sep+1);
+			SensorType thisSensorType = base->sensors.getTypeFromString(thisSensor);
+			if (base->sensors[thisSensorType].enabled) {
+				sensorsToMonitor[index] = thisSensorType;
+				index ++;
+			}
+		}
+	} else {
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			if (base->sensors[static_cast<SensorType>(i)].enabled) {
+				sensorsToMonitor[index] = static_cast<SensorType>(i);
+				index++;
+			}
+		}
+
 	}
 
+	// Titles
+	sprintf(base->outBuff, "%s", base->sensors[sensorsToMonitor[0]].title);
+	for (uint8_t i=1; i<index; i++) {
+		sprintf(base->outBuff, "%s, %s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
+	}
+	base->sckOut();
+
+	// Readings
+	strncpy(base->outBuff, "", 240);
+	while (!SerialUSB.available()) {
+		if (base->getReading(sensorsToMonitor[0], true)) sprintf(base->outBuff, "%s", base->sensors[sensorsToMonitor[0]].reading.c_str());
+		for (uint8_t i=1; i<index; i++) {
+			if (base->getReading(sensorsToMonitor[i], true)) sprintf(base->outBuff, "%s, %s", base->outBuff, base->sensors[sensorsToMonitor[i]].reading.c_str());
+		}
+		base->sckOut();
+	}
 }
 void publish_com(SckBase* base, String parameters)
 {

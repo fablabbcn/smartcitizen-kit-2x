@@ -254,7 +254,10 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 				}
 			}
 
-			if (mqttPublish()) sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
+			if (mqttPublish()) {
+				delay(500);
+				sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
+			}
 			break;
 
 	}

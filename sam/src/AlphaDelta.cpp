@@ -102,8 +102,7 @@ float AlphaDelta::getPPM(AlphaSensor wichSlot)
 			return 0; 	// TODO define formula for this gas sensor
 			break;
 	}
-
-
+    }
 }
 String AlphaDelta::getUID()
 {
@@ -160,7 +159,7 @@ void AlphaDelta::runTester(uint8_t wichSlot)
 	// Print headers
 	SerialUSB.println("testW,readW,testA,readA");
 
-	// Output from -1440 to +1400 nA
+	// Output from -1400 to +1400 nA
 	for (int16_t i=-1400; i<1400; i++) {
 		tester.setCurrent(tester.electrode_W, i);
 		SerialUSB.print(tester.getCurrent(tester.electrode_W));

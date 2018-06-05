@@ -51,6 +51,9 @@ class Sck_SHT31
 	// https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/2_Humidity_Sensors/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital.pdf
 	// This code is based on Adafruit SHT31 library, thanks! (https://github.com/adafruit/Adafruit_SHT31)
 	private:
+
+		TwoWire *_Wire;
+
 		// Commands
 		uint8_t address = 0x44;
 		const uint16_t SOFT_RESET = 0x30A2;
@@ -61,8 +64,10 @@ class Sck_SHT31
 
 		void sendComm(uint16_t comm);
 		uint8_t crc8(const uint8_t *data, int len);
-		uint32_t lastUpdate = 0;
 	public:
+		// Conntructor
+		Sck_SHT31(TwoWire *localWire); 
+
 		float temperature;
 		float humidity;
 		bool begin();
@@ -189,7 +194,7 @@ class SckUrban
 		Sck_BH1721FVC sck_bh1721fvc;
 
 		// Temperature and Humidity
-		Sck_SHT31 sck_sht31;
+		Sck_SHT31 sck_sht31 = Sck_SHT31(&Wire);
 
 		// Gases CO and NO2
 		Sck_MICS4514 sck_mics4514;

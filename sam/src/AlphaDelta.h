@@ -3,6 +3,7 @@
 #include <SckAux.h>
 #include "Adafruit_SHT31.h"		// To be replaced by internal lib
 #include <MCP342X.h>
+#include <SckUrban.h>
 
 // AlphaDeltaTester
 #ifdef deltaTest
@@ -47,32 +48,6 @@ struct AlphaSensor
 	CalibrationData calData;
 };
 
-// Temperature and Humidity
-class Sck_Aux_SHT31
-{
-	// Datasheet
-	// https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/2_Humidity_Sensors/Sensirion_Humidity_Sensors_SHT3x_Datasheet_digital.pdf
-	// This code is based on Adafruit SHT31 library, thanks! (https://github.com/adafruit/Adafruit_SHT31)
-	private:
-		// Commands
-		uint8_t address = 0x44;
-		const uint16_t SOFT_RESET = 0x30A2;
-		const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
-
-		// TO be removed with state machine asynchronous
-		uint32_t timeout = 20;	// Time in ms to wait for a reading
-
-		void sendComm(uint16_t comm);
-		uint8_t crc8(const uint8_t *data, int len);
-		uint32_t lastUpdate = 0;
-	public:
-		float temperature;
-		float humidity;
-		bool begin();
-		bool stop();
-		bool update(bool wait=true);
-};
-
 class AlphaDelta
 {
 	public:
@@ -85,7 +60,7 @@ class AlphaDelta
 		const byte sht31Address = 0x44;
 
 		// Adafruit_SHT31 sht31 = Adafruit_SHT31();
-		Sck_Aux_SHT31 sht31;
+		Sck_SHT31 sht31 = Sck_SHT31(&auxWire);
 
 		float getTemperature();
 		float getHumidity();

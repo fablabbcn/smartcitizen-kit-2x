@@ -191,15 +191,20 @@ bool Sck_BH1721FVC::get(bool wait)
 }
 
 // SHT31 (Temperature and Humidity)
+// TODO Implement calibration routine
+// TODO implement heater controller
+Sck_SHT31::Sck_SHT31(TwoWire *localWire)
+{
+	_Wire = localWire;
+}
 bool Sck_SHT31::begin()
 {
-
 	Wire.begin();
 
-	// Send reset command
-	sendComm(SOFT_RESET);
-
-	update();
+	delay(1); 		// In case the device was off
+	sendComm(SOFT_RESET); 	// Send reset command
+	delay(50); 		// Give time to finish reset
+	update(true);
 
 	return true;
 }
@@ -211,22 +216,18 @@ bool Sck_SHT31::stop()
 }
 bool Sck_SHT31::update(bool wait)
 {
-
-	// If last update was less than 2 sec ago dont do it again
-	if (millis() - lastUpdate < 2000) return true;
-
 	uint8_t readbuffer[6];
 	sendComm(SINGLE_SHOT_HIGH_REP);
 
-  	Wire.requestFrom(address, (uint8_t)6);
+	Wire.requestFrom(address, (uint8_t)6);
 
-  	// Wait for answer (datasheet says 15ms is the max)
-  	uint32_t started = millis();
-  	while(Wire.available() != 6) {
-  		if (millis() - started > timeout) return 0;
-   	}
+	// Wait for answer (datasheet says 15ms is the max)
+	uint32_t started = millis();
+	while(Wire.available() != 6) {
+		if (millis() - started > timeout) return 0;
+	}
 
-  	// Read response
+	// Read response
 	for (uint8_t i=0; i<6; i++) readbuffer[i] = Wire.read();
 
 	uint16_t ST, SRH;
@@ -255,28 +256,26 @@ bool Sck_SHT31::update(bool wait)
 	shum /= 0xFFFF;
 	humidity = (float)shum;
 
-	lastUpdate = millis();
-
 	return true;
 }
 void Sck_SHT31::sendComm(uint16_t comm)
 {
-  Wire.beginTransmission(address);
-  Wire.write(comm >> 8);
-  Wire.write(comm & 0xFF);
-  Wire.endTransmission();
+	Wire.beginTransmission(address);
+	Wire.write(comm >> 8);
+	Wire.write(comm & 0xFF);
+	Wire.endTransmission();
 }
 uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 {
 
- /* CRC-8 formula from page 14 of SHT spec pdf
- *
- * Test data 0xBE, 0xEF should yield 0x92
- *
- * Initialization data 0xFF
- * Polynomial 0x31 (x8 + x5 +x4 +1)
- * Final XOR 0x00
- */
+	/* CRC-8 formula from page 14 of SHT spec pdf */
+
+	/* Test data 0xBE, 0xEF should yield 0x92 */
+
+	/* Initialization data 0xFF */
+	/* Polynomial 0x31 (x8 + x5 +x4 +1) */
+	/* Final XOR 0x00 */
+
 	const uint8_t POLYNOMIAL(0x31);
 	uint8_t crc(0xFF);
 
@@ -284,8 +283,8 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 		crc ^= *data++;
 		for ( int i = 8; i; --i ) {
 			crc = ( crc & 0x80 )
-			? (crc << 1) ^ POLYNOMIAL
-			: (crc << 1);
+				? (crc << 1) ^ POLYNOMIAL
+				: (crc << 1);
 		}
 	}
 	return crc;

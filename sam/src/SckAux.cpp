@@ -9,7 +9,7 @@ Atlas			atlasPH = Atlas(SENSOR_ATLAS_PH);
 Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
 Atlas			atlasDO = Atlas(SENSOR_ATLAS_DO);
 PMsensor		pmSensor = PMsensor(SLOT_AVG);
-Ext_SHT31 		sht31;
+Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
@@ -678,111 +678,6 @@ float PMsensor::getReading(uint8_t wichReading)
 
 	return 0;
 }
-
-bool Ext_SHT31::begin()
-{
-
-	auxWire.begin();
-	
-	if (!I2Cdetect(address)) return false;
-			
-	sendComm(SOFT_RESET);
-
-	update();
-
-	return true;
-}
-
-bool Ext_SHT31::stop()
-{
-
-	// It will go to idle state by itself after 1ms
-	return true;
-}
-
-bool Ext_SHT31::update(bool wait)
-{
-
-	// If last update was less than 2 sec ago dont do it again
-	if (millis() - lastUpdate < 2000) return true;
-
-	uint8_t readbuffer[6];
-	sendComm(SINGLE_SHOT_HIGH_REP);
-
-  	auxWire.requestFrom(address, (uint8_t)6);
-
-  	// Wait for answer (datasheet says 15ms is the max)
-  	uint32_t started = millis();
-  	while(auxWire.available() != 6) {
-  		if (millis() - started > timeout) return 0;
-   	}
-
-  	// Read response
-	for (uint8_t i=0; i<6; i++) readbuffer[i] = auxWire.read();
-
-	uint16_t ST, SRH;
-	ST = readbuffer[0];
-	ST <<= 8;
-	ST |= readbuffer[1];
-
-	// Check Temperature crc
-	if (readbuffer[2] != crc8(readbuffer, 2)) return false;
-
-	SRH = readbuffer[3];
-	SRH <<= 8;
-	SRH |= readbuffer[4];
-
-	// check Humidity crc
-	if (readbuffer[5] != crc8(readbuffer+3, 2)) return false;
-
-	double temp = ST;
-	temp *= 175;
-	temp /= 0xffff;
-	temp = -45 + temp;
-	temperature = (float)temp;
-
-	double shum = SRH;
-	shum *= 100;
-	shum /= 0xFFFF;
-	humidity = (float)shum;
-
-	lastUpdate = millis();
-
-	return true;
-}
-
-void Ext_SHT31::sendComm(uint16_t comm)
-{
-  auxWire.beginTransmission(address);
-  auxWire.write(comm >> 8);
-  auxWire.write(comm & 0xFF);
-  auxWire.endTransmission();
-}
-uint8_t Ext_SHT31::crc8(const uint8_t *data, int len)
-{
-
- /* CRC-8 formula from page 14 of SHT spec pdf
- *
- * Test data 0xBE, 0xEF should yield 0x92
- *
- * Initialization data 0xFF
- * Polynomial 0x31 (x8 + x5 +x4 +1)
- * Final XOR 0x00
- */
-	const uint8_t POLYNOMIAL(0x31);
-	uint8_t crc(0xFF);
-
-	for ( int j = len; j; --j ) {
-		crc ^= *data++;
-		for ( int i = 8; i; --i ) {
-			crc = ( crc & 0x80 )
-			? (crc << 1) ^ POLYNOMIAL
-			: (crc << 1);
-		}
-	}
-	return crc;
-}
-
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )
 {

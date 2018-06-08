@@ -175,6 +175,18 @@ void readSensor_com(SckBase* base, String parameters)
 	else sprintf(base->outBuff, "ERROR reading %s sensor!!!", base->sensors[sensorToRead].title);
 	base->sckOut();
 }
+void controlSensor_com(SckBase* base, String parameters)
+{
+  	SensorType wichSensor = base->sensors.getTypeFromString(parameters);
+	parameters.remove(0, parameters.indexOf(" ")+1);
+
+	if (parameters.length() < 1) {
+		base->sckOut("No command received!! please try again...");
+		return;
+	} else {
+		base->controlSensor(wichSensor, parameters);
+	}
+}
 void monitorSensor_com(SckBase* base, String parameters)
 {
 

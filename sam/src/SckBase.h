@@ -192,6 +192,7 @@ class SckBase
 		// **** Sensors
 		AllSensors sensors;
 		bool getReading(SensorType wichSensor, bool wait=true);
+		bool controlSensor(SensorType wichSensorType, String wichCommand);
 		void publish();
 
 		// Configuration

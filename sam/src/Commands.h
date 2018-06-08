@@ -18,6 +18,7 @@ enum CommandType {
 	COM_PINMUX,
 	COM_LIST_SENSOR,
 	COM_READ_SENSOR,
+	COM_CONTROL_SENSOR,
 	COM_MONITOR_SENSOR,
 	COM_PUBLISH,
 	COM_GET_FREERAM,
@@ -44,6 +45,7 @@ void help_com(SckBase* base, String parameters);
 void pinmux_com(SckBase* base, String parameters);
 void sensorConfig_com(SckBase* base, String parameters);
 void readSensor_com(SckBase* base, String parameters);
+void controlSensor_com(SckBase* base, String parameters);
 void monitorSensor_com(SckBase* base, String parameters);
 void publish_com(SckBase* base, String parameters);
 void freeRAM_com(SckBase* base, String parameters);
@@ -92,6 +94,7 @@ class AllCommands {
 			OneCom {80,	COM_LIST_SENSOR,	"sensor",	"Shows/sets enabled/disabled sensor [-enable or -disable sensor-name] or [-interval sensor-name interval(seconds)]",			sensorConfig_com},
 			OneCom {90,	COM_READ_SENSOR,	"read",		"Reads sensor [sensorName]",														readSensor_com},
 			OneCom {90,	COM_MONITOR_SENSOR,	"monitor",	"Continously read sensor [sensorName[,sensorNameN]]",													monitorSensor_com},
+			OneCom {90,	COM_CONTROL_SENSOR,	"control",	"Control sensor [sensorName] [command]",														controlSensor_com},
 			OneCom {90,	COM_PUBLISH,		"publish",	"Publish sensor readings",														publish_com},
 			OneCom {90,	COM_GET_FREERAM,	"free",		"Shows the amount of free RAM memory",													freeRAM_com},
 			OneCom {90,	COM_BATT_REPORT,	"batt",		"Shows the battery state",														battReport_com},

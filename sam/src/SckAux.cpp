@@ -195,8 +195,8 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			}
 			break;
 
-		} default: return "Unrecognized sensor!!!";
-	}
+		} default: return "Unrecognized sensor!!!"; break;
+	}	
 	return "Unknown error on control command!!!";
 }
 

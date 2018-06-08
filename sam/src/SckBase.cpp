@@ -961,6 +961,24 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 	sensors[wichSensor].valid = true;
 	return true;;
 }
+bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
+{
+	if (sensors[wichSensorType].controllable)  {
+		sprintf(outBuff, "%s: %s", sensors[wichSensorType].title, wichCommand.c_str());
+		sckOut();
+		switch (sensors[wichSensorType].location) {
+				case BOARD_URBAN: sckOut(urban.control(wichSensorType, wichCommand)); break;
+				case BOARD_AUX: sckOut(auxBoards.control(wichSensorType, wichCommand)); break;
+				default: break;
+			}
+
+	} else {
+		sprintf(outBuff, "No configured command found for %s sensor!!!", sensors[wichSensorType].title);
+		sckOut();
+		return false;
+	}
+	return true;
+}
 void SckBase::getUniqueID()
 {
 

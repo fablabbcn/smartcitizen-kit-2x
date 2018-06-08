@@ -2,8 +2,6 @@
 
 ![Smart Citizen kit 2.0](https://c1.staticflickr.com/5/4795/39073624650_69ae90efae_b.jpg "Smart Citizen kit 2.0")
 
-https://c1.staticflickr.com/5/4795/39073624650_69ae90efae_b.jpg
-
 You can see this repos current (master branch) state of the mobile UI setup here:
 
 https://fablabbcn.github.io/smartcitizen-kit-20/esp/data/

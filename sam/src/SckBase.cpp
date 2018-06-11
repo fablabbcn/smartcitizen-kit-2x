@@ -130,6 +130,21 @@ void SckBase::setup()
 	}
 
 	if (saveNeeded) saveConfig();
+
+	
+#ifdef deltaTest
+	ESPcontrol(ESP_OFF);
+	led.off();
+	led.update(led.BLUE, led.PULSE_STATIC);
+	String testResult = auxBoards.control(SENSOR_ALPHADELTA_SLOT_1W, "autotest");
+	SerialUSB.println(testResult);
+	if (testResult.startsWith("1")) {
+		led.update(led.GREEN, led.PULSE_STATIC);
+	} else {
+		led.update(led.RED, led.PULSE_STATIC);
+	}
+	while(true);
+#endif
 }
 void SckBase::update()
 {
@@ -863,7 +878,6 @@ void SckBase::chargerEvent()
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }
-
 void SckBase::goToSleep()
 {
 

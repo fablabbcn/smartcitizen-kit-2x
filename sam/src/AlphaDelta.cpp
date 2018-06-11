@@ -158,15 +158,24 @@ void AlphaDelta::runTester(uint8_t wichSlot)
 	// Output from -1400 to +1400 nA
 	for (int16_t i=-1400; i<1400; i++) {
 		tester.setCurrent(tester.electrode_W, i);
+		double currVoltW = getElectrode(wichElectrode_W);
+		if (preVoltW != -99) if ((currVoltW - preVoltW) < threshold) maxErrorsW--;
+		preVoltW = currVoltW;
+		if (maxErrorsW == 0) SerialUSB.println("Working electrode fail !!!");
+
+		tester.setCurrent(tester.electrode_A, i);
+		double currVoltA = getElectrode(wichElectrode_A);
+		if (preVoltA != -99) if ((currVoltA - preVoltA) < threshold) maxErrorsA--;
+		preVoltA = currVoltA;
+		if (maxErrorsA == 0) SerialUSB.println("Auxiliary electrode fail !!!");
+
 		SerialUSB.print(tester.getCurrent(tester.electrode_W));
 		SerialUSB.print(",");
-		SerialUSB.print(getElectrode(wichElectrode_W));
+		SerialUSB.print(currVoltW, 8);
 		SerialUSB.print(",");
-		tester.setCurrent(tester.electrode_A, i);
 		SerialUSB.print(tester.getCurrent(tester.electrode_A));
 		SerialUSB.print(",");
-		SerialUSB.println(getElectrode(wichElectrode_A));
-
+		SerialUSB.println(currVoltA, 8);
 	}
 }
 void AlphaDelta::setTesterCurrent(int16_t wichCurrent, uint8_t wichSlot)
@@ -211,6 +220,65 @@ void AlphaDelta::setTesterCurrent(int16_t wichCurrent, uint8_t wichSlot)
 	SerialUSB.print(wichSlot);
 	SerialUSB.print("A: ");
 	SerialUSB.println(getElectrode(wichElectrode_A));
+}
+bool AlphaDelta::autoTest()
+{
+	Electrode wichElectrode_W;
+	Electrode wichElectrode_A;
+
+	pinMode(pinBLUE, OUTPUT);
+	pinMode(pinGREEN, OUTPUT);
+	pinMode(pinRED, OUTPUT);
+	digitalWrite(pinGREEN, HIGH);
+	digitalWrite(pinRED, HIGH);
+	digitalWrite(pinBLUE, LOW);
+
+	// Autoselect slot based on response (if none responds it fails)
+	for (uint8_t i=1; i<4; i++) {
+		switch(i) {
+			case 1:	wichElectrode_W = Slot1.electrode_W; wichElectrode_A = Slot1.electrode_A; break;
+			case 2:	wichElectrode_W = Slot2.electrode_W; wichElectrode_A = Slot2.electrode_A; break;
+			case 3: wichElectrode_W = Slot3.electrode_W; wichElectrode_A = Slot3.electrode_A; break;
+		}
+		tester.setCurrent(tester.electrode_W, 0);
+		double zeroVolt = getElectrode(wichElectrode_W);
+		tester.setCurrent(tester.electrode_W, 500);
+		double fiveVolt = getElectrode(wichElectrode_W);
+		if ((fiveVolt - zeroVolt) > 5) {
+			SerialUSB.println("Tesing slot " + String(i));
+			break;
+		}
+	}
+	uint8_t multiplier = 25;
+	bool blueState = false;
+	for (int16_t i=-1400; i<1400; i+=multiplier) {
+
+		tester.setCurrent(tester.electrode_W, i);
+		double currVoltW = getElectrode(wichElectrode_W);
+		if (preVoltW != -99) if ((currVoltW - preVoltW) < threshold * multiplier) maxErrorsW--;
+		preVoltW = currVoltW;
+		if (maxErrorsW == 0) {
+			SerialUSB.println("\r\nWorking electrode fail !!!");
+			return false;
+		}
+
+		tester.setCurrent(tester.electrode_A, i);
+		double currVoltA = getElectrode(wichElectrode_A);
+		if (preVoltA != -99) if ((currVoltA - preVoltA) < threshold) maxErrorsA--;
+		preVoltA = currVoltA;
+		if (maxErrorsA == 0) {
+			SerialUSB.println("\r\nAuxiliary electrode fail !!!");
+			return false;
+		}
+
+		SerialUSB.print(".");
+		digitalWrite(pinBLUE, blueState);
+		blueState = !blueState;
+	}
+	if (maxErrorsW > 0 && maxErrorsA > 0) {
+		SerialUSB.println("\r\nTest OK");
+		return true;
+	}
 }
 #endif
 

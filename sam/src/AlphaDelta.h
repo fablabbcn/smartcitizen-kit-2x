@@ -4,6 +4,7 @@
 #include "Adafruit_SHT31.h"		// To be replaced by internal lib
 #include <MCP342X.h>
 #include <SckUrban.h>
+#include <SckBase.h>
 
 // AlphaDeltaTester
 #ifdef deltaTest
@@ -109,8 +110,14 @@ class AlphaDelta
 
 		#ifdef deltaTest
 		testerAlphaDelta tester;
+		double preVoltA = -99;
+		double preVoltW = -99;
+		double threshold = 0.05;
+		uint8_t maxErrorsA = 5;
+		uint8_t maxErrorsW = 5;
 		void runTester(uint8_t wichSlot);
 		void setTesterCurrent(int16_t wichCurrent, uint8_t wichSlot);
+		bool autoTest();
 		#endif
 
 	private:

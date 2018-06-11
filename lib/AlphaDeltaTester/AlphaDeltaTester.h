@@ -4,6 +4,7 @@
 #include <Wire.h>
 #include "currentLookUp.h"
 
+extern TwoWire auxWire;
 
 class testerAlphaDelta {
 public:

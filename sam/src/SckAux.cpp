@@ -147,6 +147,43 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				alphaDelta.setPot(wichElectrode, wichValue);
 				return String F("Setting pot to: ") + String(wichValue) + F(" Ohms\n\rActual value: ") + String(alphaDelta.getPot(wichElectrode)) + F(" Ohms");
 
+			#ifdef deltaTest
+			} else if (command.startsWith("test")) {
+
+				command.replace("test", "");
+				command.trim();
+
+				// Get slot
+				String slotSTR = String(command.charAt(0));
+				uint8_t wichSlot = slotSTR.toInt();
+
+				command.remove(0,1);
+				command.trim();
+
+				if (command.startsWith("set")) {
+
+					command.replace("set", "");
+					command.trim();
+
+					// Get value
+					int wichValue = command.toInt();
+					alphaDelta.setTesterCurrent(wichValue, wichSlot);
+
+				} else if (command.startsWith("full")) {
+
+					alphaDelta.runTester(wichSlot);
+
+				} else {
+					return F("Unrecognized test command!!\r\nOptions:\r\ntest slot set value (slot: 1-3, value:-1400/+1400 nA)\r\ntest slot full (test the full cycle on slot (1-3))");
+				}
+
+				return F("\nTesting finished!");
+
+			} else if (command.startsWith("autotest")) {
+
+				return String(alphaDelta.autoTest());
+			#endif
+
 			} else if (command.startsWith("help")) {
 				return F("Available commands for this sensor:\n\r* set pot ");
 

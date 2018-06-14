@@ -1,0 +1,3 @@
+[submodule "bootloader/uf2-samdx1"]
+	path = bootloader/uf2-samdx1
+	url = https://github.com/fablabbcn/uf2-samdx1

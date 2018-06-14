@@ -1,21 +1,26 @@
 var app = new Vue({
   el: '#app',
   data: {
-    theApi: window.location.href,
+    theApi: window.location.protocol + '//' + window.location.host + '/',
     development: false,
     browsertime: Math.floor(Date.now() / 1000),
-    debuginfo: [],
+    kitstatus: [],
     devicetime: 0,
     logging: [],
     intervals: false,
     kitinfo: false,
-    currentPage: 1,
-    page: {
-      1: true,
-      2: false,
-      3: false,
-      4: false,
-    },
+    currentPage: 0,
+    lastPage: 0,
+    page: [
+       {'visible': true,  'footer': 'HOME',         'backTo': 0, 'back': false },
+       {'visible': false, 'footer': 'REGISTER Key', 'backTo': 0, 'back': true  },
+       {'visible': false, 'footer': 'REGISTER WiFi','backTo': 1, 'back': true  },
+       {'visible': false, 'footer': 'Connecting',   'backTo': 0, 'back': false },
+       {'visible': false, 'footer': 'Connecting',   'backTo': 0, 'back': true },
+       {'visible': false, 'footer': 'SD card',      'backTo': 0, 'back': true },
+       {'visible': false, 'footer': 'Kit info',     'backTo': 0, 'back': true },
+       {'visible': false, 'footer': 'Empty',        'backTo': 0, 'back': true },
+    ],
     publishinterval: 2,
     readinginterval: 60,
     selectedWifi: '',
@@ -24,11 +29,14 @@ var app = new Vue({
     sensor2: false,
     sensor3: false,
     sensor4: false,
-    showAdvanced: false,
+    showDebug: false,
+    showExperimental: false,
     showInterval: false,
     showSdCard: false,
     sdlog: false,
     usertoken: '',
+    version: 'SCK 2.0 / SAM V0.0.2 / ESP V0.0.2',
+    weHaveTriedConnecting: false,
     wifiname: '',
     wifipass: '',
     wifisync: true,
@@ -45,28 +53,48 @@ var app = new Vue({
     }
   },
   mounted: function () {
-    var el = document.getElementById('loading')
-      el.parentNode.removeChild(el);
     // When the app is mounted
+    this.logging.push('App started.');
+
+    this.checkIfDebugMode;
+
+    // 1. Remove loading screen
+    var el = document.getElementById('loading');
+    el.parentNode.removeChild(el);
+
+    var el1 = document.getElementById('app');
+    el1.style.display = 'block';
+
+    // 2. Select which API to use, dev vs prod
     this.selectApiUrl();
-    var that = this;
-    console.log('Vue.js mounted, fetching data at startup');
 
-    setTimeout(function() {
-      that.jsGet('aplist');
-    }, 1500);
+    // 3. Fetch available Wifis + status
+    this.jsGet('aplist');
+    this.jsGet('status');
 
-    // This checks if connection to the kit has been lost, every 5 sec
-    this.every5sec();
+    // This checks if connection to the kit has been lost, every X sec
+    this.periodic(9000);
   },
   methods: {
-    every5sec: function () {
+    copyTextToClipboard: function(containerid){
+      // We need to copy the text temporary into a textBox to be able to copy it to clipboard.
+      var textToCopy = document.getElementById('kitinfo').innerText;
+      var textBox = document.createElement('textarea');
+      textBox.value = textToCopy;
+      document.body.appendChild(textBox);
+      textBox.select();
+      document.execCommand('copy');
+      textBox.remove();
+      document.getElementById('copied-notification').innerHTML = 'Text copied!'
+    },
+    periodic: function (ms) {
       var that = this;
-      //console.log('I should check /status');
 
+      // TODO: should we check status every 5 sec?
       setTimeout(function(){
-        return that.every5sec();
-      }, 5000);
+        that.jsGet('status');
+        return that.periodic(ms);
+      }, ms);
     },
     selectApiUrl: function () {
       // If we are running this from the kit,
@@ -77,19 +105,22 @@ var app = new Vue({
       if (window.location.port === '8000') {
         this.theApi = 'http://' + window.location.hostname + ':3000/';
         this.development = true;
-      } else {
-        this.theApi = window.location.href;
       }
-
-      console.log('Using API : ' + this.theApi);
-      this.notify('Using API', 3000);
     },
     httpGet: function(theUrl, callback) {
+      //console.log('theurl: ' + theUrl);
       var xmlHttp = new XMLHttpRequest();
+      var that = this;
 
       xmlHttp.onreadystatechange =  function() {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
           callback(xmlHttp.responseText);
+        }
+      }
+      xmlHttp.onerror = function(e){
+        // Don't show this error, if we have tried connecting. Only on real API failures
+        if (!that.weHaveTriedConnecting) {
+          that.notify('Your kit is not responding', 5000, 'bg-red');
         }
       }
       xmlHttp.open( "GET", theUrl, true ); // false for synchronous request, true = async
@@ -99,13 +130,13 @@ var app = new Vue({
       var that = this;
 
       this.httpGet(this.theApi + path, function(res){
+        //console.log(JSON.parse(res));
         if (path === 'aplist') {
           that.wifis = JSON.parse(res);
-          that.notify('Getting wifi list...', 3000, 'bg-cyan');
         }
         if (path === 'status'){
-          that.notify('Getting status', 2000);
-          that.debuginfo = JSON.parse(res);
+          //that.notify('Getting status', 1000);
+          that.kitstatus = JSON.parse(res);
         }
 
       });
@@ -119,16 +150,18 @@ var app = new Vue({
       // /set?ssid=value1&password=value2&token=value3&epoch=value
 
       if (purpose == 'connect'){
-        this.notify('Connecting online...', 2000);
+        this.weHaveTriedConnecting = true;
+        this.notify('Kit is trying to connect online...', 2000);
         that.httpGet(that.theApi + path +
             '?ssid=' + that.selectedWifi +
             '&password=' + that.wifipass +
             '&token=' + that.usertoken +
             '&epoch=' + that.browsertime,
             function(res){
-              console.log(res);
-              that.notify('Response: ' + res.test, 5000);
+              console.log('Kit response: ' + res);
             });
+        // After we try to connect, we go to the next page.
+        this.gotoPage();
       }
 
       if (purpose == 'synctime'){
@@ -141,22 +174,42 @@ var app = new Vue({
 
     },
 
-    gotoPage: function(){
-      // Get page
-      // disable page
-      // enable next page
-      if (this.currentPage === 4) {
-        return;
+    gotoPage: function(num){
+
+      // Keep lastPage in memory
+      this.lastPage = this.currentPage;
+
+      // Hide current page
+      this.page[this.currentPage].visible = false;
+
+      // Find which page to show next
+      // Is it a specified page, or the next one?
+      if ( typeof num !== 'undefined') {
+        this.currentPage = parseInt(num);
+      }else{
+        // Find the last page so we wont go too far, when clicking 'Next'
+        if ( this.currentPage === (this.page.length - 1)) {
+          //console.log('Last page: ' + this.currentPage)
+          return;
+        }
+
+        this.currentPage = parseInt(this.currentPage + 1);
       }
-      this.page[this.currentPage] = false;
-      this.currentPage += 1;
-      this.page[this.currentPage] = true;
+
+      // Show it
+      this.page[this.currentPage].visible = true;
+
+      this.logging.push('Go to page: ' + this.currentPage);
     },
 
     notify: function(msg, duration, className){
+      if (duration === 'undefined') {
+        console.log('no duration');
+        duration = 1000;
+      }
 
-      //All events should also go to the logging section at the bottom in the advanced section
-      this.logging.push(msg)
+      //All events should also go to the logging section
+      this.logging.push(msg);
 
       var newtoast = document.createElement("div");
       if (className) {
@@ -172,15 +225,24 @@ var app = new Vue({
         delete newtoast;
       }, duration);
 
-      console.log('Notify:', msg)
+      console.log('Notify:', msg);
     },
   },
   computed: {
+    checkIfDebugMode: function(){
+       if (window.location.hash === '#debug'){
+         // Enables debug buttons
+         this.showDebug = true;
+       }
+    },
     sortedWifi: function () {
       this.wifis.nets.sort(function (a, b) {
         return a.rssi - b.rssi;
       });
       return this.wifis.nets.reverse();
+    },
+    usertokenCheck: function(){
+      return this.usertoken.length === 6;
     }
   }
 });

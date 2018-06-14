@@ -23,6 +23,7 @@
     "apstatus": "started",
     "wifi": "not configured",
     "net": "null",
+    "last_publish": "0",
     "mqtt": "null"
   },
   "aplist": {

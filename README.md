@@ -1,9 +1,15 @@
-# SmartCitizenKit
-Developer version of Smart Citizen Kit 1.5 Firmware
+# SmartCitizenKit ![Travis](https://travis-ci.org/fablabbcn/smartcitizen-kit-20.svg?branch=master) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 
-You can see the current (master branch) state of the mobile UI setup here:
 
-https://fablabbcn.github.io/smartcitizen-kit-15/esp/data/
+Developer version of Smart Citizen Kit 2.0 Firmware
+
+Find the new version here:
+
+https://github.com/fablabbcn/smartcitizen-kit-20
+
+You can see this repos current (master branch) state of the mobile UI setup here:
+
+https://fablabbcn.github.io/smartcitizen-kit-20/esp/data/
 
 ## Development
 
@@ -48,6 +54,7 @@ After clonning the repository:
 The technology used here is:
 * HTML, CSS, JavaScript
 * (Vue.js)
+* **Make sure it is using the old javascript, so older phones work. **
 
 And the files are under *esp/data*
 
@@ -61,6 +68,10 @@ Inside the ./mock-api folder do:
 1. `npm run web` - Starts frontend on [localhost:8000](http://localhost:8000)
 
 1. `npm run api` - Starts api on [localhost:3000](http://localhost:3000)
+
+1. `gulp watch` - Watches changes and creates 2 files automatically; `index.html` and  `index.gz`
+
+Now you can start editing **esp/data/index.html.dev**
 
 If your mock-api is not responding, see */esp/data/main.js*, **theUrl** should be (your API url:port)
 
@@ -79,3 +90,11 @@ Edit tests under `mock-api/casperjs/test`
 ####  TODO / ideas:
 
 * Should we move the frontend to /mock-api, and create a process which compiles it + concatinates and puts the 'dist' in esp/data?
+
+## Documentation
+
+Full documentation under development. Follow the [forum](https://forum.smartcitizen.me/) and [twitter](https://twitter.com/SmartCitizenKit) for updates.
+
+## License
+
+All the software is released under [GNU GPL v3.0](https://github.com/fablabbcn/smartcitizen-kit-20/blob/master/LICENSE) and the hardware design files under [CERN OHL v1.2](https://github.com/fablabbcn/smartcitizen-kit-20/blob/master/hardware/LICENSE)

@@ -1,4 +1,4 @@
-#include "sckESP.h"
+#include "SckESP.h"
 
 SckESP esp;
 
@@ -11,18 +11,17 @@ void loop() {
 }
 
 
-void LedToggleLeft() {
-	esp.ledToggle(esp.ledLeft);
+void ledToggle() {
+	esp._ledToggle();
 }
-void LedToggleRight() {
-	esp.ledToggle(esp.ledRight);
-}
+
+
 time_t ntpProvider() {
 	return esp.getNtpTime();
 }
-void extSet() {
-	esp.webSet();
-}
-void extStatus() {
-	esp.webStatus();
-}
+// void extSet() {
+// 	esp.webSet();
+// }
+// void extStatus() {
+// 	esp.webStatus();
+// }

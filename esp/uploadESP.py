@@ -8,28 +8,17 @@ import serial, time, sys, glob
 portName = False
 
 def before_upload(source, target, env):
-	time.sleep(6)
 	print "\n\nSearching for a Smartcitizen kit..."
 	myPort = selectPort(serialPorts())
 	if myPort:
 		print("Asking for upload bridge...")
 		myPort.write("")
-		time.sleep(1)
-		myPort.write("set config mode esp flash\n")
-		myPort.close()
-		time.sleep(1)
+		myPort.write("esp flash\n")
 	env.Replace(UPLOAD_PORT=portName)
 
 def after_upload(source, target, env):
 	print "All good!!!"
-	print "Please click the button or reset your kit..."
 	global portName
-	myPort = serial.Serial(portName)
-	if myPort:
-		print "Reseting your kit..."
-		for i in range(10):
-			myPort.write("Bye")
-		myPort.close()
 
 print "Current build targets", map(str, BUILD_TARGETS)
 
@@ -112,4 +101,4 @@ def selectPort(ports):
 			pass
 
 	print 'No Smartcitizen kit found, please check your USB connection'
-	sys.exit()
+	sys.exit(-1)

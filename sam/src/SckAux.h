@@ -9,44 +9,52 @@
 // AlphaDelta libs
 #include <AlphaDelta.h>
 
+// Urban board library
+#include <SckUrban.h>
+
 // Groove_OLED libs
-#include <U8g2lib.h>
+/* #include <U8g2lib.h> */
 
 // DS2482 library (I2C-1Wire bridge)
 #include <DS2482.h>
 
 #include <Sensors.h>
 
+extern TwoWire auxWire;
 
 bool I2Cdetect(byte address);
 
-class AuxBoards {
-	
+class AuxBoards
+{
+
 	public:
 
 		// List for storing Auxiliary sensors I2C address (SENSOR_COUNT - (BASE AND URBAN SENSORS))
 		// TODO: store this in epprom, load it on boot, make a function to change the addresses by console command
 		byte devAddress[SENSOR_COUNT - 18] {
-			0x55,		// SENSOR_ALPHADELTA_AE1,
-			0x55,		// SENSOR_ALPHADELTA_WE1,
-			0x56,		// SENSOR_ALPHADELTA_AE2,
-			0x56,		// SENSOR_ALPHADELTA_WE2,
-			0x54,		// SENSOR_ALPHADELTA_AE3,
-			0x54,		// SENSOR_ALPHADELTA_WE3,
-			0x44,		// SENSOR_ALPHADELTA_TEMPERATURE,
-			0x44,		// SENSOR_ALPHADELTA_HUMIDITY,
-			0x59,		// SENSOR_GROOVE_I2C_ADC,
-			0x41,		// SENSOR_INA219_BUSVOLT,
-			0x41,		// SENSOR_INA219_SHUNT,
-			0x41,		// SENSOR_INA219_CURRENT,
-			0x41,		// SENSOR_INA219_LOADVOLT,
-			0x18,		// SENSOR_WATER_TEMP_DS18B20,
-			0x3c,		// SENSOR_GROOVE_OLED,
-			0x63,		// SENSOR_ATLAS_PH,
-			0x64,		// SENSOR_ATLAS_EC,
-			0x64,		// SENSOR_ATLAS_EC_SG,
-			0x61,		// SENSOR_ATLAS_DO,
-			0x61		// SENSOR_ATLAS_DO_SAT,
+				0x02,		// SENSOR_PM_1
+				0x02,		// SENSOR_PM_25
+				0x02,		// SENSOR_PM_10
+				0x55,		// SENSOR_ALPHADELTA_AE1,
+				0x55,		// SENSOR_ALPHADELTA_WE1,
+				0x56,		// SENSOR_ALPHADELTA_AE2,
+				0x56,		// SENSOR_ALPHADELTA_WE2,
+				0x54,		// SENSOR_ALPHADELTA_AE3,
+				0x54,		// SENSOR_ALPHADELTA_WE3,
+				0x44,		// SENSOR_ALPHADELTA_TEMPERATURE,
+				0x44,		// SENSOR_ALPHADELTA_HUMIDITY,
+				0x59,		// SENSOR_GROOVE_I2C_ADC,
+				0x41,		// SENSOR_INA219_BUSVOLT,
+				0x41,		// SENSOR_INA219_SHUNT,
+				0x41,		// SENSOR_INA219_CURRENT,
+				0x41,		// SENSOR_INA219_LOADVOLT,
+				0x18,		// SENSOR_WATER_TEMP_DS18B20,
+				0x3c,		// SENSOR_GROOVE_OLED,
+				0x63,		// SENSOR_ATLAS_PH,
+				0x64,		// SENSOR_ATLAS_EC,
+				0x64,		// SENSOR_ATLAS_EC_SG,
+				0x61,		// SENSOR_ATLAS_DO,
+				0x61		// SENSOR_ATLAS_DO_SAT,
 		};
 
 		bool begin(SensorType wichSensor);
@@ -59,7 +67,8 @@ class AuxBoards {
 	private:
 };
 
-class GrooveI2C_ADC {
+class GrooveI2C_ADC
+{
 	public:
 
 		bool begin();
@@ -79,7 +88,8 @@ class GrooveI2C_ADC {
 	private:
 };
 
-class INA219 {
+class INA219
+{
 	public:
 
 		const byte deviceAddress = 0x41;
@@ -93,7 +103,8 @@ class INA219 {
 	private:
 };
 
-static const unsigned char scLogo[] PROGMEM = {
+static const unsigned char scLogo[] PROGMEM =
+{
 	0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0xf0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -189,29 +200,31 @@ static const unsigned char scLogo[] PROGMEM = {
 	0x00, 0x00, 0x00, 0x80, 0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0xfc, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0xc0, 0xff, 0xff, 0x07, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-class Groove_OLED {
-	public:
+/* class Groove_OLED */
+/* { */
+/* 	public: */
 
-		const byte deviceAddress = 0x3c;
+/* 		const byte deviceAddress = 0x3c; */
 
-		U8G2_SSD1327_SEEED_96X96_F_HW_I2C U8g2_oled = U8G2_SSD1327_SEEED_96X96_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL, SDA);
+/* 		U8G2_SSD1327_SEEED_96X96_F_HW_I2C U8g2_oled = U8G2_SSD1327_SEEED_96X96_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL, SDA); */
 
-		bool begin();
-		void print(String payload);
-		void displayReading(String title, String reading, String unit, String time);
+/* 		bool begin(); */
+/* 		void print(String payload); */
+/* 		void displayReading(String title, String reading, String unit, String time); */
 
-	private:
-};
+/* 	private: */
+/* }; */
 
 /*! @class DS2482_100
  *  @brief class for handling the DS18B20 temperature sensor connected to the I2C port
  *   through the DS2482-100 board. This was based on an example made by
  *   <a href="https://github.com/paeaetech/paeae.git">paeae</a>
  */
-class WaterTemp_DS18B20 {
+class WaterTemp_DS18B20
+{
 
 	public:
 
@@ -224,19 +237,16 @@ class WaterTemp_DS18B20 {
 
 		uint8_t conf =0x05;
 
-		/**
-		 * Start the transmission of data for the DS18B20 trough the DS2482_100 bridge
-		 */
+		/* Start the transmission of data for the DS18B20 trough the DS2482_100 bridge */
 		bool begin();
-		/**
-		 * Read the temperature of the DS18B20 through the DS2482_100 bridge
-		 * @return Temperature
-		 */
+		/* Read the temperature of the DS18B20 through the DS2482_100 bridge */
+		/* @return Temperature */
 		float getReading();
 	private:
 };
 
-class Atlas {
+class Atlas
+{
 	public:
 
 		byte deviceAddress;
@@ -254,49 +264,81 @@ class Atlas {
 			ASKED_READING,
 		};
 		State state = REST;
-		
+
 		// Constructor varies by sensor type
 		Atlas(SensorType wichSensor) {
 			atlasType = wichSensor;
 
 			switch(atlasType) {
 				case SENSOR_ATLAS_PH: {
-					deviceAddress = 0x63;
-					PH = true;
-					break;
+							      deviceAddress = 0x63;
+							      PH = true;
+							      break;
 
-				} case SENSOR_ATLAS_EC:
+						      } case SENSOR_ATLAS_EC:
 				case SENSOR_ATLAS_EC_SG: {
-					deviceAddress = 0x64;
-					EC = true;
-					break;
+								 deviceAddress = 0x64;
+								 EC = true;
+								 break;
 
-				} case SENSOR_ATLAS_DO:
+							 } case SENSOR_ATLAS_DO:
 				case SENSOR_ATLAS_DO_SAT: {
-					deviceAddress = 0x61;
-					DO = true;
-					break;				
+								  deviceAddress = 0x61;
+								  DO = true;
+								  break;
 
-				} default: break;
+							  } default: break;
 			}
 
-	    }
+		}
 
 		bool begin();
 		bool beginDone = false;
 		float getReading();
 		bool getBusyState();
-		
+
 		void goToSleep();
 		bool sendCommand(char* command);
 		bool tempCompensation();
 		uint8_t getResponse();
-		
+
 		uint16_t longWait = 910; //ms
 		uint16_t mediumWait = 610; //ms
 		uint16_t shortWait = 310; //ms
 
 	private:
+};
+
+enum PMslot {SLOT_A, SLOT_B, SLOT_AVG};
+enum PMcommands
+{
+         PM_START,          // Start both PMS
+         GET_PMA,        // Get values for PMS in slot A
+         GET_PMB,        // Get values for PMS in slot A
+         GET_PM_AVG,     // Get values for both PMS averaged
+         PM_STOP            // Stop both PMS
+ };
+
+class PMsensor
+{
+	public:
+
+		PMsensor(PMslot wichSlot) {
+			slot = wichSlot;
+		}
+
+		const byte deviceAddress = 0x02;
+
+		uint16_t readingPM1;
+		uint16_t readingPM25;
+		uint16_t readingPM10;
+
+		bool begin();
+		float getReading(uint8_t wichReading);
+	private:
+		bool alreadyStarted = false;
+		PMslot slot;
+		uint8_t values[6];		// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

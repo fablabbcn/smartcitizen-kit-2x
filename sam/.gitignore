@@ -2,3 +2,12 @@
 .piolibdeps
 .clang_complete
 .gcc-flags.json
+!.platformio
+.platformio/*
+!.platformio/packages/
+.platformio/packages/*
+!.platformio/packages/framework-arduinosam
+.platformio/packages/framework-arduinosam/*
+!.platformio/packages/framework-arduinosam/variants
+.platformio/packages/framework-arduinosam/variants/*
+!.platformio/packages/framework-arduinosam/variants/sck2

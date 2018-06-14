@@ -49,6 +49,7 @@ script:
     - pio run
     - cd ..
     - cd sam
+    - sh first.sh
     - pio run
     - cd ..
     - echo 'Running end to end tests with casperjs'

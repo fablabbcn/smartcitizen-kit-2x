@@ -25,16 +25,19 @@ dataSound ReadSound::read() {
 
 	// urban.setPot(POT4, );
 
-	prevLevel = level;
-	level = analogRead(S4);
+	// prevLevel = level;
+	// level = analogRead(S4);
 
 	// mean = 
 
 	// SerialUSB.println(tick);
 
-	if (level - prevLevel ) out++;
+	// if (level - prevLevel ) out++;
 
-	return results;
+	// return results;
+
+	dataSound dummy;
+	return dummy;
 }
 
 // Avoid the watchdog timer to trigger a restart()

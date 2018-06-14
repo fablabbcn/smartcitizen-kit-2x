@@ -1,34 +1,45 @@
-#include "sckBase.h"
+#include "SckBase.h"
 
 SckBase base;
 
-// Button interrupt handler
-void ISR_button() {
-	base.buttonEvent();
-};
-void ISR_alarm() {
-	base.wakeUp();
-};
-// Timer 5 interrupt handler
+// Led update interrupt
 void TC5_Handler (void) {
 	base.led.tick();
-    // Clear the interrupt
-    TC5->COUNT16.INTFLAG.bit.MC0 = 1;
-};
+	TC5->COUNT16.INTFLAG.bit.MC0 = 1;
+}
+// Button events interrupt
+void ISR_button() {
+	base.butState = digitalRead(pinBUTTON);
+	base.butFeedback();
+}
+// Battery events interrupt
+void ISR_battery() {
+	base.batteryEvent();
+}
+// Card detect interrupt
+void ISR_sdDetect() {
+	base.sdDetect();
+}
+// Battery charger interrupt
+void ISR_charger() {
+	base.chargerEvent();
+}
+void TC3_Handler (void) {
+	base.timerAlarm();
+	TC3->COUNT16.INTFLAG.bit.MC0 = 1;
+}
+// void ISR_alarm() {
+// 	base.wakeUp();
+// };
 
 void setup() {
-
 	base.setup();
-
 }
 
-uint32_t publish_timer = millis();
-
 void loop() {
-
-	// delay(10);
-	// base.getReading(SENSOR_INA219_CURRENT);
-	// base.sckOut(String(base.sensors[SENSOR_INA219_CURRENT].reading));
-
 	base.update();
+}
+
+void serialEventRun(){
+	base.inputUpdate();
 }

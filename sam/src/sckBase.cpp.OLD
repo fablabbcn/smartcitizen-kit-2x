@@ -114,8 +114,8 @@ void SckBase::setup() {
   	writeCurrent(200);
 	
  	// Button
- 	pinMode(PIN_BUTTON, INPUT_PULLUP);
-	LowPower.attachInterruptWakeup(PIN_BUTTON, ISR_button, CHANGE);
+ // 	pinMode(PIN_BUTTON, INPUT_PULLUP);
+	// LowPower.attachInterruptWakeup(PIN_BUTTON, ISR_button, CHANGE);
 	LowPower.attachInterruptWakeup(RTC_ALARM_WAKEUP, ISR_alarm, CHANGE);
 
 	// Pause for a moment (for uploading firmware in case of problems)
@@ -2155,7 +2155,6 @@ void SckBase::sckOut(PrioLevels priority, bool newLine) {
 	strncpy(outBuff, "", 128);
 }
 void SckBase::prompt() {
-
 	sckOut("SCK > ", PRIO_MED, false);
 }
 
@@ -2657,90 +2656,90 @@ bool SckBase::sdLogADC(){
 // 	|	Button   |
 // 	--------------
 //
-void SckBase::buttonEvent() {
+// void SckBase::buttonEvent() {
 
-	userLastAction = rtc.getEpoch();
+// 	userLastAction = rtc.getEpoch();
 
-	if (!digitalRead(PIN_BUTTON)) {
+// 	if (!digitalRead(PIN_BUTTON)) {
 
-		urban.ESR = true;
+// 		urban.ESR = true;
 
-		butLastEvent = millis();
+// 		butLastEvent = millis();
 
-		timerSet(ACTION_LONG_PRESS, longPressInterval);
-		timerSet(ACTION_VERY_LONG_PRESS, veryLongPressInterval);
+// 		timerSet(ACTION_LONG_PRESS, longPressInterval);
+// 		timerSet(ACTION_VERY_LONG_PRESS, veryLongPressInterval);
 
-		buttonDown();
+// 		buttonDown();
 
-	} else {
+// 	} else {
 
-		butLastEvent = millis();
+// 		butLastEvent = millis();
 		
-		timerClear(ACTION_LONG_PRESS);
-		timerClear(ACTION_VERY_LONG_PRESS);
+// 		timerClear(ACTION_LONG_PRESS);
+// 		timerClear(ACTION_VERY_LONG_PRESS);
 
-		buttonUp();
-	}
+// 		buttonUp();
+// 	}
 
-	if (onUSB && !USBDeviceAttached) {
-		USBDevice.init();
-		USBDevice.attach();
-		USBDeviceAttached = true;
-		prompt();
-	}
-}
-void SckBase::buttonDown() {
+// 	if (onUSB && !USBDeviceAttached) {
+// 		USBDevice.init();
+// 		USBDevice.attach();
+// 		USBDeviceAttached = true;
+// 		prompt();
+// 	}
+// }
+// void SckBase::buttonDown() {
 
-	sckOut(F("buttonDown"), PRIO_LOW);
+// 	sckOut(F("buttonDown"), PRIO_LOW);
 
-	switch (config.mode) {
-		case MODE_FLASH: {
-			softReset();
-			break;
+// 	switch (config.mode) {
+// 		case MODE_FLASH: {
+// 			softReset();
+// 			break;
 
-		} case MODE_SETUP: {
-			changeMode(config.persistentMode);
-			break;
+// 		} case MODE_SETUP: {
+// 			changeMode(config.persistentMode);
+// 			break;
 
-		} case MODE_OFF: {
+// 		} case MODE_OFF: {
 
-			wakeUp();
-			break;
+// 			wakeUp();
+// 			break;
 
-		} default: {
-			changeMode(MODE_SETUP);
-		}
-	}
-}
-void SckBase::buttonUp() {
+// 		} default: {
+// 			changeMode(MODE_SETUP);
+// 		}
+// 	}
+// }
+// void SckBase::buttonUp() {
 
-	sckOut(F("Button up"), PRIO_LOW);
+// 	sckOut(F("Button up"), PRIO_LOW);
 
-	if (config.mode == MODE_OFF) {
-		sckOut("Sleeping!!");
-		timerSet(ACTION_SLEEP, 500);
-	} else urban.ESR = false;
-}
-void SckBase::longPress() {
+// 	if (config.mode == MODE_OFF) {
+// 		sckOut("Sleeping!!");
+// 		timerSet(ACTION_SLEEP, 500);
+// 	} else urban.ESR = false;
+// }
+// void SckBase::longPress() {
 
-	// Make sure we havent released button without noticed it
-	if (!digitalRead(PIN_BUTTON)) {
+// 	// Make sure we havent released button without noticed it
+// 	if (!digitalRead(PIN_BUTTON)) {
 	
-		sckOut(String F("Button long press: ") + String(millis() - butLastEvent), PRIO_MED);
-		changeMode(MODE_OFF);
+// 		sckOut(String F("Button long press: ") + String(millis() - butLastEvent), PRIO_MED);
+// 		changeMode(MODE_OFF);
 	
-	} else buttonEvent();
-}
-void SckBase::veryLongPress() {
+// 	} else buttonEvent();
+// }
+// void SckBase::veryLongPress() {
 
-	// Make sure we havent released button without noticed it
-	if (!digitalRead(PIN_BUTTON)) {
+// 	// Make sure we havent released button without noticed it
+// 	if (!digitalRead(PIN_BUTTON)) {
 	
-		sckOut(String F("Button very long press: ") + String(millis() - butLastEvent), PRIO_MED);
-		factoryReset();
+// 		sckOut(String F("Button very long press: ") + String(millis() - butLastEvent), PRIO_MED);
+// 		factoryReset();
 
-	} else buttonEvent();
-}
+// 	} else buttonEvent();
+// }
 
 // 	-----------------
 // 	|	 SD card	|
@@ -2756,7 +2755,7 @@ bool SckBase::sdPresent() {
 	// Make sure files are closed to avoid corruption
 	closeFiles();
 
-	if (sd.cardBegin(CS_SDCARD, SPI_HALF_SPEED)) {
+	if (sd.cardBegin(CS_SDCARD, SPI_FULL_SPEED)) {
 		sckOut(F("Sdcard ready!!"), PRIO_LOW);
 		return true;
 	} else {
@@ -3143,415 +3142,6 @@ bool SckBase::urbanBoardDetected() {
 	writeResistor(6, originalValue);
 	if (abs(compareValue - 1176.47) < 5) {
 		return true;
-	}
-	return false;
-}
-
-
-// 	-------------
-// 	|	 Led	|
-// 	-------------
-//
-void Led::setup() {
-	off();
-	dir = true;
-	colorIndex = 0;
-	pulseMode = PULSE_STATIC;
-}
-void Led::update(SCKmodes newMode, uint8_t newPulseMode) {
-
-	switch (newPulseMode) {
-		case 0: {
-			pulseMode = PULSE_SOFT;
-			break;
-		} case 1: {
-			pulseMode = PULSE_HARD_SLOW;
-			break;
-		} case 2: {
-			pulseMode = PULSE_HARD_FAST;
-			break;
-		}
-	}
-
-	switch (newMode) {
-		case MODE_SETUP: {
-			currentPulse = pulseRed;
-			break;
-		} case MODE_NET: {
-			currentPulse = pulseBlue;
-			break;
-		} case MODE_SD: {
-			currentPulse = pulsePink;
-			break;
-		} case MODE_FLASH: {
-			ledRGBcolor = lightBlueRGB;
-			pulseMode = PULSE_STATIC;
-			break;
-		} case MODE_BRIDGE: {
-			ledRGBcolor = lightGreenRGB;
-			pulseMode = PULSE_STATIC;
-			break;
-		} case MODE_OFF: {
-			ledRGBcolor = offRGB;
-			pulseMode = PULSE_STATIC;
-			break;
-		} case MODE_SHELL: {
-			ledRGBcolor = altBlueRGB;
-			pulseMode = PULSE_STATIC;
-		} default: {
-			;
-		}
-	}
-
-	if (pulseMode != PULSE_STATIC) configureTimer5(refreshPeriod);
-	else disableTimer5();
-
-	tick();
-}
-void Led::reading() {
-	ledRGBcolor = whiteRGB;
-	pulseMode = PULSE_STATIC;
-	timerReading = millis(); //substituir esto por una libreria de timers
-}
-void Led::wifiOK() {
-	ledRGBcolor = greenRGB;
-	pulseMode = PULSE_STATIC;
-}
-void Led::configOK() {
-	ledRGBcolor = greenRGB;
-	pulseMode = PULSE_STATIC;
-}
-void Led::bridge() {
-	ledRGBcolor = whiteRGB;
-	pulseMode = PULSE_STATIC;
-}
-void Led::tick() {
-
-	if(pulseMode == PULSE_SOFT) {
-		
-		// Soft pulse
-		ledRGBcolor = *(currentPulse + colorIndex);
-		if (dir) {
-			colorIndex = colorIndex + 1;
-			if (colorIndex > 24) {
-				colorIndex = 24;
-				dir = false;
-			}
-		} else {
-			colorIndex = colorIndex - 1;
-			if (colorIndex < 0) {
-				colorIndex = 0;
-				dir = true;
-			}
-		}
-
-		if (charging) {
-			if (colorIndex >= 0 && colorIndex <= 2) {
-				ledRGBcolor = orangeRGB;
-				brightnessFactor = 1;
-			}
-		} else if (finishedCharging) {
-			if (colorIndex >= 0 && colorIndex <= 2) {
-				ledRGBcolor = greenRGB;
-				brightnessFactor = 1;
-			}
-		} else if (lowBatt) {
-			if (colorIndex == 0 || colorIndex == 3) {
-				ledRGBcolor = orangeRGB;
-				brightnessFactor = 1;
-			} else {
-				brightnessFactor = 0;
-			}
-		}
-
-	} else if (pulseMode == PULSE_HARD_SLOW) {
-
-		if (millis() - hardTimer > slowHard) {
-			hardTimer = millis();
-
-			if (inErrorColor) ledRGBcolor = currentPulse[24];
-			else ledRGBcolor = yellowRGB;
-
-			inErrorColor = !inErrorColor;
-		}
-
-	} else if (pulseMode == PULSE_HARD_FAST) {
-
-		if (millis() - hardTimer > fastHard) {
-			hardTimer = millis();
-
-			if (inErrorColor) ledRGBcolor = currentPulse[24];
-			// else ledRGBcolor = yellowRGB;
-			else ledRGBcolor = offRGB;
-
-			inErrorColor = !inErrorColor;
-		}
-
-	}
-
-	// Apply brightnessFactor
-	ledRGBcolor.r = ledRGBcolor.r * brightnessFactor;
-	ledRGBcolor.g = ledRGBcolor.g * brightnessFactor;
-	ledRGBcolor.b = ledRGBcolor.b * brightnessFactor;
-
-	setRGBColor(ledRGBcolor);
-}
-void Led::setRGBColor(RGBcolor myColor) {
-
-	if (myColor.r == 0) {
-		pinMode(PIN_LED_RED, OUTPUT);
-		digitalWrite(PIN_LED_RED, HIGH);
-	} else analogWrite(PIN_LED_RED, 255 - myColor.r);
-	
-	if (myColor.g == 0) {
-		pinMode(PIN_LED_GREEN, OUTPUT);
-		digitalWrite(PIN_LED_GREEN, HIGH);
-	} else analogWrite(PIN_LED_GREEN, 255 - myColor.g);
-
-	if (myColor.b == 0) {
-		pinMode(PIN_LED_BLUE, OUTPUT);
-		digitalWrite(PIN_LED_BLUE, HIGH);
-	} else analogWrite(PIN_LED_BLUE, 255 - myColor.b);
-}
-void Led::setHSIColor(float h, float s, float i) {
-	uint8_t r, g, b;
-
-	h = fmod(h,360);
-	h = 3.14159*h/(float)180;
-	s = s>0?(s<1?s:1):0;
-	i = i>0?(i<1?i:1):0;
-
-	if(h < 2.09439) {
-		r = 255*i/3*(1+s*cos(h)/cos(1.047196667-h));
-		g = 255*i/3*(1+s*(1-cos(h)/cos(1.047196667-h)));
-		b = 255*i/3*(1-s);
-	} else if(h < 4.188787) {
-		h = h - 2.09439;
-		g = 255*i/3*(1+s*cos(h)/cos(1.047196667-h));
-		b = 255*i/3*(1+s*(1-cos(h)/cos(1.047196667-h)));
-		r = 255*i/3*(1-s);
-	} else {
-		h = h - 4.188787;
-		b = 255*i/3*(1+s*cos(h)/cos(1.047196667-h));
-		r = 255*i/3*(1+s*(1-cos(h)/cos(1.047196667-h)));
-		g = 255*i/3*(1-s);
-	}
-
-	setRGBColor({r,g,b});
-}
-void Led::off() {
-	disableTimer5();
-	
-	ledRGBcolor = offRGB;
-	pulseMode = PULSE_STATIC;
-
-	pinMode(PIN_LED_RED, OUTPUT);
-	pinMode(PIN_LED_GREEN, OUTPUT);
-	pinMode(PIN_LED_BLUE, OUTPUT);
-	
-	digitalWrite(PIN_LED_RED, HIGH);
-	digitalWrite(PIN_LED_GREEN, HIGH);
-	digitalWrite(PIN_LED_BLUE, HIGH);
-}
-
-
-// 	-----------------
-// 	|	 Timers 	|
-// 	-----------------
-//
-bool SckBase::timerRun() {
-
-	for (uint8_t i=0; i<timerSlots; i++) {
-		if (timers[i].action != ACTION_NULL) {
-			if (millis() - timers[i].started > timers[i].interval) {
-				
-				// Check for action to execute
-				switch(timers[i].action) {
-					case ACTION_CLEAR_ESP_BOOTING:{
-						sckOut(F("ESP ready!!!"));
-						timerSet(ACTION_GET_ESP_STATUS, statusPoolingInterval, true);
-						break;
-
-					} case ACTION_ESP_ON: {
-						ESPcontrol(ESP_ON);
-						break;
-
-					} case ACTION_ESP_REBOOT: {
-						ESPcontrol(ESP_REBOOT);
-						break;
-
-					} case ACTION_GET_ESP_STATUS: {
-						if (!readLightEnabled) {
-							if (!digitalRead(POWER_WIFI)) getStatus();
-						}
-						break;
-					
-					} case ACTION_LONG_PRESS: {
-						longPress();
-						break;
-
-					} case ACTION_VERY_LONG_PRESS: {
-						veryLongPress();
-						break;
-
-					} case ACTION_RESET: {
-
-						softReset();
-						break;
-
-					} case ACTION_UPDATE_SENSORS: {
-
-						updateSensors();
-						break;
-
-					} case ACTION_DEBUG_LOG: {
-
-						sdLogADC();
-						break;
-
-					} case ACTION_GOTO_SETUP: {
-
-						changeMode(MODE_SETUP);
-						break;
-
-					} case ACTION_RECOVER_ERROR: {
-
-						if (config.persistentMode == MODE_SD) {
-
-							if (onTime && sdPresent()) {
-								timerClear(ACTION_RECOVER_ERROR);
-								changeMode(MODE_SD);
-							}
-						
-						} else if (config.persistentMode == MODE_NET) {
-
-							if (digitalRead(POWER_WIFI)) ESPcontrol(ESP_ON);
-
-							if (onTime && onWifi() && tokenSet) {
-								timerClear(ACTION_RECOVER_ERROR);
-								timerClear(ACTION_START_AP_MODE);
-								changeMode(MODE_NET);
-							}
-						}
-
-						break;
-
-					} case ACTION_START_AP_MODE: {
-
-						msgBuff.com = ESP_START_AP_COM;
-						ESPqueueMsg(false, false);
-						break;
-
-					} case ACTION_SAVE_SD_CONFIG: {
-						
-						// How much time for next publish...
-						uint32_t timeToNextPublish = rtc.getEpoch() - lastPublishTime;
-
-						// If there is no message on queue and publish time is at least 5 seconds away
-						if (BUS_queueCount == 0 && timeToNextPublish > 5 && !triggerHello) {
-							
-							// Save sd config (esp off)
-							saveSDconfig();
-
-							// Clear timer
-							timerClear(ACTION_SAVE_SD_CONFIG);
-						}
-						break;
-
-					} case ACTION_MQTT_SUBSCRIBE: {
-
-						if (onWifi()) mqttConfig(true);
-						else timerSet(ACTION_MQTT_SUBSCRIBE, 1000);
-						break;
-
-					} case ACTION_RETRY_READ_SENSOR: {
-
-						sckIn(String("read ") + String(sensors[retrySensor].title));
-						break;
-
-					} case ACTION_SLEEP :{
-
-						goToSleep();
-						break;
-
-					} default: {
-						;
-					}
-				}
-
-				// Clear Timer
-				if (!timers[i].periodic) {
-					timers[i].action = ACTION_NULL;
-					timers[i].interval = 0;
-					timers[i].started = 0;
-				} else {
-
-					// Restart timer for periodic tasks
-					timers[i].started = millis();
-				}
-
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-void SckBase::timerSet(TimerAction action, uint32_t interval, bool isPeriodic) {
-
-	bool slotsFree = false;
-
-	for (uint8_t i=0; i<timerSlots; i++) {
-		if (timers[i].action == ACTION_NULL) {
-			timers[i].action = action;
-			timers[i].interval = interval;
-			timers[i].started = millis();
-			timers[i].periodic = isPeriodic;
-			slotsFree = true;
-			break;
-		}
-	}
-
-	if (!slotsFree) {
-		sckOut(F("We need more Timer slots!!!"), PRIO_HIGH);
-		for (uint8_t i=0; i<timerSlots; i++) sckOut(String(timers[i].action));
-	}
-}
-bool SckBase::timerClear(TimerAction action) {
-
-	for (uint8_t i=0; i<timerSlots; i++) {
-		if (timers[i].action == action) {
-			timers[i].action = ACTION_NULL;
-			timers[i].interval = 0;
-			timers[i].started = 0;
-			timers[i].periodic = false;
-			return true;
-		}
-	}
-	return false;
-}
-void SckBase::timerClearTasks(bool clearAll) {
-
-	for (uint8_t i=0; i<timerSlots; i++) {
-
-		if ((timers[i].action != ACTION_LONG_PRESS &&
-			timers[i].action != ACTION_VERY_LONG_PRESS && 
-			timers[i].action != ACTION_GET_ESP_STATUS && 
-			timers[i].action != ACTION_RECOVER_ERROR &&
-			timers[i].action != ACTION_SAVE_SD_CONFIG) || clearAll) {
-
-				timers[i].action = ACTION_NULL;
-				timers[i].interval = 0;
-				timers[i].started = 0;
-				timers[i].periodic = false;
-		}
-	}
-}
-bool SckBase::timerExists(TimerAction action) {
-	for (uint8_t i=0; i<timerSlots; i++) {
-		if (timers[i].action == action) {
-			return true;
-		}
 	}
 	return false;
 }

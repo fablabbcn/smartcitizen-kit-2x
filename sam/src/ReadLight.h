@@ -58,8 +58,8 @@ private:
 	// State variables
 	bool calibrated = false;
 	bool TransmittingText = false;	// This is true after receiving STX char (start text) and false after ETX char (end text)
-	bool EOT = false;	// End of transmission, true when transmission ends or watchdog kicks in.
-	bool ETX = false;
+	bool mEOT = false;	// End of transmission, true when transmission ends or watchdog kicks in.
+	bool mETX = false;
 
 	bool calibrate();
 	bool getLight();

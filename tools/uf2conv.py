@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # Microsoft UF2
 
@@ -25,9 +26,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-
-#!/usr/bin/python
-
 import sys
 import struct
 import subprocess

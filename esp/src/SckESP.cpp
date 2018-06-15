@@ -68,15 +68,15 @@ void SckESP::update()
 	if (WiFi.getMode() == WIFI_AP) {
 		dnsServer.processNextRequest();
 		// webServer.handleClient();
-	} 
-	
+	}
+
 	if (WiFi.status() != currentWIFIStatus) {
 		currentWIFIStatus = WiFi.status();
 		switch (currentWIFIStatus) {
 			case WL_CONNECTED: ledSet(1); sendMessage(SAMMES_WIFI_CONNECTED); break;
 			case WL_CONNECT_FAILED: ledBlink(LED_FAST); sendMessage(SAMMES_PASS_ERROR); break;
 			case WL_NO_SSID_AVAIL: ledBlink(LED_FAST); sendMessage(SAMMES_SSID_ERROR); break;
-			case WL_DISCONNECTED: 
+			case WL_DISCONNECTED:
 					       if (config.credentials.set) ledBlink(LED_SLOW);
 					       else ledBlink(LED_FAST);
 					       break;
@@ -199,13 +199,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			config.token.set = json["ts"];
 			strcpy(config.token.token, json["to"]);
 
-			char enabledSensors[SENSOR_COUNT+1] = "";
-			strcpy(enabledSensors, json["se"]);
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				String bb = String(enabledSensors[i]);
-				config.sensors[i].enabled = (bool)bb.toInt();
-			}
-
 			saveConfig(config);
 			break;
 
@@ -227,39 +220,12 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 
 	case ESPMES_MQTT_PUBLISH:
 	{
-
 			debugOUT("Receiving new readings...");
-
-			// Parse input
-			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-			JsonObject& json = jsonBuffer.parseObject(netBuff);
-
-			// Iterate over all sensors
-			uint8_t count = 0;
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-
-				SensorType wichSensor = static_cast<SensorType>(i);
-
-				// Check if sensor exists in received readings (we asume that missing sensors are disabled)
-				if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
-
-					sensors[wichSensor].lastReadingTime = json["t"];
-					float temp = json["sensors"][count];
-					count++;
-					sensors[wichSensor].reading = String(temp);
-					sensors[wichSensor].enabled = true;
-
-				} else {
-					sensors[wichSensor].enabled = false;
-				}
-			}
-
 			if (mqttPublish()) {
 				delay(500);
 				sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
 			}
 			break;
-
 	}
 	case ESPMES_START_AP:
 
@@ -341,25 +307,27 @@ bool SckESP::mqttPublish()
 		// Prepare the payload
 		char myPayload[1024];
 
+		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+		JsonObject& json = jsonBuffer.parseObject(netBuff);
+
 		// Put time
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
-				sprintf(myPayload, "{\"data\":[{\"recorded_at\":\"%s\",\"sensors\":[", epoch2iso(sensors[wichSensor].lastReadingTime).c_str());
+				sprintf(myPayload, "{\"data\":[{\"recorded_at\":\"%s\",\"sensors\":[", epoch2iso(json["t"]).c_str());
 			}
 		}
 
-		// Put the readings
+		// Iterate over sensor array on json
 		bool putComma = false;
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
+		uint16_t arraySize = json["s"].size();
+		for (uint16_t i=0; i<arraySize; i++) {
+			uint16_t myID = json["s"][i][0];
+			String myValue = json["s"][i][1];
+			if (putComma) sprintf(myPayload, "%s,", myPayload);
+			else putComma = true;
+			sprintf(myPayload, "%s{\"id\":%i,\"value\":%s}", myPayload, myID, myValue.c_str());
 
-			// Only send enabled sensors
-			if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
-				if (putComma) sprintf(myPayload, "%s,", myPayload);
-				else putComma = true;
-				sprintf(myPayload, "%s{\"id\":%i,\"value\":%s}", myPayload, sensors[wichSensor].id, sensors[wichSensor].reading.c_str());
-			}
 		}
 		sprintf(myPayload, "%s]}]}", myPayload);
 
@@ -442,7 +410,7 @@ void SckESP::stopAP()
 // **** Configuration
 bool SckESP::saveConfig(Configuration newConfig)
 {
-	
+
 	config = newConfig;
 	saveConfig();
 }
@@ -460,15 +428,6 @@ bool SckESP::saveConfig()
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
-	
-	char enabledSensors[SENSOR_COUNT+1] = "";
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-		if (wichSensor->enabled != config.sensors[i].enabled) debugOUT(String(wichSensor->title) + " changed!!");
-		wichSensor->enabled = config.sensors[i].enabled;
-		sprintf(enabledSensors, "%s%u", enabledSensors, wichSensor->enabled);
-	}
-	json["se"] = enabledSensors;
 
 	File configFile = SPIFFS.open(configFileName, "w");
 	if (configFile) {
@@ -507,19 +466,6 @@ bool SckESP::loadConfig()
 
 			config.token.set = json["ts"];
 			strcpy(config.token.token, json["to"]);
-
-			char enabledSensors[SENSOR_COUNT+1] = "";
-			strcpy(enabledSensors, json["se"]);
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				String bb = String(enabledSensors[i]);
-				config.sensors[i].enabled = (bool)bb.toInt();
-
-				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-				wichSensor->enabled = config.sensors[i].enabled;
-				debugOUT(sensors[static_cast<SensorType>(i)].title);
-				debugOUT(String(sensors[static_cast<SensorType>(i)].enabled));
-			}
-
 		}
 		configFile.close();
 		debugOUT("Loaded configuration!!");

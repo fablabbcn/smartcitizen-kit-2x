@@ -225,6 +225,8 @@ void SckBase::reviewState()
 						}
 					}
 				}
+			} else {
+				if (!st.espON) ESPcontrol(ESP_ON);  // TODO integrate here the wifi retry system
 			}
 		}
 		if (st.timeStat.ok && !st.helloPending) {
@@ -305,8 +307,8 @@ void SckBase::enterSetup()
 }
 void SckBase::printState()
 {
-	char *t = "true";
-	char *f = "false";
+	char t[] = "true";
+	char f[] = "false";
 
 	sprintf(outBuff, "%sonSetup: %s\r\n", outBuff, st.onSetup  ? t : f);
 	sprintf(outBuff, "%stokenSet: %s\r\n", outBuff, st.tokenSet  ? t : f);
@@ -474,21 +476,14 @@ void SckBase::saveConfig(bool defaults)
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
 
-	char enabledSensors[SENSOR_COUNT+1] = "";
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-		wichSensor->enabled = config.sensors[i].enabled;
-		wichSensor->interval = config.sensors[i].interval;
-		sprintf(enabledSensors, "%s%u", enabledSensors, wichSensor->enabled);
-	}
-	json["se"] = enabledSensors;
-
 	sprintf(netBuff, "%u", ESPMES_SET_CONFIG);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
-	if (!st.espON) ESPcontrol(ESP_ON);
-	delay(150);
+	if (!st.espON) {
+		ESPcontrol(ESP_ON); 
+		delay(150);
+	}
 	sckOut("Saved configuration!!", PRIO_LOW);
-	if (sendMessage()) sckOut("Saved configuration on ESP!!", PRIO_LOW); 	// TODO if this fails number of sensors are out of sync, readings WILL be wrong
+	if (sendMessage()) sckOut("Saved configuration on ESP!!", PRIO_LOW);
 
 	st.onSetup = false;
 	sendMessage(ESPMES_STOP_AP, "");
@@ -1021,7 +1016,7 @@ bool SckBase::netPublish()
 	// Epoch time of the grouped readings
 	json["t"] = rtc.getEpoch();
 
-	JsonArray& jsonSensors = json.createNestedArray("sensors");
+	JsonArray& jsonSensors = json.createNestedArray("s");
 
 	uint8_t count = 0;
 
@@ -1032,17 +1027,16 @@ bool SckBase::netPublish()
 		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
 			// TODO update sensors should manage update readings, remove this when update is ready
 			if (getReading(wichSensor, true)) {
-				jsonSensors.add(sensors[wichSensor].reading);
-			} else {
-				jsonSensors.add(0);
+				JsonArray& jsonThisSensor = jsonSensors.createNestedArray();
+				jsonThisSensor.add(sensors[wichSensor].id);
+				jsonThisSensor.add(sensors[wichSensor].reading);
+				count ++;
 			}
-			count ++;
 		}
 	}
 
 	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
 	sckOut(PRIO_MED, false);
-
 	sprintf(netBuff, "%u", ESPMES_MQTT_PUBLISH);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	bool result = sendMessage();

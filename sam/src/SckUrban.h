@@ -7,7 +7,7 @@
 #include "Pins.h"
 #include "MAX30105.h"
 #include <Adafruit_MPL3115A2.h>
-#include "FFTAnalyser.h"
+/* #include "FFTAnalyser.h" */
 
 // Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
 // It includes drivers for this sensors:
@@ -59,7 +59,6 @@ class Sck_SHT31
 		const uint16_t SOFT_RESET = 0x30A2;
 		const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
 
-		// TO be removed with state machine asynchronous
 		uint32_t timeout = 20;	// Time in ms to wait for a reading
 
 		void sendComm(uint16_t comm);
@@ -200,7 +199,7 @@ class SckUrban
 		Sck_MICS4514 sck_mics4514;
 
 		// Noise
-		FFTAnalyser sck_ics43432;
+		/* FFTAnalyser sck_ics43432; */
 
 		// Barometric pressure and Altitude
 		Sck_MPL3115A2 sck_mpl3115A2;

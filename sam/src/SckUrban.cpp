@@ -38,9 +38,9 @@ String SckUrban::getReading(SensorType wichSensor, bool wait)
 		case SENSOR_NO2:			if (sck_mics4514.getNO2(wait)) return String(sck_mics4514.no2); break;
 		// case SENSOR_NO2_HEAT_TIME:			return String(epoch - sck_mics4514.startHeaterTime_NO2); break
 		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load(wait)) return String(sck_mics4514.no2LoadResistor); break;
-		case SENSOR_NOISE_DBA: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(A_WEIGHTING)); break;
+		/* case SENSOR_NOISE_DBA: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(A_WEIGHTING)); break; */
 		/* case SENSOR_NOISE_DBC: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(C_WEIGHTING)); break; */
-		case SENSOR_NOISE_DBZ: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(Z_WEIGHTING)); break;
+		/* case SENSOR_NOISE_DBZ: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(Z_WEIGHTING)); break; */
 		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude(wait)) return String(sck_mpl3115A2.altitude); break;
 		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure(wait)) return String(sck_mpl3115A2.pressure); break;
 		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature(wait)) return String(sck_mpl3115A2.temperature); break;

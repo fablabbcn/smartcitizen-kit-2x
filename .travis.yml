@@ -49,7 +49,7 @@ script:
     - pio run
     - cd ..
     - cd sam
-    - stage 'STAGE 1'
+    - stage: 'STAGE 1'
       script: first.sh
     - cd ..
     - echo 'Running end to end tests with casperjs'
@@ -58,5 +58,5 @@ script:
     - node -v
     - pwd
     - ls
-    - stage 'STAGE 2'
+    - stage: 'STAGE 2'
       script: npm run test

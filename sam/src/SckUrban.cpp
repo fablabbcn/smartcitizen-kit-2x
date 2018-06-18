@@ -15,7 +15,7 @@ bool SckUrban::setup()
 	if (!sck_mics4514.begin()) return false;
 
 	// Noise
-	if (!sck_ics43432.configure()) return false;
+	/* if (!sck_ics43432.configure()) return false; */
 
 	// Barometric pressure and Altitude
 	if (!sck_mpl3115A2.begin()) return false;

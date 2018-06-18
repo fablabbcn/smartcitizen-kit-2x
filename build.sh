@@ -3,6 +3,7 @@
 # TODO
 # Multiplatform support
 # Check for errors
+# Check if openocd "bootloader" command generate problems in the fuses (https://github.com/Microsoft/uf2-samdx1#fuses)
 
 function SAM {
 	echo

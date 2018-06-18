@@ -73,30 +73,40 @@ double AlphaDelta::getElectrode(Electrode wichElectrode)
 	wichElectrode.adc.startConversion(wichElectrode.channel);
 	wichElectrode.adc.getResult(&result);
 
-	return (result * 0.015625) / getPGAgain(wichElectrode.adc);
+	return (result * 0.015625) / getElectrodeGain(wichElectrode);
 }
 float AlphaDelta::getPPM(AlphaSensor wichSlot)
 {
-	switch(wichSlot.calData.GAS) {
-	
-		case ALPHA_CO:
-			// CO [ppm] = (((6.36 * WE) - ZERO_CURR_W) - ((6.36 * AE) + ZERO_CURR_A)) / SENSITIVITY
-			return  ((6.36 * getElectrode(wichSlot.electrode_W)) - wichSlot.calData.ZERO_CURR_W -  
-				  (6.36 * getElectrode(wichSlot.electrode_A)) + wichSlot.calData.ZERO_CURR_A) /
-				  wichSlot.calData.SENSITIVITY[0];
-			break;
+    switch(wichSlot.calData.GAS) {
 
-		case ALPHA_NO2:
-			// NO2 [ppm] = (((6.36 * WE) + ZERO_CURR_W) - ((6.36 * AE) - ZERO_CURR_A)) / abs(SENSITIVITY) 	
-			return 	((6.36 * getElectrode(wichSlot.electrode_W)) + wichSlot.calData.ZERO_CURR_W - 
-				(6.36 * getElectrode(wichSlot.electrode_A)) - wichSlot.calData.ZERO_CURR_A) /
-				abs(wichSlot.calData.SENSITIVITY[0]);
-			break;
+        case ALPHA_CO: {
+            // CO [ppm] = ((6.36 * WE - ZERO_CURR_W) - n*(6.36 * AE + ZERO_CURR_A)) / SENSITIVITY
+            float resultCO = ((6.36 * getElectrode(wichSlot.electrode_W)) - wichSlot.calData.ZERO_CURR_W -
+                  wichSlot.calData.ZERO_CURR_W/wichSlot.calData.ZERO_CURR_A * (6.36 * getElectrode(wichSlot.electrode_A) - wichSlot.calData.ZERO_CURR_A)) /
+                  wichSlot.calData.SENSITIVITY[0];
+	    resultCO =  max(0, resultCO);
+	    return resultCO;
+            break;
 
-		case ALPHA_NO2_O3:
+	} case ALPHA_NO2: {
+            // NO2 [ppm] = ((6.36 * WE - ZERO_CURR_W) - n*(6.36 * AE - ZERO_CURR_A)) / SENSITIVITY
+            // NO2 [ppb] = ((6.36 * WE - ZERO_CURR_W) - n*(6.36 * AE - ZERO_CURR_A)) / SENSITIVITY
+            float resultNO2 = (((6.36 * getElectrode(wichSlot.electrode_W) - wichSlot.calData.ZERO_CURR_W) -
+                wichSlot.calData.ZERO_CURR_W/wichSlot.calData.ZERO_CURR_A * (6.36 * getElectrode(wichSlot.electrode_A)-wichSlot.calData.ZERO_CURR_A)) /
+                wichSlot.calData.SENSITIVITY[0]) * 1000;
+	    resultNO2 =  max(0, resultNO2);
+	    return resultNO2;
+            break;
 
-			return 0; 	// TODO define formula for this gas sensor
-			break;
+	} case ALPHA_NO2_O3: {
+	    // O3 [ppm] =  ((6.36 * WE - ZERO_CURR_W) - n*(6.36 * AE - ZERO_CURR_A) - getPPM(NO2) * SENSITIVITY_NO2) / SENSITIVITY_O3
+	    float resultO3 = ((6.36 * getElectrode(wichSlot.electrode_W) - wichSlot.calData.ZERO_CURR_W) -
+		  ((wichSlot.calData.ZERO_CURR_W / wichSlot.calData.ZERO_CURR_A) * (6.36 * getElectrode(wichSlot.electrode_A) - wichSlot.calData.ZERO_CURR_A)) -
+		  ((getPPM(Slot2) / 1000) * wichSlot.calData.SENSITIVITY[1])) /
+		    wichSlot.calData.SENSITIVITY[0];
+	    resultO3 =  max(0, resultO3);
+	    return resultO3;
+            break;
 	}
     }
 }

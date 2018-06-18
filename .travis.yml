@@ -6,10 +6,9 @@ matrix:
         - pip install -U platformio
       before_script:
         - pwd
+        - cd esp
       script:
         - echo 'Trying to build ESP'
-        - pwd
-        - cd esp
         - pio run
 
     - language: python
@@ -18,17 +17,18 @@ matrix:
         - pip install -U platformio
       before_script:
         - pwd
+        - cd sam
       script:
         - echo 'Trying to build SAM'
-        - cd sam
         - ./first.sh
 
     - language: node_js
       node_js:
         - 7
+      before_install:
+        - cd mock-api
       install:
-        - cd mock-api; npm install
-        - npm install finalhandler
+        - npm install
       before_script:
         - npm run api &
         - npm run web &

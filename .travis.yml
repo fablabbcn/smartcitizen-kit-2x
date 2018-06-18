@@ -18,6 +18,7 @@ env:
 install:
     - pip install -U platformio
     - cd mock-api; npm install
+    - npm install finalhandler
 
     #
     # Libraries from PlatformIO Library Registry:
@@ -50,7 +51,7 @@ script:
     - cd ..
     - cd sam
     - stage: 'pio run'
-      script: ./first.sh
+    - ./first.sh
     - cd ..
     - echo 'Running end to end tests with casperjs'
     - cd mock-api

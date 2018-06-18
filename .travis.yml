@@ -1,24 +1,29 @@
 language: python
 python:
-    - "2.7"
+  - "2.7"
 
 # Cache PlatformIO packages using Travis CI container-based infrastructure
 sudo: false
 cache:
-    directories:
-        - "~/.platformio"
-          #- "mock-api/node_modules"
+  directories:
+    - "~/.platformio"
+      #- "mock-api/node_modules"
 
 env:
+  - TO_TEST=firmware
+  - TO_TEST=web
 #   - PLATFORMIO_CI_SRC=examples/Boards_Bluetooth/Adafruit_Bluefruit_LE
 #   - PLATFORMIO_CI_SRC=examples/Boards_Bluetooth/Arduino_101_BLE PLATFORMIO_CI_EXTRA_ARGS="--board=genuino101"
 #   - PLATFORMIO_CI_SRC=examples/Boards_USB_Serial/Blue_Pill_STM32F103C PLATFORMIO_CI_EXTRA_ARGS="--board=bluepill_f103c8 --project-option='framework=arduino'"
 #   - PLATFORMIO_CI_SRC=examples/Export_Demo/myPlant_ESP8266 PLATFORMIO_CI_EXTRA_ARGS="--board=nodemcuv2 --project-option='lib_ignore=WiFi101'"
 
+before_install:
+  - pwd
+
 install:
-    - pip install -U platformio
-    - cd mock-api; npm install
-    - npm install finalhandler
+  - pip install -U platformio
+  - cd mock-api; npm install
+  - npm install finalhandler
 
     #
     # Libraries from PlatformIO Library Registry:
@@ -39,25 +44,26 @@ install:
 
 
 before_script:
-    - npm run api &
-    - npm run web &
-    - sleep 2
+  - pwd
+  - npm run api &
+  - npm run web &
+  - sleep 2
 
 script:
-    - echo 'Trying to build esp and sam with pio'
-    - cd ..
-    - cd esp
-    - pio run
-    - cd ..
-    - cd sam
-    - stage: 'pio run'
-    - ./first.sh
-    - cd ..
-    - echo 'Running end to end tests with casperjs'
-    - cd mock-api
-    - npm -v
-    - node -v
-    - pwd
-    - ls
-    - stage: 'npm tests'
-      script: ./npm_test.sh
+  - echo 'Trying to build esp and sam with pio'
+  - cd ..
+  - cd esp
+  - pio run
+  - cd ..
+  - cd sam
+  - stage: 'pio run'
+  - ./first.sh
+  - cd ..
+  - echo 'Running end to end tests with casperjs'
+  - cd mock-api
+  - npm -v
+  - node -v
+  - pwd
+  - ls
+  - stage: 'npm tests'
+    script: ./npm_test.sh

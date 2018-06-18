@@ -24,6 +24,8 @@ matrix:
         - ./first.sh
 
     - language: node_js
+      node_js:
+        - 7
       install:
         - cd mock-api; npm install
         - npm install finalhandler

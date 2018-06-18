@@ -34,9 +34,9 @@ enum SensorType
 	SENSOR_NO2_HEAT_SUPPLY_VOLTAGE,
 	SENSOR_NO2_HEAT_DROP_VOLTAGE,
 	SENSOR_NO2_LOAD_RESISTANCE,
-	SENSOR_NOISE_DBA,
-	SENSOR_NOISE_DBC,
-	SENSOR_NOISE_DBZ,
+	/* SENSOR_NOISE_DBA, */
+	/* SENSOR_NOISE_DBC, */
+	/* SENSOR_NOISE_DBZ, */
 	SENSOR_ALTITUDE,
 	SENSOR_PRESSURE,
 	SENSOR_PRESSURE_TEMP,
@@ -80,7 +80,7 @@ enum SensorType
 	SENSOR_SHT31_HUM,
 
 	// Actuators (This is temp)
-	/* SENSOR_GROOVE_OLED, */
+	SENSOR_GROOVE_OLED,
 
 	SENSOR_COUNT
 };
@@ -155,9 +155,9 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_SUPPLY_VOLTAGE, 	"Nitrogen dioxide heat supply voltage",		0,		false,		false,			"mV"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_DROP_VOLTAGE, 		"Nitrogen dioxide heat drop voltage",		0,		false,		false,			"mV"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_LOAD_RESISTANCE, 		"Nitrogen dioxide load resistance",		0,		false,		false,			"Ohms"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"Noise dBA", 					53,		true,		false,			"dBA"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"Noise dBC", 					0,		false,		false,			"dBC"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBZ, 			"Noise dBZ", 					0,		false,		false,			"dBZ"},
+			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"Noise dBA", 					53,		true,		false,			"dBA"}, */
+			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"Noise dBC", 					0,		false,		false,			"dBC"}, */
+			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBZ, 			"Noise dBZ", 					0,		false,		false,			"dBZ"}, */
 			OneSensor { BOARD_URBAN, 		SENSOR_ALTITUDE, 			"Altitude", 					0,		false,		false,			"M"},
 			OneSensor { BOARD_URBAN, 		SENSOR_PRESSURE, 			"Barometric pressure",				58,		true,		false,			"kPa"},
 			OneSensor { BOARD_URBAN, 		SENSOR_PRESSURE_TEMP,			"Pressure internal temperature", 		0,		false,		false,			"C"},
@@ -204,7 +204,7 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"External Humidity",				0,		false,		false,			"%"},
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96
-			/* OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,			"Groove OLED",					0,		false,		false,			}, */
+			OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,			"Groove OLED",					0,		false,		false,			},
 			OneSensor { BOARD_BASE, 		SENSOR_COUNT,				"Not found",					0,		false,		false,			}
 
 			// Add New Sensor Here!!!

@@ -35,7 +35,6 @@ matrix:
         - sleep 2
       script:
         - echo 'Running end to end tests with casperjs'
-        - cd mock-api
         - npm -v
         - node -v
         - pwd

@@ -53,6 +53,16 @@ String SckUrban::getReading(SensorType wichSensor, bool wait)
 
 	return "none";
 }
+String SckUrban::control(SensorType wichSensor, String command)
+{
+
+         switch (wichSensor) {
+		case SENSOR_CO: break;
+		case SENSOR_NO2: break;
+		default: break;
+        }
+        return "Sensor not recognized!!";
+}
 
 // Light
 bool Sck_BH1721FVC::begin()

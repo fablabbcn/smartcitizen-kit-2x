@@ -188,6 +188,7 @@ class SckUrban
 
 		// String getReading(); https://stackoverflow.com/questions/14840173/c-same-function-parameters-with-different-return-type
 		String getReading(SensorType wichSensor, bool wait=false);
+		String control(SensorType wichSensor, String command);
 
 		// Light
 		Sck_BH1721FVC sck_bh1721fvc;

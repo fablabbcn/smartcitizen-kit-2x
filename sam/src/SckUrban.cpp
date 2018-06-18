@@ -67,12 +67,10 @@ String SckUrban::control(SensorType wichSensor, String command)
 // Light
 bool Sck_BH1721FVC::begin()
 {
-
 	return true;
 }
 bool Sck_BH1721FVC::stop()
 {
-
 	return true;
 }
 bool Sck_BH1721FVC::get(bool wait)
@@ -97,8 +95,7 @@ bool Sck_BH1721FVC::get(bool wait)
 	// 			1:ADC power on.
 
 	// 0x01 register - TIMMING
-	/* uint8_t ITIME0  = 0xA0; */
-	uint8_t ITIME0  = 0xDA;
+	uint8_t ITIME0  = 0xA0;
 	float TOP = 26500.0; 	 // This is relative to the value above (less resolution more range) TODO define max based on calibration curve (to be implemented)
 
 	// 00h: Start / Stop of measurement is set by special command. (ADC manual integration mode)
@@ -146,23 +143,19 @@ bool Sck_BH1721FVC::get(bool wait)
 	//	  X10 : x64 gain mode
 	//	  X11 : x128 gain mode
 
-	uint8_t DATA[8] = {CONTROL, ITIME0, INTERRUPT, TH_LOW0, TH_LOW1, TH_UP0, TH_UP1, GAIN} ;
+	uint8_t DATA[8] = {CONTROL, ITIME0, INTERRUPT, TH_LOW0, TH_LOW1, TH_UP0, TH_UP1, GAIN};
 
 	// Send Configuration
 	Wire.beginTransmission(address);
-  	Wire.write(0x80);
-  	for (int i= 0; i<8; i++) Wire.write(DATA[i]);
+	Wire.write(0x80);
+	for (int i= 0; i<8; i++) Wire.write(DATA[i]);
 	Wire.endTransmission();
-	
-	
+
+
 	// TODO calibration curve
 	float Tint = 2.8; 	// From datasheet (2.8 typ -- 4.0 max)
-	/* float Tint = 3.6; 	// From datasheet (2.8 typ -- 4.0 max) */
 	float ITIME_ms = (Tint * 964 * (256 - ITIME0)) / 1000;
-	/* float Tmt = ITIME_ms + Tint * 714; */
-	// Esto debe ser reemplazado por un busy state...
-	delay (ITIME_ms);
-	/* delay(300); */
+	delay (ITIME_ms+50);
 
 	// Ask for reading
 	Wire.beginTransmission(address);
@@ -190,9 +183,8 @@ bool Sck_BH1721FVC::get(bool wait)
 	else if (DATA1/DATA0 < 0.55) Lx = (0.795 * DATA0 - 0.859 * DATA1) / Gain * 102.6 / ITIME_ms;
 	else if (DATA1/DATA0 < 1.09) Lx = (0.510 * DATA0 - 0.345 * DATA1) / Gain * 102.6 / ITIME_ms;
 	else if (DATA1/DATA0 < 2.13) Lx = (0.276 * DATA0 - 0.130 * DATA1) / Gain * 102.6 / ITIME_ms;
-	else Lx = 0;	
+	else Lx = 0;
 	}
-
 
 	Lx = max(0, Lx);
 	reading  = Lx;

@@ -27,10 +27,10 @@ struct Electrode
 	uint8_t gain;
 };
 
-enum ALPHA_GAS 
+enum ALPHA_GAS
 {
-	ALPHA_CO, 
-	ALPHA_NO2, 
+	ALPHA_CO,
+	ALPHA_NO2,
 	ALPHA_NO2_O3
 };
 
@@ -68,7 +68,7 @@ class AlphaDelta
 
 
 		// Alphasense Sensors (Slot 1,2 and 3)
-		const uint8_t initGain = 0;
+		const uint8_t initGain = 0; 	// (0->gain of 1, 1->gain of 2, 2->gain of 3 or 3->gain of 8)
 		const float ohmsPerStep = 392.1568;     // Resistor conversion constant in Ohms. (100,000 / 255)
 		MCP342X ADC_1 = MCP342X(0x69);
 		MCP342X ADC_2_3 = MCP342X(0x68);
@@ -77,24 +77,24 @@ class AlphaDelta
 		AlphaSensor Slot1 = {
 			{ADC_1, MCP342X_CHANNEL_1, {0x55, 0x01}, initGain},		// Electrode A
 			{ADC_1, MCP342X_CHANNEL_2, {0x55, 0x00}, initGain},		// Electrode W
-			/* {ALPHA_CO, (-68.1), (-13.9), {601.9, 0}} // board U		// Gas type, zero current W, zero current A, sensitivity TODO move this to eeprom inside alpha board */
-			{ALPHA_CO, (-69.4), (-18.6), {493.1, 0}} // board 1
+			{ALPHA_CO, (-68.1), (-13.9), {601.9, 0}} // board U		// Gas type, zero current W, zero current A, sensitivity TODO move this to eeprom inside alpha board
+			/* {ALPHA_CO, (-69.4), (-18.6), {493.1, 0}} // board 1 */
 		};
 
 		// Slot 2 sensor
 		AlphaSensor Slot2 = {
 			{ADC_2_3, MCP342X_CHANNEL_3, {0x56, 0x01}, initGain},		// Electrode A
 			{ADC_2_3, MCP342X_CHANNEL_4, {0x56, 0x00}, initGain},		// Electrode W
-			/* {ALPHA_NO2, 31.5, 17.7, {(-383.7), 0}} // Board U */
-			{ALPHA_NO2, 25.9, 15.4, {(-384.9), 0}} // Board 1
+			{ALPHA_NO2, 31.5, 17.7, {(-383.7), 0}} // Board U
+			/* {ALPHA_NO2, 25.9, 15.4, {(-384.9), 0}} // Board 1 */
 		};
 
 		// Slot 3 sensor
 		AlphaSensor Slot3 = {
 			{ADC_2_3, MCP342X_CHANNEL_1, {0x54, 0x01}, initGain},		// Electrode A
 			{ADC_2_3, MCP342X_CHANNEL_2, {0x54, 0x00}, initGain},		// Electrode W
-			/* {ALPHA_NO2_O3, 23.01, 14.5, {(-446.36), (-506.96)}} // Board U */
-			{ALPHA_NO2_O3, 23.33, 19.86, {(-466.29), (-466.29)}} // Board 1
+			{ALPHA_NO2_O3, 23.01, 14.5, {(-446.36), (-506.96)}} // Board U
+			/* {ALPHA_NO2_O3, 23.33, 19.86, {(-466.29), (-466.29)}} // Board 1 */
 
 		};
 

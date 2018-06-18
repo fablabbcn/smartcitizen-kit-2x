@@ -173,7 +173,7 @@ class AllSensors
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_1_CAL,		"AlphaDelta CO",				84,		false,		true,			"ppm"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2A,		"AlphaDelta 2A",				62,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2W, 		"AlphaDelta 2W",				61,		false,		true,			"mV"},
-			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2_CAL,		"AlphaDelta NO2",				83,		false,		true,			"ppm"},
+			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_2_CAL,		"AlphaDelta NO2",				83,		false,		true,			"ppb"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3A, 		"AlphaDelta 3A",				65,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3W, 		"AlphaDelta 3W",				64,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_ALPHADELTA_SLOT_3_CAL,		"AlphaDelta OX",				85,		false,		true,			"ppm"},

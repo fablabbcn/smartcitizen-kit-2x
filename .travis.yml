@@ -7,14 +7,21 @@ matrix:
       before_script:
         - pwd
       script:
-        -  echo 'Trying to build esp and sam with pio'
+        - echo 'Trying to build ESP'
         - pwd
         - cd esp
         - pio run
-        - cd ..
+
+    - language: python
+      python: 2.7
+      install:
+        - pip install -U platformio
+      before_script:
+        - pwd
+      script:
+        - echo 'Trying to build SAM'
         - cd sam
         - ./first.sh
-        - cd ..
 
     - language: node_js
       install:

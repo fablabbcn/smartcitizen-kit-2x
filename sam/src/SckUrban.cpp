@@ -210,8 +210,11 @@ Sck_SHT31::Sck_SHT31(TwoWire *localWire)
 	_Wire = localWire;
 }
 bool Sck_SHT31::begin()
-{
-	Wire.begin();
+{	
+	_Wire->begin();
+	_Wire->beginTransmission(address);
+	byte error = _Wire->endTransmission();
+	if (error != 0) return false;
 
 	delay(1); 		// In case the device was off
 	sendComm(SOFT_RESET); 	// Send reset command
@@ -231,16 +234,16 @@ bool Sck_SHT31::update(bool wait)
 	uint8_t readbuffer[6];
 	sendComm(SINGLE_SHOT_HIGH_REP);
 
-	Wire.requestFrom(address, (uint8_t)6);
+	_Wire->requestFrom(address, (uint8_t)6);
 
 	// Wait for answer (datasheet says 15ms is the max)
 	uint32_t started = millis();
-	while(Wire.available() != 6) {
+	while(_Wire->available() != 6) {
 		if (millis() - started > timeout) return 0;
 	}
 
 	// Read response
-	for (uint8_t i=0; i<6; i++) readbuffer[i] = Wire.read();
+	for (uint8_t i=0; i<6; i++) readbuffer[i] = _Wire->read();
 
 	uint16_t ST, SRH;
 	ST = readbuffer[0];
@@ -272,10 +275,10 @@ bool Sck_SHT31::update(bool wait)
 }
 void Sck_SHT31::sendComm(uint16_t comm)
 {
-	Wire.beginTransmission(address);
-	Wire.write(comm >> 8);
-	Wire.write(comm & 0xFF);
-	Wire.endTransmission();
+	_Wire->beginTransmission(address);
+	_Wire->write(comm >> 8);
+	_Wire->write(comm & 0xFF);
+	_Wire->endTransmission();
 }
 uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 {

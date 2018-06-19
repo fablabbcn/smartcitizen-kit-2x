@@ -101,12 +101,12 @@ void SckBase::setup()
 			if (auxBoards.begin(wichSensor->type)) {
 				sprintf(outBuff, "Found: %s... ", wichSensor->title);
 				sckOut();
-				config.sensors[i].enabled = true;
+				wichSensor->enabled = true;
 				saveNeeded = true;
-			} else if (config.sensors[i].enabled)  {
+			} else if (wichSensor->enabled)  {
 				sprintf(outBuff, "Removed: %s... ", wichSensor->title);
 				sckOut();
-				config.sensors[i].enabled = false;
+				wichSensor->enabled = false;
 				saveNeeded = true;
 			}
 		}
@@ -114,19 +114,19 @@ void SckBase::setup()
 
 	// TEMP for automatic living lab setup
 	// Enables only calibrated alphasense (plus temp and hum) and disable urban board temp and hum
-	if (config.sensors[SENSOR_ALPHADELTA_SLOT_1A].enabled) {
+	if (sensors[SENSOR_ALPHADELTA_SLOT_1A].enabled) {
 
-		config.sensors[SENSOR_ALPHADELTA_SLOT_1A].enabled = false;
-                config.sensors[SENSOR_ALPHADELTA_SLOT_1W].enabled = false;
-                config.sensors[SENSOR_ALPHADELTA_SLOT_2A].enabled = false;
-                config.sensors[SENSOR_ALPHADELTA_SLOT_2W].enabled = false;
-                config.sensors[SENSOR_ALPHADELTA_SLOT_3A].enabled = false;
-                config.sensors[SENSOR_ALPHADELTA_SLOT_3W].enabled = false;
+		sensors[SENSOR_ALPHADELTA_SLOT_1A].enabled = false;
+                sensors[SENSOR_ALPHADELTA_SLOT_1W].enabled = false;
+                sensors[SENSOR_ALPHADELTA_SLOT_2A].enabled = false;
+                sensors[SENSOR_ALPHADELTA_SLOT_2W].enabled = false;
+                sensors[SENSOR_ALPHADELTA_SLOT_3A].enabled = false;
+                sensors[SENSOR_ALPHADELTA_SLOT_3W].enabled = false;
 
-                config.sensors[SENSOR_TEMPERATURE].enabled = false;
-                config.sensors[SENSOR_HUMIDITY].enabled = false;
-                config.sensors[SENSOR_CO].enabled = false;
-                config.sensors[SENSOR_NO2].enabled = false;
+                sensors[SENSOR_TEMPERATURE].enabled = false;
+                sensors[SENSOR_HUMIDITY].enabled = false;
+                sensors[SENSOR_CO].enabled = false;
+                sensors[SENSOR_NO2].enabled = false;
 	}
 
 	if (saveNeeded) saveConfig();
@@ -441,11 +441,6 @@ void SckBase::loadConfig()
 	st.tokenSet = config.token.set;
 	st.mode = config.mode;
 }
-void SckBase::saveConfig(Configuration newConfig)
-{
-	config = newConfig;
-	saveConfig();
-}
 void SckBase::saveConfig(bool defaults)
 {
 	sckOut("Saving config...", PRIO_LOW);
@@ -457,6 +452,13 @@ void SckBase::saveConfig(bool defaults)
 			config.sensors[i].interval = default_sensor_reading_interval;
 		}
 	}
+
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+		config.sensors[i].enabled = wichSensor->enabled; 
+		config.sensors[i].interval = wichSensor->interval;
+	}
+
 	eepromConfig.write(config);
 
 	st.mode = config.mode;

@@ -146,32 +146,37 @@ void sensorConfig_com(SckBase* base, String parameters)
 		}
 
 	} else {
-		Configuration thisConfig = base->getConfig();
-
 		uint16_t sensorIndex = parameters.indexOf(" ", parameters.indexOf("-"));
 		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(sensorIndex));
 
-		if (parameters.indexOf("-enable") >=0) {
-			thisConfig.sensors[sensorToChange].enabled = true;
+		String msg;
+
+		if (sensorToChange == SENSOR_COUNT) {
+			base->sckOut("ERROR sensor not found");
+			return;
+		} else if (parameters.indexOf("-enable") >=0) {
+			msg = "Enabling ";
+			base->sensors[sensorToChange].enabled = true;
 		} else if (parameters.indexOf("-disable") >=0) {
-			thisConfig.sensors[sensorToChange].enabled = false;
+			base->sensors[sensorToChange].enabled = false;
+			msg = "Disabling ";
 		} else if (parameters.indexOf("-interval") >=0) {
+			msg = "Changing interval of ";
 			sensorIndex = parameters.indexOf(" ", parameters.indexOf("-interval"));
 			uint16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
 			String strInterval = parameters.substring(intervalIndex);
 			uint32_t intervalInt = strInterval.toInt();
-			if (intervalInt > minimal_sensor_reading_interval && intervalInt < max_sensor_reading_interval)	thisConfig.sensors[sensorToChange].interval = strInterval.toInt();
+			if (intervalInt > minimal_sensor_reading_interval && intervalInt < max_sensor_reading_interval)	base->sensors[sensorToChange].interval = strInterval.toInt();
 		}
-
-		base->saveConfig(thisConfig);
+		base->sckOut(msg + String(base->sensors[sensorToChange].title));
+		base->saveConfig();
 	}
 }
 void readSensor_com(SckBase* base, String parameters)
 {
-
 	SensorType sensorToRead = base->sensors.getTypeFromString(parameters);
-
-	if (base->getReading(sensorToRead, true)) sprintf(base->outBuff, "%s: %s %s", base->sensors[sensorToRead].title, base->sensors[sensorToRead].reading.c_str(), base->sensors[sensorToRead].unit);
+	if (!base->sensors[sensorToRead].enabled) sprintf(base->outBuff, "%s sensor is disabled!!!", base->sensors[sensorToRead].title);
+	else if (base->getReading(sensorToRead, true)) sprintf(base->outBuff, "%s: %s %s", base->sensors[sensorToRead].title, base->sensors[sensorToRead].reading.c_str(), base->sensors[sensorToRead].unit);
 	else sprintf(base->outBuff, "ERROR reading %s sensor!!!", base->sensors[sensorToRead].title);
 	base->sckOut();
 }
@@ -181,7 +186,10 @@ void controlSensor_com(SckBase* base, String parameters)
 	parameters.remove(0, parameters.indexOf(" ")+1);
 
 	if (parameters.length() < 1) {
-		base->sckOut("No command received!! please try again...");
+		base->sckOut("ERROR No command received!! please try again...");
+		return;
+	} else if (wichSensor == SENSOR_COUNT) {
+		base->sckOut("ERROR Sensor not found!!!");
 		return;
 	} else {
 		base->controlSensor(wichSensor, parameters);
@@ -325,22 +333,19 @@ void config_com(SckBase* base, String parameters)
 		if (parameters.indexOf("-defaults") >= 0) {
 			base->saveConfig(true);
 		} else {
-			Configuration thisConfig;
-			thisConfig = base->getConfig();
-
 			// Shows or sets configuration [-defaults -mode sdcard/network -pubint publish-interval -wifi \"ssid/null\" [\"pass\"] -token token/null]
 			uint16_t modeI = parameters.indexOf("-mode");
 			if (modeI >= 0) {
 				String modeC = parameters.substring(modeI+6);
 				modeC.toLowerCase();
-				if (modeC.startsWith("sd")) thisConfig.mode = MODE_SD;
-				else if (modeC.startsWith("net")) thisConfig.mode = MODE_NET;
+				if (modeC.startsWith("sd")) base->config.mode = MODE_SD;
+				else if (modeC.startsWith("net")) base->config.mode = MODE_NET;
 			}
 			uint16_t pubIntI = parameters.indexOf("-pubint");
 			if (pubIntI >= 0) {
 				String pubIntC = parameters.substring(pubIntI+8);
 				uint32_t pubIntV = pubIntC.toInt();
-				if (pubIntV > minimal_publish_interval && pubIntV < max_publish_interval) thisConfig.publishInterval = pubIntV;
+				if (pubIntV > minimal_publish_interval && pubIntV < max_publish_interval) base->config.publishInterval = pubIntV;
 			}
 			uint16_t credI = parameters.indexOf("-wifi");
 			if (credI >= 0) {
@@ -349,22 +354,22 @@ void config_com(SckBase* base, String parameters)
 				uint8_t third = parameters.indexOf("\"", second + 1);
 				uint8_t fourth = parameters.indexOf("\"", third + 1);
 				if (parameters.substring(first + 1, second).length() > 0) {
-					parameters.substring(first + 1, second).toCharArray(thisConfig.credentials.ssid, 64);
-					thisConfig.credentials.set = true;
+					parameters.substring(first + 1, second).toCharArray(base->config.credentials.ssid, 64);
+					base->config.credentials.set = true;
 				}
 				if (parameters.substring(third + 1, fourth).length() > 0) {
-					parameters.substring(third + 1, fourth).toCharArray(thisConfig.credentials.pass, 64);
+					parameters.substring(third + 1, fourth).toCharArray(base->config.credentials.pass, 64);
 				}
 			}
 			uint16_t tokenI = parameters.indexOf("-token");
 			if (tokenI >= 0) {
 				String tokenC = parameters.substring(tokenI+7);
 				if (tokenC.length() >= 6) {
-					tokenC.toCharArray(thisConfig.token.token, 7);
-					thisConfig.token.set = true;
+					tokenC.toCharArray(base->config.token.token, 7);
+					base->config.token.set = true;
 				}
 			}
-			base->saveConfig(thisConfig);
+			base->saveConfig();
 		}
 		sprintf(base->outBuff, "-- New config --\r\n");
 

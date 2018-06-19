@@ -75,6 +75,19 @@ class Sck_SHT31
 };
 
 // Gases CO and NO2
+struct calSub {
+	double fac1;
+	uint32_t ind1;
+	double fac2;
+	uint32_t ind2;
+};
+struct calData {
+	bool valid = false;
+	double A;
+	calSub gas;
+	calSub temp;
+	calSub hum;
+};
 class Sck_MICS4514
 {
 	// Datasheet
@@ -105,6 +118,10 @@ class Sck_MICS4514
 		void setPWM(SensorType wichSensor, float dutyCycle);	// TODO change pin management into using pinPWM_HEATER_CO and pinPWM_HEATER_NO2
 
 	public:
+		calData calCO;
+		calData calNO2;
+		float coResistance;
+		float no2Resistance;
 		float co;
 		float no2;
 		uint16_t no2LoadResistor;
@@ -112,9 +129,11 @@ class Sck_MICS4514
 		bool enable(SensorType wichSensor, uint32_t epoch);
 		bool disable(SensorType wichSensor);
 		bool stop();
-		bool getCO(bool wait=true);
-		bool getNO2(bool wait=true);
-		bool getNO2load(bool wait=true);
+		bool getCOresistance();
+		bool getNO2resistance();
+		bool getCO(float temperature, float humidity);
+		bool getNO2(float temperature, float humidity);
+		bool getNO2load();
 		float average(uint8_t wichPin);
 };
 
@@ -187,7 +206,7 @@ class SckUrban
 		bool setup();
 
 		// String getReading(); https://stackoverflow.com/questions/14840173/c-same-function-parameters-with-different-return-type
-		String getReading(SensorType wichSensor, bool wait=false);
+		String getReading(SensorType wichSensor, bool wait=true);
 		String control(SensorType wichSensor, String command);
 
 		// Light

@@ -197,11 +197,32 @@ void controlSensor_com(SckBase* base, String parameters)
 }
 void monitorSensor_com(SckBase* base, String parameters)
 {
-
-
 	SensorType sensorsToMonitor[SENSOR_COUNT];
 	uint8_t index = 0;
+	bool sdSave = false;
+	bool printTime = true;
+	bool printMs = true;
 
+	if (parameters.indexOf("-sd") >=0) {
+		sdSave = true;
+		parameters.replace("-sd", "");
+		parameters.trim();
+		if (!base->st.cardPresent) {
+			base->sckOut("ERROR No sd card found!!!");
+			return;
+		}
+		base->monitorFile.file = base->sd.open(base->monitorFile.name, FILE_WRITE);
+	}
+	if (parameters.indexOf("-notime") >=0) {
+		printTime = false;
+		parameters.replace("-notime", "");
+		parameters.trim();
+	}
+	if (parameters.indexOf("-noms") >=0) {
+		printMs = false;
+		parameters.replace("-noms", "");
+		parameters.trim();
+	}
 	if (parameters.length() > 0) {
 		while (parameters.length() > 0) {
 			uint8_t sep = parameters.indexOf(",");
@@ -212,6 +233,10 @@ void monitorSensor_com(SckBase* base, String parameters)
 			if (base->sensors[thisSensorType].enabled) {
 				sensorsToMonitor[index] = thisSensorType;
 				index ++;
+			} else {
+				sprintf(base->outBuff, "%s is disabled, enable it first!!!", base->sensors[thisSensorType].title);
+				base->sckOut();
+				return;
 			}
 		}
 	} else {
@@ -225,21 +250,33 @@ void monitorSensor_com(SckBase* base, String parameters)
 	}
 
 	// Titles
-	sprintf(base->outBuff, "%s", base->sensors[sensorsToMonitor[0]].title);
-	for (uint8_t i=1; i<index; i++) {
-		sprintf(base->outBuff, "%s, %s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
+	strncpy(base->outBuff, "", 240);
+	if (printTime) sprintf(base->outBuff, "%s\t", "Time");
+	if (printMs) sprintf(base->outBuff, "%s%s\t", base->outBuff, "Miliseconds");
+	for (uint8_t i=0; i<index; i++) {
+		sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
+		if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
 	}
+	if (sdSave) base->monitorFile.file.println(base->outBuff);
 	base->sckOut();
 
 	// Readings
 	strncpy(base->outBuff, "", 240);
+	uint32_t lastMillis = millis();
 	while (!SerialUSB.available()) {
-		if (base->getReading(sensorsToMonitor[0], true)) sprintf(base->outBuff, "%s", base->sensors[sensorsToMonitor[0]].reading.c_str());
-		for (uint8_t i=1; i<index; i++) {
-			if (base->getReading(sensorsToMonitor[i], true)) sprintf(base->outBuff, "%s, %s", base->outBuff, base->sensors[sensorsToMonitor[i]].reading.c_str());
+		base->ISOtime();
+		if (printTime) sprintf(base->outBuff, "%s\t", base->ISOtimeBuff);
+		if (printMs) sprintf(base->outBuff, "%s%i\t", base->outBuff, millis() - lastMillis);
+		lastMillis = millis();
+		for (uint8_t i=0; i<index; i++) {
+			if (base->getReading(sensorsToMonitor[i], true)) sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].reading.c_str());
+			else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
+			if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
 		}
+		if (sdSave) base->monitorFile.file.println(base->outBuff);
 		base->sckOut();
 	}
+	base->monitorFile.file.close();
 }
 void publish_com(SckBase* base, String parameters)
 {

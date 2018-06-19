@@ -142,7 +142,6 @@ class SckBase
 		SckFile postFile {};
 		SckFile debugFile {"DEBUG.CSV"};
 		// Sd card
-		SdFat sd;
 		uint32_t cardLastChange = 0;
 		bool sdSelect();
 		// Flash memory
@@ -230,7 +229,9 @@ class SckBase
 		AllCommands commands;
 
 		// SDcard
+		SdFat sd;
 		bool sdDetect();
+		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
 		SckCharger charger;

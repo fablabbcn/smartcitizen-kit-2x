@@ -21,6 +21,7 @@ matrix:
       script:
         - echo 'Trying to build SAM'
         - ./first.sh
+        - pio run
 
     - language: node_js
       node_js:

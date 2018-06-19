@@ -127,7 +127,6 @@ class SckBase
 		void buttonStillDown();
 
 		// Configuration
-		Configuration config;
 		void loadConfig();
 		bool parseLightRead();
 
@@ -198,8 +197,8 @@ class SckBase
 		void publish();
 
 		// Configuration
+		Configuration config;
 		Configuration getConfig();
-		void saveConfig(Configuration newConfig);
 		void saveConfig(bool defaults=false);
 
 		// Input/Output

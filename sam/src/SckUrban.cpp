@@ -33,11 +33,21 @@ String SckUrban::getReading(SensorType wichSensor, bool wait)
 		case SENSOR_LIGHT:			if (sck_bh1721fvc.get(wait)) return String(sck_bh1721fvc.reading); break;
 		case SENSOR_TEMPERATURE: 		if (sck_sht31.update(wait)) return String(sck_sht31.temperature); break;
 		case SENSOR_HUMIDITY: 			if (sck_sht31.update(wait)) return String(sck_sht31.humidity); break;
-		case SENSOR_CO:				if (sck_mics4514.getCO(wait)) return String(sck_mics4514.co); break;
-		// case SENSOR_CO_HEAT_TIME:			return String(epoch - sck_mics4514.startHeaterTime_CO); break
-		case SENSOR_NO2:			if (sck_mics4514.getNO2(wait)) return String(sck_mics4514.no2); break;
-		// case SENSOR_NO2_HEAT_TIME:			return String(epoch - sck_mics4514.startHeaterTime_NO2); break
-		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load(wait)) return String(sck_mics4514.no2LoadResistor); break;
+		case SENSOR_CO:
+			if (sck_sht31.update(wait)) {
+				if (sck_mics4514.getCO(sck_sht31.temperature, sck_sht31.humidity)) return String(sck_mics4514.co);
+			}
+			break;
+		case SENSOR_CO_RESISTANCE: 		if (sck_mics4514.getCOresistance()) return String(sck_mics4514.coResistance); break;
+		case SENSOR_CO_HEAT_TIME: break;
+		case SENSOR_NO2:
+			if (sck_sht31.update(wait)) {
+				if (sck_mics4514.getNO2(sck_sht31.temperature, sck_sht31.humidity)) return String(sck_mics4514.no2);
+			}
+			break;
+		case SENSOR_NO2_RESISTANCE: 		if (sck_mics4514.getNO2resistance()) return String(sck_mics4514.coResistance); break;
+		case SENSOR_NO2_HEAT_TIME:		break;
+		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load()) return String(sck_mics4514.no2LoadResistor); break;
 		/* case SENSOR_NOISE_DBA: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(A_WEIGHTING)); break; */
 		/* case SENSOR_NOISE_DBC: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(C_WEIGHTING)); break; */
 		/* case SENSOR_NOISE_DBZ: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(Z_WEIGHTING)); break; */
@@ -358,46 +368,49 @@ bool Sck_MICS4514::disable(SensorType wichSensor)
 
 	return false;
 }
-bool Sck_MICS4514::getCO(bool wait)
+bool Sck_MICS4514::getCOresistance()
 {
-
 	float sensorVoltage;
-
 	sensorVoltage = ((average(pinREAD_CO) * (float)VCC) / (float)ANALOG_RESOLUTION);
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
-	co = (((VCC - sensorVoltage) / sensorVoltage) * coLoadResistor) / 1000.0;
-
+	coResistance = (((VCC - sensorVoltage) / sensorVoltage) * coLoadResistor) / 1000.0;
 	return true;
 }
-bool Sck_MICS4514::getNO2(bool wait)
+bool Sck_MICS4514::getCO(float temperature, float humidity)
 {
+	if (!calCO.valid) return false;
 
+	getCOresistance();
+
+	co = calCO.A + (calCO.gas.fac1 * pow(coResistance, calCO.gas.ind1)) + (calCO.gas.fac2 * pow(coResistance, calCO.gas.ind2)) 
+	+ (calCO.temp.fac1 * pow(temperature, calCO.temp.ind1)) + (calCO.temp.fac2 * pow(temperature, calCO.temp.ind2))
+	+ (calCO.hum.fac1 * pow(humidity, calCO.hum.ind1)) + (calCO.hum.fac2 * pow(humidity, calCO.hum.ind2)); 
+	
+	co = max(0, co);
+	return true;
+}
+bool Sck_MICS4514::getNO2resistance()
+{
 	float sensorVoltage;
-
 	sensorVoltage = ((average(pinREAD_NO2) * (float)VCC) / (float)ANALOG_RESOLUTION);
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
-
 	getNO2load();
-	no2 = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;
+	no2Resistance = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;
+	return true;
+}
+bool Sck_MICS4514::getNO2(float temperature, float humidity)
+{
+	if (!calNO2.valid) return false;
 
+	getNO2resistance();
 
-	// For now dinamic range is disabled, needs more study.
-	// uint8_t cycles = 5;
-	// for (uint8_t i=0; i<cycles; ++i) {
+	no2 = calNO2.A + (calNO2.gas.fac1 * pow(no2Resistance, calNO2.gas.ind1)) + (calNO2.gas.fac2 * pow(no2Resistance, calNO2.gas.ind2)) 
+	+ (calNO2.temp.fac1 * pow(temperature, calNO2.temp.ind1)) + (calNO2.temp.fac2 * pow(temperature, calNO2.temp.ind2))
+	+ (calNO2.hum.fac1 * pow(humidity, calNO2.hum.ind1)) + (calNO2.hum.fac2 * pow(humidity, calNO2.hum.ind2));
+	
+	no2 = no2 / 1000; 	// ppb
 
-	// 	// If difference between result and load resistor is greater than 80, try to improve resolution.
-	// 	if (abs(no2LoadResistor - no2_K) > 200 && no2_K > 870 && no2_K < 10000) {
-
-	// 		setNO2load(no2_K);
-
-	// 		// Update reading
-	// 		getNO2load();
-	// 		sensorVoltage = ((average(pinREAD_NO2) * (float)VCC) / (float)ANALOG_RESOLUTION);
-	// 		if (sensorVoltage > VCC) sensorVoltage = VCC;
-	// 		no2 = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;
-	// 	} else break;
-	// }
-
+	no2 = max(0, no2);
 	return true;
 }
 bool Sck_MICS4514::setNO2load(uint32_t value)
@@ -419,7 +432,7 @@ bool Sck_MICS4514::setNO2load(uint32_t value)
 	Wire.write(data);
 	return (Wire.endTransmission() == 0);
 }
-bool Sck_MICS4514::getNO2load(bool wait)
+bool Sck_MICS4514::getNO2load()
 {
 
 	const byte MCP4551_CMD_READ	= 0b00001100;

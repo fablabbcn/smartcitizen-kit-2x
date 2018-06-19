@@ -23,16 +23,11 @@ enum SensorType
 	SENSOR_TEMPERATURE,
 	SENSOR_HUMIDITY,
 	SENSOR_CO,
+	SENSOR_CO_RESISTANCE,
 	SENSOR_CO_HEAT_TIME,
-	SENSOR_CO_HEAT_CURRENT,
-	SENSOR_CO_HEAT_SUPPLY_VOLTAGE,
-	SENSOR_CO_HEAT_DROP_VOLTAGE,
-	SENSOR_CO_LOAD_RESISTANCE,
 	SENSOR_NO2,
+	SENSOR_NO2_RESISTANCE,
 	SENSOR_NO2_HEAT_TIME,
-	SENSOR_NO2_HEAT_CURRENT,
-	SENSOR_NO2_HEAT_SUPPLY_VOLTAGE,
-	SENSOR_NO2_HEAT_DROP_VOLTAGE,
 	SENSOR_NO2_LOAD_RESISTANCE,
 	/* SENSOR_NOISE_DBA, */
 	/* SENSOR_NOISE_DBC, */
@@ -141,19 +136,12 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_LIGHT, 				"Light", 					14,		true,		false,			"Lux"},
 			OneSensor { BOARD_URBAN, 		SENSOR_TEMPERATURE, 			"Temperature", 					55,		true,		false,			"C"},
 			OneSensor { BOARD_URBAN, 		SENSOR_HUMIDITY,			"Humidity", 					56,		true,		false,			"%"},
-			/* OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"Carbon monoxide", 				16,		true,		true,			"kOhm/ppm"}, */
 			OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"Carbon monoxide", 				82,		true,		true,			"ppm"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_RESISTANCE,			"Carbon monoxide resistance", 			16,		false,		true,			"kOhm"},
 			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"Carbon monoxide heat time",			0,		false,		false,			"sec"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_CURRENT, 		"Carbon monoxide heat current",			0,		false,		false,			"mA"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_SUPPLY_VOLTAGE, 		"Carbon monoxide heat supply voltage",		0,		false,		false,			"mV"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_DROP_VOLTAGE, 		"Carbon monoxide heat drop voltage",		0,		false,		false,			"mV"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO_LOAD_RESISTANCE, 		"Carbon monoxide load resistance",		0,		false,		false,			"Ohms"},
-			/* OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"Nitrogen dioxide",				15,		true,		true,			"kOhm/ppm"}, */
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"Nitrogen dioxide",				81,		true,		true,			"ppm"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"Nitrogen dioxide",				81,		true,		true,			"ppb"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_RESISTANCE,			"Nitrogen dioxide resistance",			15,		false,		true,			"kOhm"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"Nitrogen dioxide heat time",			0,		false,		false,			"sec"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_CURRENT, 		"Nitrogen dioxide heat current",		0,		false,		false,			"mA"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_SUPPLY_VOLTAGE, 	"Nitrogen dioxide heat supply voltage",		0,		false,		false,			"mV"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_DROP_VOLTAGE, 		"Nitrogen dioxide heat drop voltage",		0,		false,		false,			"mV"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_LOAD_RESISTANCE, 		"Nitrogen dioxide load resistance",		0,		false,		false,			"Ohms"},
 			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"Noise dBA", 					53,		true,		false,			"dBA"}, */
 			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"Noise dBC", 					0,		false,		false,			"dBC"}, */

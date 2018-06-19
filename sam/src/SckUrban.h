@@ -59,8 +59,8 @@ class Sck_SHT31
 		const uint16_t SOFT_RESET = 0x30A2;
 		const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
 
-		uint32_t timeout = 20;	// Time in ms to wait for a reading
-
+		uint32_t timeout = 15;	// Time in ms to wait for a reading
+		uint32_t lastTime = 0;
 		void sendComm(uint16_t comm);
 		uint8_t crc8(const uint8_t *data, int len);
 	public:

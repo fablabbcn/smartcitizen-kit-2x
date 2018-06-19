@@ -231,11 +231,13 @@ bool Sck_SHT31::stop()
 }
 bool Sck_SHT31::update(bool wait)
 {
+	uint32_t elapsed = millis() - lastTime;
+	if (elapsed < timeout) delay(timeout - elapsed);
+
 	uint8_t readbuffer[6];
 	sendComm(SINGLE_SHOT_HIGH_REP);
 
 	_Wire->requestFrom(address, (uint8_t)6);
-
 	// Wait for answer (datasheet says 15ms is the max)
 	uint32_t started = millis();
 	while(_Wire->available() != 6) {
@@ -252,14 +254,12 @@ bool Sck_SHT31::update(bool wait)
 
 	// Check Temperature crc
 	if (readbuffer[2] != crc8(readbuffer, 2)) return false;
-
 	SRH = readbuffer[3];
 	SRH <<= 8;
 	SRH |= readbuffer[4];
 
 	// check Humidity crc
 	if (readbuffer[5] != crc8(readbuffer+3, 2)) return false;
-
 	double temp = ST;
 	temp *= 175;
 	temp /= 0xffff;
@@ -270,6 +270,8 @@ bool Sck_SHT31::update(bool wait)
 	shum *= 100;
 	shum /= 0xFFFF;
 	humidity = (float)shum;
+
+	lastTime = millis();
 
 	return true;
 }

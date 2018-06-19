@@ -18,7 +18,7 @@ bool I2Cdetect(byte address)
 {
 
 	auxWire.beginTransmission(address);
-    byte error = auxWire.endTransmission();
+	byte error = auxWire.endTransmission();
 
 	if (error == 0) return true;
 	else return false;
@@ -233,7 +233,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			break;
 
 		} default: return "Unrecognized sensor!!!"; break;
-	}	
+	}
 	return "Unknown error on control command!!!";
 }
 

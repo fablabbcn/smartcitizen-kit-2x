@@ -311,12 +311,7 @@ bool SckESP::mqttPublish()
 		JsonObject& json = jsonBuffer.parseObject(netBuff);
 
 		// Put time
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
-			if (sensors[wichSensor].enabled && sensors[wichSensor].id != 0) {
-				sprintf(myPayload, "{\"data\":[{\"recorded_at\":\"%s\",\"sensors\":[", epoch2iso(json["t"]).c_str());
-			}
-		}
+		sprintf(myPayload, "{\"data\":[{\"recorded_at\":\"%s\",\"sensors\":[", epoch2iso(json["t"]).c_str());
 
 		// Iterate over sensor array on json
 		bool putComma = false;

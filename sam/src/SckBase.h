@@ -27,7 +27,6 @@
 #include "Sensors.h"
 #include "SckUrban.h"
 #include "SckAux.h"
-#include "SckTimer.h"
 #include "ReadLight.h"
 
 /* #define deltaTest 	// Uncomment for testing Alphadelta (SCK Gas Pro) board */
@@ -243,11 +242,6 @@ class SckBase
 		// Misc
 		void getUniqueID();
 		uint32_t uniqueID[4];
-
-		// Timers
-		Task nextTask;
-		void timerAlarm();
-		void setTimer(uint16_t lapse=0, Task task=TASK_COUNT);
 };
 
 void ISR_button();

@@ -45,7 +45,7 @@ String SckUrban::getReading(SensorType wichSensor, bool wait)
 				if (sck_mics4514.getNO2(sck_sht31.temperature, sck_sht31.humidity)) return String(sck_mics4514.no2);
 			}
 			break;
-		case SENSOR_NO2_RESISTANCE: 		if (sck_mics4514.getNO2resistance()) return String(sck_mics4514.coResistance); break;
+		case SENSOR_NO2_RESISTANCE: 		if (sck_mics4514.getNO2resistance()) return String(sck_mics4514.no2Resistance); break;
 		case SENSOR_NO2_HEAT_TIME:		break;
 		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load()) return String(sck_mics4514.no2LoadResistor); break;
 		/* case SENSOR_NOISE_DBA: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(A_WEIGHTING)); break; */

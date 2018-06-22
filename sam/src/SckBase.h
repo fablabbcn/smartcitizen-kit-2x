@@ -31,6 +31,7 @@
 
 /* #define deltaTest 	// Uncomment for testing Alphadelta (SCK Gas Pro) board */
 
+
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
 enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
@@ -244,6 +245,7 @@ class SckBase
 		uint32_t uniqueID[4];
 };
 
+bool I2Cdetect(TwoWire *_Wire, byte address);
 void ISR_button();
 void ISR_battery();
 void ISR_sdDetect();

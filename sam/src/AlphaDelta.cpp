@@ -3,13 +3,13 @@
 bool AlphaDelta::begin()
 {
 
-	if (!I2Cdetect(sht31Address) ||
-			!(I2Cdetect(Slot1.electrode_A.resistor.address)) ||
-			!(I2Cdetect(Slot1.electrode_W.resistor.address)) ||
-			!(I2Cdetect(Slot2.electrode_A.resistor.address)) ||
-			!(I2Cdetect(Slot2.electrode_W.resistor.address)) ||
-			!(I2Cdetect(Slot3.electrode_A.resistor.address)) ||
-			!(I2Cdetect(Slot3.electrode_W.resistor.address))) return false;
+	if (!I2Cdetect(&auxWire, sht31Address) ||
+			!(I2Cdetect(&auxWire, Slot1.electrode_A.resistor.address)) ||
+			!(I2Cdetect(&auxWire, Slot1.electrode_W.resistor.address)) ||
+			!(I2Cdetect(&auxWire, Slot2.electrode_A.resistor.address)) ||
+			!(I2Cdetect(&auxWire, Slot2.electrode_W.resistor.address)) ||
+			!(I2Cdetect(&auxWire, Slot3.electrode_A.resistor.address)) ||
+			!(I2Cdetect(&auxWire, Slot3.electrode_W.resistor.address))) return false;
 
 	if (alreadyStarted) return true;
 	alreadyStarted = true;
@@ -109,6 +109,7 @@ float AlphaDelta::getPPM(AlphaSensor wichSlot)
             break;
 	}
     }
+    return 0;
 }
 String AlphaDelta::getUID()
 {

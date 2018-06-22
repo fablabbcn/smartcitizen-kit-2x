@@ -480,4 +480,18 @@ void debug_com(SckBase* base, String parameters)
 		}
 	}
 }
+void shell_com(SckBase* base, String parameters)
+{
+	if (parameters.length() > 0) {
+		if (parameters.equals("-on")) {
+			base->st.onShell = true;
+			base->st.onSetup = false;
+			base->led.update(base->led.YELLOW, base->led.PULSE_STATIC);
+		} else if (parameters.equals("-off")) {
+			base->st.onShell = false;
+		}	
+	}
+	sprintf(base->outBuff, "Shell mode: %s", base->st.onShell ? "on" : "off");
+	base->sckOut();
+}
 

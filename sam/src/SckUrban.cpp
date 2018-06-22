@@ -1,32 +1,61 @@
 #include "SckUrban.h"
+#include "SckBase.h"
 
-bool SckUrban::setup()
+bool SckUrban::begin(SckBase *base)
 {
+	uint32_t currentTime = 0;
+	if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
 
-	// TODO implementar una prueba de deteccion y si falla retornar falso.
-
-	// Light
-	if (!sck_bh1721fvc.begin()) return false;
-
-	// Temperature and Humidity
-	if (!sck_sht31.begin()) return false;
-
-	// Gas CO and NO2
-	if (!sck_mics4514.begin()) return false;
-
-	// Noise
-	/* if (!sck_ics43432.configure()) return false; */
-
-	// Barometric pressure and Altitude
-	if (!sck_mpl3115A2.begin()) return false;
-
-	// Dust Particles
-	if (!sck_max30105.begin()) return false;
-
+	for (uint16_t i=0; i<SENSOR_COUNT; i++) {
+		SensorType thisType = SENSOR_COUNT;
+		thisType = static_cast<SensorType>(i);
+		if (base->sensors[thisType].location == BOARD_URBAN) {
+			if (base->sensors[thisType].enabled) {
+				switch(thisType) {
+					case SENSOR_LIGHT: 				if (!sck_bh1721fvc.begin()) return false; break;
+					case SENSOR_TEMPERATURE:
+					case SENSOR_HUMIDITY: 				if (!sck_sht31.begin()) return false; break;
+					case SENSOR_CO:
+					case SENSOR_CO_RESISTANCE:
+					case SENSOR_NO2:
+					case SENSOR_NO2_RESISTANCE:			if (!sck_mics4514.begin(currentTime))	return false; break;
+					/* case SENSOR_NOISE_DBA: */
+					/* case SENSOR_NOISE_DBC: */
+					/* case SENSOR_NOISE_DBZ: 				if (!sck_ics43432.configure()) return false; break; */
+					case SENSOR_ALTITUDE:
+					case SENSOR_PRESSURE:
+					case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.begin()) return false; break;		
+					case SENSOR_PARTICLE_RED:
+					case SENSOR_PARTICLE_GREEN:
+					case SENSOR_PARTICLE_IR:
+					case SENSOR_PARTICLE_TEMPERATURE: 		if (!sck_max30105.begin()) return false; break;
+					default: break;
+				}
+			} else {
+				switch(thisType) {
+					case SENSOR_CO:
+					case SENSOR_CO_RESISTANCE: 
+					case SENSOR_NO2:
+					case SENSOR_NO2_RESISTANCE:
+						// If all the sensors that requires heating are off
+						if (!base->sensors[SENSOR_CO].enabled &&
+						    !base->sensors[SENSOR_CO_RESISTANCE].enabled &&
+						    !base->sensors[SENSOR_NO2].enabled &&
+						    !base->sensors[SENSOR_NO2_RESISTANCE].enabled) {
+							uint32_t currentTime = 0;
+							if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
+							sck_mics4514.stop(currentTime);
+						}
+						break;
+					default: break;
+				}	
+			}
+		}
+	}
 	return true;
 };
 
-String SckUrban::getReading(SensorType wichSensor, bool wait)
+String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 {
 
 	switch(wichSensor) {
@@ -39,14 +68,24 @@ String SckUrban::getReading(SensorType wichSensor, bool wait)
 			}
 			break;
 		case SENSOR_CO_RESISTANCE: 		if (sck_mics4514.getCOresistance()) return String(sck_mics4514.coResistance); break;
-		case SENSOR_CO_HEAT_TIME: break;
+		case SENSOR_CO_HEAT_TIME:
+			{
+				uint32_t currentTime = 0;
+				if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
+				return String(sck_mics4514.getHeatTime(currentTime)); break;
+			}
 		case SENSOR_NO2:
 			if (sck_sht31.update(wait)) {
 				if (sck_mics4514.getNO2(sck_sht31.temperature, sck_sht31.humidity)) return String(sck_mics4514.no2);
 			}
 			break;
 		case SENSOR_NO2_RESISTANCE: 		if (sck_mics4514.getNO2resistance()) return String(sck_mics4514.no2Resistance); break;
-		case SENSOR_NO2_HEAT_TIME:		break;
+		case SENSOR_NO2_HEAT_TIME:
+			{
+				uint32_t currentTime = 0;
+				if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
+				return String(sck_mics4514.getHeatTime(currentTime)); break;
+			}
 		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load()) return String(sck_mics4514.no2LoadResistor); break;
 		/* case SENSOR_NOISE_DBA: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(A_WEIGHTING)); break; */
 		/* case SENSOR_NOISE_DBC: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(C_WEIGHTING)); break; */
@@ -63,15 +102,25 @@ String SckUrban::getReading(SensorType wichSensor, bool wait)
 
 	return "none";
 }
-String SckUrban::control(SensorType wichSensor, String command)
+bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 {
 
          switch (wichSensor) {
-		case SENSOR_CO: break;
-		case SENSOR_NO2: break;
+		case SENSOR_CO:
+		case SENSOR_NO2: {
+			uint32_t currentTime = 0;
+			if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
+			if (command.startsWith("help")) {
+				base->sckOut("Available commands for this sensor:\r\nStill nothing!!"); 
+				return true;
+			} else base->sckOut("Unrecognized command!! please try again..."); return false;
+			break;
+		}
 		default: break;
         }
-        return "Sensor not recognized!!";
+
+        base->sckOut("Sensor not recognized!!");
+	return false;
 }
 
 // Light
@@ -210,7 +259,7 @@ Sck_SHT31::Sck_SHT31(TwoWire *localWire)
 	_Wire = localWire;
 }
 bool Sck_SHT31::begin()
-{	
+{
 	_Wire->begin();
 	_Wire->beginTransmission(address);
 	byte error = _Wire->endTransmission();
@@ -308,8 +357,9 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 }
 
 // Gases
-bool Sck_MICS4514::begin()
+bool Sck_MICS4514::begin(uint32_t startTime)
 {
+	if (heaterRunning) return true;
 
 	// To protect MICS turn off heaters (HIGH=off, LOW=on)
 	pinMode(pinPWM_HEATER_CO, OUTPUT);
@@ -320,58 +370,23 @@ bool Sck_MICS4514::begin()
 	pinMode(pinREAD_CO, INPUT);
 	pinMode(pinREAD_NO2, INPUT);
 
-	enable(SENSOR_CO, 0);
-	enable(SENSOR_NO2, 0);
-
 	// Put the load resistor in middle position
 	setNO2load(8000);
 
+	startHeaterTime = startTime;
+	return startHeater();
+}
+bool Sck_MICS4514::stop(uint32_t stopTime)
+{
+	if (!heaterRunning) return true;
+	heaterRunning = false;
+	stopHeaterTime = stopTime;
+	startHeaterTime = 0;
+
+	TCC1->CTRLA.reg &= ~TCC_CTRLA_ENABLE;
+	while (TCC1->SYNCBUSY.reg & TCC_SYNCBUSY_MASK);
+
 	return true;
-}
-bool Sck_MICS4514::stop()
-{
-
-	// Turn off heaters
-	digitalWrite(pinPWM_HEATER_CO, HIGH);
-	digitalWrite(pinPWM_HEATER_NO2, HIGH);
-
-	return true;
-}
-bool Sck_MICS4514::enable(SensorType wichSensor, uint32_t epoch)
-{
-
-	switch(wichSensor) {
-		case SENSOR_CO: {
-
-			setPWM(SENSOR_CO, 50.8); 		// This works on proto boards 2.0 rev1 (50.8%)
-			// startHeaterTime_CO = epoch;
-			break;
-		} case SENSOR_NO2: {
-
-			setPWM(SENSOR_NO2, 76.2); 		// This works on proto boards 2.0 rev1 (76.2%)
-			// startHeaterTime_NO2 = epoch;
-			break;
-		} default: break;
-	}
-
-	return false;
-}
-bool Sck_MICS4514::disable(SensorType wichSensor)
-{
-
-	switch (wichSensor) {
-		case SENSOR_CO: {
-			digitalWrite(pinPWM_HEATER_CO, HIGH);
-			startHeaterTime_CO = 0;
-			break;
-		} case SENSOR_NO2: {
-			digitalWrite(pinPWM_HEATER_NO2, HIGH);
-			startHeaterTime_NO2 = 0;
-			break;
-		} default: break;
-	}
-
-	return false;
 }
 bool Sck_MICS4514::getCOresistance()
 {
@@ -387,10 +402,10 @@ bool Sck_MICS4514::getCO(float temperature, float humidity)
 
 	getCOresistance();
 
-	co = calCO.A + (calCO.gas.fac1 * pow(coResistance, calCO.gas.ind1)) + (calCO.gas.fac2 * pow(coResistance, calCO.gas.ind2)) 
+	co = calCO.A + (calCO.gas.fac1 * pow(coResistance, calCO.gas.ind1)) + (calCO.gas.fac2 * pow(coResistance, calCO.gas.ind2))
 	+ (calCO.temp.fac1 * pow(temperature, calCO.temp.ind1)) + (calCO.temp.fac2 * pow(temperature, calCO.temp.ind2))
-	+ (calCO.hum.fac1 * pow(humidity, calCO.hum.ind1)) + (calCO.hum.fac2 * pow(humidity, calCO.hum.ind2)); 
-	
+	+ (calCO.hum.fac1 * pow(humidity, calCO.hum.ind1)) + (calCO.hum.fac2 * pow(humidity, calCO.hum.ind2));
+
 	co = max(0, co);
 	return true;
 }
@@ -409,18 +424,17 @@ bool Sck_MICS4514::getNO2(float temperature, float humidity)
 
 	getNO2resistance();
 
-	no2 = calNO2.A + (calNO2.gas.fac1 * pow(no2Resistance, calNO2.gas.ind1)) + (calNO2.gas.fac2 * pow(no2Resistance, calNO2.gas.ind2)) 
+	no2 = calNO2.A + (calNO2.gas.fac1 * pow(no2Resistance, calNO2.gas.ind1)) + (calNO2.gas.fac2 * pow(no2Resistance, calNO2.gas.ind2))
 	+ (calNO2.temp.fac1 * pow(temperature, calNO2.temp.ind1)) + (calNO2.temp.fac2 * pow(temperature, calNO2.temp.ind2))
 	+ (calNO2.hum.fac1 * pow(humidity, calNO2.hum.ind1)) + (calNO2.hum.fac2 * pow(humidity, calNO2.hum.ind2));
-	
-	no2 = no2 / 1000; 	// ppb
+
+	no2 = no2 * 1000; 	// ppb
 
 	no2 = max(0, no2);
 	return true;
 }
 bool Sck_MICS4514::setNO2load(uint32_t value)
 {
-
 	// Check minimal/maximal safe value for Gas sensor (Datasheet says 820 Ohms minimal) ~ 870 because of the rounding of POT discrete steps
 	if (value < 870) value = 870;
 	else if (value > 10000) value = 10000;
@@ -439,7 +453,6 @@ bool Sck_MICS4514::setNO2load(uint32_t value)
 }
 bool Sck_MICS4514::getNO2load()
 {
-
 	const byte MCP4551_CMD_READ	= 0b00001100;
 
 	Wire.beginTransmission(POT_NO2_LOAD_ADDRESS);
@@ -462,8 +475,9 @@ bool Sck_MICS4514::getNO2load()
 
 	return true;
 }
-void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle)
+bool Sck_MICS4514::startHeater()
 {
+	heaterRunning = true;
 
 	// Frequency = GCLK frequency / (2 * N * PER)       where N = prescaler value (CTRLA register)
 
@@ -477,7 +491,6 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle)
 	// TCC_CTRLA_PRESCALER_DIV256
 	// TCC_CTRLA_PRESCALER_DIV1024
 	#define MY_DIVIDER TCC_CTRLA_PRESCALER_DIV1
-
 
  	// With N = 1
 	// FOR 12 bits
@@ -510,19 +523,13 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle)
 	while (GCLK->STATUS.bit.SYNCBUSY);
 
 	// Enable the port multiplexer for the digital pin
-	if (wichSensor == SENSOR_CO) {
-		PORT->Group[PORTA].PINCFG[8].bit.PMUXEN = 1;
-	} else {
-		PORT->Group[PORTA].PINCFG[9].bit.PMUXEN = 1;
-	}
+	PORT->Group[PORTA].PINCFG[8].bit.PMUXEN = 1;
+	PORT->Group[PORTA].PINCFG[9].bit.PMUXEN = 1;
 
 	// Connect the TCC0 timer to pin PA09 - port pins are paired odd PMUO and even PMUXE
 	// F & E specify the timers: TCC0, TCC1 and TCC2
-	if (wichSensor == SENSOR_CO) {
-		PORT->Group[PORTA].PMUX[8 >> 1].reg = PORT_PMUX_PMUXO_F | PORT_PMUX_PMUXE_F;
-	} else {
-		PORT->Group[PORTA].PMUX[8 >> 1].reg = PORT_PMUX_PMUXO_F | PORT_PMUX_PMUXE_F;
-	}
+	PORT->Group[PORTA].PMUX[8 >> 1].reg |= PORT_PMUX_PMUXE_F;
+	PORT->Group[PORTA].PMUX[9 >> 1].reg |= PORT_PMUX_PMUXO_F;
 
 	// Feed GCLK4 to TCC0 and TCC1
 	REG_GCLK_CLKCTRL = GCLK_CLKCTRL_CLKEN |         // Enable GCLK4 to TCC0 and TCC1
@@ -539,19 +546,21 @@ void Sck_MICS4514::setPWM(SensorType wichSensor, float dutyCycle)
 	REG_TCC1_PER = maxValue;         		// Set the frequency of the PWM on TCC0
 	while (TCC1->SYNCBUSY.bit.PER);
 
-	// Set the PWM duty cycle
-	if (wichSensor == SENSOR_CO) {
-		REG_TCC1_CC0 = (uint16_t)(maxValue * (dutyCycle / 100.0));
-		while (TCC1->SYNCBUSY.bit.CC0);
-	} else {
-		REG_TCC1_CC1 = (uint16_t)(maxValue * (dutyCycle / 100.0));
-		while (TCC1->SYNCBUSY.bit.CC1);
-	}
+	REG_TCC1_CC0 = (uint16_t)(maxValue * (dutyCycle_CO / 100.0)); 	// CO
+	REG_TCC1_CC1 = (uint16_t)(maxValue * (dutyCycle_NO2 / 100.0)); 	// NO2
+	while (TCC1->SYNCBUSY.bit.CC1);
 
 	// Divide the 48MHz signal by 1 giving 48MHz (20.83ns) TCC0 timer tick and enable the outputs
 	REG_TCC1_CTRLA |= MY_DIVIDER |    // Divide GCLK4 (posibles values: 1,2,4,8,16,64,256,1024)
 					  TCC_CTRLA_ENABLE;             // Enable the TCC0 output
 	while (TCC1->SYNCBUSY.bit.ENABLE);
+	return true;
+}
+uint32_t Sck_MICS4514::getHeatTime(uint32_t currentTime)
+{
+	if (!heaterRunning) return 0;
+	if (startHeaterTime == 0) startHeaterTime = currentTime;
+	return currentTime - startHeaterTime;
 }
 float Sck_MICS4514::average(uint8_t wichPin)
 {
@@ -673,3 +682,4 @@ bool Sck_MAX30105::getTemperature(bool wait)
 	sparkfun_max30105.shutDown();
 	return true;
 }
+

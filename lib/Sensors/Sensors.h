@@ -138,10 +138,10 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_HUMIDITY,			"Humidity", 					56,		true,		false,			"%"},
 			OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"Carbon monoxide", 				82,		true,		true,			"ppm"},
 			OneSensor { BOARD_URBAN, 		SENSOR_CO_RESISTANCE,			"Carbon monoxide resistance", 			16,		false,		true,			"kOhm"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"Carbon monoxide heat time",			0,		false,		false,			"sec"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"Carbon monoxide heat time",			0,		true,		false,			"sec"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"Nitrogen dioxide",				81,		true,		true,			"ppb"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_RESISTANCE,			"Nitrogen dioxide resistance",			15,		false,		true,			"kOhm"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"Nitrogen dioxide heat time",			0,		false,		false,			"sec"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"Nitrogen dioxide heat time",			0,		true,		false,			"sec"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_LOAD_RESISTANCE, 		"Nitrogen dioxide load resistance",		0,		false,		false,			"Ohms"},
 			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"Noise dBA", 					53,		true,		false,			"dBA"}, */
 			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"Noise dBC", 					0,		false,		false,			"dBC"}, */

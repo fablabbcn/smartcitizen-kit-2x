@@ -82,9 +82,9 @@ void SckBase::setup()
 
 	// Urban board
 	analogReadResolution(12);
-	urbanPresent = urban.setup();
-	if (urbanPresent) {
+	if (urban.begin(this)) {
 		sckOut("Urban board detected");
+		urbanPresent = true;
 		readLight.setup();
 		// readLight.debugFlag = true;
 	} else sckOut("No urban board detected!!");
@@ -450,15 +450,16 @@ void SckBase::saveConfig(bool defaults)
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].interval = default_sensor_reading_interval;
 		}
+	} else {
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			config.sensors[i].enabled = wichSensor->enabled;
+			config.sensors[i].interval = wichSensor->interval;
+		}
 	}
-
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-		config.sensors[i].enabled = wichSensor->enabled; 
-		config.sensors[i].interval = wichSensor->interval;
-	}
-
 	eepromConfig.write(config);
+
+	if (urbanPresent) urban.begin(this);
 
 	st.mode = config.mode;
 	st.wifiSet = config.credentials.set;
@@ -955,7 +956,9 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 		}
 		case BOARD_URBAN:
 		{
-				result = urban.getReading(wichSensor, wait);
+				uint32_t currentTime = 0;
+				if (st.timeStat.ok) currentTime = rtc.getEpoch();
+				result = urban.getReading(this, wichSensor, wait);
 				if (result.startsWith("none")) return false;
 				break;
 		}
@@ -977,7 +980,7 @@ bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 		sprintf(outBuff, "%s: %s", sensors[wichSensorType].title, wichCommand.c_str());
 		sckOut();
 		switch (sensors[wichSensorType].location) {
-				case BOARD_URBAN: sckOut(urban.control(wichSensorType, wichCommand)); break;
+				case BOARD_URBAN: urban.control(this, wichSensorType, wichCommand); break;
 				case BOARD_AUX: sckOut(auxBoards.control(wichSensorType, wichCommand)); break;
 				default: break;
 			}
@@ -1121,6 +1124,11 @@ bool SckBase::setTime(String epoch)
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		st.timeStat.setOk();
+		if (urbanPresent) {
+			// Update MICS clock
+			getReading(SENSOR_CO_HEAT_TIME);
+			getReading(SENSOR_NO2_HEAT_TIME);
+		}
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
 		sckOut();

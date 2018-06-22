@@ -14,16 +14,6 @@ Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
 
-bool I2Cdetect(byte address)
-{
-
-	auxWire.beginTransmission(address);
-	byte error = auxWire.endTransmission();
-
-	if (error == 0) return true;
-	else return false;
-}
-
 bool AuxBoards::begin(SensorType wichSensor)
 {
 
@@ -252,7 +242,7 @@ void AuxBoards::displayReading(String title, String reading, String unit, String
 bool GrooveI2C_ADC::begin()
 {
 
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.beginTransmission(deviceAddress);		// transmit to device
 	auxWire.write(REG_ADDR_CONFIG);				// Configuration Register
@@ -284,7 +274,7 @@ float GrooveI2C_ADC::getReading()
 bool INA219::begin()
 {
 
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	ada_ina219.begin();
 
@@ -332,7 +322,7 @@ float INA219::getReading(typeOfReading wichReading)
 
 bool Groove_OLED::begin()
 {
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	U8g2_oled.begin();
 	U8g2_oled.clearDisplay();
@@ -410,7 +400,7 @@ void Groove_OLED::displayReading(String title, String reading, String unit, Stri
 bool WaterTemp_DS18B20::begin()
 {
 
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.begin();
 
@@ -473,7 +463,7 @@ float WaterTemp_DS18B20::getReading()
 bool Atlas::begin()
 {
 
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	if (beginDone) return true;
 	beginDone = true;
@@ -675,7 +665,7 @@ bool PMsensor::begin()
 {
 
 	if (alreadyStarted) return true;
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.beginTransmission(deviceAddress);
 	auxWire.write(PM_START);

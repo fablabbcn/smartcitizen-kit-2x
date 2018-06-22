@@ -18,7 +18,6 @@ AuxBoards auxBoards;
 // Eeprom flash emulation to store persistent variables
 FlashStorage(eepromConfig, Configuration);
 
-
 void SckBase::setup()
 {
 
@@ -34,7 +33,7 @@ void SckBase::setup()
 	pinPeripheral(11, PIO_SERCOM);
 	pinPeripheral(13, PIO_SERCOM);
 	auxWire.begin();
-	delay(2000); 				// Give some time for external boards to boot
+	delay(1000); 				// Give some time for external boards to boot
 
 	// Button
 	pinMode(pinBUTTON, INPUT_PULLUP);
@@ -131,7 +130,7 @@ void SckBase::setup()
 
 	if (saveNeeded) saveConfig();
 
-	
+
 #ifdef deltaTest
 	ESPcontrol(ESP_OFF);
 	led.off();
@@ -481,7 +480,7 @@ void SckBase::saveConfig(bool defaults)
 	sprintf(netBuff, "%u", ESPMES_SET_CONFIG);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	if (!st.espON) {
-		ESPcontrol(ESP_ON); 
+		ESPcontrol(ESP_ON);
 		delay(150);
 	}
 	sckOut("Saved configuration!!", PRIO_LOW);
@@ -731,7 +730,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_PUBLISH_OK:
 
 			st.publishStat.setOk();
-			sckOut("Network publish OK!!   "); 
+			sckOut("Network publish OK!!   ");
 			ESPcontrol(ESP_OFF);
 			break;
 
@@ -892,7 +891,7 @@ void SckBase::goToSleep()
 	digitalWrite(pinESP_RX_WIFI, LOW);
 	digitalWrite(pinESP_TX_WIFI, LOW);
 
-	
+
 	// TODO MICS heaters saving
 	// TODO checke every component for power optimizations
 
@@ -1119,7 +1118,6 @@ void SckBase::publish()
 // **** Time
 bool SckBase::setTime(String epoch)
 {
-
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		st.timeStat.setOk();
@@ -1134,7 +1132,6 @@ bool SckBase::setTime(String epoch)
 }
 bool SckBase::ISOtime()
 {
-
 	if (st.timeStat.ok) {
 		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
 		return true;
@@ -1159,6 +1156,14 @@ void SckBase::epoch2iso(uint32_t toConvert, char* isoTime)
 }
 
 
+bool I2Cdetect(TwoWire *_Wire, byte address)
+{
+	_Wire->beginTransmission(address);
+	byte error = _Wire->endTransmission();
+
+	if (error == 0) return true;
+	else return false;
+}
 
 void Status::setOk()
 {

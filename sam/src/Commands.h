@@ -32,6 +32,7 @@ enum CommandType {
 	COM_STATE,
 	COM_HELLO,
 	COM_DEBUG,
+	COM_SHELL,
 
 	COM_COUNT
 };
@@ -59,6 +60,7 @@ void time_com(SckBase* base, String parameters);
 void state_com(SckBase* base, String parameters);
 void hello_com(SckBase* base, String parameters);
 void debug_com(SckBase* base, String parameters);
+void shell_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -107,6 +109,7 @@ class AllCommands {
 			OneCom {100,	COM_STATE,		"state",	"Shows state flags",															state_com},
 			OneCom {100,	COM_HELLO,		"hello",	"Sends MQTT hello to platform",														hello_com},
 			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages [-light]", 													debug_com},
+			OneCom {100,	COM_SHELL, 		"shell", 	"Shows or sets shell mode [-on] [-off]",												shell_com},
 
 		};
 

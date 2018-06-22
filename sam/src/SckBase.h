@@ -61,6 +61,7 @@ class Status
 
 struct SckState
 {
+	bool onShell = false;
 	bool onSetup = false;
 	bool espON = false;
 	bool wifiSet = false;

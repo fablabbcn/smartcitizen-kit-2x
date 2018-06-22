@@ -189,6 +189,9 @@ void SckBase::reviewState()
 	if (st.sleeping) {
 
 
+	} else if (st.onShell) {
+
+
 	} else if (st.onSetup) {
 
 

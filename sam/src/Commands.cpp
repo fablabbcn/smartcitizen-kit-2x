@@ -266,7 +266,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 	while (!SerialUSB.available()) {
 		base->ISOtime();
 		if (printTime) sprintf(base->outBuff, "%s\t", base->ISOtimeBuff);
-		if (printMs) sprintf(base->outBuff, "%s%i\t", base->outBuff, millis() - lastMillis);
+		if (printMs) sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
 		lastMillis = millis();
 		for (uint8_t i=0; i<index; i++) {
 			if (base->getReading(sensorsToMonitor[i], true)) sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].reading.c_str());

@@ -102,7 +102,6 @@ class SckBase
 		uint32_t espStarted;
 
 		// **** Time
-		RTCZero rtc;
 		const uint8_t TIME_TIMEOUT = 20;		// seconds
 		void epoch2iso(uint32_t toConvert, char* isoTime);
 
@@ -181,6 +180,7 @@ class SckBase
 		void printState();
 
 		// **** Time
+		RTCZero rtc;
 		char ISOtimeBuff[20];
 		bool setTime(String epoch);
 		bool ISOtime();

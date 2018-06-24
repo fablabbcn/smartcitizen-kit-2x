@@ -67,7 +67,7 @@ void SckESP::update()
 
 	if (WiFi.getMode() == WIFI_AP) {
 		dnsServer.processNextRequest();
-		// webServer.handleClient();
+		webServer.handleClient();
 	}
 
 	if (WiFi.status() != currentWIFIStatus) {
@@ -362,17 +362,40 @@ bool SckESP::sendNetinfo()
 }
 bool SckESP::sendTime()
 {
-
 	// Update time
 	debugOUT(F("Trying NTP Sync..."));
 	Udp.begin(8888);
 	setSyncProvider(ntpProvider);
 	setSyncInterval(300);
+	return true;
+}
+bool SckESP::sendConfig()
+{
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& json = jsonBuffer.createObject();
+
+	json["mo"] = (uint8_t)config.mode;
+	json["pi"] = config.publishInterval;
+	json["cs"] = (uint8_t)config.credentials.set;
+	json["ss"] = config.credentials.ssid;
+	json["pa"] = config.credentials.pass;
+	json["ts"] = (uint8_t)config.token.set;
+	json["to"] = config.token.token;
+
+	sprintf(netBuff, "%u", SAMMES_SET_CONFIG);
+	json.printTo(&netBuff[1], json.measureLength() + 1);
+	if (sendMessage()) {
+		debugOUT(F("Sent configuration to SAM!!"));
+		return true;
+	}
+	debugOUT(F("ERROR Failed to send config to SAM!!!"));
+	return false;
 }
 
 // **** APmode and WebServer
 void SckESP::startAP()
 {
+	scanAP();
 
 	debugOUT(String F("Starting Ap with ssid: ") + String(hostname));
 
@@ -391,7 +414,7 @@ void SckESP::startAP()
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
 	dnsServer.start(DNS_PORT, "*", myIP);
 
-	/* startWebServer(); */
+	startWebServer();
 }
 void SckESP::stopAP()
 {
@@ -401,13 +424,371 @@ void SckESP::stopAP()
 	// TODO stop webserver?
 	tryConnection();
 }
+void SckESP::startWebServer()
+{
+
+	// Android captive portal.
+	webServer.on("/generate_204", [&](){
+		flashReadFile("/");
+	});
+
+	// Microsoft captive portal.
+	webServer.on("/fwlink", [&](){
+		flashReadFile("/");
+	});
+
+	// Handle files from flash
+	webServer.onNotFound([&](){
+		flashReadFile(webServer.uri());
+	});
+
+	// Handle set 
+	// /set?ssid=value1&password=value2&token=value3&epoch=value&pubint=60&mode=value
+	//	ssid
+	//	password
+	//	token
+	//	epoch
+	//	pubint
+	//	mode
+	webServer.on("/set", extSet);
+
+	// Console
+	// /console?com=get sensors
+	/* webServer.on("/console", [&](){ */
+
+	/* 	debugOUT(F("Received web console request.")); */
+		
+	/* 	clearParam(); */
+	/* 	strncpy(msgOut.param, webServer.arg(0).c_str(), 240); */ 
+	/* 	msgOut.com = ESP_CONSOLE_COM; */
+	/* 	SAMsendMsg(); */
+
+	/* }); */
+
+	// Handle status request
+	webServer.on("/status", extStatus);
+
+	// Handle ping request
+	webServer.on("/ping", [&](){
+
+		debugOUT(F("Received web ping request."));
+
+		webServer.send(200, "text/plain", "");
+	});
+
+	// Handle APlist request
+	webServer.on("/aplist", [&](){
+
+		debugOUT(F("Received web Access point request."));
+
+   		String json = "{\"nets\":[";
+
+   		// int netNum = WiFi.scanNetworks();
+		for (int i=0; i<netNumber; i++) {
+			json += "{\"ssid\":\"" + String(WiFi.SSID(i));
+			json += "\",\"ch\":" + String(WiFi.channel(i));
+			json += ",\"rssi\":" + String(WiFi.RSSI(i)) + "}";
+			if (i < (netNumber - 1)) json += ",";
+		}
+
+		json += "]}";
+		webServer.send(200, "text/json", json);
+		json = String();
+	});
+
+	// Handle SSDP
+	webServer.on("/description.xml", HTTP_GET, [](){
+    	SSDP.schema(webServer.client());
+	});
+
+	webServer.begin();
+	debugOUT("Started Webserver!!!");
+
+	// SSDP description
+	SSDP.setSchemaURL("description.xml");
+	SSDP.setHTTPPort(80);
+	SSDP.setName("SmartCitizen Kit");
+	SSDP.setModelName("1.5");
+	SSDP.setModelURL("http://www.smartcitizen.me");
+	SSDP.begin();
+}
+void SckESP::webSet()
+{
+	debugOUT(F("Received web configuration request."));
+
+	StaticJsonBuffer<240> jsonBuffer;
+	JsonObject& jsonConf = jsonBuffer.createObject();
+	String json = "{";
+
+	// If we found ssid AND pass
+	if (webServer.hasArg("ssid"))  {
+
+		String tssid = webServer.arg("ssid");
+		String tpass = "";
+		if (webServer.hasArg("password")) tpass = webServer.arg("password");
+			
+		// If ssid is no zero chars
+		if (tssid.length() > 0) {
+			config.credentials.set = true;
+			tssid.toCharArray(config.credentials.ssid, 64);
+			tpass.toCharArray(config.credentials.pass, 64);
+			jsonConf["ss"] = config.credentials.ssid;
+			jsonConf["pa"] = config.credentials.pass;
+			debugOUT(F("Wifi credentials updated from apmode web!!!"));
+		} else {
+			config.credentials.set = false;
+			strncpy(config.credentials.ssid, "", 64);
+			strncpy(config.credentials.pass, "", 64);
+			json += "\"ssid\":\"false\",";
+			debugOUT(F("Invalid Wifi credentials received from apmode web!!!"));
+		}
+	} else {
+		json += "\"ssid\":\"false\",";
+	}
+
+	// If we found the mode
+	if (webServer.hasArg("mode")) {
+		String stringMode = webServer.arg("mode");
+		if (stringMode.equals("sdcard")) {
+			config.mode = MODE_SD;
+			json += "\"mode\":\"true\",";
+			jsonConf["mo"] = (uint8_t)MODE_SD;
+			debugOUT(F("Mode set to sdcard from apmode web!!!"));
+		} else if (stringMode.equals("network")) {
+			json += "\"mode\":\"true\",";
+			config.mode = MODE_NET;
+			jsonConf["mo"] = (uint8_t)MODE_NET;
+			debugOUT(F("Mode set to network from apmode web!!!"));
+		} else {
+			config.mode = MODE_NOT_CONFIGURED;
+			json += "\"mode\":\"false\",";
+			debugOUT(F("Invalid mode from apmode web!!!"));
+		}
+	} else {
+		json += "\"mode\":\"false\",";
+	}
+
+	// If we found the token
+	if (webServer.hasArg("token")) {
+		String stringToken = webServer.arg("token");
+		if (stringToken.length() == 6) {
+			config.token.set = true;
+			stringToken.toCharArray(config.token.token, 8);
+			json += "\"token\":\"true\",";
+			jsonConf["to"] = config.token.token;
+			debugOUT(F("Token updated from apmode web!!!"));
+		} else {
+			config.token.set = false;
+			json += "\"token\":\"false\",";
+			strncpy(config.token.token, "", 64);
+			debugOUT(F("Invalid Token received from apmode web!!!"));
+		}
+	} else {
+		json += "\"token\":\"false\",";
+	}
+
+	// If we found new time
+	if (webServer.hasArg("epoch")) {
+
+		String tepoch = webServer.arg("epoch");
+		uint32_t iepoch = tepoch.toInt();
+		const unsigned long DEFAULT_TIME = 1357041600; // Jan 1 2013
+
+		if (iepoch >= DEFAULT_TIME) { 
+			setTime(iepoch);
+			debugOUT(F("Time updated from apmode web!!!"));
+			if (sendMessage(SAMMES_TIME, tepoch.c_str())) debugOUT(F("Time sent to SAM!!!"));
+			else debugOUT(F("ERROR failed to send time to SAM"));
+		} else {
+			debugOUT(F("Invalid time received from apmode web!!!"));
+		}
+	} else {
+		json += "\"time\":\"false\",";
+	}
+
+	// Publish interval (seconds)
+	if (webServer.hasArg("pubint")) {
+		
+		String tinterval = webServer.arg("pubint");
+		uint32_t intTinterval = tinterval.toInt();
+
+		if (intTinterval < max_publish_interval && intTinterval > minimal_publish_interval) {
+			config.publishInterval = intTinterval;
+			jsonConf["ri"] = config.publishInterval;
+			json += "\"pubint\":\"true\"";
+			debugOUT(F("Publish interval changed from apmode web!!!"));
+		} else {
+			json += "\"pubint\":\"false\"";
+			debugOUT(F("Invalid publish interval from apmode web!!!"));
+		}
+				
+	} else {
+		json += "\"pubint\":\"false\"";
+	}
+	json += "\"pubint\":\"false\"";
+	
+	sendConfig();
+	webServer.send(200, "text/json", json);
+}
+bool SckESP::flashReadFile(String path)
+{
+
+	if (captivePortal()) { // If caprive portal redirect instead of displaying the page.
+ 	   return false;
+	}
+	
+	debugOUT("Received file request: " + path);
+	
+	// send index file in case no file is requested
+	if (path.endsWith("/")) path += "index.gz";
+
+	// Manage content types
+	String contentType = "text/html";
+
+	if(path.endsWith(".css")) contentType = "text/css";
+	else if(path.endsWith(".js")) contentType = "application/javascript";
+	else if(path.endsWith(".png")) contentType = "image/png";
+	else if(path.endsWith(".gif")) contentType = "image/gif";
+	else if(path.endsWith(".jpg")) contentType = "image/jpeg";
+	else if(path.endsWith(".ico")) contentType = "image/x-icon";
+
+	if (SPIFFS.exists(path)) {
+	  
+		File file = SPIFFS.open(path, "r");
+		size_t sent = webServer.streamFile(file, contentType);
+		file.close();
+
+		return true;
+	}
+	webServer.send(404, "text/plain", "FileNotFound");
+	return false;
+}
+bool SckESP::captivePortal()
+{
+  if (!isIp(webServer.hostHeader()) && webServer.hostHeader() != (String(hostname)+".local")) {
+    webServer.sendHeader("Location", String("http://") + toStringIp(webServer.client().localIP()), true);
+    webServer.send (302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
+    webServer.client().stop(); // Stop is needed because we sent no content length
+    return true;
+  }
+  return false;
+}
+bool SckESP::isIp(String str)
+{
+  for (int i = 0; i < str.length(); i++) {
+    int c = str.charAt(i);
+    if (c != '.' && (c < '0' || c > '9')) return false;
+  }
+  return true;
+}
+String SckESP::toStringIp(IPAddress ip)
+{
+  String res = "";
+  for (int i = 0; i < 3; i++) {
+    res += String((ip >> (8 * i)) & 0xFF) + ".";
+  }
+  res += String(((ip >> 8 * 3)) & 0xFF);
+  return res;
+}
+
+void SckESP::webStatus() {
+
+	debugOUT(F("Received web status info request."));
+
+	// Token
+	String json;
+	if (config.token.set) json = "{\"token\":\"" + String(config.token.token) + "\",";
+	else json = "{\"token\":\"null\",";
+	
+	// Wifi config
+	if (config.credentials.set) {
+		json += "\"ssid\":\"" + String(config.credentials.ssid) + "\",";
+		json += "\"password\":\"" + String(config.credentials.pass) + "\",";
+	} else {
+		json += "\"ssid\":\"null\",";
+		json += "\"password\":\"null\",";
+	}
+
+	if (config.mode == MODE_SD) json += "\"mode\":\"sdcard\",";
+	else if (config.mode == MODE_NET) json += "\"mode\":\"network\",";
+	else json += "\"mode\":\"not configured\",";
+
+	// Hostname
+	json += "\"hostname\":\"" + String(hostname) + "\",";
+
+	// IP address
+	String tip = WiFi.localIP().toString();
+	json += "\"ip\":\"" + tip + "\",";
+
+	// MAC address
+	String tmac = WiFi.softAPmacAddress();
+	json += "\"mac\":\"" + tmac + "\",";
+
+	// Time
+	String epochSTR = "0";
+	if (timeStatus() == timeSet) epochSTR = String(now());		
+	json += "\"time\":" + epochSTR + ",";
+
+	// Battery
+	String battPresent = "wip";
+	json += "\"batt\":\"" + battPresent + "\",";
+	uint8_t battPercent = 0;
+	json += "\"battPercent\":" + String(battPercent) + ",";
+	String charging = "wip";
+	json += "\"charging\":\"" + charging + "\",";
+
+	// SDcard
+	String sdPresent = "wip";
+	json += "\"sdcard\":\"" + sdPresent + "\",";
+ 
+	// ESP firmware version
+	json += "\"ESPversion\":\"" + ESPversion + "\",";
+
+	// ESP build date
+	json += "\"ESPbuilddate\":\"" + ESPbuildDate + "\",";
+
+	String wip = "wip";
+	// SAM firmware version
+	json += "\"SAMversion\":\"" + wip + "\",";
+	
+	// SAM build date
+	json += "\"SAMbuilddate\":\"" + wip + "\",";
+
+	// Acces Point status
+	json += "\"apstatus\":\"to be removed\",";
+
+	// Wifi status
+	json += "\"wifi\":\"to be removed\",";
+
+	// MQTT status
+	json += "\"mqtt\":\"to be removed\",";
+
+	// Last publish time
+	json += "\"last_publish\":\"to be removed\",";
+
+	json += "}";
+	webServer.send(200, "text/json", json);
+	json = String();
+}
+void SckESP::scanAP()
+{
+
+	debugOUT(F("Scaning Wifi networks..."));
+
+	netNumber = WiFi.scanNetworks();
+	// Wait for scan...
+	while (WiFi.scanComplete() == -2) {
+		;
+	}
+
+	debugOUT(String(netNumber) + F(" networks found"));
+}
 
 // **** Configuration
 bool SckESP::saveConfig(Configuration newConfig)
 {
-
 	config = newConfig;
-	saveConfig();
+	return saveConfig();
 }
 bool SckESP::saveConfig()
 {

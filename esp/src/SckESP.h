@@ -8,6 +8,7 @@
 #include <ESP8266mDNS.h>
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266SSDP.h>
 #include "RemoteDebug.h"
 #include <ArduinoJson.h>
 #include <RHReliableDatagram.h>
@@ -46,6 +47,7 @@ class SckESP
 		bool sendCredentials();
 		bool sendNetinfo();
 		bool sendTime();
+		bool sendConfig();
 
 		// **** MQTT
 		bool mqttConnect();
@@ -79,8 +81,13 @@ class SckESP
 		// AP mode
 		void startAP();
 		void stopAP();
-		// void startWebServer();
+		void scanAP();		
+		int netNumber;
+		void startWebServer();
 		bool flashReadFile(String path);
+		bool captivePortal();
+		bool isIp(String str);
+		String toStringIp(IPAddress ip);
 		const byte DNS_PORT = 53;
 
 		// Time
@@ -95,6 +102,8 @@ class SckESP
 	public:
 		void setup();
 		void update();
+		void webSet();
+		void webStatus();
 
 		// External calls
 		void _ledToggle();
@@ -106,6 +115,7 @@ void ledToggle();
 
 // Static webserver handlers
 void extSet();
+void extStatus();
 
 // Time
 time_t ntpProvider();

@@ -19,9 +19,9 @@ void ledToggle() {
 time_t ntpProvider() {
 	return esp.getNtpTime();
 }
-// void extSet() {
-// 	esp.webSet();
-// }
-// void extStatus() {
-// 	esp.webStatus();
-// }
+void extSet() {
+	esp.webSet();
+}
+void extStatus() {
+	esp.webStatus();
+}

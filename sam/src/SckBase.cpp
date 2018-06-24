@@ -677,7 +677,19 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		{
 
 				sckOut("Received new config from ESP");
-				sckOut(netBuff);
+				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+				JsonObject& json = jsonBuffer.parseObject(netBuff);
+				uint8_t intMode = json["mo"];
+				SCKmodes wichMode = static_cast<SCKmodes>(intMode);
+				config.mode = wichMode;
+				config.publishInterval = json["pi"];
+				config.credentials.set = json["cs"];
+				strcpy(config.credentials.ssid, json["ss"]);
+				strcpy(config.credentials.pass, json["pa"]);
+				config.token.set = json["ts"];
+				strcpy(config.token.token, json["to"]);
+
+				saveConfig();
 				break;
 
 		}

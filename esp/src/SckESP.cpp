@@ -362,11 +362,14 @@ bool SckESP::sendNetinfo()
 }
 bool SckESP::sendTime()
 {
-	// Update time
-	debugOUT(F("Trying NTP Sync..."));
-	Udp.begin(8888);
-	setSyncProvider(ntpProvider);
-	setSyncInterval(300);
+	if (timeStatus() == timeNotSet) {
+		debugOUT("Time is not synced!!!");
+		/* setNTPprovider(); */
+	} else {
+		String epochSTR = String(now());
+		debugOUT("Sending time to SAM: " + epochSTR);
+		sendMessage(SAMMES_TIME, epochSTR.c_str());
+	}
 	return true;
 }
 bool SckESP::sendConfig()
@@ -878,6 +881,14 @@ void SckESP::_ledToggle()
 }
 
 // **** Time
+void SckESP::setNTPprovider()
+{
+	// Update time
+	debugOUT(F("Trying NTP Sync..."));
+	Udp.begin(8888);
+	setSyncProvider(ntpProvider);
+	setSyncInterval(300);
+}
 time_t SckESP::getNtpTime()
 {
 	IPAddress ntpServerIP;
@@ -887,7 +898,7 @@ time_t SckESP::getNtpTime()
 
 	sendNTPpacket(ntpServerIP);
 	uint32_t beginWait = millis();
-	while (millis() - beginWait < 200) {
+	while (millis() - beginWait < 1500) {
 		int size = Udp.parsePacket();
 		if (size >= 48) {
 			Udp.read(packetBuffer, 48);  // read packet into the buffer

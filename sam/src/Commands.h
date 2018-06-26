@@ -103,7 +103,7 @@ class AllCommands {
 			OneCom {90,	COM_I2C_DETECT,		"i2c",		"Search the I2C bus for devices",													i2cDetect_com},
 			OneCom {90,	COM_GET_CHARGER_CONF,	"charger",	"Shows charger configuration",														getCharger_com},
 			OneCom {90,	COM_CONFIG,		"config",	"Shows/sets configuration [-defaults] [-mode sdcard/network] [-pubint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token]",		config_com},
-			OneCom {100,	COM_ESP_CONTROL,	"esp",		"Controls ESP [on, off, reboot]", 													esp_com},
+			OneCom {100,	COM_ESP_CONTROL,	"esp",		"Controls ESP [-on, -off, -reboot -flash]", 													esp_com},
 			OneCom {100,	COM_NETINFO,		"netinfo",	"Shows network information",														netInfo_com},
 			OneCom {100,	COM_TIME,		"time",		"Shows/sets or syncs (if needed) time",													time_com},
 			OneCom {100,	COM_STATE,		"state",	"Shows state flags",															state_com},

@@ -430,14 +430,11 @@ void esp_com(SckBase* base, String parameters)
 {
 
 	if (parameters.length() <= 0) {
-		base->sckOut("Parameters: on/off/reboot/flash/debug");
-	} else if (parameters.equals("on")) base->ESPcontrol(base->ESP_ON);
-	else if (parameters.equals("off")) base->ESPcontrol(base->ESP_OFF);
-	else if (parameters.equals("reboot")) base->ESPcontrol(base->ESP_REBOOT);
-	else if (parameters.equals("flash")) base->ESPcontrol(base->ESP_FLASH);
-	else if (parameters.equals("debug")) {
-		// TODO toggle esp debug
-	}
+		base->sckOut("Parameters: [-on -off -reboot -flash]");
+	} else if (parameters.equals("-on")) base->ESPcontrol(base->ESP_ON);
+	else if (parameters.equals("-off")) base->ESPcontrol(base->ESP_OFF);
+	else if (parameters.equals("-reboot")) base->ESPcontrol(base->ESP_REBOOT);
+	else if (parameters.equals("-flash")) base->ESPcontrol(base->ESP_FLASH);
 }
 void netInfo_com(SckBase* base, String parameters)
 {

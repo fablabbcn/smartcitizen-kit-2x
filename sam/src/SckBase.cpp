@@ -607,7 +607,7 @@ void SckBase::ESPbusUpdate()
 {
 
 	if (manager.available()) {
-
+		
 		uint8_t len = NETPACK_TOTAL_SIZE;
 
 		if (manager.recvfromAck(netPack, &len)) {
@@ -620,7 +620,7 @@ void SckBase::ESPbusUpdate()
 			// Get content from first package (1 byte less than the rest)
 			memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
 
-			// Het the rest of the packages (if they exist)
+			// Get the rest of the packages (if they exist)
 			for (uint8_t i=0; i<netPack[TOTAL_PARTS]-1; i++) {
 				if (manager.recvfromAckTimeout(netPack, &len, 500))	{
 					memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE) + (NETPACK_CONTENT_SIZE - 1)], &netPack[1], NETPACK_CONTENT_SIZE);
@@ -749,6 +749,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 			sckOut("Network publish OK!!   ");
 			ESPcontrol(ESP_OFF);
 			break;
+
+		case SAMMES_BOOTED:
+
+			sckOut("ESP finished booting");
 
 		default: break;
 	}

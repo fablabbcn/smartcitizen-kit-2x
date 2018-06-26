@@ -17,6 +17,7 @@ enum ESPMessage {
 
 enum SAMMessage {
 
+	SAMMES_BOOTED, 			// ESP->SAM, On finished booting
 	SAMMES_SET_CONFIG,		// ESP->SAM, Sends new config
 	SAMMES_DEBUG,			// ESP->SAM, Send debug info
 	SAMMES_NETINFO,			// ESP->SAM, Send network info

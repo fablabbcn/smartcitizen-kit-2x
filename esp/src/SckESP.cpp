@@ -61,6 +61,7 @@ void SckESP::setup()
 		Debug.showColors(true);
 		Debug.setSerialEnabled(false);
 	}
+	sendMessage(SAMMES_BOOTED);
 }
 void SckESP::update()
 {
@@ -73,7 +74,15 @@ void SckESP::update()
 	if (WiFi.status() != currentWIFIStatus) {
 		currentWIFIStatus = WiFi.status();
 		switch (currentWIFIStatus) {
-			case WL_CONNECTED: ledSet(1); sendMessage(SAMMES_WIFI_CONNECTED); break;
+			case WL_CONNECTED: 
+			{
+				ledSet(1);
+				while (!sendMessage(SAMMES_WIFI_CONNECTED)) {
+					debugOUT("Failed sending wifi notification to SAM!!!");
+					delay(500);
+				}
+				break;
+			}
 			case WL_CONNECT_FAILED: ledBlink(LED_FAST); sendMessage(SAMMES_PASS_ERROR); break;
 			case WL_NO_SSID_AVAIL: ledBlink(LED_FAST); sendMessage(SAMMES_SSID_ERROR); break;
 			case WL_DISCONNECTED:

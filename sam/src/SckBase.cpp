@@ -597,7 +597,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		{
 				sckOut("Restarting ESP...");
 				ESPcontrol(ESP_OFF);
-				delay(10);
+				delay(50);
 				ESPcontrol(ESP_ON);
 				break;
 		}

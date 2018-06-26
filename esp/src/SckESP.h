@@ -91,6 +91,7 @@ class SckESP
 		const byte DNS_PORT = 53;
 
 		// Time
+		void setNTPprovider();
 		void sendNTPpacket(IPAddress &address);
 		String ISOtime();
 		String epoch2iso(uint32_t toConvert);

@@ -29,7 +29,7 @@
 #include "SckAux.h"
 #include "ReadLight.h"
 
-/* #define deltaTest 	// Uncomment for testing Alphadelta (SCK Gas Pro) board */
+/* #define gasesBoardTest 	// Uncomment for testing SCK Gases Board board */
 
 
 // Output

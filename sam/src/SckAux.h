@@ -6,8 +6,8 @@
 // INA219 libs
 #include <Adafruit_INA219.h>
 
-// AlphaDelta libs
-#include <AlphaDelta.h>
+// Gases Board libs
+#include <GasesBoard.h>
 
 // Urban board library
 #include <SckUrban.h>
@@ -36,14 +36,14 @@ class AuxBoards
 				0x02,		// SENSOR_PM_1
 				0x02,		// SENSOR_PM_25
 				0x02,		// SENSOR_PM_10
-				0x55,		// SENSOR_ALPHADELTA_AE1,
-				0x55,		// SENSOR_ALPHADELTA_WE1,
-				0x56,		// SENSOR_ALPHADELTA_AE2,
-				0x56,		// SENSOR_ALPHADELTA_WE2,
-				0x54,		// SENSOR_ALPHADELTA_AE3,
-				0x54,		// SENSOR_ALPHADELTA_WE3,
-				0x44,		// SENSOR_ALPHADELTA_TEMPERATURE,
-				0x44,		// SENSOR_ALPHADELTA_HUMIDITY,
+				0x55,		// SENSOR_GASESBOARD_AE1,
+				0x55,		// SENSOR_GASESBOARD_WE1,
+				0x56,		// SENSOR_GASESBOARD_AE2,
+				0x56,		// SENSOR_GASESBOARD_WE2,
+				0x54,		// SENSOR_GASESBOARD_AE3,
+				0x54,		// SENSOR_GASESBOARD_WE3,
+				0x44,		// SENSOR_GASESBOARD_TEMPERATURE,
+				0x44,		// SENSOR_GASESBOARD_HUMIDITY,
 				0x59,		// SENSOR_GROOVE_I2C_ADC,
 				0x41,		// SENSOR_INA219_BUSVOLT,
 				0x41,		// SENSOR_INA219_SHUNT,

@@ -1,6 +1,6 @@
-#include <AlphaDelta.h>
+#include <GasesBoard.h>
 
-bool AlphaDelta::begin()
+bool GasesBoard::begin()
 {
 
 	if (!I2Cdetect(&auxWire, sht31Address) ||
@@ -27,22 +27,22 @@ bool AlphaDelta::begin()
 	return true;
 }
 
-float AlphaDelta::getTemperature()
+float GasesBoard::getTemperature()
 {
 	sht31.update(true);
 	return sht31.temperature;
 }
-float AlphaDelta::getHumidity()
+float GasesBoard::getHumidity()
 {
 	sht31.update(true);
 	return sht31.humidity;
 }
-uint32_t AlphaDelta::getPot(Electrode wichElectrode)
+uint32_t GasesBoard::getPot(Electrode wichElectrode)
 {
 
 	return ((255 - readI2C(wichElectrode.resistor.address, wichElectrode.resistor.channel)) * ohmsPerStep);
 }
-void AlphaDelta::setPot(Electrode wichElectrode, uint32_t value)
+void GasesBoard::setPot(Electrode wichElectrode, uint32_t value)
 {
 
 	int data=0x00;
@@ -52,18 +52,18 @@ void AlphaDelta::setPot(Electrode wichElectrode, uint32_t value)
 	writeI2C(wichElectrode.resistor.address, 16, 192);        	// select WR (volatile) registers in POT
 	writeI2C(wichElectrode.resistor.address, wichElectrode.resistor.channel, data);
 }
-uint8_t AlphaDelta::getPGAgain(MCP342X adc)
+uint8_t GasesBoard::getPGAgain(MCP342X adc)
 {
 	uint8_t gainPGA = adc.getConfigRegShdw() & 0x3;
 	return pow(2, gainPGA);
 }
-float AlphaDelta::getElectrodeGain(Electrode wichElectrode)
+float GasesBoard::getElectrodeGain(Electrode wichElectrode)
 {
 
 	return (((getPot(wichElectrode) + 85) / 10000.0f) + 1) * getPGAgain(wichElectrode.adc);
 }
 // Returns electrode value in mV
-double AlphaDelta::getElectrode(Electrode wichElectrode)
+double GasesBoard::getElectrode(Electrode wichElectrode)
 {
 
 	static int32_t result;
@@ -75,11 +75,11 @@ double AlphaDelta::getElectrode(Electrode wichElectrode)
 
 	return (result * 0.015625) / getElectrodeGain(wichElectrode);
 }
-float AlphaDelta::getPPM(AlphaSensor wichSlot)
+float GasesBoard::getPPM(gasesBoardSensor wichSlot)
 {
     switch(wichSlot.calData.GAS) {
 
-        case ALPHA_CO: {
+        case GB_CO: {
             // CO [ppm] = ((6.36 * WE - ZERO_CURR_W) - n*(6.36 * AE + ZERO_CURR_A)) / SENSITIVITY
             float resultCO = ((6.36 * getElectrode(wichSlot.electrode_W)) - wichSlot.calData.ZERO_CURR_W -
                   wichSlot.calData.ZERO_CURR_W/wichSlot.calData.ZERO_CURR_A * (6.36 * getElectrode(wichSlot.electrode_A) - wichSlot.calData.ZERO_CURR_A)) /
@@ -88,7 +88,7 @@ float AlphaDelta::getPPM(AlphaSensor wichSlot)
 	    return resultCO;
             break;
 
-	} case ALPHA_NO2: {
+	} case GB_NO2: {
             // NO2 [ppm] = ((6.36 * WE - ZERO_CURR_W) - n*(6.36 * AE - ZERO_CURR_A)) / SENSITIVITY
             // NO2 [ppb] = ((6.36 * WE - ZERO_CURR_W) - n*(6.36 * AE - ZERO_CURR_A)) / SENSITIVITY
             float resultNO2 = (((6.36 * getElectrode(wichSlot.electrode_W) - wichSlot.calData.ZERO_CURR_W) -
@@ -98,7 +98,7 @@ float AlphaDelta::getPPM(AlphaSensor wichSlot)
 	    return resultNO2;
             break;
 
-	} case ALPHA_NO2_O3: {
+	} case GB_NO2_O3: {
 	    // O3 [ppm] =  ((6.36 * WE - ZERO_CURR_W) - n*(6.36 * AE - ZERO_CURR_A) - getPPM(NO2) * SENSITIVITY_NO2) / SENSITIVITY_O3
 	    float resultO3 = ((6.36 * getElectrode(wichSlot.electrode_W) - wichSlot.calData.ZERO_CURR_W) -
 		  ((wichSlot.calData.ZERO_CURR_W / wichSlot.calData.ZERO_CURR_A) * (6.36 * getElectrode(wichSlot.electrode_A) - wichSlot.calData.ZERO_CURR_A)) -
@@ -111,7 +111,7 @@ float AlphaDelta::getPPM(AlphaSensor wichSlot)
     }
     return 0;
 }
-String AlphaDelta::getUID()
+String GasesBoard::getUID()
 {
 
 	char data[24];
@@ -122,7 +122,7 @@ String AlphaDelta::getUID()
 	}
 	return String(data);
 }
-bool AlphaDelta::writeByte(uint8_t dataAddress, uint8_t data)
+bool GasesBoard::writeByte(uint8_t dataAddress, uint8_t data)
 {
 	auxWire.beginTransmission(eepromAddress);
 	auxWire.write(dataAddress);
@@ -130,7 +130,7 @@ bool AlphaDelta::writeByte(uint8_t dataAddress, uint8_t data)
 	if (auxWire.endTransmission() == 0) return true;
 	return false;
 }
-uint8_t AlphaDelta::readByte(uint8_t dataAddress)
+uint8_t GasesBoard::readByte(uint8_t dataAddress)
 {
 	auxWire.beginTransmission(eepromAddress);
 	auxWire.write(dataAddress);
@@ -139,8 +139,8 @@ uint8_t AlphaDelta::readByte(uint8_t dataAddress)
 	return auxWire.read();
 }
 
-#ifdef deltaTest
-void AlphaDelta::runTester(uint8_t wichSlot)
+#ifdef gasesBoardTest
+void GasesBoard::runTester(uint8_t wichSlot)
 {
 
 	Electrode wichElectrode_W;
@@ -189,7 +189,7 @@ void AlphaDelta::runTester(uint8_t wichSlot)
 		SerialUSB.println(currVoltA, 8);
 	}
 }
-void AlphaDelta::setTesterCurrent(int16_t wichCurrent, uint8_t wichSlot)
+void GasesBoard::setTesterCurrent(int16_t wichCurrent, uint8_t wichSlot)
 {
 
 	Electrode wichElectrode_W;
@@ -220,19 +220,19 @@ void AlphaDelta::setTesterCurrent(int16_t wichCurrent, uint8_t wichSlot)
 
 	SerialUSB.print("Tester Electrode W: ");
 	SerialUSB.println(tester.getCurrent(tester.electrode_W));
-	SerialUSB.print("Alphadelta ");
+	SerialUSB.print("Gases Board ");
 	SerialUSB.print(wichSlot);
 	SerialUSB.print("W: ");
 	SerialUSB.println(getElectrode(wichElectrode_W));
 
 	SerialUSB.print("Tester Electrode A: ");
 	SerialUSB.println(tester.getCurrent(tester.electrode_A));
-	SerialUSB.print("Alphadelta ");
+	SerialUSB.print("Gases Board ");
 	SerialUSB.print(wichSlot);
 	SerialUSB.print("A: ");
 	SerialUSB.println(getElectrode(wichElectrode_A));
 }
-bool AlphaDelta::autoTest()
+bool GasesBoard::autoTest()
 {
 	Electrode wichElectrode_W;
 	Electrode wichElectrode_A;

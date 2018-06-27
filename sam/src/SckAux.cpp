@@ -1,6 +1,6 @@
 #include "SckAux.h"
 
-AlphaDelta		alphaDelta;
+GasesBoard		gasBoard;
 GrooveI2C_ADC		grooveI2C_ADC;
 INA219			ina219;
 Groove_OLED		groove_OLED;
@@ -19,17 +19,17 @@ bool AuxBoards::begin(SensorType wichSensor)
 
 	switch (wichSensor) {
 
-		case SENSOR_ALPHADELTA_SLOT_1A:
-		case SENSOR_ALPHADELTA_SLOT_1W:
-		case SENSOR_ALPHADELTA_SLOT_2A:
-		case SENSOR_ALPHADELTA_SLOT_2W:
-		case SENSOR_ALPHADELTA_SLOT_3A:
-		case SENSOR_ALPHADELTA_SLOT_3W:
-		case SENSOR_ALPHADELTA_SLOT_1_CAL:
-		case SENSOR_ALPHADELTA_SLOT_2_CAL:
-		case SENSOR_ALPHADELTA_SLOT_3_CAL:
-		case SENSOR_ALPHADELTA_HUMIDITY:
-		case SENSOR_ALPHADELTA_TEMPERATURE: 	return alphaDelta.begin(); break;
+		case SENSOR_GASESBOARD_SLOT_1A:
+		case SENSOR_GASESBOARD_SLOT_1W:
+		case SENSOR_GASESBOARD_SLOT_2A:
+		case SENSOR_GASESBOARD_SLOT_2W:
+		case SENSOR_GASESBOARD_SLOT_3A:
+		case SENSOR_GASESBOARD_SLOT_3W:
+		case SENSOR_GASESBOARD_SLOT_1_CAL:
+		case SENSOR_GASESBOARD_SLOT_2_CAL:
+		case SENSOR_GASESBOARD_SLOT_3_CAL:
+		case SENSOR_GASESBOARD_HUMIDITY:
+		case SENSOR_GASESBOARD_TEMPERATURE: 	return gasBoard.begin(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.begin(); break;
 		case SENSOR_INA219_BUSVOLT:
 		case SENSOR_INA219_SHUNT:
@@ -47,7 +47,7 @@ bool AuxBoards::begin(SensorType wichSensor)
 		case SENSOR_PM_10:			return pmSensor.begin(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM:
-			if (sht31.begin() && !alphaDelta.begin()) return true;
+			if (sht31.begin() && !gasBoard.begin()) return true;
 			else return false;
 			break;
 		default: break;
@@ -60,17 +60,17 @@ float AuxBoards::getReading(SensorType wichSensor)
 {
 
 	switch (wichSensor) {
-		case SENSOR_ALPHADELTA_SLOT_1A:	 	return alphaDelta.getElectrode(alphaDelta.Slot1.electrode_A); break;
-		case SENSOR_ALPHADELTA_SLOT_1W: 	return alphaDelta.getElectrode(alphaDelta.Slot1.electrode_W); break;
-		case SENSOR_ALPHADELTA_SLOT_2A: 	return alphaDelta.getElectrode(alphaDelta.Slot2.electrode_A); break;
-		case SENSOR_ALPHADELTA_SLOT_2W: 	return alphaDelta.getElectrode(alphaDelta.Slot2.electrode_W); break;
-		case SENSOR_ALPHADELTA_SLOT_3A: 	return alphaDelta.getElectrode(alphaDelta.Slot3.electrode_A); break;
-		case SENSOR_ALPHADELTA_SLOT_3W: 	return alphaDelta.getElectrode(alphaDelta.Slot3.electrode_W); break;
-		case SENSOR_ALPHADELTA_SLOT_1_CAL: 	return alphaDelta.getPPM(alphaDelta.Slot1); break;
-		case SENSOR_ALPHADELTA_SLOT_2_CAL: 	return alphaDelta.getPPM(alphaDelta.Slot2); break;
-		case SENSOR_ALPHADELTA_SLOT_3_CAL: 	return alphaDelta.getPPM(alphaDelta.Slot3); break;
-		case SENSOR_ALPHADELTA_HUMIDITY: 	return alphaDelta.getHumidity(); break;
-		case SENSOR_ALPHADELTA_TEMPERATURE: return alphaDelta.getTemperature(); break;
+		case SENSOR_GASESBOARD_SLOT_1A:	 	return gasBoard.getElectrode(gasBoard.Slot1.electrode_A); break;
+		case SENSOR_GASESBOARD_SLOT_1W: 	return gasBoard.getElectrode(gasBoard.Slot1.electrode_W); break;
+		case SENSOR_GASESBOARD_SLOT_2A: 	return gasBoard.getElectrode(gasBoard.Slot2.electrode_A); break;
+		case SENSOR_GASESBOARD_SLOT_2W: 	return gasBoard.getElectrode(gasBoard.Slot2.electrode_W); break;
+		case SENSOR_GASESBOARD_SLOT_3A: 	return gasBoard.getElectrode(gasBoard.Slot3.electrode_A); break;
+		case SENSOR_GASESBOARD_SLOT_3W: 	return gasBoard.getElectrode(gasBoard.Slot3.electrode_W); break;
+		case SENSOR_GASESBOARD_SLOT_1_CAL: 	return gasBoard.getPPM(gasBoard.Slot1); break;
+		case SENSOR_GASESBOARD_SLOT_2_CAL: 	return gasBoard.getPPM(gasBoard.Slot2); break;
+		case SENSOR_GASESBOARD_SLOT_3_CAL: 	return gasBoard.getPPM(gasBoard.Slot3); break;
+		case SENSOR_GASESBOARD_HUMIDITY: 	return gasBoard.getHumidity(); break;
+		case SENSOR_GASESBOARD_TEMPERATURE: return gasBoard.getTemperature(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.getReading(); break;
 		case SENSOR_INA219_BUSVOLT: 		return ina219.getReading(ina219.BUS_VOLT); break;
 		case SENSOR_INA219_SHUNT: 			return ina219.getReading(ina219.SHUNT_VOLT); break;
@@ -110,34 +110,34 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 String AuxBoards::control(SensorType wichSensor, String command)
 {
 	switch(wichSensor) {
-		case SENSOR_ALPHADELTA_SLOT_1A:
-		case SENSOR_ALPHADELTA_SLOT_1W:
-		case SENSOR_ALPHADELTA_SLOT_2A:
-		case SENSOR_ALPHADELTA_SLOT_2W:
-		case SENSOR_ALPHADELTA_SLOT_3A:
-		case SENSOR_ALPHADELTA_SLOT_3W: {
+		case SENSOR_GASESBOARD_SLOT_1A:
+		case SENSOR_GASESBOARD_SLOT_1W:
+		case SENSOR_GASESBOARD_SLOT_2A:
+		case SENSOR_GASESBOARD_SLOT_2W:
+		case SENSOR_GASESBOARD_SLOT_3A:
+		case SENSOR_GASESBOARD_SLOT_3W: {
 
 			if (command.startsWith("set pot")) {
 
 				Electrode wichElectrode;
 
 				switch(wichSensor) {
-					case SENSOR_ALPHADELTA_SLOT_1A: wichElectrode = alphaDelta.Slot1.electrode_A;
-					case SENSOR_ALPHADELTA_SLOT_1W: wichElectrode = alphaDelta.Slot1.electrode_W;
-					case SENSOR_ALPHADELTA_SLOT_2A: wichElectrode = alphaDelta.Slot2.electrode_A;
-					case SENSOR_ALPHADELTA_SLOT_2W: wichElectrode = alphaDelta.Slot2.electrode_W;
-					case SENSOR_ALPHADELTA_SLOT_3A: wichElectrode = alphaDelta.Slot3.electrode_A;
-					case SENSOR_ALPHADELTA_SLOT_3W: wichElectrode = alphaDelta.Slot3.electrode_W;
+					case SENSOR_GASESBOARD_SLOT_1A: wichElectrode = gasBoard.Slot1.electrode_A;
+					case SENSOR_GASESBOARD_SLOT_1W: wichElectrode = gasBoard.Slot1.electrode_W;
+					case SENSOR_GASESBOARD_SLOT_2A: wichElectrode = gasBoard.Slot2.electrode_A;
+					case SENSOR_GASESBOARD_SLOT_2W: wichElectrode = gasBoard.Slot2.electrode_W;
+					case SENSOR_GASESBOARD_SLOT_3A: wichElectrode = gasBoard.Slot3.electrode_A;
+					case SENSOR_GASESBOARD_SLOT_3W: wichElectrode = gasBoard.Slot3.electrode_W;
 					default: break;
 				}
 
 				command.replace("set pot", "");
 				command.trim();
 				int wichValue = command.toInt();
-				alphaDelta.setPot(wichElectrode, wichValue);
-				return String F("Setting pot to: ") + String(wichValue) + F(" Ohms\n\rActual value: ") + String(alphaDelta.getPot(wichElectrode)) + F(" Ohms");
+				gasBoard.setPot(wichElectrode, wichValue);
+				return String F("Setting pot to: ") + String(wichValue) + F(" Ohms\n\rActual value: ") + String(gasBoard.getPot(wichElectrode)) + F(" Ohms");
 
-			#ifdef deltaTest
+			#ifdef gasesBoardTest
 			} else if (command.startsWith("test")) {
 
 				command.replace("test", "");
@@ -157,11 +157,11 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 					// Get value
 					int wichValue = command.toInt();
-					alphaDelta.setTesterCurrent(wichValue, wichSlot);
+					gasBoard.setTesterCurrent(wichValue, wichSlot);
 
 				} else if (command.startsWith("full")) {
 
-					alphaDelta.runTester(wichSlot);
+					gasBoard.runTester(wichSlot);
 
 				} else {
 					return F("Unrecognized test command!!\r\nOptions:\r\ntest slot set value (slot: 1-3, value:-1400/+1400 nA)\r\ntest slot full (test the full cycle on slot (1-3))");
@@ -171,7 +171,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 			} else if (command.startsWith("autotest")) {
 
-				return String(alphaDelta.autoTest());
+				return String(gasBoard.autoTest());
 			#endif
 
 			} else if (command.startsWith("help")) {

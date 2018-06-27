@@ -113,14 +113,14 @@ void SckBase::setup()
 
 	// TEMP for automatic living lab setup
 	// Enables only calibrated alphasense (plus temp and hum) and disable urban board temp and hum
-	if (sensors[SENSOR_ALPHADELTA_SLOT_1A].enabled) {
+	if (sensors[SENSOR_GASESBOARD_SLOT_1A].enabled) {
 
-		sensors[SENSOR_ALPHADELTA_SLOT_1A].enabled = false;
-                sensors[SENSOR_ALPHADELTA_SLOT_1W].enabled = false;
-                sensors[SENSOR_ALPHADELTA_SLOT_2A].enabled = false;
-                sensors[SENSOR_ALPHADELTA_SLOT_2W].enabled = false;
-                sensors[SENSOR_ALPHADELTA_SLOT_3A].enabled = false;
-                sensors[SENSOR_ALPHADELTA_SLOT_3W].enabled = false;
+		sensors[SENSOR_GASESBOARD_SLOT_1A].enabled = false;
+                sensors[SENSOR_GASESBOARD_SLOT_1W].enabled = false;
+                sensors[SENSOR_GASESBOARD_SLOT_2A].enabled = false;
+                sensors[SENSOR_GASESBOARD_SLOT_2W].enabled = false;
+                sensors[SENSOR_GASESBOARD_SLOT_3A].enabled = false;
+                sensors[SENSOR_GASESBOARD_SLOT_3W].enabled = false;
 
                 sensors[SENSOR_TEMPERATURE].enabled = false;
                 sensors[SENSOR_HUMIDITY].enabled = false;
@@ -131,11 +131,11 @@ void SckBase::setup()
 	if (saveNeeded) saveConfig();
 
 
-#ifdef deltaTest
+#ifdef gasesBoardTest
 	ESPcontrol(ESP_OFF);
 	led.off();
 	led.update(led.BLUE, led.PULSE_STATIC);
-	String testResult = auxBoards.control(SENSOR_ALPHADELTA_SLOT_1W, "autotest");
+	String testResult = auxBoards.control(SENSOR_GASESBOARD_SLOT_1W, "autotest");
 	SerialUSB.println(testResult);
 	if (testResult.startsWith("1")) {
 		led.update(led.GREEN, led.PULSE_STATIC);

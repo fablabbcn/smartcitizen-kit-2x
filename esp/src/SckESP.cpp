@@ -61,7 +61,7 @@ void SckESP::setup()
 		Debug.showColors(true);
 		Debug.setSerialEnabled(false);
 	}
-	sendMessage(SAMMES_BOOTED);
+	/* sendMessage(SAMMES_BOOTED); */
 }
 void SckESP::update()
 {
@@ -387,7 +387,7 @@ bool SckESP::sendTime()
 {
 	if (timeStatus() == timeNotSet) {
 		debugOUT("Time is not synced!!!");
-		/* setNTPprovider(); */
+		setNTPprovider();
 	} else {
 		String epochSTR = String(now());
 		debugOUT("Sending time to SAM: " + epochSTR);
@@ -885,9 +885,7 @@ bool SckESP::loadConfig()
 void SckESP::ledSet(uint8_t value)
 {
 	blink.detach();
-	/* ledValue = abs(value - 1); */
-	/* digitalWrite(pinLED, ledValue); */
-	if (ledValue) analogWrite(pinLED, 820);
+	if (value) analogWrite(pinLED, 820);
 	else digitalWrite(pinLED, HIGH);
 }
 void SckESP::ledBlink(float rate)

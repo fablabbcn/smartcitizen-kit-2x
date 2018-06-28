@@ -79,6 +79,9 @@ void SckBase::setup()
 
 	// Configuration
 	loadConfig();
+	if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
+	else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
+	else if (st.mode == MODE_NOT_CONFIGURED) led.update(led.RED, led.PULSE_SOFT);
 
 	// Urban board
 	analogReadResolution(12);
@@ -185,6 +188,8 @@ void SckBase::reviewState()
 	/* sdDetect() */
 	/* buttonEvent(); */
 
+	bool timeToPublish = (rtc.getEpoch() - lastPublishTime > config.publishInterval);
+
 
 	if (st.sleeping) {
 
@@ -264,31 +269,49 @@ void SckBase::reviewState()
 
 	} else if  (st.mode == MODE_SD) {
 
+		if (!st.cardPresent) {
+		
+			led.update(led.PINK, led.PULSE_HARD_FAST);
+			
+		} else if (!st.timeStat.ok) {
 
-		/* MODE_SD (!cardPresent || (!onTime && !wifiSet)) -> onSetup */
-		/* MODE_SD (cardPresent && !onTime && wifiSet) -> WAITING_TIME */
-		/* WAITING_TIME (!onWifi) -> WAITING_WIFI */
-		/* WAITING_WIFI (!espON) -> ESP_ON */
-		/* WAITING_WIFI -> (espON && wifiError || timeError) -> onSetup */
-		/* MODE_SD (cardPresent && onTime) -> ESP_OFF && updateSensors */
+			if (!st.wifiSet || st.wifiStat.error)  {
 
+				led.update(led.PINK, led.PULSE_HARD_FAST);
+				if (!st.espON) {
+					ESPcontrol(ESP_ON); 		// Starts AP mode for time sync
+					sendMessage(ESPMES_START_AP, "");
+				}
 
-		/* if (!st.cardPresent || (!st.onTime && !st.wifiSet)) enterSetup(); */
-		/* else if (!st.onTime) { */
-		/* 	sckOut("sdcard NOT ON TIME!!"); */
-		/* 	if (!st.onWifi) { */
-		/* 		if (!st.espON) ESPcontrol(ESP_ON); */
-		/* 		else if (st.wifiError) enterSetup(); */
-		/* 	} else { */
-		/* 		sckOut("Asking time to ESP..."); */
-		/* 		sendMessage(ESPMES_GET_TIME, ""); */
-		/* 		if (st.timeError) enterSetup(); */
-		/* 	} */
-		/* } else if (!st.sleeping) { */
-		/* 	ESPcontrol(ESP_OFF); */
-		/* 	st.onSetup = false; */
-		/* 	led.update(led.PINK, led.PULSE_SOFT); */
-		/* } */
+			} else {
+
+				led.update(led.PINK, led.PULSE_SOFT);
+
+				if (!st.espON) ESPcontrol(ESP_ON);
+				else if (st.wifiStat.error) ESPcontrol(ESP_OFF); 	// Restarts ESP to try again
+				else if (st.wifiStat.ok) {
+					if (st.timeStat.retry()) {
+
+						if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
+
+					} else if (st.timeStat.error) {
+
+						st.timeStat.reset();
+						ESPcontrol(ESP_OFF);
+						led.update(led.PINK, led.PULSE_HARD_FAST);
+					}
+				}
+			}
+		
+		} else {
+
+			led.update(led.PINK, led.PULSE_SOFT);
+			if (st.espON) ESPcontrol(ESP_OFF);
+
+			if (timeToPublish) {
+				sdPublish();
+			}
+		}
 	}
 }
 void SckBase::enterSetup()
@@ -485,7 +508,7 @@ void SckBase::saveConfig(bool defaults)
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	if (!st.espON) {
 		ESPcontrol(ESP_ON);
-		delay(150);
+		delay(250);
 	}
 	sckOut("Saved configuration!!", PRIO_LOW);
 	if (sendMessage()) sckOut("Saved configuration on ESP!!", PRIO_LOW);
@@ -535,8 +558,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		{
 				sckOut("ESP off...");
 				st.espON = false;
-				st.wifiStat.ok = false;
-				st.wifiStat.error = false;
 				digitalWrite(pinESP_CH_PD, LOW);
 				digitalWrite(pinPOWER_ESP, HIGH);
 				digitalWrite(pinESP_GPIO0, LOW);
@@ -587,6 +608,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 				digitalWrite(pinPOWER_ESP, LOW);
+				st.wifiStat.reset();
 				st.espON = true;
 				espStarted = rtc.getEpoch();
 
@@ -750,9 +772,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 			ESPcontrol(ESP_OFF);
 			break;
 
-		case SAMMES_BOOTED:
+		/* case SAMMES_BOOTED: */
 
-			sckOut("ESP finished booting");
+			/* sckOut("ESP finished booting"); */
+			/* break; */
 
 		default: break;
 	}
@@ -1084,23 +1107,40 @@ bool SckBase::sdPublish()
 
 		// Write headers
 		if (writeHeader) {
-			postFile.file.print("Time,");
+			postFile.file.print("TIME");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = static_cast<SensorType>(i);
 				if (sensors[wichSensor].enabled) {
-					postFile.file.print(sensors[wichSensor].title);
-					if (i < SENSOR_COUNT-1) postFile.file.print(",");
+					postFile.file.print(",");
+					postFile.file.print(sensors[wichSensor].shortTitle);
 				}
 			}
 			postFile.file.println("");
-			postFile.file.print("ISO 8601,");
+			postFile.file.print("ISO 8601");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = static_cast<SensorType>(i);
 				if (sensors[wichSensor].enabled) {
+					postFile.file.print(",");
 					if (String(sensors[wichSensor].unit).length() > 0) {
 						postFile.file.print(sensors[wichSensor].unit);
 					}
-					if (i < SENSOR_COUNT-1) postFile.file.print(",");
+				}
+			}
+			postFile.file.println("");
+			postFile.file.print("Time");
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				SensorType wichSensor = static_cast<SensorType>(i);
+				if (sensors[wichSensor].enabled) {
+					postFile.file.print(",");
+					postFile.file.print(sensors[wichSensor].title);
+				}
+			}
+			postFile.file.println("");
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				SensorType wichSensor = static_cast<SensorType>(i);
+				if (sensors[wichSensor].enabled) {
+					postFile.file.print(",");
+					postFile.file.print(sensors[wichSensor].id);
 				}
 			}
 			postFile.file.println("");
@@ -1110,21 +1150,27 @@ bool SckBase::sdPublish()
 		// Write readings
 		ISOtime();
 		postFile.file.print(ISOtimeBuff);
-		postFile.file.print(",");
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled) {
+				
+				postFile.file.print(",");
+				
+				if (st.mode == MODE_SD) {
+					getReading(wichSensor, true);
+				} else {
 					// This allows sdcard saving of enabled sensors that don't have a platform ID
 					// TODO get readings should be managed from outside net ans sd publish (in update sensors) this will be remove when that is ready
 					if (sensors[wichSensor].id == 0) {
 						getReading(wichSensor, true);
 					}
-				postFile.file.print(sensors[wichSensor].reading);
-				if (i < SENSOR_COUNT-1) postFile.file.print(",");
+				}
+				if (!sensors[wichSensor].reading.startsWith("none")) postFile.file.print(sensors[wichSensor].reading);
 			}
 		}
 		postFile.file.println("");
 		postFile.file.close();
+		lastPublishTime = rtc.getEpoch();
 		sckOut("Sd card publish OK!!   ", PRIO_MED, false);
 		return true;
 	}
@@ -1197,11 +1243,12 @@ void Status::setOk()
 	ok = true;
 	error = false;
 	retrys = 0;
+	_lastTryMillis = 0;
 }
 bool Status::retry()
 {
 	if (error) return false;
-	if (millis() - _lastTryMillis > _timeout) {
+	if (millis() - _lastTryMillis > _timeout || _lastTryMillis == 0) {
 		if (retrys == _maxRetrys) {
 			error = true;
 			return false;
@@ -1217,5 +1264,6 @@ void Status::reset()
 {
 	ok = false;
 	error = false;
-	retrys = false;
+	retrys = 0;
+	_lastTryMillis = 0;
 }

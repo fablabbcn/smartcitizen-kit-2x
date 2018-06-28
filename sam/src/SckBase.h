@@ -39,7 +39,7 @@ class Status
 {
 	
 	private:
-		uint32_t _lastTryMillis;
+		uint32_t _lastTryMillis = 0; // ms
 		uint32_t _timeout; 	// ms
 		uint8_t _maxRetrys;
 
@@ -71,10 +71,10 @@ struct SckState
 	bool cardPresent = false;
 	bool sleeping = false;
 	bool publishPending = false;
-	Status wifiStat = Status(2, 20000);
-	Status timeStat;
-	Status helloStat = Status(3, 1000);
-	Status publishStat = Status(3, 3000);
+	Status wifiStat = Status(1, 60000);
+	Status timeStat = Status(2, 3000);
+	Status helloStat = Status(3, 5000);
+	Status publishStat = Status(3, 5000);
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup

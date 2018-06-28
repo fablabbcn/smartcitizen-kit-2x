@@ -114,6 +114,10 @@ void SckESP::tryConnection()
 		debugOUT(String F("Already connected to wifi: ") + String(WiFi.SSID()));
 	}
 }
+void SckESP::wifiOFF()
+{
+	WiFi.mode(WIFI_OFF);
+}
 
 // **** Input/Output
 void SckESP::debugOUT(String strOut)
@@ -244,6 +248,16 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 	case ESPMES_STOP_AP:
 
 		stopAP();
+		break;
+
+	case ESPMES_WIFI_OFF:
+		
+		wifiOFF();
+		break;
+
+	case ESPMES_WIFI_ON:
+
+		tryConnection();
 		break;
 
 	default: break;

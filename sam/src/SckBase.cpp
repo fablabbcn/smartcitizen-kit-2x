@@ -727,8 +727,9 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				strcpy(config.credentials.pass, json["pa"]);
 				config.token.set = json["ts"];
 				strcpy(config.token.token, json["to"]);
-
+				st.helloPending = true;
 				saveConfig();
+
 				break;
 
 		}

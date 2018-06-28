@@ -81,6 +81,7 @@ void SckESP::update()
 					debugOUT("Failed sending wifi notification to SAM!!!");
 					delay(500);
 				}
+				sendMessage(SAMMES_WIFI_CONNECTED); // TEMP workaroud para el problema del primer mensaje no recibido. (se arreglara con el boot message)
 				break;
 			}
 			case WL_CONNECT_FAILED: ledBlink(LED_FAST); sendMessage(SAMMES_PASS_ERROR); break;

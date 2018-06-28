@@ -435,6 +435,8 @@ void esp_com(SckBase* base, String parameters)
 	else if (parameters.equals("-off")) base->ESPcontrol(base->ESP_OFF);
 	else if (parameters.equals("-reboot")) base->ESPcontrol(base->ESP_REBOOT);
 	else if (parameters.equals("-flash")) base->ESPcontrol(base->ESP_FLASH);
+	else if (parameters.equals("-noWifi")) base->sendMessage(ESPMES_WIFI_OFF);
+	else if (parameters.equals("-connect")) base->sendMessage(ESPMES_WIFI_ON);
 }
 void netInfo_com(SckBase* base, String parameters)
 {

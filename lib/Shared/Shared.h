@@ -11,6 +11,8 @@ enum ESPMessage {
 	ESPMES_MQTT_PUBLISH,		// SAM->ESP, ESP publish readings and returns results
 	ESPMES_START_AP, 		// SAM->ESP, ESP starts AP
 	ESPMES_STOP_AP, 		// SAM->ESP, ESP stops AP
+	ESPMES_WIFI_OFF, 		// SAM->ESP, ESP turns off wifi
+	ESPMES_WIFI_ON, 		// SAM->ESP, ESP turns on wifi and trys to connect
 
 	ESPMES_COUNT
 };

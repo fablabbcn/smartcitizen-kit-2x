@@ -70,6 +70,7 @@ class SckESP
 		String ipAddr;
 		int currentWIFIStatus;
 		void tryConnection();
+		void wifiOFF();
 
 		// Config
 		Configuration config;

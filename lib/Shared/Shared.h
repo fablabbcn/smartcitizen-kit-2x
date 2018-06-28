@@ -19,8 +19,7 @@ enum ESPMessage {
 
 enum SAMMessage {
 
-	SAMMES_BOOTED, 			// ESP->SAM, On finished booting
-	SAMMES_SET_CONFIG,		// ESP->SAM, Sends new config
+	/* SAMMES_BOOTED, 			// ESP->SAM, On finished booting */
 	SAMMES_DEBUG,			// ESP->SAM, Send debug info
 	SAMMES_NETINFO,			// ESP->SAM, Send network info
 	SAMMES_WIFI_CONNECTED,		// ESP->SAM, On wifi succesfull conection
@@ -30,6 +29,7 @@ enum SAMMessage {
 	SAMMES_TIME,			// ESP->SAM, Epoch time
 	SAMMES_MQTT_HELLO_OK,		// ESP->SAM, On MQTT hello OK
 	SAMMES_MQTT_PUBLISH_OK,		// ESP->SAM, On MQTT publish ok
+	SAMMES_SET_CONFIG,		// ESP->SAM, Sends new config
 
 	SAMMES_COUNT
 };

@@ -955,7 +955,7 @@ void SckESP::sendNTPpacket(IPAddress &address)
 	packetBuffer[14] = 49;
 	packetBuffer[15] = 52;
 
-	Udp.beginPacket(address, 80);
+	Udp.beginPacket(address, NTP_SERVER_PORT);
 	Udp.write(packetBuffer, 48);
 	Udp.endPacket();
 }

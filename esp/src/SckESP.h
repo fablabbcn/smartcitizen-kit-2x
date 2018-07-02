@@ -19,9 +19,9 @@
 #include "Shared.h"
 #include "Config.h"
 
-#define NTP_SERVER_NAME "pool.ntp.org"
+#define NTP_SERVER_NAME "ntp.smartcitizen.me"
 #define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
-#define MQTT_SERVER_PORT 1883
+#define MQTT_SERVER_PORT 80 
 #define MQTT_QOS 1
 
 class SckESP

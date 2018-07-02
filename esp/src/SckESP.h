@@ -20,6 +20,7 @@
 #include "Config.h"
 
 #define NTP_SERVER_NAME "ntp.smartcitizen.me"
+#define NTP_SERVER_PORT 80
 #define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
 #define MQTT_SERVER_PORT 80 
 #define MQTT_QOS 1

@@ -31,7 +31,7 @@ class SckESP
 
 		// Input/Output
 		bool serialDebug = false;		// Interfere with ESP <-> SAM comunnication (use with caution)
-		bool telnetDebug = true;
+		bool telnetDebug = false;
 		void SAMbusUpdate();
 		void debugOUT(String strOut);
 

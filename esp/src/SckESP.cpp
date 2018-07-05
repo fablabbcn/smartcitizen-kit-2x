@@ -19,7 +19,6 @@ DNSServer dnsServer;
 
 void SckESP::setup()
 {
-
 	// LED outputs
 	pinMode(pinLED, OUTPUT);
 	digitalWrite(pinLED, LOW);
@@ -47,13 +46,7 @@ void SckESP::setup()
 	loadConfig();
 	currentWIFIStatus = WiFi.status();
 
-	if (config.credentials.set) {
-		ledBlink(LED_SLOW);
-		tryConnection();
-	} else {
-		ledBlink(LED_FAST);
-		startAP();
-	}
+	ledBlink(LED_SLOW);
 
 	if (telnetDebug) {
 		Debug.begin(hostname);
@@ -61,7 +54,7 @@ void SckESP::setup()
 		Debug.showColors(true);
 		Debug.setSerialEnabled(false);
 	}
-	/* sendMessage(SAMMES_BOOTED); */
+	sendMessage(SAMMES_BOOTED);
 }
 void SckESP::update()
 {
@@ -241,6 +234,11 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			}
 			break;
 	}
+	case ESPMES_CONNECT:
+
+		tryConnection();
+		break;
+
 	case ESPMES_START_AP:
 
 		startAP();
@@ -249,16 +247,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 	case ESPMES_STOP_AP:
 
 		stopAP();
-		break;
-
-	case ESPMES_WIFI_OFF:
-		
-		wifiOFF();
-		break;
-
-	case ESPMES_WIFI_ON:
-
-		tryConnection();
 		break;
 
 	default: break;
@@ -442,6 +430,7 @@ void SckESP::startAP()
 	dnsServer.start(DNS_PORT, "*", myIP);
 
 	startWebServer();
+	ledBlink(LED_FAST);
 }
 void SckESP::stopAP()
 {
@@ -718,7 +707,8 @@ String SckESP::toStringIp(IPAddress ip)
   return res;
 }
 
-void SckESP::webStatus() {
+void SckESP::webStatus() 
+{
 
 	debugOUT(F("Received web status info request."));
 
@@ -995,3 +985,4 @@ String SckESP::epoch2iso(uint32_t toConvert)
 
 	return isoTime;
 }
+

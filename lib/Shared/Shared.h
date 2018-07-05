@@ -9,17 +9,16 @@ enum ESPMessage {
 	ESPMES_GET_TIME,		// SAM->ESP, ESP returns epoch time
 	ESPMES_MQTT_HELLO,		// SAM->ESP, ESP publish Hello and returns result
 	ESPMES_MQTT_PUBLISH,		// SAM->ESP, ESP publish readings and returns results
+	ESPMES_CONNECT, 		// SAM->ESP, ESP trys wifi conection
 	ESPMES_START_AP, 		// SAM->ESP, ESP starts AP
 	ESPMES_STOP_AP, 		// SAM->ESP, ESP stops AP
-	ESPMES_WIFI_OFF, 		// SAM->ESP, ESP turns off wifi
-	ESPMES_WIFI_ON, 		// SAM->ESP, ESP turns on wifi and trys to connect
 
 	ESPMES_COUNT
 };
 
 enum SAMMessage {
 
-	/* SAMMES_BOOTED, 			// ESP->SAM, On finished booting */
+	SAMMES_BOOTED, 			// ESP->SAM, On finished booting
 	SAMMES_DEBUG,			// ESP->SAM, Send debug info
 	SAMMES_NETINFO,			// ESP->SAM, Send network info
 	SAMMES_WIFI_CONNECTED,		// ESP->SAM, On wifi succesfull conection

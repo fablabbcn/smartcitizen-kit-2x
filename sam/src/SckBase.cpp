@@ -330,10 +330,7 @@ void SckBase::enterSetup()
 
 	// Start wifi APmode
 	if (!st.espON) ESPcontrol(ESP_ON);
-	sendMessage(ESPMES_START_AP, "");
-	// TODO decide how to manage wifiSet && !tokenSet maybe with station/ap mode at the same time??
-	// TODO webserver on ESP
-
+	if (sendMessage(ESPMES_START_AP, "")) sckOut("Started Access point on ESP");
 }
 void SckBase::printState()
 {
@@ -734,8 +731,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_DEBUG:
 		{
 
-				SerialUSB.print("ESP --> ");
-				SerialUSB.print(netBuff);
+				sckOut("ESP --> ", PRIO_HIGH, false);
+				sckOut(netBuff);
 				break;
 
 		}
@@ -788,10 +785,12 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 			ESPcontrol(ESP_OFF);
 			break;
 
-		/* case SAMMES_BOOTED: */
+		case SAMMES_BOOTED:
 
-			/* sckOut("ESP finished booting"); */
-			/* break; */
+			sckOut("ESP finished booting");
+			if (st.onSetup) sendMessage(ESPMES_START_AP);
+			else sendMessage(ESPMES_CONNECT);
+			break;
 
 		default: break;
 	}

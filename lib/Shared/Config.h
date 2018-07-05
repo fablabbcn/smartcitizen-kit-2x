@@ -14,12 +14,6 @@ enum SCKmodes {
 	MODE_COUNT
 };
 
-static const char *modeTitles[MODE_COUNT] PROGMEM = {
-	"not configured",		// modeTitles[MODE_NOT_CONFIGURED]
-	"network",			// modeTitles[MODE_NET]
-	"sdcard",			// modeTitles[MODE_SD]
-	"sleep"				// modeTitles[MODE_SLEEP]
-};
 
 struct SensorConfig { bool enabled; uint32_t interval; };
 struct Credentials { bool set=false; char ssid[64]="null"; char pass[64]="null"; };

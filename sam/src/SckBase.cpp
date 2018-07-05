@@ -364,7 +364,7 @@ void SckBase::printState()
 
 	sprintf(outBuff, "%s\r\npublishOK: %s\r\n", outBuff, st.publishStat.ok ? t : f);
 	sprintf(outBuff, "%spublishError: %s\r\n", outBuff, st.publishStat.error ? t : f);
-	sprintf(outBuff, "%s\r\ntime to next publish: %i\r\n", outBuff, config.publishInterval - (rtc.getEpoch() - lastPublishTime));
+	sprintf(outBuff, "%s\r\ntime to next publish: %lu\r\n", outBuff, config.publishInterval - (rtc.getEpoch() - lastPublishTime));
 
 	sckOut(PRIO_HIGH, false);
 }
@@ -654,7 +654,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_SLEEP:
 		{
-				sprintf(outBuff, "Esp was on for %u seconds", rtc.getEpoch() - espStarted);
+				sprintf(outBuff, "Esp was on for %lu seconds", rtc.getEpoch() - espStarted);
 				sckOut(PRIO_LOW);
 				digitalWrite(pinESP_CH_PD, LOW);
 				st.espON = false;

@@ -29,7 +29,7 @@
 #include "SckAux.h"
 #include "ReadLight.h"
 
-/* #define gasesBoardTest 	// Uncomment for testing SCK Gases Board board */
+// #define gasesBoardTest 0	// Uncomment for testing SCK Gases Board board manually, and for auto test also set it to 1
 
 
 // Output

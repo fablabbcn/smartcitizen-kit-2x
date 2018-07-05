@@ -29,6 +29,7 @@ enum SAMMessage {
 	SAMMES_TIME,			// ESP->SAM, Epoch time
 	SAMMES_MQTT_HELLO_OK,		// ESP->SAM, On MQTT hello OK
 	SAMMES_MQTT_PUBLISH_OK,		// ESP->SAM, On MQTT publish ok
+	SAMMES_MQTT_PUBLISH_ERROR, 	// ESP->SAM, On MQTT publish error
 	SAMMES_SET_CONFIG,		// ESP->SAM, Sends new config
 
 	SAMMES_COUNT

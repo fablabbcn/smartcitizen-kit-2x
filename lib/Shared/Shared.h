@@ -1,6 +1,6 @@
 #pragma once
 
-const uint32_t serialBaudrate = 230400;
+const uint32_t serialBaudrate = 115200;
 
 enum ESPMessage {
 

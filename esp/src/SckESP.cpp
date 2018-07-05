@@ -230,7 +230,7 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			if (mqttPublish()) {
 				delay(500);
 				sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
-			}
+			} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 			break;
 	}
 	case ESPMES_CONNECT:

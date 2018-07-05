@@ -584,12 +584,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_FLASH:
 		{
-
 				sckOut("Putting ESP in flash mode...");
-
-				SerialUSB.begin(ESP_FLASH_SPEED);
-				SerialESP.begin(ESP_FLASH_SPEED);
-				delay(100);
 
 				digitalWrite(pinESP_CH_PD, LOW);
 				digitalWrite(pinPOWER_ESP, HIGH);
@@ -600,6 +595,9 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				digitalWrite(pinPOWER_ESP, LOW);
 
 				led.update(led.WHITE, led.PULSE_STATIC);
+
+				while (SerialUSB.available()) SerialUSB.read();
+				while (SerialESP.available()) SerialESP.read();
 
 				uint32_t flashTimeout = millis();
 				uint32_t startTimeout = millis();

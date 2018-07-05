@@ -108,8 +108,6 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
          switch (wichSensor) {
 		case SENSOR_CO:
 		case SENSOR_NO2: {
-			uint32_t currentTime = 0;
-			if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
 			if (command.startsWith("help")) {
 				base->sckOut("Available commands for this sensor:\r\nStill nothing!!"); 
 				return true;
@@ -155,7 +153,7 @@ bool Sck_BH1721FVC::get(bool wait)
 
 	// 0x01 register - TIMMING
 	uint8_t ITIME0  = 0xA0;
-	float TOP = 26500.0; 	 // This is relative to the value above (less resolution more range) TODO define max based on calibration curve (to be implemented)
+	// float TOP = 26500.0; 	 // This is relative to the value above (less resolution more range) TODO define max based on calibration curve (to be implemented)
 
 	// 00h: Start / Stop of measurement is set by special command. (ADC manual integration mode)
 	// 01h to FFh: Integration time is determined by ITIME value

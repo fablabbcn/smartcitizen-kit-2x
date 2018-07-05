@@ -415,7 +415,7 @@ void config_com(SckBase* base, String parameters)
 
 	Configuration currentConfig = base->getConfig();
 
-	sprintf(base->outBuff, "%sMode: %s\r\nPublish interval: %lu\r\n", base->outBuff, modeTitles[currentConfig.mode], currentConfig.publishInterval);
+	sprintf(base->outBuff, "%sMode: %s\r\nPublish interval: %lu\r\n", base->outBuff, base->modeTitles[currentConfig.mode], currentConfig.publishInterval);
 
 	sprintf(base->outBuff, "%sWifi credentials: ", base->outBuff);
 	if (currentConfig.credentials.set) sprintf(base->outBuff, "%s%s - %s\r\n", base->outBuff, currentConfig.credentials.ssid, currentConfig.credentials.pass);

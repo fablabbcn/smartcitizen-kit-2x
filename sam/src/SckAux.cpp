@@ -190,10 +190,8 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: {
 
-			Atlas *thisAtlas;
-
-			if (wichSensor == SENSOR_ATLAS_PH) thisAtlas = &atlasPH;
-			else if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG) thisAtlas = &atlasEC;
+			Atlas *thisAtlas = &atlasPH;
+			if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG) thisAtlas = &atlasEC;
 			else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
 
 			// 	 Calibration command options:

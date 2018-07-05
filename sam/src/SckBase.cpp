@@ -220,8 +220,9 @@ void SckBase::reviewState()
 				if (!st.espON) ESPcontrol(ESP_ON);
 				else if (st.wifiStat.error) {
 					
+					sckOut("ERROR on Wifi connection!!!");
 					sdPublish(); 			// TODO publish to flash instead sdcard so we can recover readings.
-					ESPcontrol(ESP_OFF);
+					ESPcontrol(ESP_SLEEP);
 					led.update(led.BLUE, led.PULSE_HARD_FAST);
 				}
 
@@ -237,8 +238,9 @@ void SckBase::reviewState()
 
 					} else if (st.helloStat.error) {
 
+						sckOut("ERROR sending hello!!!");
 						st.helloStat.reset();
-						ESPcontrol(ESP_OFF);
+						ESPcontrol(ESP_SLEEP);
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
 					}
@@ -251,8 +253,9 @@ void SckBase::reviewState()
 
 					} else if (st.timeStat.error) {
 
+						sckOut("ERROR getting time from the network!!!");
 						st.timeStat.reset();
-						ESPcontrol(ESP_OFF);
+						ESPcontrol(ESP_SLEEP);
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
 					}
@@ -267,6 +270,7 @@ void SckBase::reviewState()
 
 					} else if (st.publishStat.error) {
 
+						sckOut("ERROR publishing data!!!");
 						sdPublish(); 			// TODO save this readings on flash and try after next interval
 						ESPcontrol(ESP_REBOOT);		// TODO go to sleep
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
@@ -298,7 +302,7 @@ void SckBase::reviewState()
 				led.update(led.PINK, led.PULSE_SOFT);
 
 				if (!st.espON) ESPcontrol(ESP_ON);
-				else if (st.wifiStat.error) ESPcontrol(ESP_OFF); 	// Restarts ESP to try again
+				else if (st.wifiStat.error) ESPcontrol(ESP_SLEEP); 	// Restarts ESP to try again
 				else if (st.wifiStat.ok) {
 					if (st.timeStat.retry()) {
 
@@ -307,7 +311,7 @@ void SckBase::reviewState()
 					} else if (st.timeStat.error) {
 
 						st.timeStat.reset();
-						ESPcontrol(ESP_OFF);
+						ESPcontrol(ESP_SLEEP);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
 					}
 				}
@@ -316,7 +320,7 @@ void SckBase::reviewState()
 		} else {
 
 			led.update(led.PINK, led.PULSE_SOFT);
-			if (st.espON) ESPcontrol(ESP_OFF);
+			if (st.espON) ESPcontrol(ESP_SLEEP);
 
 			if (timeToPublish) {
 				sdPublish();
@@ -640,6 +644,23 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				ESPcontrol(ESP_ON);
 				break;
 		}
+		case ESP_WAKEUP:
+		{
+				digitalWrite(pinESP_CH_PD, HIGH);
+				st.espON = true;
+				espStarted = rtc.getEpoch();
+				st.wifiStat.reset();
+				break;
+		}
+		case ESP_SLEEP:
+		{
+				sprintf(outBuff, "Esp was on for %u seconds", rtc.getEpoch() - espStarted);
+				sckOut(PRIO_LOW);
+				digitalWrite(pinESP_CH_PD, LOW);
+				st.espON = false;
+				espStarted = 0;
+				break;	
+		}
 	}
 }
 void SckBase::ESPbusUpdate()
@@ -787,7 +808,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			st.publishStat.reset();
 			sckOut("Network publish OK!!   ");
-			ESPcontrol(ESP_OFF);
+			ESPcontrol(ESP_SLEEP);
 			break;
 
 		case SAMMES_BOOTED:
@@ -946,7 +967,7 @@ void SckBase::goToSleep()
 
 	digitalWrite(pinLED_USB, HIGH);
 	led.off();
-	ESPcontrol(ESP_OFF);
+	ESPcontrol(ESP_SLEEP);
 
 	// ESP control pins savings
 	digitalWrite(pinESP_CH_PD, LOW);

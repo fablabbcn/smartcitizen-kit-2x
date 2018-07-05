@@ -429,14 +429,13 @@ void config_com(SckBase* base, String parameters)
 void esp_com(SckBase* base, String parameters)
 {
 
-	if (parameters.length() <= 0) {
-		base->sckOut("Parameters: [-on -off -reboot -flash]");
-	} else if (parameters.equals("-on")) base->ESPcontrol(base->ESP_ON);
+	if (parameters.equals("-on")) base->ESPcontrol(base->ESP_ON);
 	else if (parameters.equals("-off")) base->ESPcontrol(base->ESP_OFF);
 	else if (parameters.equals("-reboot")) base->ESPcontrol(base->ESP_REBOOT);
 	else if (parameters.equals("-flash")) base->ESPcontrol(base->ESP_FLASH);
-	else if (parameters.equals("-noWifi")) base->sendMessage(ESPMES_WIFI_OFF);
-	else if (parameters.equals("-connect")) base->sendMessage(ESPMES_WIFI_ON);
+	else if (parameters.equals("-sleep")) base->ESPcontrol(base->ESP_SLEEP);
+	else if (parameters.equals("-wake")) base->ESPcontrol(base->ESP_WAKEUP);
+	else base->sckOut("Unrecognized command , try help!!");
 }
 void netInfo_com(SckBase* base, String parameters)
 {

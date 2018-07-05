@@ -111,7 +111,6 @@ class SckBase
 		void enterSetup();
 
 		// ESP communication
-		const uint32_t ESP_FLASH_SPEED = 460800;
 		uint8_t netPack[NETPACK_TOTAL_SIZE];
 		char netBuff[NETBUFF_SIZE];
 		void ESPbusUpdate();

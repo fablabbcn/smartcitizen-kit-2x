@@ -204,7 +204,7 @@ class SckBase
 		void inputUpdate();
 
 		// ESP control
-		enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
+		enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT, ESP_SLEEP, ESP_WAKEUP };
 		void ESPcontrol(ESPcontrols myESPControl);
 
 		// ESP communication

@@ -12,6 +12,7 @@ enum ESPMessage {
 	ESPMES_CONNECT, 		// SAM->ESP, ESP trys wifi conection
 	ESPMES_START_AP, 		// SAM->ESP, ESP starts AP
 	ESPMES_STOP_AP, 		// SAM->ESP, ESP stops AP
+	ESPMES_LED_OFF, 		// SAM->ESP, ESP turns off led (esud before sleep)
 
 	ESPMES_COUNT
 };

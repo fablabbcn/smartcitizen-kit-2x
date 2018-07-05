@@ -243,6 +243,13 @@ class SckBase
 		// Misc
 		void getUniqueID();
 		uint32_t uniqueID[4];
+
+		const char *modeTitles[MODE_COUNT] PROGMEM = {
+			"not configured",		// modeTitles[MODE_NOT_CONFIGURED]
+			"network",			// modeTitles[MODE_NET]
+			"sdcard",			// modeTitles[MODE_SD]
+			"sleep"				// modeTitles[MODE_SLEEP]
+		};
 };
 
 bool I2Cdetect(TwoWire *_Wire, byte address);

@@ -35,7 +35,6 @@ enum SAMMessage {
 	SAMMES_COUNT
 };
 
-enum NetPacks { TOTAL_PARTS = 0 };
 #define NETPACK_TOTAL_SIZE 60
 #define NETPACK_CONTENT_SIZE (NETPACK_TOTAL_SIZE - 1)	// 60 - 1 = 59 bytes
 

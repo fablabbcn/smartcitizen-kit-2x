@@ -700,7 +700,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 }
 void SckBase::ESPbusUpdate()
 {
-
 	if (manager.available()) {
 		
 		uint8_t len = NETPACK_TOTAL_SIZE;
@@ -708,21 +707,19 @@ void SckBase::ESPbusUpdate()
 		if (manager.recvfromAck(netPack, &len)) {
 
 			// Identify received command
-			uint8_t pre = String((char)netPack[1]).toInt();
+			uint8_t pre = netPack[1];
 			SAMMessage wichMessage = static_cast<SAMMessage>(pre);
-			// sckOut("Command: " + String(wichMessage), PRIO_LOW);
 
 			// Get content from first package (1 byte less than the rest)
 			memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
 
 			// Get the rest of the packages (if they exist)
-			for (uint8_t i=0; i<netPack[TOTAL_PARTS]-1; i++) {
+			for (uint8_t i=0; i<netPack[0]-1; i++) {
 				if (manager.recvfromAckTimeout(netPack, &len, 500))	{
 					memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE) + (NETPACK_CONTENT_SIZE - 1)], &netPack[1], NETPACK_CONTENT_SIZE);
 				}
 				else return;
 			}
-			// sckOut("Content: " + String(netBuff), PRIO_LOW);
 
 			// Process message
 			receiveMessage(wichMessage);
@@ -731,16 +728,12 @@ void SckBase::ESPbusUpdate()
 }
 bool SckBase::sendMessage(ESPMessage wichMessage)
 {
-
-	// This function is used when &netBuff[1] is already filled with the content
-
-	sprintf(netBuff, "%u", wichMessage);
+	sprintf(netBuff, "%c", wichMessage);
 	return sendMessage();
 }
 bool SckBase::sendMessage(ESPMessage wichMessage, const char *content)
 {
-
-	sprintf(netBuff, "%u%s", wichMessage, content);
+	sprintf(netBuff, "%c%s", wichMessage, content);
 	return sendMessage();
 }
 bool SckBase::sendMessage()
@@ -757,7 +750,7 @@ bool SckBase::sendMessage()
 	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
 
 	for (uint8_t i=0; i<totalParts; i++) {
-		netPack[TOTAL_PARTS] = totalParts;
+		netPack[0] = totalParts;
 		memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
 		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) return false;
 	}
@@ -766,7 +759,6 @@ bool SckBase::sendMessage()
 }
 void SckBase::receiveMessage(SAMMessage wichMessage)
 {
-
 	switch(wichMessage) {
 		case SAMMES_SET_CONFIG:
 		{
@@ -785,7 +777,6 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				strcpy(config.token.token, json["to"]);
 				st.helloPending = true;
 				saveConfig();
-
 				break;
 
 		}
@@ -1172,7 +1163,7 @@ bool SckBase::netPublish()
 
 	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
 	sckOut(PRIO_MED, false);
-	sprintf(netBuff, "%u", ESPMES_MQTT_PUBLISH);
+	sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	bool result = sendMessage();
 

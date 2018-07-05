@@ -47,9 +47,9 @@ void SckBase::setup()
 	pinMode(pinPOWER_ESP, OUTPUT);
 	pinMode(pinESP_CH_PD, OUTPUT);
 	pinMode(pinESP_GPIO0, OUTPUT);
-	ESPcontrol(ESP_OFF);
 	SerialESP.begin(serialBaudrate);
 	manager.init();
+	ESPcontrol(ESP_ON);
 
 	// RTC setup
 	rtc.begin();
@@ -133,25 +133,7 @@ void SckBase::setup()
 		}
 	}
 
-	// TEMP for automatic living lab setup
-	// Enables only calibrated alphasense (plus temp and hum) and disable urban board temp and hum
-	if (sensors[SENSOR_GASESBOARD_SLOT_1A].enabled) {
-
-		sensors[SENSOR_GASESBOARD_SLOT_1A].enabled = false;
-                sensors[SENSOR_GASESBOARD_SLOT_1W].enabled = false;
-                sensors[SENSOR_GASESBOARD_SLOT_2A].enabled = false;
-                sensors[SENSOR_GASESBOARD_SLOT_2W].enabled = false;
-                sensors[SENSOR_GASESBOARD_SLOT_3A].enabled = false;
-                sensors[SENSOR_GASESBOARD_SLOT_3W].enabled = false;
-
-                sensors[SENSOR_TEMPERATURE].enabled = false;
-                sensors[SENSOR_HUMIDITY].enabled = false;
-                sensors[SENSOR_CO].enabled = false;
-                sensors[SENSOR_NO2].enabled = false;
-	}
-
 	if (saveNeeded) saveConfig();
-
 }
 void SckBase::update()
 {
@@ -220,10 +202,16 @@ void SckBase::reviewState()
 				if (!st.espON) ESPcontrol(ESP_ON);
 				else if (st.wifiStat.error) {
 					
-					sckOut("ERROR on Wifi connection!!!");
-					sdPublish(); 			// TODO publish to flash instead sdcard so we can recover readings.
-					ESPcontrol(ESP_SLEEP);
+					sckOut("ERROR Can't publish without wifi!!!");
+
+					// TODO replace this with flash saving and in next publish push all flash readings
+					sdPublish();
+					
+					ESPcontrol(ESP_OFF); 		// Hard off not sleep to be sure the ESP state is reset
 					led.update(led.BLUE, led.PULSE_HARD_FAST);
+
+					lastPublishTime = rtc.getEpoch();
+					st.wifiStat.reset(); 		// Restart wifi retry count
 				}
 
 			} else {
@@ -239,10 +227,11 @@ void SckBase::reviewState()
 					} else if (st.helloStat.error) {
 
 						sckOut("ERROR sending hello!!!");
-						st.helloStat.reset();
-						ESPcontrol(ESP_SLEEP);
+
+						ESPcontrol(ESP_REBOOT); 		// Try reseting ESP
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
+						st.helloStat.reset();
 					}
 
 				} else if (!st.timeStat.ok) {
@@ -254,10 +243,11 @@ void SckBase::reviewState()
 					} else if (st.timeStat.error) {
 
 						sckOut("ERROR getting time from the network!!!");
-						st.timeStat.reset();
-						ESPcontrol(ESP_SLEEP);
+
+						ESPcontrol(ESP_REBOOT);
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
+						st.timeStat.reset();
 					}
 
 				} else if (timeToPublish) {
@@ -265,16 +255,23 @@ void SckBase::reviewState()
 					if (st.publishStat.retry()) {
 
 						if (netPublish()) {
-							// TODO go to sleep
+							// TODO go to sleep on receive MQTT success message (not here)
 						}
 
 					} else if (st.publishStat.error) {
 
-						sckOut("ERROR publishing data!!!");
-						sdPublish(); 			// TODO save this readings on flash and try after next interval
-						ESPcontrol(ESP_REBOOT);		// TODO go to sleep
+						sckOut("ERROR publishing data to the platform!!!");
+						sckOut("Will retry on next publish interval!!!");
+
+						// TODO replace this with flash saving and in next publish push all flash readings
+						sdPublish();
+
+						ESPcontrol(ESP_SLEEP);
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
+						// We need this to  allow publish retry next time, this reading will be recovered from flash
+						lastPublishTime = rtc.getEpoch();
+						st.publishStat.reset(); 		// Restart publish error counter
 					}
 				}
 			}
@@ -284,26 +281,32 @@ void SckBase::reviewState()
 
 		if (!st.cardPresent) {
 		
+			sckOut("ERROR can't find SD card!!!");
+
 			led.update(led.PINK, led.PULSE_HARD_FAST);
 			
 		} else if (!st.timeStat.ok) {
+			
+			if (!st.espON) ESPcontrol(ESP_ON);
 
-			if (!st.wifiSet || st.wifiStat.error)  {
-
+			if (!st.wifiSet)  {
+					
+				sckOut("ERROR time is not synced and no wifi set!!!");
 				led.update(led.PINK, led.PULSE_HARD_FAST);
 
-				if (!st.espON) {
-					ESPcontrol(ESP_ON); 		// Starts AP mode for time sync
-					sendMessage(ESPMES_START_AP, "");
-				}
-
 			} else {
+				
+				st.wifiStat.retry();
 
 				led.update(led.PINK, led.PULSE_SOFT);
 
-				if (!st.espON) ESPcontrol(ESP_ON);
-				else if (st.wifiStat.error) ESPcontrol(ESP_SLEEP); 	// Restarts ESP to try again
-				else if (st.wifiStat.ok) {
+				if (st.wifiStat.error) {
+
+					sckOut("ERROR time is not synced!!!");
+					ESPcontrol(ESP_REBOOT); 	// Rebbot esp and start AP to receive sync from user via AP mode
+					led.update(led.PINK, led.PULSE_HARD_FAST);
+
+				} else if (st.wifiStat.ok) {
 					if (st.timeStat.retry()) {
 
 						if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
@@ -311,26 +314,27 @@ void SckBase::reviewState()
 					} else if (st.timeStat.error) {
 
 						st.timeStat.reset();
-						ESPcontrol(ESP_SLEEP);
+						ESPcontrol(ESP_REBOOT);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
 					}
 				}
 			}
 		
 		} else {
-
-			led.update(led.PINK, led.PULSE_SOFT);
-			if (st.espON) ESPcontrol(ESP_SLEEP);
-
 			if (timeToPublish) {
-				sdPublish();
+				if (sdPublish()) {
+					led.update(led.PINK, led.PULSE_SOFT);
+					if (st.espON) ESPcontrol(ESP_OFF);
+				} else {
+					sckOut("ERROR failed publishing to SD card");
+					led.update(led.PINK, led.PULSE_HARD_FAST);
+				}
 			}
 		}
 	}
 }
 void SckBase::enterSetup()
 {
-
 	sckOut("Entering setup mode", PRIO_LOW);
 	st.onSetup = true;
 
@@ -339,7 +343,7 @@ void SckBase::enterSetup()
 
 	// Start wifi APmode
 	if (!st.espON) ESPcontrol(ESP_ON);
-	if (sendMessage(ESPMES_START_AP, "")) sckOut("Started Access point on ESP");
+	else if (sendMessage(ESPMES_START_AP, "")) sckOut("Started Access point on ESP");
 }
 void SckBase::printState()
 {
@@ -483,6 +487,7 @@ void SckBase::loadConfig()
 }
 void SckBase::saveConfig(bool defaults)
 {
+	// Save to eeprom
 	sckOut("Saving config...", PRIO_LOW);
 	if (defaults) {
 		Configuration defaultConfig;
@@ -500,44 +505,73 @@ void SckBase::saveConfig(bool defaults)
 	}
 	eepromConfig.write(config);
 
+	// Update state
 	if (urbanPresent) urban.begin(this);
-
 	st.mode = config.mode;
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;
-
 	st.wifiStat.reset();
 
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
 
-	json["mo"] = (uint8_t)config.mode;
-	json["pi"] = config.publishInterval;
-	json["cs"] = (uint8_t)config.credentials.set;
-	json["ss"] = config.credentials.ssid;
-	json["pa"] = config.credentials.pass;
-	json["ts"] = (uint8_t)config.token.set;
-	json["to"] = config.token.token;
+	// Decide if new mode its valid
+	bool sendToESP = false;
+	if (st.mode == MODE_NET) {
 
-	sprintf(netBuff, "%u", ESPMES_SET_CONFIG);
-	json.printTo(&netBuff[1], json.measureLength() + 1);
-	if (!st.espON) {
-		ESPcontrol(ESP_ON);
-		delay(250);
+		if (st.wifiSet && st.tokenSet) {
+		
+			sendToESP = true;
+			st.onSetup = false;
+			sendMessage(ESPMES_STOP_AP, "");
+			led.update(led.BLUE, led.PULSE_SOFT);
+		
+		} else {
+
+			if (!st.wifiSet) sckOut("ERROR Wifi not configured: can't set Network Mode!!!");
+			if (!st.tokenSet) sckOut("ERROR Token not configured: can't set Network Mode!!!");
+			st.mode = MODE_NOT_CONFIGURED;
+		}
+
+	} else if (st.mode == MODE_SD) {
+	
+		if (st.wifiSet) sendToESP = true;
+		st.onSetup = false;
+		sendMessage(ESPMES_STOP_AP, "");
+		led.update(led.PINK, led.PULSE_SOFT);
+
+	} else if (st.mode == MODE_NOT_CONFIGURED) {
+		enterSetup();	
+	}	
+	
+	if (sendToESP) {
+
+		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+		JsonObject& json = jsonBuffer.createObject();
+
+		json["mo"] = (uint8_t)config.mode;
+		json["pi"] = config.publishInterval;
+		json["cs"] = (uint8_t)config.credentials.set;
+		json["ss"] = config.credentials.ssid;
+		json["pa"] = config.credentials.pass;
+		json["ts"] = (uint8_t)config.token.set;
+		json["to"] = config.token.token;
+
+		sprintf(netBuff, "%u", ESPMES_SET_CONFIG);
+		json.printTo(&netBuff[1], json.measureLength() + 1);
+		if (!st.espON) {
+			ESPcontrol(ESP_ON);
+			delay(250);
+		}
+
+		// TODO esto no puede ser un loop infinito, sin embargo este es un error irrecuperable que HAY que arreglar antes de continuar
+		sckOut("Saved configuration on eeprom!!", PRIO_LOW);
+
+		uint32_t sendStart = millis();
+		while (!sendMessage()) {
+			sckOut("Failed sending configuration to ESP!!", PRIO_LOW);
+			if (millis() - sendStart > 10000) ESPcontrol(ESP_REBOOT);
+		}
+		sckOut("Saved configuration on ESP!!", PRIO_LOW);
 	}
-
-	if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
-	else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
-	else if (st.mode == MODE_NOT_CONFIGURED) led.update(led.RED, led.PULSE_SOFT);
-
-	sckOut("Saved configuration!!", PRIO_LOW);
-	while (!sendMessage()) {
-		sckOut("Failed sending configuration to ESP!!", PRIO_LOW);
-	}
-	sckOut("Saved configuration on ESP!!", PRIO_LOW);
-
-	st.onSetup = false;
-	sendMessage(ESPMES_STOP_AP, "");
 }
 Configuration SckBase::getConfig()
 {
@@ -812,11 +846,26 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 			ESPcontrol(ESP_SLEEP);
 			break;
 
+		case SAMMES_MQTT_PUBLISH_ERROR:
+
+			sckOut("ERROR on MQTT publish");
+			sprintf(outBuff, "%u retrys to go before giving up...", st.publishStat._maxRetrys - st.publishStat.retrys);
+			sckOut();
+			break;
+
 		case SAMMES_BOOTED:
 
 			sckOut("ESP finished booting");
 			if (st.onSetup) sendMessage(ESPMES_START_AP);
-			else sendMessage(ESPMES_CONNECT);
+			else if (st.mode == MODE_NET) {
+
+				if (st.wifiSet) sendMessage(ESPMES_CONNECT);
+
+			} else if (st.mode == MODE_SD) {
+
+				if (st.wifiSet && !st.wifiStat.error) sendMessage(ESPMES_CONNECT);
+				else sendMessage(ESPMES_START_AP);
+			}
 			break;
 
 		default: break;
@@ -1040,8 +1089,6 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 		}
 		case BOARD_URBAN:
 		{
-				uint32_t currentTime = 0;
-				if (st.timeStat.ok) currentTime = rtc.getEpoch();
 				result = urban.getReading(this, wichSensor, wait);
 				if (result.startsWith("none")) return false;
 				break;
@@ -1130,6 +1177,7 @@ bool SckBase::netPublish()
 	bool result = sendMessage();
 
 	if (result) {
+		st.publishStat.reset();
 		lastPublishTime = rtc.getEpoch();
 		sdPublish();
 	}
@@ -1213,6 +1261,7 @@ bool SckBase::sdPublish()
 		postFile.file.println("");
 		postFile.file.close();
 		lastPublishTime = rtc.getEpoch();
+		st.publishStat.reset();
 		sckOut("Sd card publish OK!!   ", PRIO_MED, false);
 		return true;
 	}

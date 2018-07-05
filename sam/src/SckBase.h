@@ -41,12 +41,12 @@ class Status
 	private:
 		uint32_t _lastTryMillis = 0; // ms
 		uint32_t _timeout; 	// ms
-		uint8_t _maxRetrys;
 
 	public:
 		bool ok = false;
 		bool error = false;
 		uint8_t retrys = 0;
+		uint8_t _maxRetrys;
 
 		bool retry();
 		void setOk();

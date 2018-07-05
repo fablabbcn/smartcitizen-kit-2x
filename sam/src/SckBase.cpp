@@ -77,6 +77,25 @@ void SckBase::setup()
 	// flash.setClock(133000);
 	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
 
+#ifdef gasesBoardTest
+	if (gasesBoardTest == 1) {
+		ESPcontrol(ESP_OFF);
+		sckOut("Starting Gases Pro Board automated test...", PRIO_HIGH);
+		led.off();
+		led.update(led.BLUE, led.PULSE_STATIC);
+		String testResult = auxBoards.control(SENSOR_GASESBOARD_SLOT_1W, "autotest");
+		SerialUSB.println(testResult);
+		if (testResult.startsWith("1")) {
+			sckOut("Test finished OK!!");
+			led.update(led.GREEN, led.PULSE_STATIC);
+		} else {
+			sckOut("ERROR Test failed, please check your connections");
+			led.update(led.RED, led.PULSE_STATIC);
+		}
+		while(true);
+	}
+#endif
+
 	// Configuration
 	loadConfig();
 	if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
@@ -133,20 +152,6 @@ void SckBase::setup()
 
 	if (saveNeeded) saveConfig();
 
-
-#ifdef gasesBoardTest
-	ESPcontrol(ESP_OFF);
-	led.off();
-	led.update(led.BLUE, led.PULSE_STATIC);
-	String testResult = auxBoards.control(SENSOR_GASESBOARD_SLOT_1W, "autotest");
-	SerialUSB.println(testResult);
-	if (testResult.startsWith("1")) {
-		led.update(led.GREEN, led.PULSE_STATIC);
-	} else {
-		led.update(led.RED, led.PULSE_STATIC);
-	}
-	while(true);
-#endif
 }
 void SckBase::update()
 {

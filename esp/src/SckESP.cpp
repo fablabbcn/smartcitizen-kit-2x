@@ -133,21 +133,19 @@ void SckESP::SAMbusUpdate()
 		if (manager.recvfromAck(netPack, &len)) {
 
 			// Identify received command
-			uint8_t pre = String((char)netPack[1]).toInt();
+			uint8_t pre = netPack[1];
 			ESPMessage wichMessage = static_cast<ESPMessage>(pre);
-			// debugOUT("Command: " + String(wichMessage));
 
 			// Get content from first package (1 byte less than the rest)
 			memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
 
 			// Het the rest of the packages (if they exist)
-			for (uint8_t i=0; i<netPack[TOTAL_PARTS]-1; i++) {
+			for (uint8_t i=0; i<netPack[0]-1; i++) {
 				if (manager.recvfromAckTimeout(netPack, &len, 500))	{
 					memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE) + (NETPACK_CONTENT_SIZE - 1)], &netPack[1], NETPACK_CONTENT_SIZE);
 				}
 				else return;
 			}
-			// debugOUT("Content: " + String(netBuff));
 
 			// Process message
 			receiveMessage(wichMessage);
@@ -156,28 +154,21 @@ void SckESP::SAMbusUpdate()
 }
 bool SckESP::sendMessage(SAMMessage wichMessage)
 {
-
-	// This function is used when &netBuff[1] is already filled with the content
-
-	sprintf(netBuff, "%u", wichMessage);
+	sprintf(netBuff, "%c", wichMessage);
 	return sendMessage();
 }
 bool SckESP::sendMessage(SAMMessage wichMessage, const char *content)
 {
-
-	sprintf(netBuff, "%u%s", wichMessage, content);
+	sprintf(netBuff, "%c%s", wichMessage, content);
 	return sendMessage();
 }
 bool SckESP::sendMessage()
 {
-
-	// This function is used when netbuff is already filled with command and content
-
 	uint16_t totalSize = strlen(netBuff);
 	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
 
 	for (uint8_t i=0; i<totalParts; i++) {
-		netPack[TOTAL_PARTS] = totalParts;
+		netPack[0] = totalParts;
 		memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
 		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, SAM_ADDRESS)) return false;
 	}
@@ -370,7 +361,7 @@ bool SckESP::sendNetinfo()
 	jsonSend["ip"] = ipAddr;
 	jsonSend["mac"] = macAddr;
 
-	sprintf(netBuff, "%u", SAMMES_NETINFO);
+	sprintf(netBuff, "%c", SAMMES_NETINFO);
 	jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
 
 	return sendMessage();
@@ -400,7 +391,7 @@ bool SckESP::sendConfig()
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
 
-	sprintf(netBuff, "%u", SAMMES_SET_CONFIG);
+	sprintf(netBuff, "%c", SAMMES_SET_CONFIG);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	if (sendMessage()) {
 		debugOUT(F("Sent configuration to SAM!!"));

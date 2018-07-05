@@ -654,6 +654,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_SLEEP:
 		{
+				sendMessage(ESPMES_LED_OFF);
 				sprintf(outBuff, "Esp was on for %lu seconds", rtc.getEpoch() - espStarted);
 				sckOut(PRIO_LOW);
 				digitalWrite(pinESP_CH_PD, LOW);

@@ -20,9 +20,17 @@ FlashStorage(eepromConfig, Configuration);
 
 void SckBase::setup()
 {
-
 	// Led
 	led.setup();
+
+	// ESP Configuration
+	pinMode(pinPOWER_ESP, OUTPUT);
+	pinMode(pinESP_CH_PD, OUTPUT);
+	pinMode(pinESP_GPIO0, OUTPUT);
+	SerialESP.begin(serialBaudrate);
+	manager.init();
+	ESPcontrol(ESP_ON);
+	delay(1000);
 
 	// Internal I2C bus setup
 	Wire.begin();
@@ -42,14 +50,6 @@ void SckBase::setup()
 	// Power management configuration
 	/* battSetup(); */
 	charger.setup();
-
-	// ESP Configuration
-	pinMode(pinPOWER_ESP, OUTPUT);
-	pinMode(pinESP_CH_PD, OUTPUT);
-	pinMode(pinESP_GPIO0, OUTPUT);
-	SerialESP.begin(serialBaudrate);
-	manager.init();
-	ESPcontrol(ESP_ON);
 
 	// RTC setup
 	rtc.begin();

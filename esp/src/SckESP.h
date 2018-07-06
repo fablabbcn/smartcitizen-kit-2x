@@ -42,6 +42,7 @@ class SckESP
 		bool sendMessage(SAMMessage wichMessage, const char *content);
 		bool sendMessage();
 		void receiveMessage(ESPMessage wichMessage);
+		bool bootedPending = false;
 
 		// Notifications
 		bool sendToken();

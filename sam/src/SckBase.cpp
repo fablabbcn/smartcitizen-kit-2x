@@ -157,6 +157,7 @@ void SckBase::update()
 void SckBase::reviewState()
 {
 
+	if (pendingSyncConfig) sendConfig();
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
 	/* bool espON */
@@ -512,6 +513,7 @@ void SckBase::saveConfig(bool defaults)
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].interval = default_sensor_reading_interval;
 		}
+		pendingSyncConfig = true;
 	} else {
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
@@ -520,6 +522,7 @@ void SckBase::saveConfig(bool defaults)
 		}
 	}
 	eepromConfig.write(config);
+	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
 
 	// Update state
 	if (urbanPresent) urban.begin(this);
@@ -530,12 +533,11 @@ void SckBase::saveConfig(bool defaults)
 
 
 	// Decide if new mode its valid
-	bool sendToESP = false;
 	if (st.mode == MODE_NET) {
 
 		if (st.wifiSet && st.tokenSet) {
 		
-			sendToESP = true;
+			pendingSyncConfig = true;
 			st.onSetup = false;
 			sendMessage(ESPMES_STOP_AP, "");
 			led.update(led.BLUE, led.PULSE_SOFT);
@@ -549,7 +551,7 @@ void SckBase::saveConfig(bool defaults)
 
 	} else if (st.mode == MODE_SD) {
 	
-		if (st.wifiSet) sendToESP = true;
+		if (st.wifiSet) pendingSyncConfig = true;
 		st.onSetup = false;
 		sendMessage(ESPMES_STOP_AP, "");
 		led.update(led.PINK, led.PULSE_SOFT);
@@ -558,41 +560,38 @@ void SckBase::saveConfig(bool defaults)
 		enterSetup();	
 	}	
 	
-	if (sendToESP) {
-
-		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-		JsonObject& json = jsonBuffer.createObject();
-
-		json["mo"] = (uint8_t)config.mode;
-		json["pi"] = config.publishInterval;
-		json["cs"] = (uint8_t)config.credentials.set;
-		json["ss"] = config.credentials.ssid;
-		json["pa"] = config.credentials.pass;
-		json["ts"] = (uint8_t)config.token.set;
-		json["to"] = config.token.token;
-
-		sprintf(netBuff, "%u", ESPMES_SET_CONFIG);
-		json.printTo(&netBuff[1], json.measureLength() + 1);
-		if (!st.espON) {
-			ESPcontrol(ESP_ON);
-			delay(250);
-		}
-
-		// TODO esto no puede ser un loop infinito, sin embargo este es un error irrecuperable que HAY que arreglar antes de continuar
-		sckOut("Saved configuration on eeprom!!", PRIO_LOW);
-
-		uint32_t sendStart = millis();
-		while (!sendMessage()) {
-			sckOut("Failed sending configuration to ESP!!", PRIO_LOW);
-			if (millis() - sendStart > 10000) ESPcontrol(ESP_REBOOT);
-		}
-		sckOut("Saved configuration on ESP!!", PRIO_LOW);
-	}
+	if (pendingSyncConfig) sendConfig();
 }
 Configuration SckBase::getConfig()
 {
 
 	return config;
+}
+bool SckBase::sendConfig()
+{
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& json = jsonBuffer.createObject();
+
+	json["mo"] = (uint8_t)config.mode;
+	json["pi"] = config.publishInterval;
+	json["cs"] = (uint8_t)config.credentials.set;
+	json["ss"] = config.credentials.ssid;
+	json["pa"] = config.credentials.pass;
+	json["ts"] = (uint8_t)config.token.set;
+	json["to"] = config.token.token;
+
+	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
+	json.printTo(&netBuff[1], json.measureLength() + 1);
+	if (!st.espON) {
+		ESPcontrol(ESP_ON);
+		delay(250);
+	}
+	if (sendMessage()) {
+		pendingSyncConfig = false;
+		sckOut("Saved configuration on ESP!!", PRIO_LOW);
+		return true;
+	}
+	return false;
 }
 bool SckBase::parseLightRead()
 {

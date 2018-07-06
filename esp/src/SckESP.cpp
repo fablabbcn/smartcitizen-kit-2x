@@ -829,6 +829,8 @@ bool SckESP::saveConfig()
 		if (config.credentials.set) {
 			ledBlink(LED_SLOW);
 			tryConnection();
+		} else {
+			startAP();	
 		}
 		return true;
 	}

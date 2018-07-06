@@ -98,6 +98,7 @@ class SckBase
 		// Input/Output
 		String serialBuff;
 		String previousCommand;
+		uint8_t outRepetitions = 0;
 
 		// **** ESP control
 		uint32_t espStarted;

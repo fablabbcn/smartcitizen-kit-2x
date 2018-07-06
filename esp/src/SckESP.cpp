@@ -54,10 +54,14 @@ void SckESP::setup()
 		Debug.showColors(true);
 		Debug.setSerialEnabled(false);
 	}
-	sendMessage(SAMMES_BOOTED);
+	sendMessage(SAMMES_DEBUG, "starting...");
+	if (!sendMessage(SAMMES_BOOTED)) bootedPending = true;
 }
 void SckESP::update()
 {
+	if (bootedPending) {
+		if (sendMessage(SAMMES_BOOTED)) bootedPending = false;
+	}
 
 	if (WiFi.getMode() == WIFI_AP) {
 		dnsServer.processNextRequest();

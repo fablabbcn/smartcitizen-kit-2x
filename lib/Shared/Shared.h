@@ -3,6 +3,8 @@
 const uint32_t serialBaudrate = 115200;
 
 enum ESPMessage {
+	
+	ESPMES_PLACEHOLDER,
 
 	ESPMES_SET_CONFIG,		// SAM->ESP, Sends new config
 	ESPMES_GET_NETINFO,		// SAM->ESP, ESP return network info
@@ -18,6 +20,8 @@ enum ESPMessage {
 };
 
 enum SAMMessage {
+
+	SAMMES_PLACEHOLDER,
 
 	SAMMES_BOOTED, 			// ESP->SAM, On finished booting
 	SAMMES_DEBUG,			// ESP->SAM, Send debug info

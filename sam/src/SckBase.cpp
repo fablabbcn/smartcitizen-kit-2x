@@ -475,8 +475,8 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 }
 void SckBase::prompt()
 {
-
-	sckOut("SCK > ", PRIO_MED, false);
+	sprintf(outBuff, "%s", "SCK > ");
+	sckOut(PRIO_MED, false);
 }
 
 // **** Config
@@ -532,6 +532,7 @@ void SckBase::saveConfig(bool defaults)
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;
 	st.wifiStat.reset();
+	lastPublishTime = rtc.getEpoch() - config.publishInterval;
 
 
 	// Decide if new mode its valid

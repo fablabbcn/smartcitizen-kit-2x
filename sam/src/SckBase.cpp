@@ -157,7 +157,10 @@ void SckBase::update()
 void SckBase::reviewState()
 {
 
-	if (pendingSyncConfig) sendConfig();
+	if (pendingSyncConfig) {
+		sendConfig();
+		return;
+	}
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
 	/* bool espON */

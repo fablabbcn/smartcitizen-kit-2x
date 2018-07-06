@@ -141,7 +141,6 @@ class SckBase
 		SckFile postFile {};
 		SckFile debugFile {"DEBUG.CSV"};
 		// Sd card
-		uint32_t cardLastChange = 0;
 		bool sdSelect();
 		// Flash memory
 		/* SPIFlash flash = SPIFlash(pinCS_FLASH); */

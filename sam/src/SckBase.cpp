@@ -179,9 +179,6 @@ void SckBase::reviewState()
 	/* sdDetect() */
 	/* buttonEvent(); */
 
-	bool timeToPublish = (rtc.getEpoch() - lastPublishTime > config.publishInterval);
-
-
 	if (st.sleeping) {
 
 
@@ -634,14 +631,15 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 	switch(controlCommand){
 		case ESP_OFF:
 		{
-				sckOut("ESP off...");
+				sckOut("ESP off...", PRIO_LOW);
 				st.espON = false;
 				digitalWrite(pinESP_CH_PD, LOW);
 				digitalWrite(pinPOWER_ESP, HIGH);
 				digitalWrite(pinESP_GPIO0, LOW);
+				sprintf(outBuff, "Esp was on for %lu seconds", (rtc.getEpoch() - espStarted));
+				st.wifiStat.reset();
 				espStarted = 0;
 				break;
-
 		}
 		case ESP_FLASH:
 		{
@@ -679,15 +677,12 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_ON:
 		{
-
 				sckOut("ESP on...");
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 				digitalWrite(pinPOWER_ESP, LOW);
-				st.wifiStat.reset();
 				st.espON = true;
 				espStarted = rtc.getEpoch();
-
 				break;
 
 		}
@@ -701,19 +696,21 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_WAKEUP:
 		{
+				sckOut("ESP wake up...");
 				digitalWrite(pinESP_CH_PD, HIGH);
 				st.espON = true;
 				espStarted = rtc.getEpoch();
-				st.wifiStat.reset();
 				break;
 		}
 		case ESP_SLEEP:
 		{
+				sckOut("ESP deep sleep...", PRIO_LOW);
 				sendMessage(ESPMES_LED_OFF);
-				sprintf(outBuff, "Esp was on for %lu seconds", rtc.getEpoch() - espStarted);
-				sckOut(PRIO_LOW);
-				digitalWrite(pinESP_CH_PD, LOW);
 				st.espON = false;
+				digitalWrite(pinESP_CH_PD, LOW);
+				sprintf(outBuff, "Esp was awake for %lu seconds", (rtc.getEpoch() - espStarted));
+				sckOut(PRIO_LOW);
+				st.wifiStat.reset();
 				espStarted = 0;
 				break;	
 		}
@@ -861,8 +858,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_PUBLISH_ERROR:
 
 			sckOut("ERROR on MQTT publish");
-			sprintf(outBuff, "%u retrys to go before giving up...", st.publishStat._maxRetrys - st.publishStat.retrys);
-			sckOut();
+			st.publishStat.error = true;
 			break;
 
 		case SAMMES_BOOTED:
@@ -1056,7 +1052,7 @@ void SckBase::goToSleep()
 void SckBase::updateSensors()
 {
 	if (!st.timeStat.ok || st.helloPending) return;
-	if (rtc.getEpoch() - lastSensorUpdate < config.publishInterval) return;
+	if (rtc.getEpoch() - lastSensorUpdate < config.readInterval) return;
 	lastSensorUpdate = rtc.getEpoch();
 	sckOut("\r\n-----------", PRIO_LOW);
 	ISOtime();
@@ -1070,12 +1066,19 @@ void SckBase::updateSensors()
 		}
 	}
 	sckOut("-----------\r\n", PRIO_LOW);
+
+	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
+		timeToPublish = true;
+		lastPublishTime = rtc.getEpoch();
+		st.publishStat.reset();
+	}
 }
 bool SckBase::getReading(SensorType wichSensor, bool wait)
 {
 
 	sensors[wichSensor].valid = false;
 	String result = "none";
+	sensors[wichSensor].lastReadingTime = rtc.getEpoch();
 
 	switch (sensors[wichSensor].location) {
 		case BOARD_BASE:
@@ -1121,7 +1124,6 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 	}
 
 	sensors[wichSensor].reading = result;
-	sensors[wichSensor].lastReadingTime = rtc.getEpoch();
 	sensors[wichSensor].valid = true;
 	return true;;
 }
@@ -1155,8 +1157,8 @@ bool SckBase::netPublish()
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
 
+	bool timeSet = false;
 	// Epoch time of the grouped readings
-	json["t"] = rtc.getEpoch();
 	JsonArray& jsonSensors = json.createNestedArray("s");
 	uint8_t count = 0;
 
@@ -1165,6 +1167,12 @@ bool SckBase::netPublish()
 		SensorType wichSensor = static_cast<SensorType>(sensorIndex);
 
 		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
+
+			if (!timeSet) {
+				json["t"] = sensors[wichSensor].lastReadingTime;
+				timeSet = true;
+			}
+
 			JsonArray& jsonThisSensor = jsonSensors.createNestedArray();
 			jsonThisSensor.add(sensors[wichSensor].id);
 			jsonThisSensor.add(sensors[wichSensor].reading);
@@ -1173,14 +1181,13 @@ bool SckBase::netPublish()
 	}
 
 	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
-	sckOut(PRIO_MED, false);
+	sckOut(PRIO_MED);
 	sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	bool result = sendMessage();
 
 	if (result) {
-		st.publishStat.reset();
-		lastPublishTime = rtc.getEpoch();
+		timeToPublish = false;
 		sdPublish();
 	}
 
@@ -1240,19 +1247,21 @@ bool SckBase::sdPublish()
 		}
 
 		// Write readings
-		ISOtime();
-		postFile.file.print(ISOtimeBuff);
+		bool timeSet = false;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled) {
+				if (!timeSet) {
+					postFile.file.print(sensors[wichSensor].lastReadingTime);
+					timeSet = true;
+				}
 				postFile.file.print(",");
 				if (!sensors[wichSensor].reading.startsWith("none")) postFile.file.print(sensors[wichSensor].reading);
 			}
 		}
 		postFile.file.println("");
 		postFile.file.close();
-		lastPublishTime = rtc.getEpoch();
-		st.publishStat.reset();
+		timeToPublish = false;
 		sckOut("Sd card publish OK!!", PRIO_MED);
 		return true;
 	}

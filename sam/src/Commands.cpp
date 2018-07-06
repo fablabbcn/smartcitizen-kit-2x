@@ -384,6 +384,12 @@ void config_com(SckBase* base, String parameters)
 				uint32_t pubIntV = pubIntC.toInt();
 				if (pubIntV > minimal_publish_interval && pubIntV < max_publish_interval) base->config.publishInterval = pubIntV;
 			}
+			uint16_t readIntI = parameters.indexOf("-readint");
+			if (readIntI >= 0) {
+				String readIntC = parameters.substring(readIntI+8);
+				uint32_t readIntV = readIntC.toInt();
+				if (readIntV > minimal_publish_interval && readIntV < base->config.publishInterval) base->config.readInterval = readIntV;
+			}
 			uint16_t credI = parameters.indexOf("-wifi");
 			if (credI >= 0) {
 				uint8_t first = parameters.indexOf("\"", credI+6);
@@ -416,6 +422,7 @@ void config_com(SckBase* base, String parameters)
 	Configuration currentConfig = base->getConfig();
 
 	sprintf(base->outBuff, "%sMode: %s\r\nPublish interval: %lu\r\n", base->outBuff, base->modeTitles[currentConfig.mode], currentConfig.publishInterval);
+	sprintf(base->outBuff, "%sReading interval: %lu\r\n", base->outBuff, currentConfig.readInterval);
 
 	sprintf(base->outBuff, "%sWifi credentials: ", base->outBuff);
 	if (currentConfig.credentials.set) sprintf(base->outBuff, "%s%s - %s\r\n", base->outBuff, currentConfig.credentials.ssid, currentConfig.credentials.pass);

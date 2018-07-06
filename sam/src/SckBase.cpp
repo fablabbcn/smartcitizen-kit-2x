@@ -469,8 +469,6 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 	} else  {
 		digitalWrite(pinLED_USB, HIGH);
 	}
-
-	strncpy(outBuff, "", 240);
 }
 void SckBase::prompt()
 {

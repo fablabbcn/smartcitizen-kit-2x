@@ -116,6 +116,8 @@ class SckBase
 		char netBuff[NETBUFF_SIZE];
 		void ESPbusUpdate();
 		void receiveMessage(SAMMessage wichMessage);
+		bool sendConfig();
+		bool pendingSyncConfig = false;
 
 		// Button
 		const uint16_t buttonLong = 5000;

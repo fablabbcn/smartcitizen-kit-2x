@@ -23,6 +23,7 @@ struct Configuration {
 	bool valid = true;
 	SCKmodes mode = MODE_NOT_CONFIGURED;				// This mode only changes on user configuration, it can only be MODE_SD or MODE_NET or MODE_NOT_CONFIGURED
 	uint32_t publishInterval = default_publish_interval; 		// in seconds
+	uint32_t readInterval = default_publish_interval; 		// in seconds
 	Credentials credentials;
 	Token token;
 	SensorConfig sensors[SENSOR_COUNT]; 				// Not used on ESP

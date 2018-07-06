@@ -193,6 +193,8 @@ void SckBase::reviewState()
 		if (!st.onSetup) enterSetup();
 
 	} else if (st.mode == MODE_NET) {
+		
+		updateSensors();
 
 		if (st.helloPending || !st.timeStat.ok || timeToPublish) {
 
@@ -280,10 +282,12 @@ void SckBase::reviewState()
 
 	} else if  (st.mode == MODE_SD) {
 
+		updateSensors();
+
 		if (!st.cardPresent) {
 		
 			sckOut("ERROR can't find SD card!!!");
-
+			if (st.espON) ESPcontrol(ESP_OFF);
 			led.update(led.PINK, led.PULSE_HARD_FAST);
 			
 		} else if (!st.timeStat.ok) {
@@ -322,11 +326,10 @@ void SckBase::reviewState()
 			}
 		
 		} else {
+			led.update(led.PINK, led.PULSE_SOFT);
+			if (st.espON) ESPcontrol(ESP_OFF);
 			if (timeToPublish) {
-				if (sdPublish()) {
-					led.update(led.PINK, led.PULSE_SOFT);
-					if (st.espON) ESPcontrol(ESP_OFF);
-				} else {
+				if (!sdPublish()) {
 					sckOut("ERROR failed publishing to SD card");
 					led.update(led.PINK, led.PULSE_HARD_FAST);
 				}
@@ -460,7 +463,6 @@ void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 }
 void SckBase::sckOut(PrioLevels priority, bool newLine)
 {
-
 	// Output via USB console
 	if (onUSB) {
 		if (outputLevel + priority > 1) {
@@ -898,7 +900,6 @@ bool SckBase::sdSelect()
 	digitalWrite(pinCS_SDCARD, LOW);
 
 	if (sd.begin(pinCS_SDCARD)) {
-		sckOut(F("Sdcard ready!!"), PRIO_LOW);
 		return true;
 	} else {
 		sckOut(F("Sdcard ERROR!!"));
@@ -1050,9 +1051,21 @@ void SckBase::goToSleep()
 // **** Sensors
 void SckBase::updateSensors()
 {
-
-	/* updateSensors */
-
+	if (!st.timeStat.ok || st.helloPending) return;
+	if (rtc.getEpoch() - lastSensorUpdate < config.publishInterval) return;
+	lastSensorUpdate = rtc.getEpoch();
+	sckOut("\r\n-----------", PRIO_LOW);
+	ISOtime();
+	sckOut(ISOtimeBuff, PRIO_LOW);
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		SensorType wichSensor = static_cast<SensorType>(i);
+		if (sensors[wichSensor].enabled) {
+			getReading(wichSensor, true);
+			sprintf(outBuff, "%s: %s %s", sensors[wichSensor].title, sensors[wichSensor].reading.c_str(), sensors[wichSensor].unit);
+			sckOut(PRIO_LOW);
+		}
+	}
+	sckOut("-----------\r\n", PRIO_LOW);
 }
 bool SckBase::getReading(SensorType wichSensor, bool wait)
 {
@@ -1126,19 +1139,6 @@ bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 	}
 	return true;
 }
-void SckBase::getUniqueID()
-{
-
-	volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
-	uniqueID[0] = *ptr1;
-
-	volatile uint32_t *ptr = (volatile uint32_t *)0x0080A040;
-	uniqueID[1] = *ptr;
-	ptr++;
-	uniqueID[2] = *ptr;
-	ptr++;
-	uniqueID[3] = *ptr;
-}
 bool SckBase::netPublish()
 {
 
@@ -1153,9 +1153,7 @@ bool SckBase::netPublish()
 
 	// Epoch time of the grouped readings
 	json["t"] = rtc.getEpoch();
-
 	JsonArray& jsonSensors = json.createNestedArray("s");
-
 	uint8_t count = 0;
 
 	for (uint16_t sensorIndex=0; sensorIndex<SENSOR_COUNT; sensorIndex++) {
@@ -1163,13 +1161,10 @@ bool SckBase::netPublish()
 		SensorType wichSensor = static_cast<SensorType>(sensorIndex);
 
 		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
-			// TODO update sensors should manage update readings, remove this when update is ready
-			if (getReading(wichSensor, true)) {
-				JsonArray& jsonThisSensor = jsonSensors.createNestedArray();
-				jsonThisSensor.add(sensors[wichSensor].id);
-				jsonThisSensor.add(sensors[wichSensor].reading);
-				count ++;
-			}
+			JsonArray& jsonThisSensor = jsonSensors.createNestedArray();
+			jsonThisSensor.add(sensors[wichSensor].id);
+			jsonThisSensor.add(sensors[wichSensor].reading);
+			count ++;
 		}
 	}
 
@@ -1246,18 +1241,7 @@ bool SckBase::sdPublish()
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled) {
-				
 				postFile.file.print(",");
-				
-				if (st.mode == MODE_SD) {
-					getReading(wichSensor, true);
-				} else {
-					// This allows sdcard saving of enabled sensors that don't have a platform ID
-					// TODO get readings should be managed from outside net ans sd publish (in update sensors) this will be remove when that is ready
-					if (sensors[wichSensor].id == 0) {
-						getReading(wichSensor, true);
-					}
-				}
 				if (!sensors[wichSensor].reading.startsWith("none")) postFile.file.print(sensors[wichSensor].reading);
 			}
 		}
@@ -1265,13 +1249,14 @@ bool SckBase::sdPublish()
 		postFile.file.close();
 		lastPublishTime = rtc.getEpoch();
 		st.publishStat.reset();
-		sckOut("Sd card publish OK!!   ", PRIO_MED, false);
+		sckOut("Sd card publish OK!!", PRIO_MED);
 		return true;
 	}
 	return false;
 }
 void SckBase::publish()
 {
+	updateSensors();
 	if (st.mode == MODE_NET) netPublish();
 	else if (st.mode == MODE_SD) sdPublish();
 	else sckOut("Can't publish without been configured!!");
@@ -1323,6 +1308,19 @@ void SckBase::epoch2iso(uint32_t toConvert, char* isoTime)
 }
 
 
+void SckBase::getUniqueID()
+{
+
+	volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
+	uniqueID[0] = *ptr1;
+
+	volatile uint32_t *ptr = (volatile uint32_t *)0x0080A040;
+	uniqueID[1] = *ptr;
+	ptr++;
+	uniqueID[2] = *ptr;
+	ptr++;
+	uniqueID[3] = *ptr;
+}
 bool I2Cdetect(TwoWire *_Wire, byte address)
 {
 	_Wire->beginTransmission(address);

@@ -431,11 +431,29 @@ void SckBase::inputUpdate()
 // **** Output
 void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine)
 {
+	if (strOut.equals(outBuff)) {
+		outRepetitions++;
+		if (outRepetitions >= 10) {
+			sckOut("Last message repeated 10 times");
+			outRepetitions = 0;
+		}
+		return;
+	}
+	outRepetitions = 0;
 	strOut.toCharArray(outBuff, strOut.length()+1);
 	sckOut(priority, newLine);
 }
 void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 {
+	if (strncmp(strOut, outBuff, strlen(strOut)-1) == 0) { 
+		outRepetitions++;
+		if (outRepetitions >= 10) {
+			sckOut("Last message repeated 10 times");
+			outRepetitions = 0;
+		}
+		return;
+	}
+	outRepetitions = 0;
 	strncpy(outBuff, strOut, 240);
 	sckOut(priority, newLine);
 }

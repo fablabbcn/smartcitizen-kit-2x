@@ -160,6 +160,7 @@ class SckBase
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 	// seconds
+		uint32_t lastSensorUpdate = 0;
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish();

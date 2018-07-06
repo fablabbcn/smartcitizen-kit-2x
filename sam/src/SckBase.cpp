@@ -866,15 +866,12 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 // **** SD card
 bool SckBase::sdDetect()
 {
-
-	// Wait 100 ms to avoid multiple triggered interrupts
-	if (millis() - cardLastChange < 100) return st.cardPresent;
-
-	cardLastChange = millis();
 	st.cardPresent = !digitalRead(pinCARD_DETECT);
 
-	if (st.cardPresent) return sdSelect();
-	else sckOut("No Sdcard found!!");
+	if (st.cardPresent) { 
+		sckOut("Sdcard inserted");
+		return true;
+	} else sckOut("No Sdcard found!!");
 	return false;
 }
 bool SckBase::sdSelect()

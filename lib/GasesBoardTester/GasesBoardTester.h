@@ -6,7 +6,7 @@
 
 extern TwoWire auxWire;
 
-class testerAlphaDelta {
+class testerGasesBoard {
 public:
 
 	struct Resistor {

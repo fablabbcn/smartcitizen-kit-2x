@@ -31,7 +31,7 @@ void AllCommands::in(SckBase* base, String strIn)
 void reset_com(SckBase* base, String parameters)
 {
 
-	base->reset();
+	base->sck_reset();
 }
 void getVersion_com(SckBase* base, String parameters)
 {
@@ -146,32 +146,37 @@ void sensorConfig_com(SckBase* base, String parameters)
 		}
 
 	} else {
-		Configuration thisConfig = base->getConfig();
-
 		uint16_t sensorIndex = parameters.indexOf(" ", parameters.indexOf("-"));
 		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(sensorIndex));
 
-		if (parameters.indexOf("-enable") >=0) {
-			thisConfig.sensors[sensorToChange].enabled = true;
+		String msg;
+
+		if (sensorToChange == SENSOR_COUNT) {
+			base->sckOut("ERROR sensor not found");
+			return;
+		} else if (parameters.indexOf("-enable") >=0) {
+			msg = "Enabling ";
+			base->sensors[sensorToChange].enabled = true;
 		} else if (parameters.indexOf("-disable") >=0) {
-			thisConfig.sensors[sensorToChange].enabled = false;
+			base->sensors[sensorToChange].enabled = false;
+			msg = "Disabling ";
 		} else if (parameters.indexOf("-interval") >=0) {
+			msg = "Changing interval of ";
 			sensorIndex = parameters.indexOf(" ", parameters.indexOf("-interval"));
 			uint16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
 			String strInterval = parameters.substring(intervalIndex);
 			uint32_t intervalInt = strInterval.toInt();
-			if (intervalInt > minimal_sensor_reading_interval && intervalInt < max_sensor_reading_interval)	thisConfig.sensors[sensorToChange].interval = strInterval.toInt();
+			if (intervalInt > minimal_sensor_reading_interval && intervalInt < max_sensor_reading_interval)	base->sensors[sensorToChange].interval = strInterval.toInt();
 		}
-
-		base->saveConfig(thisConfig);
+		base->sckOut(msg + String(base->sensors[sensorToChange].title));
+		base->saveConfig();
 	}
 }
 void readSensor_com(SckBase* base, String parameters)
 {
-
 	SensorType sensorToRead = base->sensors.getTypeFromString(parameters);
-
-	if (base->getReading(sensorToRead, true)) sprintf(base->outBuff, "%s: %s %s", base->sensors[sensorToRead].title, base->sensors[sensorToRead].reading.c_str(), base->sensors[sensorToRead].unit);
+	if (!base->sensors[sensorToRead].enabled) sprintf(base->outBuff, "%s sensor is disabled!!!", base->sensors[sensorToRead].title);
+	else if (base->getReading(sensorToRead, true)) sprintf(base->outBuff, "%s: %s %s", base->sensors[sensorToRead].title, base->sensors[sensorToRead].reading.c_str(), base->sensors[sensorToRead].unit);
 	else sprintf(base->outBuff, "ERROR reading %s sensor!!!", base->sensors[sensorToRead].title);
 	base->sckOut();
 }
@@ -181,7 +186,10 @@ void controlSensor_com(SckBase* base, String parameters)
 	parameters.remove(0, parameters.indexOf(" ")+1);
 
 	if (parameters.length() < 1) {
-		base->sckOut("No command received!! please try again...");
+		base->sckOut("ERROR No command received!! please try again...");
+		return;
+	} else if (wichSensor == SENSOR_COUNT) {
+		base->sckOut("ERROR Sensor not found!!!");
 		return;
 	} else {
 		base->controlSensor(wichSensor, parameters);
@@ -189,11 +197,32 @@ void controlSensor_com(SckBase* base, String parameters)
 }
 void monitorSensor_com(SckBase* base, String parameters)
 {
-
-
 	SensorType sensorsToMonitor[SENSOR_COUNT];
 	uint8_t index = 0;
+	bool sdSave = false;
+	bool printTime = true;
+	bool printMs = true;
 
+	if (parameters.indexOf("-sd") >=0) {
+		sdSave = true;
+		parameters.replace("-sd", "");
+		parameters.trim();
+		if (!base->st.cardPresent) {
+			base->sckOut("ERROR No sd card found!!!");
+			return;
+		}
+		base->monitorFile.file = base->sd.open(base->monitorFile.name, FILE_WRITE);
+	}
+	if (parameters.indexOf("-notime") >=0) {
+		printTime = false;
+		parameters.replace("-notime", "");
+		parameters.trim();
+	}
+	if (parameters.indexOf("-noms") >=0) {
+		printMs = false;
+		parameters.replace("-noms", "");
+		parameters.trim();
+	}
 	if (parameters.length() > 0) {
 		while (parameters.length() > 0) {
 			uint8_t sep = parameters.indexOf(",");
@@ -204,6 +233,10 @@ void monitorSensor_com(SckBase* base, String parameters)
 			if (base->sensors[thisSensorType].enabled) {
 				sensorsToMonitor[index] = thisSensorType;
 				index ++;
+			} else {
+				sprintf(base->outBuff, "%s is disabled, enable it first!!!", base->sensors[thisSensorType].title);
+				base->sckOut();
+				return;
 			}
 		}
 	} else {
@@ -217,21 +250,33 @@ void monitorSensor_com(SckBase* base, String parameters)
 	}
 
 	// Titles
-	sprintf(base->outBuff, "%s", base->sensors[sensorsToMonitor[0]].title);
-	for (uint8_t i=1; i<index; i++) {
-		sprintf(base->outBuff, "%s, %s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
+	strncpy(base->outBuff, "", 240);
+	if (printTime) sprintf(base->outBuff, "%s\t", "Time");
+	if (printMs) sprintf(base->outBuff, "%s%s\t", base->outBuff, "Miliseconds");
+	for (uint8_t i=0; i<index; i++) {
+		sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
+		if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
 	}
+	if (sdSave) base->monitorFile.file.println(base->outBuff);
 	base->sckOut();
 
 	// Readings
 	strncpy(base->outBuff, "", 240);
+	uint32_t lastMillis = millis();
 	while (!SerialUSB.available()) {
-		if (base->getReading(sensorsToMonitor[0], true)) sprintf(base->outBuff, "%s", base->sensors[sensorsToMonitor[0]].reading.c_str());
-		for (uint8_t i=1; i<index; i++) {
-			if (base->getReading(sensorsToMonitor[i], true)) sprintf(base->outBuff, "%s, %s", base->outBuff, base->sensors[sensorsToMonitor[i]].reading.c_str());
+		base->ISOtime();
+		if (printTime) sprintf(base->outBuff, "%s\t", base->ISOtimeBuff);
+		if (printMs) sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
+		lastMillis = millis();
+		for (uint8_t i=0; i<index; i++) {
+			if (base->getReading(sensorsToMonitor[i], true)) sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].reading.c_str());
+			else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
+			if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
 		}
+		if (sdSave) base->monitorFile.file.println(base->outBuff);
 		base->sckOut();
 	}
+	base->monitorFile.file.close();
 }
 void publish_com(SckBase* base, String parameters)
 {
@@ -325,22 +370,25 @@ void config_com(SckBase* base, String parameters)
 		if (parameters.indexOf("-defaults") >= 0) {
 			base->saveConfig(true);
 		} else {
-			Configuration thisConfig;
-			thisConfig = base->getConfig();
-
 			// Shows or sets configuration [-defaults -mode sdcard/network -pubint publish-interval -wifi \"ssid/null\" [\"pass\"] -token token/null]
 			uint16_t modeI = parameters.indexOf("-mode");
 			if (modeI >= 0) {
 				String modeC = parameters.substring(modeI+6);
 				modeC.toLowerCase();
-				if (modeC.startsWith("sd")) thisConfig.mode = MODE_SD;
-				else if (modeC.startsWith("net")) thisConfig.mode = MODE_NET;
+				if (modeC.startsWith("sd")) base->config.mode = MODE_SD;
+				else if (modeC.startsWith("net")) base->config.mode = MODE_NET;
 			}
 			uint16_t pubIntI = parameters.indexOf("-pubint");
 			if (pubIntI >= 0) {
 				String pubIntC = parameters.substring(pubIntI+8);
 				uint32_t pubIntV = pubIntC.toInt();
-				if (pubIntV > minimal_publish_interval && pubIntV < max_publish_interval) thisConfig.publishInterval = pubIntV;
+				if (pubIntV > minimal_publish_interval && pubIntV < max_publish_interval) base->config.publishInterval = pubIntV;
+			}
+			uint16_t readIntI = parameters.indexOf("-readint");
+			if (readIntI >= 0) {
+				String readIntC = parameters.substring(readIntI+8);
+				uint32_t readIntV = readIntC.toInt();
+				if (readIntV > minimal_publish_interval && readIntV < base->config.publishInterval) base->config.readInterval = readIntV;
 			}
 			uint16_t credI = parameters.indexOf("-wifi");
 			if (credI >= 0) {
@@ -349,22 +397,22 @@ void config_com(SckBase* base, String parameters)
 				uint8_t third = parameters.indexOf("\"", second + 1);
 				uint8_t fourth = parameters.indexOf("\"", third + 1);
 				if (parameters.substring(first + 1, second).length() > 0) {
-					parameters.substring(first + 1, second).toCharArray(thisConfig.credentials.ssid, 64);
-					thisConfig.credentials.set = true;
+					parameters.substring(first + 1, second).toCharArray(base->config.credentials.ssid, 64);
+					base->config.credentials.set = true;
 				}
 				if (parameters.substring(third + 1, fourth).length() > 0) {
-					parameters.substring(third + 1, fourth).toCharArray(thisConfig.credentials.pass, 64);
+					parameters.substring(third + 1, fourth).toCharArray(base->config.credentials.pass, 64);
 				}
 			}
 			uint16_t tokenI = parameters.indexOf("-token");
 			if (tokenI >= 0) {
 				String tokenC = parameters.substring(tokenI+7);
 				if (tokenC.length() >= 6) {
-					tokenC.toCharArray(thisConfig.token.token, 7);
-					thisConfig.token.set = true;
+					tokenC.toCharArray(base->config.token.token, 7);
+					base->config.token.set = true;
 				}
 			}
-			base->saveConfig(thisConfig);
+			base->saveConfig();
 		}
 		sprintf(base->outBuff, "-- New config --\r\n");
 
@@ -373,7 +421,8 @@ void config_com(SckBase* base, String parameters)
 
 	Configuration currentConfig = base->getConfig();
 
-	sprintf(base->outBuff, "%sMode: %s\r\nPublish interval: %lu\r\n", base->outBuff, modeTitles[currentConfig.mode], currentConfig.publishInterval);
+	sprintf(base->outBuff, "%sMode: %s\r\nPublish interval: %lu\r\n", base->outBuff, base->modeTitles[currentConfig.mode], currentConfig.publishInterval);
+	sprintf(base->outBuff, "%sReading interval: %lu\r\n", base->outBuff, currentConfig.readInterval);
 
 	sprintf(base->outBuff, "%sWifi credentials: ", base->outBuff);
 	if (currentConfig.credentials.set) sprintf(base->outBuff, "%s%s - %s\r\n", base->outBuff, currentConfig.credentials.ssid, currentConfig.credentials.pass);
@@ -387,15 +436,13 @@ void config_com(SckBase* base, String parameters)
 void esp_com(SckBase* base, String parameters)
 {
 
-	if (parameters.length() <= 0) {
-		base->sckOut("Parameters: on/off/reboot/flash/debug");
-	} else if (parameters.equals("on")) base->ESPcontrol(base->ESP_ON);
-	else if (parameters.equals("off")) base->ESPcontrol(base->ESP_OFF);
-	else if (parameters.equals("reboot")) base->ESPcontrol(base->ESP_REBOOT);
-	else if (parameters.equals("flash")) base->ESPcontrol(base->ESP_FLASH);
-	else if (parameters.equals("debug")) {
-		// TODO toggle esp debug
-	}
+	if (parameters.equals("-on")) base->ESPcontrol(base->ESP_ON);
+	else if (parameters.equals("-off")) base->ESPcontrol(base->ESP_OFF);
+	else if (parameters.equals("-reboot")) base->ESPcontrol(base->ESP_REBOOT);
+	else if (parameters.equals("-flash")) base->ESPcontrol(base->ESP_FLASH);
+	else if (parameters.equals("-sleep")) base->ESPcontrol(base->ESP_SLEEP);
+	else if (parameters.equals("-wake")) base->ESPcontrol(base->ESP_WAKEUP);
+	else base->sckOut("Unrecognized command , try help!!");
 }
 void netInfo_com(SckBase* base, String parameters)
 {
@@ -437,5 +484,19 @@ void debug_com(SckBase* base, String parameters)
 			base->sckOut();
 		}
 	}
+}
+void shell_com(SckBase* base, String parameters)
+{
+	if (parameters.length() > 0) {
+		if (parameters.equals("-on")) {
+			base->st.onShell = true;
+			base->st.onSetup = false;
+			base->led.update(base->led.YELLOW, base->led.PULSE_STATIC);
+		} else if (parameters.equals("-off")) {
+			base->st.onShell = false;
+		}	
+	}
+	sprintf(base->outBuff, "Shell mode: %s", base->st.onShell ? "on" : "off");
+	base->sckOut();
 }
 

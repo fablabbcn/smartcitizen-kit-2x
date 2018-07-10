@@ -17,7 +17,9 @@ bool SckPot::setValue(float value) {
 	Wire.beginTransmission(address);
 	Wire.write(channel);
 	Wire.write(data);
-	Wire.endTransmission();
+	uint8_t result = Wire.endTransmission();
+	if (result == 0) return true;
+	return false;
 }
 // void SckBase::writeI2C(byte deviceaddress, byte address, byte data ) {
 //   Wire.beginTransmission(deviceaddress);

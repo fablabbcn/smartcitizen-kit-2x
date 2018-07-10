@@ -1,13 +1,13 @@
-#include "AlphaDeltaTester.h"
+#include "GasesBoardTester.h"
 
-bool testerAlphaDelta::begin()
+bool testerGasesBoard::begin()
 {
 	setCurrent(electrode_W, 0);
 	setCurrent(electrode_A, 0);
 	return true;
 }
 
-void testerAlphaDelta::setPot(Resistor wichPot, uint8_t wichValue)
+void testerGasesBoard::setPot(Resistor wichPot, uint8_t wichValue)
 {
 	auxWire.beginTransmission(wichPot.address);
 	auxWire.write(wichPot.SET);
@@ -15,7 +15,7 @@ void testerAlphaDelta::setPot(Resistor wichPot, uint8_t wichValue)
 	auxWire.endTransmission(wichPot.address);
 }
 
-uint8_t testerAlphaDelta::readPot(Resistor wichPot)
+uint8_t testerGasesBoard::readPot(Resistor wichPot)
 {
 	int data = 0;
 
@@ -30,7 +30,7 @@ uint8_t testerAlphaDelta::readPot(Resistor wichPot)
 	return data;
 }
 
-void testerAlphaDelta::setCurrent(Electrode wichElectrode, int16_t wichCurrent)
+void testerGasesBoard::setCurrent(Electrode wichElectrode, int16_t wichCurrent)
 {
 	int16_t currentIndex = wichCurrent + DELTA_CURRENT;
 	uint8_t currentValues[2];
@@ -52,7 +52,7 @@ void testerAlphaDelta::setCurrent(Electrode wichElectrode, int16_t wichCurrent)
 	delay(pause);
 }
 
-int16_t testerAlphaDelta::getCurrent(Electrode wichElectrode)
+int16_t testerGasesBoard::getCurrent(Electrode wichElectrode)
 {
 	uint8_t find0 = readPot(wichElectrode.pots[0]);
 	uint8_t find1 = readPot(wichElectrode.pots[1]);

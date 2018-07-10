@@ -98,8 +98,8 @@
           <p>Your kit is now trying to connect to the online platform, and this website has no connection to the kit anymore.</p>
           <p>Check the light on your Kit:</p>
           <ul>
-            <li><span class="text-green" >GREEN</span>: Everything is fine, your Kit is online.</li>
-            <li><span class="text-red" >RED</span>: Some problem happened, push the button on your Kit and join the SCK WiFi again.</li>
+            <li><span style="color:blue">BLUE</span>: Your kit received the configuration and is trying to connect. If the led starts blinking there was a problem with the wifi credentials.</li>
+            <li><span style="color:red">RED</span>: Some problem happened, reset your kit and try again.</li>
           </ul>
         </div>
 
@@ -135,16 +135,16 @@
           <p>Your Kit can store the data on a microSD card that later you can read with your computer.</p>
           <p>This is useful when no WiFi is available at your location.</p>
           <p>You will need to insert a valid microSD card and click the button.</p>
-          <table>
-            <tr>
-              <td>SD CARD</td>
-              <td>{{ kitstatus.sdcard }}</td>
-            </tr>
-            <tr>
-              <td>TIME SYNC</td>
-              <td>{{ kitstatus.time }}</td>
-            </tr>
-          </table>
+          <!-- <table> -->
+          <!--   <tr> -->
+          <!--     <td>SD CARD</td> -->
+          <!--     <td>{{ kitstatus.sdcard }}</td> -->
+          <!--   </tr> -->
+          <!--   <tr> -->
+          <!--     <td>TIME SYNC</td> -->
+          <!--     <td>{{ kitstatus.time }}</td> -->
+          <!--   </tr> -->
+          <!-- </table> -->
           <button class="btn bg-cyan" type="button" v-on:click="jsPost('set', 'synctime')">START LOGGING</button>
           <p>You will be disconnected and the Kit will start recording data.</p>
         </div>
@@ -390,9 +390,6 @@ td{
   padding:10px;
   border-bottom: 1px solid #ddd;
 }
-a{
-  cursor:pointer;
-}
 
 .btn{
   border-radius: 30px;
@@ -413,7 +410,7 @@ a{
   background-color: #065063 !important;
 }
 .bg-cyan{
-  background-color: #4fc3f7 !important;
+  background-color: #38cef3 !important;
   color:white;
 }
 .bg-red{
@@ -423,14 +420,11 @@ a{
   background: #C8E6ED;
   color: #8db2ba;
 }
-.text-green{
-  color: #4caf50 !important;
-}
 .text-cyan{
-  color: #4fc3f7 !important;
+  color: #38cef3 !important;
 }
 .text-red{
-  color: #ff5722;
+  color: rgb(244,67,54);
 }
 .text-grey{
   color: #ccc;
@@ -507,7 +501,7 @@ a{
 }
 
 .toast {
-  background-color: #4caf50;
+  background-color: green;
   color: #000;
   padding: 10px;
   margin: 2px 0px;
@@ -706,7 +700,8 @@ var app = new Vue({
             '?ssid=' + that.selectedWifi +
             '&password=' + that.wifipass +
             '&token=' + that.usertoken +
-            '&epoch=' + that.browsertime,
+            '&epoch=' + that.browsertime +
+	    '&mode=network',
             function(res){
               console.log('Kit response: ' + res);
             });
@@ -716,7 +711,7 @@ var app = new Vue({
 
       if (purpose == 'synctime'){
         this.notify('Starting to log on SD CARD..', 2000);
-        this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime, function(res){
+        this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime + '&mode=sdcard', function(res){
           // TODO: What is the correct response.key from the kit?
           that.notify(JSON.parse(res).todo, 5000);
         });

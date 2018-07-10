@@ -98,8 +98,8 @@
           <p>Your kit is now trying to connect to the online platform, and this website has no connection to the kit anymore.</p>
           <p>Check the light on your Kit:</p>
           <ul>
-            <li><span style="color:green">GREEN</span>: Everything is fine, your Kit is online.</li>
-            <li><span style="color:red">RED</span>: Some problem happened, push the button on your Kit and join the SCK WiFi again.</li>
+            <li><span class="text-green" >GREEN</span>: Everything is fine, your Kit is online.</li>
+            <li><span class="text-red" >RED</span>: Some problem happened, push the button on your Kit and join the SCK WiFi again.</li>
           </ul>
         </div>
 

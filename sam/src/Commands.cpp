@@ -31,7 +31,7 @@ void AllCommands::in(SckBase* base, String strIn)
 void reset_com(SckBase* base, String parameters)
 {
 
-	base->reset();
+	base->sck_reset();
 }
 void getVersion_com(SckBase* base, String parameters)
 {

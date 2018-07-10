@@ -62,7 +62,7 @@ void SckBase::buttonStillDown()
 
 		// Factory defaults
 		saveConfig(true);
-		reset();
+		sck_reset();
 	}
 }
 void SckBase::butFeedback()

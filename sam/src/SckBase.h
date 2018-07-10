@@ -240,7 +240,7 @@ class SckBase
 		// Power
 		SckCharger charger;
 		void chargerEvent();
-		void reset();
+		void sck_reset();
 		void batteryEvent();
 		void batteryReport();
 

@@ -6,19 +6,20 @@
 // INA219 libs
 #include <Adafruit_INA219.h>
 
-// AlphaDelta libs
-#include <AlphaDelta.h>
+// Gases Board libs
+#include <GasesBoard.h>
 
 // Urban board library
 #include <SckUrban.h>
 
 // Groove_OLED libs
-/* #include <U8g2lib.h> */
+#include <U8g2lib.h>
 
 // DS2482 library (I2C-1Wire bridge)
 #include <DS2482.h>
 
 #include <Sensors.h>
+#include <SckBase.h>
 
 extern TwoWire auxWire;
 
@@ -35,14 +36,14 @@ class AuxBoards
 				0x02,		// SENSOR_PM_1
 				0x02,		// SENSOR_PM_25
 				0x02,		// SENSOR_PM_10
-				0x55,		// SENSOR_ALPHADELTA_AE1,
-				0x55,		// SENSOR_ALPHADELTA_WE1,
-				0x56,		// SENSOR_ALPHADELTA_AE2,
-				0x56,		// SENSOR_ALPHADELTA_WE2,
-				0x54,		// SENSOR_ALPHADELTA_AE3,
-				0x54,		// SENSOR_ALPHADELTA_WE3,
-				0x44,		// SENSOR_ALPHADELTA_TEMPERATURE,
-				0x44,		// SENSOR_ALPHADELTA_HUMIDITY,
+				0x55,		// SENSOR_GASESBOARD_AE1,
+				0x55,		// SENSOR_GASESBOARD_WE1,
+				0x56,		// SENSOR_GASESBOARD_AE2,
+				0x56,		// SENSOR_GASESBOARD_WE2,
+				0x54,		// SENSOR_GASESBOARD_AE3,
+				0x54,		// SENSOR_GASESBOARD_WE3,
+				0x44,		// SENSOR_GASESBOARD_TEMPERATURE,
+				0x44,		// SENSOR_GASESBOARD_HUMIDITY,
 				0x59,		// SENSOR_GROOVE_I2C_ADC,
 				0x41,		// SENSOR_INA219_BUSVOLT,
 				0x41,		// SENSOR_INA219_SHUNT,
@@ -203,20 +204,20 @@ static const unsigned char scLogo[] PROGMEM =
 	0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-/* class Groove_OLED */
-/* { */
-/* 	public: */
+class Groove_OLED
+{
+	public:
 
-/* 		const byte deviceAddress = 0x3c; */
+		const byte deviceAddress = 0x3c;
 
-/* 		U8G2_SSD1327_SEEED_96X96_F_HW_I2C U8g2_oled = U8G2_SSD1327_SEEED_96X96_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL, SDA); */
+		U8G2_SSD1327_SEEED_96X96_F_HW_I2C U8g2_oled = U8G2_SSD1327_SEEED_96X96_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL, SDA);
 
-/* 		bool begin(); */
-/* 		void print(String payload); */
-/* 		void displayReading(String title, String reading, String unit, String time); */
+		bool begin();
+		void print(String payload);
+		void displayReading(String title, String reading, String unit, String time);
 
-/* 	private: */
-/* }; */
+	private:
+};
 
 /*! @class DS2482_100
  *  @brief class for handling the DS18B20 temperature sensor connected to the I2C port

@@ -27,8 +27,10 @@
 #include "Sensors.h"
 #include "SckUrban.h"
 #include "SckAux.h"
-#include "SckTimer.h"
 #include "ReadLight.h"
+
+// #define gasesBoardTest 0	// Uncomment for testing SCK Gases Board board manually, and for auto test also set it to 1
+
 
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
@@ -37,14 +39,14 @@ class Status
 {
 	
 	private:
-		uint32_t _lastTryMillis;
+		uint32_t _lastTryMillis = 0; // ms
 		uint32_t _timeout; 	// ms
-		uint8_t _maxRetrys;
 
 	public:
 		bool ok = false;
 		bool error = false;
 		uint8_t retrys = 0;
+		uint8_t _maxRetrys;
 
 		bool retry();
 		void setOk();
@@ -59,6 +61,7 @@ class Status
 
 struct SckState
 {
+	bool onShell = false;
 	bool onSetup = false;
 	bool espON = false;
 	bool wifiSet = false;
@@ -68,10 +71,10 @@ struct SckState
 	bool cardPresent = false;
 	bool sleeping = false;
 	bool publishPending = false;
-	Status wifiStat = Status(2, 20000);
-	Status timeStat;
-	Status helloStat = Status(3, 1000);
-	Status publishStat = Status(3, 3000);
+	Status wifiStat = Status(1, 60000);
+	Status timeStat = Status(2, 3000);
+	Status helloStat = Status(3, 5000);
+	Status publishStat = Status(3, 5000);
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup
@@ -95,12 +98,12 @@ class SckBase
 		// Input/Output
 		String serialBuff;
 		String previousCommand;
+		uint8_t outRepetitions = 0;
 
 		// **** ESP control
 		uint32_t espStarted;
 
 		// **** Time
-		RTCZero rtc;
 		const uint8_t TIME_TIMEOUT = 20;		// seconds
 		void epoch2iso(uint32_t toConvert, char* isoTime);
 
@@ -109,11 +112,12 @@ class SckBase
 		void enterSetup();
 
 		// ESP communication
-		const uint32_t ESP_FLASH_SPEED = 921600;
 		uint8_t netPack[NETPACK_TOTAL_SIZE];
 		char netBuff[NETBUFF_SIZE];
 		void ESPbusUpdate();
 		void receiveMessage(SAMMessage wichMessage);
+		bool sendConfig();
+		bool pendingSyncConfig = false;
 
 		// Button
 		const uint16_t buttonLong = 5000;
@@ -125,7 +129,6 @@ class SckBase
 		void buttonStillDown();
 
 		// Configuration
-		Configuration config;
 		void loadConfig();
 		bool parseLightRead();
 
@@ -141,8 +144,6 @@ class SckBase
 		SckFile postFile {};
 		SckFile debugFile {"DEBUG.CSV"};
 		// Sd card
-		SdFat sd;
-		uint32_t cardLastChange = 0;
 		bool sdSelect();
 		// Flash memory
 		/* SPIFlash flash = SPIFlash(pinCS_FLASH); */
@@ -159,6 +160,8 @@ class SckBase
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 	// seconds
+		uint32_t lastSensorUpdate = 0;
+		bool timeToPublish = false;
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish();
@@ -181,6 +184,7 @@ class SckBase
 		void printState();
 
 		// **** Time
+		RTCZero rtc;
 		char ISOtimeBuff[20];
 		bool setTime(String epoch);
 		bool ISOtime();
@@ -196,15 +200,15 @@ class SckBase
 		void publish();
 
 		// Configuration
+		Configuration config;
 		Configuration getConfig();
-		void saveConfig(Configuration newConfig);
 		void saveConfig(bool defaults=false);
 
 		// Input/Output
 		void inputUpdate();
 
 		// ESP control
-		enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT };
+		enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT, ESP_SLEEP, ESP_WAKEUP };
 		void ESPcontrol(ESPcontrols myESPControl);
 
 		// ESP communication
@@ -229,12 +233,14 @@ class SckBase
 		AllCommands commands;
 
 		// SDcard
+		SdFat sd;
 		bool sdDetect();
+		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
 		SckCharger charger;
 		void chargerEvent();
-		void reset();
+		void sck_reset();
 		void batteryEvent();
 		void batteryReport();
 
@@ -242,12 +248,15 @@ class SckBase
 		void getUniqueID();
 		uint32_t uniqueID[4];
 
-		// Timers
-		Task nextTask;
-		void timerAlarm();
-		void setTimer(uint16_t lapse=0, Task task=TASK_COUNT);
+		const char *modeTitles[MODE_COUNT] PROGMEM = {
+			"not configured",		// modeTitles[MODE_NOT_CONFIGURED]
+			"network",			// modeTitles[MODE_NET]
+			"sdcard",			// modeTitles[MODE_SD]
+			"sleep"				// modeTitles[MODE_SLEEP]
+		};
 };
 
+bool I2Cdetect(TwoWire *_Wire, byte address);
 void ISR_button();
 void ISR_battery();
 void ISR_sdDetect();

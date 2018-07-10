@@ -1,9 +1,9 @@
 #include "SckAux.h"
 
-AlphaDelta		alphaDelta;
+GasesBoard		gasBoard;
 GrooveI2C_ADC		grooveI2C_ADC;
 INA219			ina219;
-/* Groove_OLED		groove_OLED; */
+Groove_OLED		groove_OLED;
 WaterTemp_DS18B20 	waterTemp_DS18B20;
 Atlas			atlasPH = Atlas(SENSOR_ATLAS_PH);
 Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
@@ -14,38 +14,28 @@ Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
 
-bool I2Cdetect(byte address)
-{
-
-	auxWire.beginTransmission(address);
-    byte error = auxWire.endTransmission();
-
-	if (error == 0) return true;
-	else return false;
-}
-
 bool AuxBoards::begin(SensorType wichSensor)
 {
 
 	switch (wichSensor) {
 
-		case SENSOR_ALPHADELTA_SLOT_1A:
-		case SENSOR_ALPHADELTA_SLOT_1W:
-		case SENSOR_ALPHADELTA_SLOT_2A:
-		case SENSOR_ALPHADELTA_SLOT_2W:
-		case SENSOR_ALPHADELTA_SLOT_3A:
-		case SENSOR_ALPHADELTA_SLOT_3W:
-		case SENSOR_ALPHADELTA_SLOT_1_CAL:
-		case SENSOR_ALPHADELTA_SLOT_2_CAL:
-		case SENSOR_ALPHADELTA_SLOT_3_CAL:
-		case SENSOR_ALPHADELTA_HUMIDITY:
-		case SENSOR_ALPHADELTA_TEMPERATURE: 	return alphaDelta.begin(); break;
+		case SENSOR_GASESBOARD_SLOT_1A:
+		case SENSOR_GASESBOARD_SLOT_1W:
+		case SENSOR_GASESBOARD_SLOT_2A:
+		case SENSOR_GASESBOARD_SLOT_2W:
+		case SENSOR_GASESBOARD_SLOT_3A:
+		case SENSOR_GASESBOARD_SLOT_3W:
+		case SENSOR_GASESBOARD_SLOT_1_CAL:
+		case SENSOR_GASESBOARD_SLOT_2_CAL:
+		case SENSOR_GASESBOARD_SLOT_3_CAL:
+		case SENSOR_GASESBOARD_HUMIDITY:
+		case SENSOR_GASESBOARD_TEMPERATURE: 	return gasBoard.begin(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.begin(); break;
 		case SENSOR_INA219_BUSVOLT:
 		case SENSOR_INA219_SHUNT:
 		case SENSOR_INA219_CURRENT:
 		case SENSOR_INA219_LOADVOLT: 		return ina219.begin(); break;
-		/* case SENSOR_GROOVE_OLED: 		return groove_OLED.begin(); break; */
+		case SENSOR_GROOVE_OLED: 		return groove_OLED.begin(); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.begin(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.begin();
 		case SENSOR_ATLAS_EC:
@@ -57,7 +47,7 @@ bool AuxBoards::begin(SensorType wichSensor)
 		case SENSOR_PM_10:			return pmSensor.begin(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM:
-			if (sht31.begin() && !alphaDelta.begin()) return true;
+			if (sht31.begin() && !gasBoard.begin()) return true;
 			else return false;
 			break;
 		default: break;
@@ -70,17 +60,17 @@ float AuxBoards::getReading(SensorType wichSensor)
 {
 
 	switch (wichSensor) {
-		case SENSOR_ALPHADELTA_SLOT_1A:	 	return alphaDelta.getElectrode(alphaDelta.Slot1.electrode_A); break;
-		case SENSOR_ALPHADELTA_SLOT_1W: 	return alphaDelta.getElectrode(alphaDelta.Slot1.electrode_W); break;
-		case SENSOR_ALPHADELTA_SLOT_2A: 	return alphaDelta.getElectrode(alphaDelta.Slot2.electrode_A); break;
-		case SENSOR_ALPHADELTA_SLOT_2W: 	return alphaDelta.getElectrode(alphaDelta.Slot2.electrode_W); break;
-		case SENSOR_ALPHADELTA_SLOT_3A: 	return alphaDelta.getElectrode(alphaDelta.Slot3.electrode_A); break;
-		case SENSOR_ALPHADELTA_SLOT_3W: 	return alphaDelta.getElectrode(alphaDelta.Slot3.electrode_W); break;
-		case SENSOR_ALPHADELTA_SLOT_1_CAL: 	return alphaDelta.getPPM(alphaDelta.Slot1); break;
-		case SENSOR_ALPHADELTA_SLOT_2_CAL: 	return alphaDelta.getPPM(alphaDelta.Slot2); break;
-		case SENSOR_ALPHADELTA_SLOT_3_CAL: 	return alphaDelta.getPPM(alphaDelta.Slot3); break;
-		case SENSOR_ALPHADELTA_HUMIDITY: 	return alphaDelta.getHumidity(); break;
-		case SENSOR_ALPHADELTA_TEMPERATURE: return alphaDelta.getTemperature(); break;
+		case SENSOR_GASESBOARD_SLOT_1A:	 	return gasBoard.getElectrode(gasBoard.Slot1.electrode_A); break;
+		case SENSOR_GASESBOARD_SLOT_1W: 	return gasBoard.getElectrode(gasBoard.Slot1.electrode_W); break;
+		case SENSOR_GASESBOARD_SLOT_2A: 	return gasBoard.getElectrode(gasBoard.Slot2.electrode_A); break;
+		case SENSOR_GASESBOARD_SLOT_2W: 	return gasBoard.getElectrode(gasBoard.Slot2.electrode_W); break;
+		case SENSOR_GASESBOARD_SLOT_3A: 	return gasBoard.getElectrode(gasBoard.Slot3.electrode_A); break;
+		case SENSOR_GASESBOARD_SLOT_3W: 	return gasBoard.getElectrode(gasBoard.Slot3.electrode_W); break;
+		case SENSOR_GASESBOARD_SLOT_1_CAL: 	return gasBoard.getPPM(gasBoard.Slot1); break;
+		case SENSOR_GASESBOARD_SLOT_2_CAL: 	return gasBoard.getPPM(gasBoard.Slot2); break;
+		case SENSOR_GASESBOARD_SLOT_3_CAL: 	return gasBoard.getPPM(gasBoard.Slot3); break;
+		case SENSOR_GASESBOARD_HUMIDITY: 	return gasBoard.getHumidity(); break;
+		case SENSOR_GASESBOARD_TEMPERATURE: return gasBoard.getTemperature(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.getReading(); break;
 		case SENSOR_INA219_BUSVOLT: 		return ina219.getReading(ina219.BUS_VOLT); break;
 		case SENSOR_INA219_SHUNT: 			return ina219.getReading(ina219.SHUNT_VOLT); break;
@@ -107,7 +97,7 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 {
 
 	switch(wichSensor) {
-		/* case SENSOR_GROOVE_OLED:	return true; break; */
+		case SENSOR_GROOVE_OLED:	return true; break;
 		case SENSOR_ATLAS_PH: 		return atlasPH.getBusyState(); break;
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_SG: 	return atlasEC.getBusyState(); break;
@@ -120,34 +110,34 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 String AuxBoards::control(SensorType wichSensor, String command)
 {
 	switch(wichSensor) {
-		case SENSOR_ALPHADELTA_SLOT_1A:
-		case SENSOR_ALPHADELTA_SLOT_1W:
-		case SENSOR_ALPHADELTA_SLOT_2A:
-		case SENSOR_ALPHADELTA_SLOT_2W:
-		case SENSOR_ALPHADELTA_SLOT_3A:
-		case SENSOR_ALPHADELTA_SLOT_3W: {
+		case SENSOR_GASESBOARD_SLOT_1A:
+		case SENSOR_GASESBOARD_SLOT_1W:
+		case SENSOR_GASESBOARD_SLOT_2A:
+		case SENSOR_GASESBOARD_SLOT_2W:
+		case SENSOR_GASESBOARD_SLOT_3A:
+		case SENSOR_GASESBOARD_SLOT_3W: {
 
 			if (command.startsWith("set pot")) {
 
 				Electrode wichElectrode;
 
 				switch(wichSensor) {
-					case SENSOR_ALPHADELTA_SLOT_1A: wichElectrode = alphaDelta.Slot1.electrode_A;
-					case SENSOR_ALPHADELTA_SLOT_1W: wichElectrode = alphaDelta.Slot1.electrode_W;
-					case SENSOR_ALPHADELTA_SLOT_2A: wichElectrode = alphaDelta.Slot2.electrode_A;
-					case SENSOR_ALPHADELTA_SLOT_2W: wichElectrode = alphaDelta.Slot2.electrode_W;
-					case SENSOR_ALPHADELTA_SLOT_3A: wichElectrode = alphaDelta.Slot3.electrode_A;
-					case SENSOR_ALPHADELTA_SLOT_3W: wichElectrode = alphaDelta.Slot3.electrode_W;
+					case SENSOR_GASESBOARD_SLOT_1A: wichElectrode = gasBoard.Slot1.electrode_A;
+					case SENSOR_GASESBOARD_SLOT_1W: wichElectrode = gasBoard.Slot1.electrode_W;
+					case SENSOR_GASESBOARD_SLOT_2A: wichElectrode = gasBoard.Slot2.electrode_A;
+					case SENSOR_GASESBOARD_SLOT_2W: wichElectrode = gasBoard.Slot2.electrode_W;
+					case SENSOR_GASESBOARD_SLOT_3A: wichElectrode = gasBoard.Slot3.electrode_A;
+					case SENSOR_GASESBOARD_SLOT_3W: wichElectrode = gasBoard.Slot3.electrode_W;
 					default: break;
 				}
 
 				command.replace("set pot", "");
 				command.trim();
 				int wichValue = command.toInt();
-				alphaDelta.setPot(wichElectrode, wichValue);
-				return String F("Setting pot to: ") + String(wichValue) + F(" Ohms\n\rActual value: ") + String(alphaDelta.getPot(wichElectrode)) + F(" Ohms");
+				gasBoard.setPot(wichElectrode, wichValue);
+				return String F("Setting pot to: ") + String(wichValue) + F(" Ohms\n\rActual value: ") + String(gasBoard.getPot(wichElectrode)) + F(" Ohms");
 
-			#ifdef deltaTest
+			#ifdef gasesBoardTest
 			} else if (command.startsWith("test")) {
 
 				command.replace("test", "");
@@ -167,11 +157,11 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 					// Get value
 					int wichValue = command.toInt();
-					alphaDelta.setTesterCurrent(wichValue, wichSlot);
+					gasBoard.setTesterCurrent(wichValue, wichSlot);
 
 				} else if (command.startsWith("full")) {
 
-					alphaDelta.runTester(wichSlot);
+					gasBoard.runTester(wichSlot);
 
 				} else {
 					return F("Unrecognized test command!!\r\nOptions:\r\ntest slot set value (slot: 1-3, value:-1400/+1400 nA)\r\ntest slot full (test the full cycle on slot (1-3))");
@@ -181,7 +171,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 			} else if (command.startsWith("autotest")) {
 
-				return String(alphaDelta.autoTest());
+				return String(gasBoard.autoTest());
 			#endif
 
 			} else if (command.startsWith("help")) {
@@ -200,10 +190,8 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: {
 
-			Atlas *thisAtlas;
-
-			if (wichSensor == SENSOR_ATLAS_PH) thisAtlas = &atlasPH;
-			else if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG) thisAtlas = &atlasEC;
+			Atlas *thisAtlas = &atlasPH;
+			if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG) thisAtlas = &atlasEC;
 			else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
 
 			// 	 Calibration command options:
@@ -233,25 +221,26 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			break;
 
 		} default: return "Unrecognized sensor!!!"; break;
-	}	
+	}
 	return "Unknown error on control command!!!";
 }
 
-void AuxBoards::print(SensorType wichSensor, String payload) {
+void AuxBoards::print(SensorType wichSensor, String payload)
+{
 
-	/* groove_OLED.print(payload); */
+	groove_OLED.print(payload);
 }
 
 void AuxBoards::displayReading(String title, String reading, String unit, String time)
 {
 
-	/* groove_OLED.displayReading(title, reading, unit, time); */
+	groove_OLED.displayReading(title, reading, unit, time);
 }
 
 bool GrooveI2C_ADC::begin()
 {
 
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.beginTransmission(deviceAddress);		// transmit to device
 	auxWire.write(REG_ADDR_CONFIG);				// Configuration Register
@@ -283,7 +272,7 @@ float GrooveI2C_ADC::getReading()
 bool INA219::begin()
 {
 
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	ada_ina219.begin();
 
@@ -329,87 +318,87 @@ float INA219::getReading(typeOfReading wichReading)
 	return 0;
 }
 
-/* { */
+bool Groove_OLED::begin()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-/* 	if (!I2Cdetect(deviceAddress)) return false; */
+	U8g2_oled.begin();
+	U8g2_oled.clearDisplay();
 
-/* 	U8g2_oled.begin(); */
-/* 	U8g2_oled.clearDisplay(); */
+	U8g2_oled.firstPage();
+	do { U8g2_oled.drawXBM( 0, 0, 96, 96, scLogo); } while (U8g2_oled.nextPage());
 
-/* 	U8g2_oled.firstPage(); */
-/* 	do { U8g2_oled.drawXBM( 0, 0, 96, 96, scLogo); } while (U8g2_oled.nextPage()); */
+	return true;;
+}
 
-/* 	return true;; */
-/* } */
+void Groove_OLED::print(String payload)
+{
 
-/* void Groove_OLED::print(String payload) */
-/* { */
+	// uint8_t length = payload.length();
+	char charPayload[payload.length()];
+	payload.toCharArray(charPayload, payload.length()+1);
 
-/* 	// uint8_t length = payload.length(); */
-/* 	char charPayload[payload.length()]; */
-/* 	payload.toCharArray(charPayload, payload.length()+1); */
+	U8g2_oled.firstPage();
 
-/* 	U8g2_oled.firstPage(); */
+	do {
+		U8g2_oled.setFont(u8g2_font_ncenB14_tr);
+		U8g2_oled.drawStr(0,24, charPayload);
+	} while (U8g2_oled.nextPage());
+}
 
-/* 	do { */
-/* 		U8g2_oled.setFont(u8g2_font_ncenB14_tr); */
-/* 		U8g2_oled.drawStr(0,24, charPayload); */
-/* 	} while (U8g2_oled.nextPage()); */
-/* } */
+void Groove_OLED::displayReading(String title, String reading, String unit, String time)
+{
 
-/* void Groove_OLED::displayReading(String title, String reading, String unit, String time) */
-/* { */
+	String date;
+	String hour;
 
-/* 	String date; */
-/* 	String hour; */
+	if (time.toInt() != 0) {
+		date = time.substring(8,10) + "/" + time.substring(5,7) + "/" + time.substring(2,4);
+		hour = time.substring(11,16);
+	}
 
-/* 	if (time.toInt() != 0) { */
-/* 		date = time.substring(8,10) + "/" + time.substring(5,7) + "/" + time.substring(2,4); */
-/* 		hour = time.substring(11,16); */
-/* 	} */
+	U8g2_oled.firstPage();
+	do {
 
-/* 	U8g2_oled.firstPage(); */
-/* 	do { */
+		// Title
+		U8g2_oled.setFont(u8g2_font_helvB10_tf);
+		if (U8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) {
 
-/* 		// Title */
-/* 		U8g2_oled.setFont(u8g2_font_helvB10_tf); */
-/* 		if (U8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) { */
+			String first = title.substring(0, title.indexOf(" "));
+			String second = title.substring(title.indexOf(" ")+1);
 
-/* 			String first = title.substring(0, title.indexOf(" ")); */
-/* 			String second = title.substring(title.indexOf(" ")+1); */
+			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(first.c_str()))/2,11, first.c_str());
+			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(second.c_str()))/2,23, second.c_str());
 
-/* 			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(first.c_str()))/2,11, first.c_str()); */
-/* 			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(second.c_str()))/2,23, second.c_str()); */
+		} else U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(title.c_str()))/2,11, title.c_str());
 
-/* 		} else U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(title.c_str()))/2,11, title.c_str()); */
+		// Reading
+		U8g2_oled.setFont(u8g2_font_helvB24_tf);
+		if (U8g2_oled.getStrWidth(reading.c_str()) > 96) U8g2_oled.setFont(u8g2_font_helvB18_tf);
+		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(reading.c_str()))/2, 55,  reading.c_str());
 
-/* 		// Reading */
-/* 		U8g2_oled.setFont(u8g2_font_helvB24_tf); */
-/* 		if (U8g2_oled.getStrWidth(reading.c_str()) > 96) U8g2_oled.setFont(u8g2_font_helvB18_tf); */
-/* 		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(reading.c_str()))/2, 55,  reading.c_str()); */
+		// Unit
+		U8g2_oled.setFont(u8g2_font_helvB12_tf);
+		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str());
 
-/* 		// Unit */
-/* 		U8g2_oled.setFont(u8g2_font_helvB12_tf); */
-/* 		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str()); */
+		if (time.toInt() != 0) {
 
-/* 		if (time.toInt() != 0) { */
+			// Date
+			U8g2_oled.setFont(u8g2_font_helvB10_tf);
+			U8g2_oled.drawStr(0,96,date.c_str());
 
-/* 			// Date */
-/* 			U8g2_oled.setFont(u8g2_font_helvB10_tf); */
-/* 			U8g2_oled.drawStr(0,96,date.c_str()); */
+			// Time
+			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
+			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
+		}
 
-/* 			// Time */
-/* 			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str()); */
-/* 			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str()); */
-/* 		} */
-
-/* 	} while (U8g2_oled.nextPage()); */
-/* } */
+	} while (U8g2_oled.nextPage());
+}
 
 bool WaterTemp_DS18B20::begin()
 {
 
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.begin();
 
@@ -472,7 +461,7 @@ float WaterTemp_DS18B20::getReading()
 bool Atlas::begin()
 {
 
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	if (beginDone) return true;
 	beginDone = true;
@@ -674,7 +663,7 @@ bool PMsensor::begin()
 {
 
 	if (alreadyStarted) return true;
-	if (!I2Cdetect(deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.beginTransmission(deviceAddress);
 	auxWire.write(PM_START);

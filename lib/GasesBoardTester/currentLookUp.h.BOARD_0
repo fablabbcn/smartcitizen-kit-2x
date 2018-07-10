@@ -1,3 +1,4 @@
+// For board 0 the first handmade one)
 static const uint8_t CURRENT_LOOKUP_A [][2] PROGMEM = {
 {243,46},
 {243,44},{243,40},{243,37},{243,33},{243,29},{243,26},{243,22},{243,18},{243,15},{243,11},

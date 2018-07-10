@@ -8,6 +8,7 @@
 #include <ESP8266mDNS.h>
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266SSDP.h>
 #include "RemoteDebug.h"
 #include <ArduinoJson.h>
 #include <RHReliableDatagram.h>
@@ -18,9 +19,10 @@
 #include "Shared.h"
 #include "Config.h"
 
-#define NTP_SERVER_NAME "pool.ntp.org"
+#define NTP_SERVER_NAME "ntp.smartcitizen.me"
+#define NTP_SERVER_PORT 80
 #define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
-#define MQTT_SERVER_PORT 1883
+#define MQTT_SERVER_PORT 80 
 #define MQTT_QOS 1
 
 class SckESP
@@ -29,7 +31,7 @@ class SckESP
 
 		// Input/Output
 		bool serialDebug = false;		// Interfere with ESP <-> SAM comunnication (use with caution)
-		bool telnetDebug = true;
+		bool telnetDebug = false;
 		void SAMbusUpdate();
 		void debugOUT(String strOut);
 
@@ -40,18 +42,19 @@ class SckESP
 		bool sendMessage(SAMMessage wichMessage, const char *content);
 		bool sendMessage();
 		void receiveMessage(ESPMessage wichMessage);
+		bool bootedPending = false;
 
 		// Notifications
 		bool sendToken();
 		bool sendCredentials();
 		bool sendNetinfo();
 		bool sendTime();
+		bool sendConfig();
 
 		// **** MQTT
 		bool mqttConnect();
 		bool mqttHellow();
 		bool mqttPublish();
-		AllSensors sensors;
 
 		// Led control
 		const uint8_t pinLED = 4; 	// GPIO5
@@ -69,6 +72,7 @@ class SckESP
 		String ipAddr;
 		int currentWIFIStatus;
 		void tryConnection();
+		void wifiOFF();
 
 		// Config
 		Configuration config;
@@ -80,11 +84,17 @@ class SckESP
 		// AP mode
 		void startAP();
 		void stopAP();
-		// void startWebServer();
+		void scanAP();		
+		int netNumber;
+		void startWebServer();
 		bool flashReadFile(String path);
+		bool captivePortal();
+		bool isIp(String str);
+		String toStringIp(IPAddress ip);
 		const byte DNS_PORT = 53;
 
 		// Time
+		void setNTPprovider();
 		void sendNTPpacket(IPAddress &address);
 		String ISOtime();
 		String epoch2iso(uint32_t toConvert);
@@ -96,6 +106,8 @@ class SckESP
 	public:
 		void setup();
 		void update();
+		void webSet();
+		void webStatus();
 
 		// External calls
 		void _ledToggle();
@@ -107,6 +119,7 @@ void ledToggle();
 
 // Static webserver handlers
 void extSet();
+void extStatus();
 
 // Time
 time_t ntpProvider();

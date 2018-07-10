@@ -24,10 +24,6 @@ void ISR_sdDetect() {
 void ISR_charger() {
 	base.chargerEvent();
 }
-void TC3_Handler (void) {
-	base.timerAlarm();
-	TC3->COUNT16.INTFLAG.bit.MC0 = 1;
-}
 // void ISR_alarm() {
 // 	base.wakeUp();
 // };

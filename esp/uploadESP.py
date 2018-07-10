@@ -13,8 +13,9 @@ def before_upload(source, target, env):
 	if myPort:
 		print("Asking for upload bridge...")
 		myPort.write("")
-		myPort.write("esp flash\n")
+		myPort.write("esp -flash\n")
 	env.Replace(UPLOAD_PORT=portName)
+        time.sleep(1)
 
 def after_upload(source, target, env):
 	print "All good!!!"

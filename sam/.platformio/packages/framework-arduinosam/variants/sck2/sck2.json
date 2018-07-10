@@ -6,10 +6,18 @@
     "f_cpu": "48000000L",
     "hwids": [
       [
-        "0x1209",
-        "0xCF20"
+        "0x2341",
+        "0x804D"
+      ],
+      [
+        "0x2341",
+        "0x004D"
+      ],
+      [
+        "0x2341",
+        "0x824D"
       ]
-    ],
+   ],
     "ldscript": "flash_with_bootloader.ld",
     "mcu": "samd21g18a",
     "usb_product": "Smartcitizen Kit",

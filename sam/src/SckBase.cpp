@@ -669,7 +669,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 						SerialUSB.write(SerialESP.read());
 					}
 					if (millis() - flashTimeout > 1000) {
-						if (millis() - startTimeout > 8000) reset();		// Giva an initial 5 seconds for the flashing to start
+						if (millis() - startTimeout > 8000) sck_reset();		// Giva an initial 5 seconds for the flashing to start
 					}
 				}
 				break;
@@ -974,7 +974,7 @@ void SckBase::batteryReport()
 	// );
 	// sckOut();
 }
-void SckBase::reset()
+void SckBase::sck_reset()
 {
 	sckOut("Bye!!");
 	NVIC_SystemReset();

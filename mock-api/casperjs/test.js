@@ -12,7 +12,7 @@ casper.on('remote.message', function(msg){
   this.echo('--> remote msg: ' + msg)
 });
 
-casper.test.begin("Find elements on our local page", 6, function(test) {
+casper.test.begin("Find elements on our local page", 5, function(test) {
   console.log('Testing on: ' + url);
 
   casper.start(url);

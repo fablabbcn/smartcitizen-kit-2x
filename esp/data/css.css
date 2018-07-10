@@ -101,27 +101,27 @@ a{
 }
 
 .bg-blue{
-  background-color: #065063 !important;
+  background-color: #262626 !important;
 }
 .bg-cyan{
-  background-color: #4fc3f7 !important;
-  color:white;
+  background-color: #FFC100 !important;
+  color:#262626;
 }
 .bg-red{
-  background-color: rgb(244,67,54) !important;
+  background-color: #FF3D4C !important;
 }
 .bg-grey{
   background: #C8E6ED;
   color: #8db2ba;
 }
 .text-green{
-  color: #4caf50 !important;
+  color: #8CC252 !important;
 }
 .text-cyan{
-  color: #4fc3f7 !important;
+  color: #0C2EFB !important;
 }
 .text-red{
-  color: #ff5722;
+  color: #FF3D4C;
 }
 .text-grey{
   color: #ccc;
@@ -198,7 +198,7 @@ a{
 }
 
 .toast {
-  background-color: #4caf50;
+  background-color: #8CC252;
   color: #000;
   padding: 10px;
   margin: 2px 0px;

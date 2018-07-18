@@ -14,7 +14,9 @@
 //
 // * Light - BH1721 -> (0x29)
 // * Temperature and Humidity - SHT31 -> (0x44)
-// * CO and NO2 - MICS4515	-> (digital POT 0x2F)
+// * CO and NO2 - MICS4515	
+//      digital POT -> 0x2F
+// 	ADS7924 MICSADC -> 0x48
 // * Noise  - Invensense ICS43432 I2S microphone;microphone:
 // * Barometric pressure - MPL3115 -> (0x60)
 // * Dust Particles - MAX30105 -> (0x57)

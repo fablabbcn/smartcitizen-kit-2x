@@ -6,7 +6,7 @@
 #include <SPI.h>
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
-/* #include <SPIFlash.h> */
+#include <SPIFlash.h>
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
 #include <RHReliableDatagram.h>
@@ -146,14 +146,17 @@ class SckBase
 		// Sd card
 		bool sdSelect();
 		// Flash memory
-		/* SPIFlash flash = SPIFlash(pinCS_FLASH); */
+		SPIFlash flash = SPIFlash(pinCS_FLASH);
 		void flashSelect();
 
 		// Power
 		uint16_t battCapacity = 2000;
 		bool batteryPresent = false;
 		bool onUSB = true;
+		bool battPresent();
+		uint8_t battAdress = 0x55;
 		void battSetup();
+		bool battConfigured = false;
 		uint32_t sleepTime;
 		void goToSleep();
 

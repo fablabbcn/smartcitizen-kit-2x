@@ -72,9 +72,9 @@ void SckBase::setup()
 
 	// Flash memory
 	// TODO disable debug messages from library
-	// flashSelect();
-	// flash.begin();
-	// flash.setClock(133000);
+	flashSelect();
+	flash.begin();
+	flash.setClock(133000);
 	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
 
 #ifdef gasesBoardTest
@@ -910,7 +910,6 @@ bool SckBase::sdSelect()
 // **** Flash memory
 void SckBase::flashSelect()
 {
-
 	digitalWrite(pinCS_SDCARD, HIGH);	// disables SDcard
 	digitalWrite(pinCS_FLASH, LOW);
 }

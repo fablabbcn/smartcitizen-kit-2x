@@ -918,8 +918,10 @@ void SckBase::flashSelect()
 void SckBase::battSetup()
 {
 
-	pinMode(pinBATTERY_ALARM, INPUT_PULLUP);
-	attachInterrupt(pinBATTERY_ALARM, ISR_battery, LOW);
+	sckOut("Configuring battery...");
+
+	pinMode(pinGAUGE_INT, INPUT_PULLUP);
+	attachInterrupt(pinGAUGE_INT, ISR_battery, LOW);
 
 	lipo.enterConfig();
 	lipo.setCapacity(battCapacity);

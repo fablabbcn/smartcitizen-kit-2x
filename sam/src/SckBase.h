@@ -264,3 +264,23 @@ void ISR_button();
 void ISR_battery();
 void ISR_sdDetect();
 void ISR_charger();
+
+
+// TODO
+// * Find out battery insertion resitor value (Maximo)
+// * Finish battery detection and setup
+//
+// * Confirm OTG status
+// * Urban board pm sensor support
+// * Test MICS heaters and adapt the code
+// * Test MICS POT and adapt the code
+// * Decide what to do with MICS ADC
+// * Finish New kits TEST system
+// * Solve Solar pannel charging
+// * Finish Audio implementation
+// * Finish power management and sleep
+// * Finish FAT flash support
+// * MQTT over SSL
+// * Audio handshake
+// * Solve PID code problems
+// * 

@@ -22,6 +22,7 @@ void SckCharger::setup()
 
 	// if (getVBUSstatus() == VBUS_USB_HOST || getVBUSstatus() == VBUS_ADAPTER_PORT) OTG(false);
 	// else OTG(true);
+	OTG(true);
 
 	attachInterrupt(pinCHARGER_INT, ISR_charger, FALLING);
 }

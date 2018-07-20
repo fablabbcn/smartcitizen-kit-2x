@@ -30,7 +30,7 @@ def before_build():
         checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduinosam/variants/sck2"])
         checkout.wait()
 
-before_build() 
+# before_build() 
 # env.AddPreAction("buildprog", before_build)
 # env.AddPostAction("buildprog", callback...)
 

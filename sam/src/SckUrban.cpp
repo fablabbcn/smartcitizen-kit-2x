@@ -372,7 +372,8 @@ bool Sck_MICS4514::begin(uint32_t startTime)
 	setNO2load(8000);
 
 	startHeaterTime = startTime;
-	return startHeater();
+	/* return startHeater(); */
+	return true;
 }
 bool Sck_MICS4514::stop(uint32_t stopTime)
 {

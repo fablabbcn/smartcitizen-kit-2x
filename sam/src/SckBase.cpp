@@ -20,6 +20,17 @@ FlashStorage(eepromConfig, Configuration);
 
 void SckBase::setup()
 {
+	delay(3000);
+	SerialUSB.println("Starting...");
+	// TEMP turn off MICS
+	pinMode(pinBOARD_CONN_5, OUTPUT);
+	pinMode(pinBOARD_CONN_3, OUTPUT);
+	digitalWrite(pinBOARD_CONN_5, HIGH);
+	digitalWrite(pinBOARD_CONN_3, HIGH);
+	// TEMP turn off PMSpower
+	pinMode(pinBOARD_CONN_7, OUTPUT);
+	digitalWrite(pinBOARD_CONN_7, HIGH);
+
 	// Led
 	led.setup();
 
@@ -30,7 +41,6 @@ void SckBase::setup()
 	SerialESP.begin(serialBaudrate);
 	manager.init();
 	ESPcontrol(ESP_ON);
-	delay(1000);
 
 	// Internal I2C bus setup
 	Wire.begin();
@@ -48,7 +58,7 @@ void SckBase::setup()
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
 
 	// Power management configuration
-	/* battSetup(); */
+	battSetup();
 	charger.setup();
 
 	// RTC setup
@@ -915,65 +925,95 @@ void SckBase::flashSelect()
 }
 
 // **** Power
+bool SckBase::battPresent()
+{
+	Wire.beginTransmission(battAdress);
+	delay(10);
+	uint8_t error = Wire.endTransmission();
+
+	SerialUSB.println(error);
+
+	if (error == 0) return true;
+	else {
+		
+		// Try to wake up the gauge
+		sckOut("trying to wake up battery gauge...");
+		pinMode(pinGAUGE_INT, OUTPUT);
+		digitalWrite(pinGAUGE_INT, LOW);
+		delay(50);
+		digitalWrite(pinGAUGE_INT, HIGH);
+		delay(250);
+		digitalWrite(pinGAUGE_INT, LOW);
+		delay(50);
+		pinMode(pinGAUGE_INT, INPUT_PULLUP);
+		Wire.beginTransmission(battAdress);
+		delay(10);
+		uint8_t error = Wire.endTransmission();
+		if (error == 0) return true;
+
+		battConfigured = false;
+		return false;
+	}
+}
 void SckBase::battSetup()
 {
+	if (!battPresent()) {
+		sckOut("No battery detected!!!");
+		return;
+	}
+	if (battConfigured) return;
 
 	sckOut("Configuring battery...");
 
-	pinMode(pinGAUGE_INT, INPUT_PULLUP);
-	attachInterrupt(pinGAUGE_INT, ISR_battery, LOW);
+	/* pinMode(pinGAUGE_INT, INPUT_PULLUP); */
+	/* attachInterrupt(pinGAUGE_INT, ISR_battery, LOW); */
 
 	lipo.enterConfig();
 	lipo.setCapacity(battCapacity);
-	lipo.setGPOUTPolarity(LOW);
-	lipo.setGPOUTFunction(SOC_INT);
-	lipo.setSOCIDelta(1);
+	/* lipo.setGPOUTPolarity(LOW); */
+	/* lipo.setGPOUTFunction(SOC_INT); */
+	/* lipo.setSOCIDelta(1); */
 	lipo.exitConfig();
+
+	battConfigured = true;
 }
 void SckBase::batteryEvent()
 {
 
 	SerialUSB.println("battery event");
 
-	// if (batteryPresent) {
+	/* if (battPresent()) { */
 
-	// 	if (lipo.batPresent()) {
-	// 		getReading(SENSOR_BATT_PERCENT);
-	// 		sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
-	// 	} else {
-	// 		batteryPresent = false;
-	// 		sprintf(outBuff, "Battery removed!!");
-	// 	}
+	/* 	/1* if (!battConfigured) battSetup(); *1/ */
 
-	// } else {
-
-	// 	if (lipo.batPresent()) {
-	// 		SerialUSB.println("1");
-	// 		if (lipo.begin()) {
-	// 			batteryPresent = true;
-	// 			getReading(SENSOR_BATT_PERCENT);
-	// 			sprintf(outBuff, "Battery connected!! charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
-	// 		}
-	// 	} else {
-	// 		sprintf(outBuff, "Received unknown interrupt from battery gauge");
-	// 	}
-	// }
-	// sckOut();
+	/* 	getReading(SENSOR_BATT_PERCENT); */
+	/* 	sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str()); */
+	/* 	sckOut(); */			
+	/* } else { */
+	/* 	battConfigured = false; */
+	/* 	sckOut("Battery removed!!"); */
+	/* } */
+	/* sckOut(); */
 }
 void SckBase::batteryReport()
 {
+	if (battPresent()) {
+		sckOut("Battery present!!!");
+		if (!battConfigured) battSetup();
+	} else {
+		sckOut("No battery found!!!");
+		return;
+	}
 
-	SerialUSB.println(lipo.voltage());
-
-	// sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i",
-	// 	lipo.soc(),
-	// 	lipo.voltage(),
-	// 	lipo.current(AVG),
-	// 	lipo.capacity(REMAIN),
-	// 	lipo.capacity(FULL),
-	// 	lipo.soh()
-	// );
-	// sckOut();
+	sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i",
+			lipo.soc(),
+			lipo.voltage(),
+			lipo.current(AVG),
+			lipo.capacity(REMAIN),
+			lipo.capacity(FULL),
+			lipo.soh()
+	       );
+	sckOut();
 }
 void SckBase::sck_reset()
 {
@@ -1087,20 +1127,32 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 				switch (wichSensor) {
 					case SENSOR_BATT_PERCENT:
 					{
-
-							uint32_t thisPercent = lipo.soc();
-							if (thisPercent > 100) thisPercent = 0;
-							result = String(thisPercent);
-
+						if (!battPresent()) {
+							result = String("-1");
 							break;
+						}
+						uint32_t thisPercent = lipo.soc();
+						if (thisPercent > 100) thisPercent = 100;
+						result = String(thisPercent);
+						break;
 					}
 					case SENSOR_BATT_VOLTAGE:
 
-						result = String(lipo.voltage()); break;
+						if (!battPresent()) {
+							result = String("-1");
+							break;
+						}
+						result = String(lipo.voltage());
+						break;
 
 					case SENSOR_BATT_CHARGE_RATE:
 
-						result = String(lipo.current(AVG)); break;
+						if (!battPresent()) {
+							result = String("-1");
+							break;
+						}
+						result = String(lipo.current(AVG));
+						break;
 
 					case SENSOR_VOLTIN:
 					{

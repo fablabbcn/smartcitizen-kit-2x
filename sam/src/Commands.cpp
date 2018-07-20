@@ -111,7 +111,6 @@ void help_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "%s:%s%s", thisCommand->title, sep.c_str(), thisCommand->help);
 		base->sckOut();
 	}
-	base->sckOut();
 }
 void pinmux_com(SckBase* base, String parameters)
 {

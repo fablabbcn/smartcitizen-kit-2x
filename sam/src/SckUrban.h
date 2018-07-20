@@ -120,7 +120,6 @@ class Sck_MICS4514
 		// NO2 adjustable load resistor
 		const byte POT_NO2_LOAD_ADDRESS = 0x2F;
 		const float ohmsPerStep	= 10000.0/127; // Ohms for each potenciometer step
-		bool setNO2load(uint32_t value);
 
 	public:
 		calData calCO;
@@ -137,6 +136,7 @@ class Sck_MICS4514
 		bool getNO2resistance();
 		bool getCO(float temperature, float humidity);
 		bool getNO2(float temperature, float humidity);
+		bool setNO2load(uint32_t value);
 		bool getNO2load();
 		uint32_t getHeatTime(uint32_t currentTime);
 		float average(uint8_t wichPin);

@@ -1,5 +1,7 @@
 #pragma once
 
+/* #define testing // Uncomment this line for running test protocol */
+
 #include <Arduino.h>
 #include <RTCZero.h>
 #include <time.h>
@@ -257,6 +259,10 @@ class SckBase
 			"sdcard",			// modeTitles[MODE_SD]
 			"sleep"				// modeTitles[MODE_SLEEP]
 		};
+
+#ifdef testing
+		friend class SckTest;
+#endif
 };
 
 bool I2Cdetect(TwoWire *_Wire, byte address);

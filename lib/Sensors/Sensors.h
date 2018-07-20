@@ -138,12 +138,14 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_LIGHT, 				"LIGHT",		"Light", 					14,		true,		false,			"Lux"},
 			OneSensor { BOARD_URBAN, 		SENSOR_TEMPERATURE, 			"TEMP",			"Temperature", 					55,		true,		false,			"C"},
 			OneSensor { BOARD_URBAN, 		SENSOR_HUMIDITY,			"HUM",			"Humidity", 					56,		true,		false,			"%"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"CO_MICS",		"Carbon monoxide", 				82,		true,		true,			"ppm"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO_RESISTANCE,			"CO_MICS_RAW",		"Carbon monoxide resistance", 			16,		false,		true,			"kOhm"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"CO_MICS_THEAT",	"Carbon monoxide heat time",			0,		true,		false,			"sec"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"NO2_MICS",		"Nitrogen dioxide",				81,		true,		true,			"ppb"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2_RESISTANCE,			"NO2_MICS_RAW",		"Nitrogen dioxide resistance",			15,		false,		true,			"kOhm"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"NO2_MICS_THEAT",	"Nitrogen dioxide heat time",			0,		true,		false,			"sec"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"CO_MICS",		"Carbon monoxide", 				0,		false,		true,			"ppm"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_RESISTANCE,			"CO_MICS_RAW",		"Carbon monoxide resistance", 			82,		true,		true,			"kOhm"},
+			/* OneSensor { BOARD_URBAN, 		SENSOR_CO_RESISTANCE,			"CO_MICS_RAW",		"Carbon monoxide resistance", 			16,		false,		true,			"kOhm"}, */
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"CO_MICS_THEAT",	"Carbon monoxide heat time",			0,		false,		false,			"sec"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"NO2_MICS",		"Nitrogen dioxide",				0,		false,		true,			"ppb"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_RESISTANCE,			"NO2_MICS_RAW",		"Nitrogen dioxide resistance",			81,		true,		true,			"kOhm"},
+			/* OneSensor { BOARD_URBAN, 		SENSOR_NO2_RESISTANCE,			"NO2_MICS_RAW",		"Nitrogen dioxide resistance",			15,		false,		true,			"kOhm"}, */
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"NO2_MICS_THEAT",	"Nitrogen dioxide heat time",			0,		false,		false,			"sec"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_LOAD_RESISTANCE, 		"NO2_MICS_RLOAD",	"Nitrogen dioxide load resistance",		0,		false,		false,			"Ohms"},
 			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"NOISE_A",		"Noise dBA", 					53,		true,		false,			"dBA"}, */
 			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"NOISE_B",		"Noise dBC", 					0,		false,		false,			"dBC"}, */

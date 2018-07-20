@@ -1,6 +1,14 @@
 #include "SckBase.h"
 
+#ifdef testing
+#include "SckTest.h"
+#endif
+
 SckBase base;
+
+#ifdef testing
+SckTest sckTest(&base);
+#endif
 
 // Led update interrupt
 void TC5_Handler (void) {
@@ -11,6 +19,10 @@ void TC5_Handler (void) {
 void ISR_button() {
 	base.butState = digitalRead(pinBUTTON);
 	base.butFeedback();
+
+#ifdef testing
+	sckTest.test_button();
+#endif
 }
 // Battery events interrupt
 void ISR_battery() {
@@ -29,7 +41,16 @@ void ISR_charger() {
 // };
 
 void setup() {
+
+#ifdef testing
+	base.outputLevel = OUT_SILENT;
+#endif
+
 	base.setup();
+
+#ifdef testing
+	sckTest.test_full();	
+#endif
 }
 
 void loop() {

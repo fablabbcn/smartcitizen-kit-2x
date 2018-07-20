@@ -29,8 +29,6 @@
 #include "SckAux.h"
 #include "ReadLight.h"
 
-// #define gasesBoardTest 0	// Uncomment for testing SCK Gases Board board manually, and for auto test also set it to 1
-
 
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};

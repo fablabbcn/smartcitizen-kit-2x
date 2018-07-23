@@ -1,5 +1,8 @@
 #pragma once
 
+#include <SckBase.h>
+#include <Sensors.h>
+
 // Include the necessary libraries for the auxiliary sensor to be used
 #include <Wire.h>
 
@@ -18,8 +21,6 @@
 // DS2482 library (I2C-1Wire bridge)
 #include <DS2482.h>
 
-#include <Sensors.h>
-#include <SckBase.h>
 
 extern TwoWire auxWire;
 

@@ -139,7 +139,6 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 			#ifdef gasesBoardTest
 			} else if (command.startsWith("test")) {
-
 				command.replace("test", "");
 				command.trim();
 

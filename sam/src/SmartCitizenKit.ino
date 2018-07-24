@@ -49,7 +49,7 @@ void setup() {
 	base.setup();
 
 #ifdef testing
-	sckTest.test_full();	
+	sckTest.test_full();
 #endif
 }
 

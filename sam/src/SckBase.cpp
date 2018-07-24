@@ -20,7 +20,7 @@ FlashStorage(eepromConfig, Configuration);
 
 void SckBase::setup()
 {
-	delay(3000);
+	/* delay(3000); */
 	SerialUSB.println("Starting...");
 	// TEMP turn off MICS
 	pinMode(pinBOARD_CONN_5, OUTPUT);
@@ -58,8 +58,8 @@ void SckBase::setup()
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
 
 	// Power management configuration
-	battSetup();
 	charger.setup();
+	battSetup();
 
 	// RTC setup
 	rtc.begin();
@@ -927,10 +927,14 @@ void SckBase::flashSelect()
 // **** Power
 bool SckBase::battPresent()
 {
+	SerialUSB.print("pinBATT_INSERTION: ");
+	SerialUSB.println(digitalRead(pinBATT_INSERTION));
+
 	Wire.beginTransmission(battAdress);
 	delay(10);
 	uint8_t error = Wire.endTransmission();
 
+	SerialUSB.print("I2C answer: ");
 	SerialUSB.println(error);
 
 	if (error == 0) return true;
@@ -943,11 +947,8 @@ bool SckBase::battPresent()
 		delay(50);
 		digitalWrite(pinGAUGE_INT, HIGH);
 		delay(250);
-		digitalWrite(pinGAUGE_INT, LOW);
-		delay(50);
 		pinMode(pinGAUGE_INT, INPUT_PULLUP);
 		Wire.beginTransmission(battAdress);
-		delay(10);
 		uint8_t error = Wire.endTransmission();
 		if (error == 0) return true;
 
@@ -957,6 +958,9 @@ bool SckBase::battPresent()
 }
 void SckBase::battSetup()
 {
+	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
+	delay(250); //TODO erase this
+
 	if (!battPresent()) {
 		sckOut("No battery detected!!!");
 		return;
@@ -965,8 +969,8 @@ void SckBase::battSetup()
 
 	sckOut("Configuring battery...");
 
-	/* pinMode(pinGAUGE_INT, INPUT_PULLUP); */
-	/* attachInterrupt(pinGAUGE_INT, ISR_battery, LOW); */
+	pinMode(pinGAUGE_INT, INPUT_PULLUP);
+	attachInterrupt(pinGAUGE_INT, ISR_battery, LOW);
 
 	lipo.enterConfig();
 	lipo.setCapacity(battCapacity);

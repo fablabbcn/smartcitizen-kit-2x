@@ -157,7 +157,7 @@ class SckBase
 		bool onUSB = true;
 		bool battPresent();
 		uint8_t battAdress = 0x55;
-		void battSetup();
+		bool battSetup();
 		bool battConfigured = false;
 		uint32_t sleepTime;
 		void goToSleep();
@@ -243,7 +243,9 @@ class SckBase
 		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
+		volatile bool battPendingEvent = false;
 		SckCharger charger;
+		volatile bool chargerPendingEvent = false;
 		void chargerEvent();
 		void sck_reset();
 		void batteryEvent();

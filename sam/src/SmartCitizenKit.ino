@@ -26,7 +26,7 @@ void ISR_button() {
 }
 // Battery events interrupt
 void ISR_battery() {
-	base.batteryEvent();
+	base.battPendingEvent = true;
 }
 // Card detect interrupt
 void ISR_sdDetect() {
@@ -34,7 +34,7 @@ void ISR_sdDetect() {
 }
 // Battery charger interrupt
 void ISR_charger() {
-	base.chargerEvent();
+	base.chargerPendingEvent = true;
 }
 // void ISR_alarm() {
 // 	base.wakeUp();

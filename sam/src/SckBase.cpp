@@ -59,6 +59,7 @@ void SckBase::setup()
 
 	// Power management configuration
 	charger.setup();
+	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
 	battSetup();
 
 	// RTC setup
@@ -171,6 +172,10 @@ void SckBase::reviewState()
 		sendConfig();
 		return;
 	}
+
+	if (battPendingEvent) batteryEvent();
+	if (chargerPendingEvent) chargerEvent();
+
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
 	/* bool espON */
@@ -927,26 +932,20 @@ void SckBase::flashSelect()
 // **** Power
 bool SckBase::battPresent()
 {
-	SerialUSB.print("pinBATT_INSERTION: ");
-	SerialUSB.println(digitalRead(pinBATT_INSERTION));
-
 	Wire.beginTransmission(battAdress);
-	delay(10);
 	uint8_t error = Wire.endTransmission();
-
-	SerialUSB.print("I2C answer: ");
-	SerialUSB.println(error);
 
 	if (error == 0) return true;
 	else {
 		
+		// TODO check if this is really necesary
 		// Try to wake up the gauge
 		sckOut("trying to wake up battery gauge...");
 		pinMode(pinGAUGE_INT, OUTPUT);
 		digitalWrite(pinGAUGE_INT, LOW);
-		delay(50);
+		delay(1);
 		digitalWrite(pinGAUGE_INT, HIGH);
-		delay(250);
+		delay(1);
 		pinMode(pinGAUGE_INT, INPUT_PULLUP);
 		Wire.beginTransmission(battAdress);
 		uint8_t error = Wire.endTransmission();
@@ -956,57 +955,47 @@ bool SckBase::battPresent()
 		return false;
 	}
 }
-void SckBase::battSetup()
+bool SckBase::battSetup()
 {
-	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
-	delay(250); //TODO erase this
+	if (battConfigured) return true;
 
 	if (!battPresent()) {
 		sckOut("No battery detected!!!");
-		return;
+		return false;
 	}
-	if (battConfigured) return;
 
 	sckOut("Configuring battery...");
 
 	pinMode(pinGAUGE_INT, INPUT_PULLUP);
-	attachInterrupt(pinGAUGE_INT, ISR_battery, LOW);
+	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
 
 	lipo.enterConfig();
 	lipo.setCapacity(battCapacity);
-	/* lipo.setGPOUTPolarity(LOW); */
-	/* lipo.setGPOUTFunction(SOC_INT); */
-	/* lipo.setSOCIDelta(1); */
+	lipo.setGPOUTPolarity(LOW);
+	lipo.setGPOUTFunction(SOC_INT);
+	lipo.setSOCIDelta(1);
 	lipo.exitConfig();
 
 	battConfigured = true;
+
+	// TODO if battery is not full and we are not charging run charger.setup here
+
+	return true;
 }
 void SckBase::batteryEvent()
 {
+	/* sckOut("Battery event", PRIO_LOW); */
+	battPendingEvent = false;
+	if (!battSetup()) return;
 
-	SerialUSB.println("battery event");
-
-	/* if (battPresent()) { */
-
-	/* 	/1* if (!battConfigured) battSetup(); *1/ */
-
-	/* 	getReading(SENSOR_BATT_PERCENT); */
-	/* 	sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str()); */
-	/* 	sckOut(); */			
-	/* } else { */
-	/* 	battConfigured = false; */
-	/* 	sckOut("Battery removed!!"); */
-	/* } */
-	/* sckOut(); */
+	getReading(SENSOR_BATT_PERCENT);
+	sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
+	sckOut(PRIO_LOW);			
 }
 void SckBase::batteryReport()
 {
-	if (battPresent()) {
-		sckOut("Battery present!!!");
-		if (!battConfigured) battSetup();
-	} else {
-		sckOut("No battery found!!!");
-		return;
+	if (!battConfigured) {
+		if (!battSetup()) return;
 	}
 
 	sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i",
@@ -1026,11 +1015,15 @@ void SckBase::sck_reset()
 }
 void SckBase::chargerEvent()
 {
-	// Maybe when we have batt detection on top this is not necesary!!!
-	if (charger.getChargeStatus() == charger.CHRG_CHARGE_TERM_DONE) {
-		sckOut("Batterry fully charged... or removed");
+	sckOut("Charger event", PRIO_LOW);
+	chargerPendingEvent = false;
+
+	if (!battPresent()) {
+		sckOut("Battery removed!!");
 		charger.chargeState(0);
-		// led.update(led.YELLOW, led.PULSE_STATIC);
+	} else if (charger.getChargeStatus() == charger.CHRG_CHARGE_TERM_DONE) {
+		sckOut("Batterry fully charged!!");
+		charger.chargeState(0);
 	}
 
 	while (charger.getDPMstatus()) {} // Wait for DPM detection finish
@@ -1038,13 +1031,11 @@ void SckBase::chargerEvent()
 	if (charger.getPowerGoodStatus()) {
 
 		onUSB = true;
-		// led.update(led.GREEN, led.PULSE_STATIC);
 		// charger.OTG(false);
 
 	} else {
 
 		onUSB = false;
-		// led.update(led.BLUE, led.PULSE_STATIC);
 		// charger.OTG(true);
 
 	}
@@ -1052,7 +1043,6 @@ void SckBase::chargerEvent()
 	// TODO, React to any charger fault
 	if (charger.getNewFault() != 0) {
 		sckOut("Charger fault!!!");
-		// led.update(led.YELLOW, led.PULSE_STATIC);
 	}
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds

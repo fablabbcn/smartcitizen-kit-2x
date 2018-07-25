@@ -22,11 +22,6 @@ void SckBase::setup()
 {
 	/* delay(3000); */
 	SerialUSB.println("Starting...");
-	// TEMP turn off MICS
-	pinMode(pinBOARD_CONN_5, OUTPUT);
-	pinMode(pinBOARD_CONN_3, OUTPUT);
-	digitalWrite(pinBOARD_CONN_5, HIGH);
-	digitalWrite(pinBOARD_CONN_3, HIGH);
 	// TEMP turn off PMSpower
 	pinMode(pinBOARD_CONN_7, OUTPUT);
 	digitalWrite(pinBOARD_CONN_7, HIGH);
@@ -60,7 +55,7 @@ void SckBase::setup()
 	// Power management configuration
 	charger.setup();
 	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
-	battSetup();
+	/* battSetup(); */
 
 	// RTC setup
 	rtc.begin();

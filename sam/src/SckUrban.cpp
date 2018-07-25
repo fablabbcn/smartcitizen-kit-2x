@@ -365,8 +365,7 @@ bool Sck_MICS4514::begin(uint32_t startTime)
 	digitalWrite(pinPWM_HEATER_CO, HIGH);
 	digitalWrite(pinPWM_HEATER_NO2, HIGH);
 
-	pinMode(pinREAD_CO, INPUT);
-	pinMode(pinREAD_NO2, INPUT);
+	startHeater();
 
 	// Put the load resistor in middle position
 	setNO2load(8000);
@@ -389,8 +388,8 @@ bool Sck_MICS4514::stop(uint32_t stopTime)
 }
 bool Sck_MICS4514::getCOresistance()
 {
-	float sensorVoltage;
-	sensorVoltage = ((average(pinREAD_CO) * (float)VCC) / (float)ANALOG_RESOLUTION);
+	float sensorVoltage = getADC(CO_ADC_CHANN);
+
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
 	coResistance = (((VCC - sensorVoltage) / sensorVoltage) * coLoadResistor) / 1000.0;
 	return true;
@@ -410,8 +409,8 @@ bool Sck_MICS4514::getCO(float temperature, float humidity)
 }
 bool Sck_MICS4514::getNO2resistance()
 {
-	float sensorVoltage;
-	sensorVoltage = ((average(pinREAD_NO2) * (float)VCC) / (float)ANALOG_RESOLUTION);
+	float sensorVoltage = getADC(NO2_ADC_CHANN);
+
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
 	getNO2load();
 	no2Resistance = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;
@@ -545,8 +544,9 @@ bool Sck_MICS4514::startHeater()
 	REG_TCC1_PER = maxValue;         		// Set the frequency of the PWM on TCC0
 	while (TCC1->SYNCBUSY.bit.PER);
 
-	REG_TCC1_CC0 = (uint16_t)(maxValue * (dutyCycle_CO / 100.0)); 	// CO
-	REG_TCC1_CC1 = (uint16_t)(maxValue * (dutyCycle_NO2 / 100.0)); 	// NO2
+	REG_TCC1_CC1 = (uint16_t)(maxValue * (dutyCycle_CO / 100.0)); 	// CO
+	REG_TCC1_CC0 = (uint16_t)(maxValue * (dutyCycle_NO2 / 100.0)); 	// NO2
+
 	while (TCC1->SYNCBUSY.bit.CC1);
 
 	// Divide the 48MHz signal by 1 giving 48MHz (20.83ns) TCC0 timer tick and enable the outputs
@@ -572,6 +572,42 @@ float Sck_MICS4514::average(uint8_t wichPin)
 	float average = (float)total / numReadings;
 	return average;
 }
+float Sck_MICS4514::getADC(uint8_t wichChannel)
+{
+	byte dir[4] = {2,4,6,8};
+	byte ask = B11000000 + wichChannel;
+
+	uint32_t result = 0;
+	uint8_t numberOfSamples = 20;
+
+	// Average 5 samples
+	for (uint8_t i=0; i<numberOfSamples; i++) {
+		writeI2C(ADC_DIR, 0, ask);
+		writeI2C(ADC_DIR, 0, ask);
+		result += (readI2C(ADC_DIR, dir[wichChannel])<<4) + (readI2C(ADC_DIR, dir[wichChannel] + 1)>>4);
+	}
+	float resultInVoltage = (float)(result / numberOfSamples) * VCC / ANALOG_RESOLUTION;
+	return resultInVoltage;
+}
+void Sck_MICS4514::writeI2C(byte deviceaddress, byte address, byte data )
+{
+	Wire.beginTransmission(deviceaddress);
+	Wire.write(address);
+	Wire.write(data);
+	Wire.endTransmission();
+	delay(4);
+}
+byte Sck_MICS4514::readI2C(int deviceaddress, byte address)
+{
+	Wire.beginTransmission(deviceaddress);
+	Wire.write(address);
+	Wire.endTransmission();
+	Wire.requestFrom(deviceaddress,1);
+	if (Wire.available() != 1) return 0x00;
+	byte data = Wire.read();
+	return data;
+}
+
 
 // Noise
 

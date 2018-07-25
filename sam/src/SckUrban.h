@@ -98,17 +98,24 @@ class Sck_MICS4514
 	private:
 
 		// Carbon Monoxide
-		const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_5;		// PA8 - HEAT_CO
-		const uint8_t pinREAD_CO = pinBOARD_CONN_9;			// PB3 - READ_CO
-		const float dutyCycle_CO = 50.8;
+		const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_5;		// PA8 - HEAT_CO TODO check this 
+		const float dutyCycle_CO = 100 - 88.5;
+		// Se requieren 2.724v del hex inverter para tener 2.4v en el heater CO (calculados con el divisor 10 y 74 ohms)
+		// Esto deberia ser 100 - 82.54 %
+		const uint8_t CO_HEATER_ADC_CHANN = 3;
+		const uint8_t CO_ADC_CHANN = 2;
 		
 		// Nitrogen Dioxide
-		const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_3;		// PA9 - HEAT_NO2
-		const uint8_t pinREAD_NO2 = pinBOARD_CONN_11;			// PB2 - READ_NOX
-		const float dutyCycle_NO2 = 76.2;
+		const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_3;		// PA9 - HEAT_NO2 TODO check this
+		const float dutyCycle_NO2 = 100.0 - 65.7;
+		// Se requieren 1.96v del hex inverter para tener 1.7v en el heater NO2 (calculados con el divisor de 10 y 66 ohms)
+		// Esto deberia ser 100 - 59.39 % pero experimentalmente da 65.7% (6.31% mas de lo calculado)
+		const uint8_t NO2_HEATER_ADC_CHANN = 1;
+		const uint8_t NO2_ADC_CHANN = 0;
 
 		const uint32_t ANALOG_RESOLUTION = 4095;
 		const uint32_t VCC = 3300;
+		byte ADC_DIR = 0x48;
 		
 		bool heaterRunning = false;
 		uint32_t startHeaterTime = 0;
@@ -120,6 +127,9 @@ class Sck_MICS4514
 		// NO2 adjustable load resistor
 		const byte POT_NO2_LOAD_ADDRESS = 0x2F;
 		const float ohmsPerStep	= 10000.0/127; // Ohms for each potenciometer step
+
+		void writeI2C(byte deviceaddress, byte address, byte data );
+		byte readI2C(int deviceaddress, byte address);
 
 	public:
 		calData calCO;
@@ -140,6 +150,7 @@ class Sck_MICS4514
 		bool getNO2load();
 		uint32_t getHeatTime(uint32_t currentTime);
 		float average(uint8_t wichPin);
+		float getADC(uint8_t wichChannel);
 };
 
 // Noise

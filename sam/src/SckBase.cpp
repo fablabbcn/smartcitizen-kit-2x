@@ -30,7 +30,6 @@ void SckBase::setup()
 	SerialESP.begin(serialBaudrate);
 	manager.init();
 	ESPcontrol(ESP_ON);
-	delay(1000);
 
 	// Internal I2C bus setup
 	Wire.begin();
@@ -41,7 +40,7 @@ void SckBase::setup()
 	pinPeripheral(11, PIO_SERCOM);
 	pinPeripheral(13, PIO_SERCOM);
 	auxWire.begin();
-	delay(1000); 				// Give some time for external boards to boot
+	delay(2000); 				// Give some time for external boards to boot
 
 	// Button
 	pinMode(pinBUTTON, INPUT_PULLUP);
@@ -372,7 +371,7 @@ void SckBase::printState()
 
 	sprintf(outBuff, "%s\r\npublishOK: %s\r\n", outBuff, st.publishStat.ok ? t : f);
 	sprintf(outBuff, "%spublishError: %s\r\n", outBuff, st.publishStat.error ? t : f);
-	sprintf(outBuff, "%s\r\ntime to next publish: %lu\r\n", outBuff, config.publishInterval - (rtc.getEpoch() - lastPublishTime));
+	sprintf(outBuff, "%s\r\ntime to next publish: %li\r\n", outBuff, config.publishInterval - (rtc.getEpoch() - lastPublishTime));
 
 	sckOut(PRIO_HIGH, false);
 }
@@ -533,6 +532,7 @@ void SckBase::saveConfig(bool defaults)
 	st.tokenSet = config.token.set;
 	st.wifiStat.reset();
 	lastPublishTime = rtc.getEpoch() - config.publishInterval;
+	lastSensorUpdate = rtc.getEpoch() - config.readInterval;
 
 
 	// Decide if new mode its valid
@@ -554,6 +554,7 @@ void SckBase::saveConfig(bool defaults)
 
 	} else if (st.mode == MODE_SD) {
 	
+		st.helloPending = false;
 		if (st.wifiSet) pendingSyncConfig = true;
 		st.onSetup = false;
 		sendMessage(ESPMES_STOP_AP, "");

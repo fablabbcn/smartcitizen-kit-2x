@@ -1252,7 +1252,8 @@ bool SckBase::sdPublish()
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled) {
 				if (!timeSet) {
-					postFile.file.print(sensors[wichSensor].lastReadingTime);
+					epoch2iso(sensors[wichSensor].lastReadingTime, ISOtimeBuff);
+					postFile.file.print(ISOtimeBuff);
 					timeSet = true;
 				}
 				postFile.file.print(",");

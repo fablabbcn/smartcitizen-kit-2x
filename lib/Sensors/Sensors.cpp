@@ -1,6 +1,7 @@
 #include "Sensors.h"
 
-SensorType AllSensors::getTypeFromString(String strIn) {
+SensorType AllSensors::getTypeFromString(String strIn)
+{
 
 	SensorType wichSensor = SENSOR_COUNT;
 	uint8_t maxWordsFound = 0;
@@ -26,7 +27,8 @@ SensorType AllSensors::getTypeFromString(String strIn) {
 	}
 	return wichSensor;
 }
-uint8_t AllSensors::countMatchedWords(String baseString, String input) {
+uint8_t AllSensors::countMatchedWords(String baseString, String input)
+{
 	
 	uint8_t foundedCount = 0;
 	String word;

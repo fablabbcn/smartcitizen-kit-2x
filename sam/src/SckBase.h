@@ -196,6 +196,8 @@ class SckBase
 		bool getReading(SensorType wichSensor, bool wait=true);
 		bool controlSensor(SensorType wichSensorType, String wichCommand);
 		void publish();
+		bool enableSensor(SensorType wichSensor);
+		bool disableSensor(SensorType wichSensor);
 
 		// Configuration
 		Configuration config;

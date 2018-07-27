@@ -14,7 +14,7 @@ Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
 
-bool AuxBoards::begin(SensorType wichSensor)
+bool AuxBoards::start(SensorType wichSensor)
 {
 
 	switch (wichSensor) {
@@ -29,27 +29,65 @@ bool AuxBoards::begin(SensorType wichSensor)
 		case SENSOR_GASESBOARD_SLOT_2_CAL:
 		case SENSOR_GASESBOARD_SLOT_3_CAL:
 		case SENSOR_GASESBOARD_HUMIDITY:
-		case SENSOR_GASESBOARD_TEMPERATURE: 	return gasBoard.begin(); break;
-		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.begin(); break;
+		case SENSOR_GASESBOARD_TEMPERATURE: 	return gasBoard.start(); break;
+		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.start(); break;
 		case SENSOR_INA219_BUSVOLT:
 		case SENSOR_INA219_SHUNT:
 		case SENSOR_INA219_CURRENT:
-		case SENSOR_INA219_LOADVOLT: 		return ina219.begin(); break;
-		case SENSOR_GROOVE_OLED: 		return groove_OLED.begin(); break;
-		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.begin(); break;
-		case SENSOR_ATLAS_PH:			return atlasPH.begin();
+		case SENSOR_INA219_LOADVOLT: 		return ina219.start(); break;
+		case SENSOR_GROOVE_OLED: 		return groove_OLED.start(); break;
+		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.start(); break;
+		case SENSOR_ATLAS_PH:			return atlasPH.start();
 		case SENSOR_ATLAS_EC:
-		case SENSOR_ATLAS_EC_SG: 		return atlasEC.begin(); break;
+		case SENSOR_ATLAS_EC_SG: 		return atlasEC.start(); break;
 		case SENSOR_ATLAS_DO:
-		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.begin(); break;
+		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.start(); break;
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
-		case SENSOR_PM_10:			return pmSensor.begin(); break;
+		case SENSOR_PM_10:			return pmSensor.start(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM:
-			if (sht31.begin() && !gasBoard.begin()) return true;
+			if (sht31.start() && !gasBoard.start()) return true;
 			else return false;
 			break;
+		default: break;
+	}
+
+	return false;
+}
+
+bool AuxBoards::stop(SensorType wichSensor)
+{
+	switch (wichSensor) {
+
+		case SENSOR_GASESBOARD_SLOT_1A:
+		case SENSOR_GASESBOARD_SLOT_1W:
+		case SENSOR_GASESBOARD_SLOT_2A:
+		case SENSOR_GASESBOARD_SLOT_2W:
+		case SENSOR_GASESBOARD_SLOT_3A:
+		case SENSOR_GASESBOARD_SLOT_3W:
+		case SENSOR_GASESBOARD_SLOT_1_CAL:
+		case SENSOR_GASESBOARD_SLOT_2_CAL:
+		case SENSOR_GASESBOARD_SLOT_3_CAL:
+		case SENSOR_GASESBOARD_HUMIDITY:
+		case SENSOR_GASESBOARD_TEMPERATURE: 	return gasBoard.stop(); break;
+		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.stop(); break;
+		case SENSOR_INA219_BUSVOLT:
+		case SENSOR_INA219_SHUNT:
+		case SENSOR_INA219_CURRENT:
+		case SENSOR_INA219_LOADVOLT: 		return ina219.stop(); break;
+		case SENSOR_GROOVE_OLED: 		return groove_OLED.stop(); break;
+		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.stop(); break;
+		case SENSOR_ATLAS_PH:			return atlasPH.stop();
+		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_SG: 		return atlasEC.stop(); break;
+		case SENSOR_ATLAS_DO:
+		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.stop(); break;
+		case SENSOR_PM_1:
+		case SENSOR_PM_25:
+		case SENSOR_PM_10:			return pmSensor.stop(); break;
+		case SENSOR_SHT31_TEMP:
+		case SENSOR_SHT31_HUM: 			return sht31.stop(); break;
 		default: break;
 	}
 
@@ -219,6 +257,21 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			}
 			break;
 
+		}
+		case SENSOR_PM_1:
+		case SENSOR_PM_25:
+		case SENSOR_PM_10: {
+			
+			if (command.startsWith("stop")) {
+				
+				pmSensor.stop();
+
+			} else if (command.startsWith("start")) {
+			    
+				pmSensor.start();
+			    
+			}
+			break;
 		} default: return "Unrecognized sensor!!!"; break;
 	}
 	return "Unknown error on control command!!!";
@@ -236,7 +289,7 @@ void AuxBoards::displayReading(String title, String reading, String unit, String
 	groove_OLED.displayReading(title, reading, unit, time);
 }
 
-bool GrooveI2C_ADC::begin()
+bool GrooveI2C_ADC::start()
 {
 
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -245,6 +298,11 @@ bool GrooveI2C_ADC::begin()
 	auxWire.write(REG_ADDR_CONFIG);				// Configuration Register
 	auxWire.write(0x20);
 	auxWire.endTransmission();
+	return true;
+}
+bool GrooveI2C_ADC::stop()
+{
+
 	return true;
 }
 
@@ -268,7 +326,7 @@ float GrooveI2C_ADC::getReading()
 	return data * V_REF * 2.0 / 4096.0;
 }
 
-bool INA219::begin()
+bool INA219::start()
 {
 
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -281,6 +339,12 @@ bool INA219::begin()
 
 	// Or to use a lower 16V, 400mA range (higher precision on volts and amps):
 	ada_ina219.setCalibration_16V_400mA();
+	return true;
+}
+
+bool INA219::stop()
+{
+	// TODO check if there is a way to minimize power consumption
 	return true;
 }
 
@@ -317,7 +381,7 @@ float INA219::getReading(typeOfReading wichReading)
 	return 0;
 }
 
-bool Groove_OLED::begin()
+bool Groove_OLED::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
@@ -328,6 +392,12 @@ bool Groove_OLED::begin()
 	do { U8g2_oled.drawXBM( 0, 0, 96, 96, scLogo); } while (U8g2_oled.nextPage());
 
 	return true;;
+}
+
+bool Groove_OLED::stop()
+{
+
+	return true;
 }
 
 void Groove_OLED::print(String payload)
@@ -394,7 +464,7 @@ void Groove_OLED::displayReading(String title, String reading, String unit, Stri
 	} while (U8g2_oled.nextPage());
 }
 
-bool WaterTemp_DS18B20::begin()
+bool WaterTemp_DS18B20::start()
 {
 
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -406,6 +476,11 @@ bool WaterTemp_DS18B20::begin()
 	DS_bridge.wireSkip();
 	DS_bridge.wireWriteByte(0x44);
 
+	return true;
+}
+
+bool WaterTemp_DS18B20::stop()
+{
 	return true;
 }
 
@@ -457,7 +532,7 @@ float WaterTemp_DS18B20::getReading()
 	return 0;
 }
 
-bool Atlas::begin()
+bool Atlas::start()
 {
 
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -504,6 +579,11 @@ bool Atlas::begin()
 
 	goToSleep();
 
+	return true;
+}
+
+bool Atlas::stop()
+{
 	return true;
 }
 
@@ -658,16 +738,26 @@ uint8_t Atlas::getResponse()
     }
 }
 
-bool PMsensor::begin()
+bool PMsensor::start()
 {
-
-	if (alreadyStarted) return true;
+	if (started) return true;
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.beginTransmission(deviceAddress);
 	auxWire.write(PM_START);
 	auxWire.endTransmission();
-	alreadyStarted = true;
+	started = true;
+	return true;
+}
+
+bool PMsensor::stop()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(PM_STOP);
+	auxWire.endTransmission();
+	started = false;
 	return true;
 }
 

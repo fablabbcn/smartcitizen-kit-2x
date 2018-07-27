@@ -41,7 +41,7 @@ class Sck_BH1721FVC
 	public:
 		uint8_t address = 0x29;
 		float reading;
-		bool begin();
+		bool start();
 		bool stop();
 		bool get(bool wait=true);
 };
@@ -71,7 +71,7 @@ class Sck_SHT31
 
 		float temperature;
 		float humidity;
-		bool begin();
+		bool start();
 		bool stop();
 		bool update(bool wait=true);
 };
@@ -139,7 +139,7 @@ class Sck_MICS4514
 		float co;
 		float no2;
 		uint16_t no2LoadResistor;
-		bool begin(uint32_t startTime);
+		bool start(uint32_t startTime);
 		bool stop(uint32_t stopTime);
 		bool startHeater();
 		bool getCOresistance();
@@ -161,7 +161,7 @@ class Sck_Noise
 
 	public:
 		float reading;
-		bool begin();
+		bool start();
 		bool stop();
 		bool get();
 };
@@ -180,7 +180,7 @@ class Sck_MPL3115A2
 		float altitude;
 		float pressure;
 		float temperature;
-		bool begin();
+		bool start();
 		bool stop();
 		bool getAltitude(bool wait=true);
 		bool getPressure(bool wait=true);
@@ -202,7 +202,7 @@ class Sck_MAX30105
 		float greenChann;
 		float IRchann;
 		float temperature;
-		bool begin();
+		bool start();
 		bool stop();
 		bool getRed(bool wait=true);
 		bool getGreen(bool wait=true);
@@ -220,7 +220,9 @@ class SckUrban
 			byte resistorAddress;
 		};
 	public:
-		bool begin(SckBase *base);
+		bool setup(SckBase *base);
+		bool start(SensorType wichSensor);
+		bool stop(SensorType wichSensor);
 
 		// String getReading(); https://stackoverflow.com/questions/14840173/c-same-function-parameters-with-different-return-type
 		String getReading(SckBase *base, SensorType wichSensor, bool wait=true);

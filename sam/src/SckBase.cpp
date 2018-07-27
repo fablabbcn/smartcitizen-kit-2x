@@ -110,7 +110,7 @@ void SckBase::setup()
 
 	// Urban board
 	analogReadResolution(12);
-	if (urban.begin(this)) {
+	if (urban.setup(this)) {
 		sckOut("Urban board detected");
 		urbanPresent = true;
 		readLight.setup();
@@ -125,12 +125,11 @@ void SckBase::setup()
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 
 		if (wichSensor->location == BOARD_AUX) {
-			if (auxBoards.begin(wichSensor->type)) {
-				sprintf(outBuff, "Found: %s... ", wichSensor->title);
-				sckOut();
+			if (enableSensor(wichSensor->type)) {
 				wichSensor->enabled = true;
 				saveNeeded = true;
 			} else if (wichSensor->enabled)  {
+				disableSensor(wichSensor->type);
 				sprintf(outBuff, "Removed: %s... ", wichSensor->title);
 				sckOut();
 				wichSensor->enabled = false;
@@ -537,7 +536,7 @@ void SckBase::saveConfig(bool defaults)
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
 
 	// Update state
-	if (urbanPresent) urban.begin(this);
+	if (urbanPresent) urban.setup(this);
 	st.mode = config.mode;
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;
@@ -1104,6 +1103,87 @@ void SckBase::updateSensors()
 		lastPublishTime = rtc.getEpoch();
 		st.publishStat.reset();
 	}
+}
+bool SckBase::enableSensor(SensorType wichSensor)
+{
+	bool result = false;
+	switch (sensors[wichSensor].location) {
+		case BOARD_BASE:
+		{
+			// TODO review this
+			switch (wichSensor) {
+				case SENSOR_BATT_PERCENT: result = true;
+				case SENSOR_BATT_VOLTAGE: result = true;
+				case SENSOR_BATT_CHARGE_RATE: result = true;
+				case SENSOR_VOLTIN: result = true;
+				default: break;
+			}			 
+		}
+		case BOARD_URBAN: if (urban.start(wichSensor)) result = true; break;
+		case BOARD_AUX:	{
+					if (auxBoards.start(wichSensor)) result = true; 
+					break;
+				}
+		default: break;
+	}
+	
+	if (result) {
+		sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
+		sckOut();
+		sensors[wichSensor].enabled = true;
+		
+		// Exceptions to disable multiple interdepending sensors
+		if ( 	wichSensor == SENSOR_PM_1 || 
+			wichSensor == SENSOR_PM_25 ||
+			wichSensor == SENSOR_PM_10) {
+			sensors[SENSOR_PM_1].enabled = true;
+			sensors[SENSOR_PM_25].enabled = true;
+			sensors[SENSOR_PM_10].enabled = true;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+bool SckBase::disableSensor(SensorType wichSensor)
+{
+	bool result = false;
+	switch (sensors[wichSensor].location) {
+		case BOARD_BASE:
+		{
+			// TODO review this
+			switch (wichSensor) {
+				case SENSOR_BATT_PERCENT: result = true;
+				case SENSOR_BATT_VOLTAGE: result = true;
+				case SENSOR_BATT_CHARGE_RATE: result = true;
+				case SENSOR_VOLTIN: result = true;
+				default: break;
+			}			 
+		}
+		case BOARD_URBAN: if (urban.stop(wichSensor)) result = true; break;
+		case BOARD_AUX: if (auxBoards.stop(wichSensor)) result = true; break;
+		default: break;
+	}
+	
+	if (result) {
+		sprintf(outBuff, "Disabling %s", sensors[wichSensor].title);
+		sckOut();
+		sensors[wichSensor].enabled = false;
+
+		// Exceptions to disable multiple interdepending sensors
+		if ( 	wichSensor == SENSOR_PM_1 || 
+			wichSensor == SENSOR_PM_25 ||
+			wichSensor == SENSOR_PM_10) {
+			sensors[SENSOR_PM_1].enabled = false;
+			sensors[SENSOR_PM_25].enabled = false;
+			sensors[SENSOR_PM_10].enabled = false;
+		}
+
+		return true;
+	}
+
+	return false;
 }
 bool SckBase::getReading(SensorType wichSensor, bool wait)
 {

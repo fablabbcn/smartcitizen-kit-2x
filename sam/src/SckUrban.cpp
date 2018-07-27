@@ -1,7 +1,7 @@
 #include "SckUrban.h"
 #include "SckBase.h"
 
-bool SckUrban::begin(SckBase *base)
+bool SckUrban::setup(SckBase *base)
 {
 	uint32_t currentTime = 0;
 	if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
@@ -12,23 +12,23 @@ bool SckUrban::begin(SckBase *base)
 		if (base->sensors[thisType].location == BOARD_URBAN) {
 			if (base->sensors[thisType].enabled) {
 				switch(thisType) {
-					case SENSOR_LIGHT: 				if (!sck_bh1721fvc.begin()) return false; break;
+					case SENSOR_LIGHT: 				if (!sck_bh1721fvc.start()) return false; break;
 					case SENSOR_TEMPERATURE:
-					case SENSOR_HUMIDITY: 				if (!sck_sht31.begin()) return false; break;
+					case SENSOR_HUMIDITY: 				if (!sck_sht31.start()) return false; break;
 					case SENSOR_CO:
 					case SENSOR_CO_RESISTANCE:
 					case SENSOR_NO2:
-					case SENSOR_NO2_RESISTANCE:			if (!sck_mics4514.begin(currentTime))	return false; break;
+					case SENSOR_NO2_RESISTANCE:			if (!sck_mics4514.start(currentTime))	return false; break;
 					/* case SENSOR_NOISE_DBA: */
 					/* case SENSOR_NOISE_DBC: */
 					/* case SENSOR_NOISE_DBZ: 				if (!sck_ics43432.configure()) return false; break; */
 					case SENSOR_ALTITUDE:
 					case SENSOR_PRESSURE:
-					case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.begin()) return false; break;		
+					case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.start()) return false; break;		
 					case SENSOR_PARTICLE_RED:
 					case SENSOR_PARTICLE_GREEN:
 					case SENSOR_PARTICLE_IR:
-					case SENSOR_PARTICLE_TEMPERATURE: 		if (!sck_max30105.begin()) return false; break;
+					case SENSOR_PARTICLE_TEMPERATURE: 		if (!sck_max30105.start()) return false; break;
 					default: break;
 				}
 			} else {
@@ -54,6 +54,59 @@ bool SckUrban::begin(SckBase *base)
 	}
 	return true;
 };
+bool SckUrban::start(SensorType wichSensor)
+{
+	// TODO find a way to manage MICS start and stop time without pasing time as a parameter
+	switch(wichSensor) {
+		case SENSOR_LIGHT: 				if (sck_bh1721fvc.start()) return true; break;
+		case SENSOR_TEMPERATURE:
+		case SENSOR_HUMIDITY: 				if (sck_sht31.start()) return true; break;
+		case SENSOR_CO:
+		case SENSOR_CO_RESISTANCE:
+		case SENSOR_NO2:
+		case SENSOR_NO2_RESISTANCE:			if (sck_mics4514.start(0)) return true; break;
+		/* case SENSOR_NOISE_DBA: */
+		/* case SENSOR_NOISE_DBC: */
+		/* case SENSOR_NOISE_DBZ: 				if (!sck_ics43432.configure()) return false; break; */
+		case SENSOR_ALTITUDE:
+		case SENSOR_PRESSURE:
+		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.start()) return true; break;		
+		case SENSOR_PARTICLE_RED:
+		case SENSOR_PARTICLE_GREEN:
+		case SENSOR_PARTICLE_IR:
+		case SENSOR_PARTICLE_TEMPERATURE: 		if (sck_max30105.start()) return true; break;
+		default: break;
+	}
+
+	return false;
+}
+bool SckUrban::stop(SensorType wichSensor)
+{
+
+	// TODO find a way to manage MICS start and stop time without pasing time as a parameter
+	switch(wichSensor) {
+		case SENSOR_LIGHT: 				if (sck_bh1721fvc.stop()) return true; break;
+		case SENSOR_TEMPERATURE:
+		case SENSOR_HUMIDITY: 				if (sck_sht31.stop()) return true; break;
+		case SENSOR_CO:
+		case SENSOR_CO_RESISTANCE:
+		case SENSOR_NO2:
+		case SENSOR_NO2_RESISTANCE:			if (sck_mics4514.stop(0)) return true; break;
+		/* case SENSOR_NOISE_DBA: */
+		/* case SENSOR_NOISE_DBC: */
+		/* case SENSOR_NOISE_DBZ: 				if (!sck_ics43432.configure()) return false; break; */
+		case SENSOR_ALTITUDE:
+		case SENSOR_PRESSURE:
+		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.stop()) return true; break;		
+		case SENSOR_PARTICLE_RED:
+		case SENSOR_PARTICLE_GREEN:
+		case SENSOR_PARTICLE_IR:
+		case SENSOR_PARTICLE_TEMPERATURE: 		if (sck_max30105.stop()) return true; break;
+		default: break;
+	}
+
+	return false;
+}
 
 String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 {
@@ -122,7 +175,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 }
 
 // Light
-bool Sck_BH1721FVC::begin()
+bool Sck_BH1721FVC::start()
 {
 	return true;
 }
@@ -256,7 +309,7 @@ Sck_SHT31::Sck_SHT31(TwoWire *localWire)
 {
 	_Wire = localWire;
 }
-bool Sck_SHT31::begin()
+bool Sck_SHT31::start()
 {
 	_Wire->begin();
 	_Wire->beginTransmission(address);
@@ -355,7 +408,7 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 }
 
 // Gases
-bool Sck_MICS4514::begin(uint32_t startTime)
+bool Sck_MICS4514::start(uint32_t startTime)
 {
 	if (heaterRunning) return true;
 
@@ -613,7 +666,7 @@ byte Sck_MICS4514::readI2C(int deviceaddress, byte address)
 
 
 // Barometric pressure and Altitude
-bool Sck_MPL3115A2::begin()
+bool Sck_MPL3115A2::start()
 {
 
 	if (Adafruit_mpl3115A2.begin()) return true;
@@ -661,7 +714,7 @@ bool Sck_MPL3115A2::getTemperature(bool wait)
 }
 
 // Dust Particles
-bool Sck_MAX30105::begin()
+bool Sck_MAX30105::start()
 {
 
 	if (sparkfun_max30105.begin()) return true;

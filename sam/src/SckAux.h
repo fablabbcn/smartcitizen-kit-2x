@@ -59,7 +59,8 @@ class AuxBoards
 				0x61		// SENSOR_ATLAS_DO_SAT,
 		};
 
-		bool begin(SensorType wichSensor);
+		bool start(SensorType wichSensor);
+		bool stop(SensorType wichSensor);
 		float getReading(SensorType wichSensor);
 		bool getBusyState(SensorType wichSensor);
 		String control(SensorType wichSensor, String command);
@@ -73,7 +74,8 @@ class GrooveI2C_ADC
 {
 	public:
 
-		bool begin();
+		bool start();
+		bool stop();
 		float getReading();
 
 		const byte deviceAddress 	= 0x59;
@@ -99,7 +101,8 @@ class INA219
 		enum typeOfReading {BUS_VOLT, SHUNT_VOLT, CURRENT, LOAD_VOLT};
 
 		Adafruit_INA219 ada_ina219 = Adafruit_INA219(deviceAddress);
-		bool begin();
+		bool start();
+		bool stop();
 		float getReading(typeOfReading wichReading=CURRENT);
 
 	private:
@@ -213,7 +216,8 @@ class Groove_OLED
 
 		U8G2_SSD1327_SEEED_96X96_F_HW_I2C U8g2_oled = U8G2_SSD1327_SEEED_96X96_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL, SDA);
 
-		bool begin();
+		bool start();
+		bool stop();
 		void print(String payload);
 		void displayReading(String title, String reading, String unit, String time);
 
@@ -240,7 +244,8 @@ class WaterTemp_DS18B20
 		uint8_t conf =0x05;
 
 		/* Start the transmission of data for the DS18B20 trough the DS2482_100 bridge */
-		bool begin();
+		bool start();
+		bool stop();
 		/* Read the temperature of the DS18B20 through the DS2482_100 bridge */
 		/* @return Temperature */
 		float getReading();
@@ -294,8 +299,9 @@ class Atlas
 
 		}
 
-		bool begin();
+		bool start();
 		bool beginDone = false;
+		bool stop();
 		float getReading();
 		bool getBusyState();
 
@@ -335,10 +341,11 @@ class PMsensor
 		uint16_t readingPM25;
 		uint16_t readingPM10;
 
-		bool begin();
+		bool start();
+		bool stop();
 		float getReading(uint8_t wichReading);
 	private:
-		bool alreadyStarted = false;
+		bool started = false;
 		PMslot slot;
 		uint8_t values[6];		// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
 };

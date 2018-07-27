@@ -154,11 +154,9 @@ void sensorConfig_com(SckBase* base, String parameters)
 			base->sckOut("ERROR sensor not found");
 			return;
 		} else if (parameters.indexOf("-enable") >=0) {
-			msg = "Enabling ";
-			base->sensors[sensorToChange].enabled = true;
+			base->enableSensor(sensorToChange);
 		} else if (parameters.indexOf("-disable") >=0) {
-			base->sensors[sensorToChange].enabled = false;
-			msg = "Disabling ";
+			base->disableSensor(sensorToChange);
 		} else if (parameters.indexOf("-interval") >=0) {
 			msg = "Changing interval of ";
 			sensorIndex = parameters.indexOf(" ", parameters.indexOf("-interval"));

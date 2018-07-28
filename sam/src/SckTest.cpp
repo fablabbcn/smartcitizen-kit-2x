@@ -6,6 +6,18 @@
 void SckTest::test_full()
 {
 
+	// Enable sensors for test
+	/* testBase->enableSensor(SENSOR_CO_RESISTANCE); */
+	/* testBase->enableSensor(SENSOR_NO2_RESISTANCE); */
+	testBase->enableSensor(SENSOR_TEMPERATURE);
+	testBase->enableSensor(SENSOR_HUMIDITY);
+	testBase->enableSensor(SENSOR_LIGHT);
+	testBase->enableSensor(SENSOR_PRESSURE);
+	testBase->enableSensor(SENSOR_PARTICLE_RED);
+	testBase->enableSensor(SENSOR_PARTICLE_GREEN);
+	testBase->enableSensor(SENSOR_PARTICLE_IR);
+
+
 	// Make sure al results are 0
 	for (uint8_t i=0; i<TEST_COUNT; i++) {
 		test_report.tests[i] = 0;
@@ -117,7 +129,6 @@ void SckTest::test_button()
 
 bool SckTest::test_battery()
 {
-	// TODO finish this and avoid repetitions...
 	SerialUSB.println("\r\nTesting battery level");
 
 	if (!testBase->getReading(SENSOR_BATT_PERCENT)) {
@@ -131,7 +142,27 @@ bool SckTest::test_battery()
 		test_report.tests[TEST_BATT_GAUGE] = testBase->sensors[SENSOR_BATT_PERCENT].reading.toFloat();
 	}
 
-	SerialUSB.println(test_report.tests[TEST_BATT_GAUGE]);
+	if (!testBase->getReading(SENSOR_BATT_CHARGE_RATE)) {
+		SerialUSB.println("ERROR no battery charge rate detected!!");
+		return false;
+	} else {
+		test_report.tests[TEST_BATT_CHG_RATE] = testBase->sensors[SENSOR_BATT_CHARGE_RATE].reading.toFloat();
+	}
+
+	if (!testBase->charger.getChargeStatus() == testBase->charger.CHRG_FAST_CHARGING) {
+		SerialUSB.println("ERROR battery is not charging!!");
+		return false;
+	} else {
+		test_report.tests[TEST_BATT_CHG] = 1;
+	}
+
+	SerialUSB.print(test_report.tests[TEST_BATT_GAUGE]);
+	SerialUSB.println(" %");
+	SerialUSB.print("charging at: ");
+	SerialUSB.print(test_report.tests[TEST_BATT_CHG_RATE]);
+	SerialUSB.println(" mA");
+	SerialUSB.print("Charger status: ");
+	SerialUSB.println(testBase->charger.chargeStatusTitles[testBase->charger.getChargeStatus()]);
 	SerialUSB.println("Battery gauge test finished OK");
 	return true;
 }
@@ -288,7 +319,7 @@ bool SckTest::test_Light()
 
 bool SckTest::test_Pressure()
 {
-	SerialUSB.println("\r\nTesting Pressures sensor...");
+	SerialUSB.println("\r\nTesting Pressure sensor...");
 
 	if (!testBase->getReading(SENSOR_PRESSURE)) { 
 		SerialUSB.println("ERROR reading Barometric Pressure sensor");
@@ -301,8 +332,23 @@ bool SckTest::test_Pressure()
 
 bool SckTest::test_MAX()
 {
-	// TODO finish this
+	SerialUSB.println("\r\nTesting Dust sensor...");
 	
+	if (!testBase->getReading(SENSOR_PARTICLE_RED)) { 
+		SerialUSB.println("ERROR reading Dust Red channel sensor");
+		return false;
+	} else test_report.tests[TEST_MAX_RED] = testBase->sensors[SENSOR_PARTICLE_RED].reading.toFloat();
+
+	if (!testBase->getReading(SENSOR_PARTICLE_GREEN)) { 
+		SerialUSB.println("ERROR reading Dust Green channel sensor");
+		return false;
+	} else test_report.tests[TEST_MAX_GREEN] = testBase->sensors[SENSOR_PARTICLE_GREEN].reading.toFloat();
+
+	if (!testBase->getReading(SENSOR_PARTICLE_IR)) { 
+		SerialUSB.println("ERROR reading Dust InfraRed channel sensor");
+		return false;
+	} else test_report.tests[TEST_MAX_IR] = testBase->sensors[SENSOR_PARTICLE_IR].reading.toFloat();
+
 	SerialUSB.println("MAX dust sensor reading test finished OK");
 	return true;
 }

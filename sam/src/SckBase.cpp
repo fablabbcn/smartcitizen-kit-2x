@@ -1189,7 +1189,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 {
 
 	sensors[wichSensor].valid = false;
-	String result = "none";
+	String result = "null";
 	sensors[wichSensor].lastReadingTime = rtc.getEpoch();
 
 	switch (sensors[wichSensor].location) {
@@ -1237,7 +1237,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 		case BOARD_URBAN:
 		{
 				result = urban.getReading(this, wichSensor, wait);
-				if (result.startsWith("none")) return false;
+				if (result.startsWith("null")) return false;
 				break;
 		}
 		case BOARD_AUX:
@@ -1382,7 +1382,7 @@ bool SckBase::sdPublish()
 					timeSet = true;
 				}
 				postFile.file.print(",");
-				if (!sensors[wichSensor].reading.startsWith("none")) postFile.file.print(sensors[wichSensor].reading);
+				if (!sensors[wichSensor].reading.startsWith("null")) postFile.file.print(sensors[wichSensor].reading);
 			}
 		}
 		postFile.file.println("");

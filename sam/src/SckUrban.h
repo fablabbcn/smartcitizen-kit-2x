@@ -21,6 +21,13 @@
 // * Barometric pressure - MPL3115 -> (0x60)
 // * Dust Particles - MAX30105 -> (0x57)
 
+// Pins
+const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_5;
+const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_3;
+const uint8_t pinPM_SERIAL_RX = pinBOARD_CONN_9;
+const uint8_t pinPM_SERIAL_TX = pinBOARD_CONN_11;
+const uint8_t pinPM_ENABLE = pinBOARD_CONN_7; 		// HIGH Enable PMS power
+
 enum SensorState
 {
 	SENSOR_BUSY,
@@ -77,13 +84,15 @@ class Sck_SHT31
 };
 
 // Gases CO and NO2
-struct calSub {
+struct calSub
+{
 	double fac1;
 	uint32_t ind1;
 	double fac2;
 	uint32_t ind2;
 };
-struct calData {
+struct calData
+{
 	bool valid = false;
 	double A;
 	calSub gas;
@@ -98,7 +107,6 @@ class Sck_MICS4514
 	private:
 
 		// Carbon Monoxide
-		const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_5;		// PA8 - HEAT_CO TODO check this 
 		const float dutyCycle_CO = 100 - 88.5;
 		// Se requieren 2.724v del hex inverter para tener 2.4v en el heater CO (calculados con el divisor 10 y 74 ohms)
 		// Esto deberia ser 100 - 82.54 %
@@ -106,7 +114,6 @@ class Sck_MICS4514
 		const uint8_t CO_ADC_CHANN = 2;
 		
 		// Nitrogen Dioxide
-		const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_3;		// PA9 - HEAT_NO2 TODO check this
 		const float dutyCycle_NO2 = 100.0 - 65.7;
 		// Se requieren 1.96v del hex inverter para tener 1.7v en el heater NO2 (calculados con el divisor de 10 y 66 ohms)
 		// Esto deberia ser 100 - 59.39 % pero experimentalmente da 65.7% (6.31% mas de lo calculado)
@@ -210,6 +217,30 @@ class Sck_MAX30105
 		bool getTemperature(bool wait=true);	// NOT WORKING!!! (sparkfun lib)
 };
 
+//PM sensors
+class Sck_PM
+{
+	private:
+
+		bool started = false;
+		uint32_t lastReading = 0;
+		uint8_t values[6] = {0,0,0,0,0,0};	// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
+
+		static const uint8_t buffLong = 23;
+		unsigned char buff[buffLong];
+
+	public:
+		// Readings
+		uint16_t pm1;
+		uint16_t pm25;
+		uint16_t pm10;
+
+		bool start();
+		bool stop();
+		bool update();
+		bool reset();
+};
+
 class SckBase;
 
 class SckUrban
@@ -245,5 +276,8 @@ class SckUrban
 
 		// Dust Particles
 		Sck_MAX30105 sck_max30105;
+
+		// PM sensor
+		Sck_PM sck_pm;
 };
 

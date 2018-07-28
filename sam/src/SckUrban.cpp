@@ -1,6 +1,13 @@
 #include "SckUrban.h"
 #include "SckBase.h"
 
+// Hardware Serial UART PM
+Uart SerialPM (&sercom5, pinPM_SERIAL_RX, pinPM_SERIAL_TX, SERCOM_RX_PAD_1, UART_TX_PAD_0);
+void SERCOM5_Handler() {
+	SerialPM.IrqHandler();
+}
+
+	
 bool SckUrban::setup(SckBase *base)
 {
 	uint32_t currentTime = 0;
@@ -29,6 +36,9 @@ bool SckUrban::setup(SckBase *base)
 					case SENSOR_PARTICLE_GREEN:
 					case SENSOR_PARTICLE_IR:
 					case SENSOR_PARTICLE_TEMPERATURE: 		if (!sck_max30105.start()) return false; break;
+					case SENSOR_PM_1:
+					case SENSOR_PM_25:
+					case SENSOR_PM_10: 				if (!sck_pm.start()) return false; break;
 					default: break;
 				}
 			} else {
@@ -102,6 +112,9 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_PARTICLE_GREEN:
 		case SENSOR_PARTICLE_IR:
 		case SENSOR_PARTICLE_TEMPERATURE: 		if (sck_max30105.stop()) return true; break;
+		case SENSOR_PM_1:
+		case SENSOR_PM_25:
+		case SENSOR_PM_10: 				if (sck_pm.stop()) return true; break;
 		default: break;
 	}
 
@@ -150,10 +163,13 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 		case SENSOR_PARTICLE_GREEN:		if (sck_max30105.getGreen(wait)) return String(sck_max30105.greenChann); break;
 		case SENSOR_PARTICLE_IR:		if (sck_max30105.getIR(wait)) return String(sck_max30105.IRchann); break;
 		case SENSOR_PARTICLE_TEMPERATURE:	if (sck_max30105.getTemperature(wait)) return String(sck_max30105.temperature); break;
+		case SENSOR_PM_1: 			if (sck_pm.update()) return String(sck_pm.pm1); break;
+		case SENSOR_PM_25: 			if (sck_pm.update()) return String(sck_pm.pm25); break;
+		case SENSOR_PM_10: 			if (sck_pm.update()) return String(sck_pm.pm10); break;
 		default: break;
 	}
 
-	return "none";
+	return "null";
 }
 bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 {
@@ -771,3 +787,70 @@ bool Sck_MAX30105::getTemperature(bool wait)
 	return true;
 }
 
+// PM sensor
+bool Sck_PM::start()
+{
+	digitalWrite(pinPM_ENABLE, HIGH);
+	SerialPM.begin(9600);
+	started = true;
+
+	return true;
+}
+bool Sck_PM::stop()
+{
+	digitalWrite(pinPM_ENABLE, LOW);
+	started = false;
+
+	return true;
+}
+bool Sck_PM::update()
+{
+	// TODO test correlation between this readings and turning of the fan between readings 
+	// implement a simple way to turn off PM sensor between readings
+	
+	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
+
+	// Empty serial buffer
+	while(SerialPM.available()) SerialPM.read();
+	
+	// Wait for new readings
+	uint32_t startPoint = millis();
+	while(SerialPM.available() < 25) if (millis() - startPoint > 1000) break; 
+
+	while(SerialPM.available()) {
+
+		byte sb = 0;
+		sb = SerialPM.read();
+
+		SerialUSB.println(sb);
+
+		if (sb == 0x42) {
+			SerialPM.readBytes(buff, buffLong);
+			if (buff[0] == 0x4d) {
+
+				values[0] = buff[3];
+				values[1] = buff[4];
+				values[2] = buff[5];
+				values[3] = buff[6];
+				values[4] = buff[7];
+				values[5] = buff[8];
+
+				pm1 = (buff[3]<<8) + buff[4];
+				pm25 = (buff[5]<<8) + buff[6];
+				pm10 = (buff[7]<<8) + buff[8];
+
+				lastReading = millis();
+
+				return true;
+			}
+		}
+	}
+	return false;
+}
+bool Sck_PM::reset()
+{
+	digitalWrite(pinPM_ENABLE, LOW);
+	delay(200);
+	digitalWrite(pinPM_ENABLE, HIGH);
+	return true;
+}

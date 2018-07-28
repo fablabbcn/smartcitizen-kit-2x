@@ -39,6 +39,9 @@ enum SensorType
 	SENSOR_PARTICLE_GREEN,
 	SENSOR_PARTICLE_IR,
 	SENSOR_PARTICLE_TEMPERATURE,
+	SENSOR_PM_1,
+	SENSOR_PM_25,
+	SENSOR_PM_10,
 
 	// I2C Auxiliary Sensors
 	SENSOR_GASESBOARD_SLOT_1A,
@@ -67,9 +70,9 @@ enum SensorType
 	SENSOR_ATLAS_DO,
 	SENSOR_ATLAS_DO_SAT,
 
-	SENSOR_PM_1,
-	SENSOR_PM_25,
-	SENSOR_PM_10,
+	SENSOR_EXT_PM_1,
+	SENSOR_EXT_PM_25,
+	SENSOR_EXT_PM_10,
 	
 	SENSOR_SHT31_TEMP,
 	SENSOR_SHT31_HUM,
@@ -157,6 +160,10 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_GREEN,			"DUST_GREEN",		"Dust particle Green Channel",	 		0,		false,		false,			},
 			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_IR,			"DUST_IR",		"Dust particle InfraRed Channel",	 	0,		false,		false,			},
 			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_TEMPERATURE,		"DUST_TEMP",		"Dust particle internal temperature",		0,		false,		false,			"C"},
+			OneSensor { BOARD_URBAN,		SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		false,			"ug/m3"},
+			OneSensor { BOARD_URBAN,		SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		false,			"ug/m3"},
+			OneSensor { BOARD_URBAN,		SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		false,			"ug/m3"},
+
 
 			// I2C Auxiliary Sensors
 			// SCK Gases Board for Alphasense (3 Gas sensor Slots, + SHT31 Temp-Humidity)
@@ -188,9 +195,9 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO,			"AS_DO",		"Atlas Dissolved Oxygen",			48,		false,		true,			"mg/L"},
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,			"AS_DO_SAT",		"Atlas DO Saturation",				49,		false,		true,			"%"},
 
-			OneSensor { BOARD_AUX,			SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		false,		false,			"ug/m3"},
-			OneSensor { BOARD_AUX,			SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		false,		false,			"ug/m3"},
-			OneSensor { BOARD_AUX,			SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_1,			"EXT_PM_1",		"External PM 1.0",				89,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_25,			"EXT_PM_25",		"External PM 2.5",				87,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_10,			"EXT_PM_10",		"External PM 10.0",				88,		false,		false,			"ug/m3"},
 
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"EXT_TEMP",		"External Temperature",				0,		false,		false,			"C"},
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"EXT_HUM",		"External Humidity",				0,		false,		false,			"%"},

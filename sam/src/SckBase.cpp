@@ -84,6 +84,7 @@ void SckBase::setup()
 	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
 
 #ifdef gasesBoardTest
+	// TODO verify led blinking...
 	if (gasesBoardTest == 1) {
 		ESPcontrol(ESP_OFF);
 		sckOut("Starting Gases Pro Board automated test...", PRIO_HIGH);

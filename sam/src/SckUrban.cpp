@@ -822,8 +822,6 @@ bool Sck_PM::update()
 		byte sb = 0;
 		sb = SerialPM.read();
 
-		SerialUSB.println(sb);
-
 		if (sb == 0x42) {
 			SerialPM.readBytes(buff, buffLong);
 			if (buff[0] == 0x4d) {

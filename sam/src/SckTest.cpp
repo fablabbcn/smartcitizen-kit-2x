@@ -72,6 +72,9 @@ void SckTest::test_full()
 
 	// Test MAX dust sensor
 	if (!test_MAX()) error = true;
+
+	// Test PM sensor
+	if (!test_PM()) error = true;
 		
 
 	SerialUSB.println("\r\n********************************");
@@ -367,8 +370,21 @@ bool SckTest::test_PM()
 {
 	SerialUSB.println("\r\nTesting PM sensor...");
 
-	// TODO finish this 
-	test_report.tests[TEST_PM] = 1;
+	if (!testBase->getReading(SENSOR_PM_1)) {
+		SerialUSB.println("ERROR reading PM 1 sensor!!!");
+		return false;
+	} else test_report.tests[TEST_PM_1] = testBase->sensors[SENSOR_PM_1].reading.toFloat();
+
+	if (!testBase->getReading(SENSOR_PM_25)) {
+		SerialUSB.println("ERROR reading PM 2.5 sensor!!!");
+		return false;
+	} else test_report.tests[TEST_PM_25] = testBase->sensors[SENSOR_PM_25].reading.toFloat();
+
+	if (!testBase->getReading(SENSOR_PM_10)) {
+		SerialUSB.println("ERROR reading PM 10 sensor!!!");
+		return false;
+	} else test_report.tests[TEST_PM_10] = testBase->sensors[SENSOR_PM_10].reading.toFloat();
+
 	SerialUSB.println("PMS reading test finished OK");
 	return true;
 }

@@ -186,9 +186,9 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO,			"AS_DO",		"Atlas Dissolved Oxygen",			48,		false,		true,			"mg/L"},
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,			"AS_DO_SAT",		"Atlas DO Saturation",				49,		false,		true,			"%"},
 
-			OneSensor { BOARD_AUX,			SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		false,		false,			"ug/m3"},
-			OneSensor { BOARD_AUX,			SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		false,		false,			"ug/m3"},
-			OneSensor { BOARD_AUX,			SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		false,		true,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		false,		true,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		false,		true,			"ug/m3"},
 
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"EXT_TEMP",		"External Temperature",				0,		false,		false,			"C"},
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"EXT_HUM",		"External Humidity",				0,		false,		false,			"%"},

@@ -2,7 +2,6 @@
 
 void SckCharger::setup()
 {
-
 	pinMode(pinCHARGER_INT, INPUT_PULLUP);
 
 	resetConfig();

@@ -152,8 +152,7 @@ class SckBase
 		// Power
 		uint16_t battCapacity = 2000;
 		bool batteryPresent = false;
-		bool onUSB = true;
-		bool battPresent();
+		bool onUSB = true;		
 		uint8_t battAdress = 0x55;
 		bool battSetup();
 		bool battConfigured = false;
@@ -248,6 +247,7 @@ class SckBase
 		volatile bool chargerPendingEvent = false;
 		void chargerEvent();
 		void sck_reset();
+		bool battPresent();
 		void batteryEvent();
 		void batteryReport();
 

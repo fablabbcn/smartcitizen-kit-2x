@@ -290,7 +290,7 @@ void freeRAM_com(SckBase* base, String parameters)
 }
 void battReport_com(SckBase* base, String parameters)
 {
-
+	if (parameters.startsWith("-present")) base->battPresent();
 	base->batteryReport();
 }
 void i2cDetect_com(SckBase* base, String parameters)

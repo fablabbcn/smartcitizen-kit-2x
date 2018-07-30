@@ -161,7 +161,6 @@ void SckBase::update()
 // **** Mode Control
 void SckBase::reviewState()
 {
-
 	if (pendingSyncConfig) {
 		sendConfig();
 		return;
@@ -928,28 +927,62 @@ void SckBase::flashSelect()
 // **** Power
 bool SckBase::battPresent()
 {
-	Wire.beginTransmission(battAdress);
-	uint8_t error = Wire.endTransmission();
+	SerialUSB.print("charge status: ");
+	SerialUSB.println(charger.getChargeStatus());
 
-	if (error == 0) return true;
-	else {
-		
-		// TODO check if this is really necesary
-		// Try to wake up the gauge
-		sckOut("trying to wake up battery gauge...");
-		pinMode(pinGAUGE_INT, OUTPUT);
-		digitalWrite(pinGAUGE_INT, LOW);
-		delay(1);
-		digitalWrite(pinGAUGE_INT, HIGH);
-		delay(1);
-		pinMode(pinGAUGE_INT, INPUT_PULLUP);
+	// First check pinBATT_INSERTION
+	uint32_t valueRead = 0;
+	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+	ADC->INPUTCTRL.bit.MUXPOS = ADC_Channel6; 	// Selection for the positive ADC input
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+	ADC->CTRLA.bit.ENABLE = 0x01;             	// Enable ADC
+	while (ADC->STATUS.bit.SYNCBUSY == 1); 		// Start conversion
+	ADC->SWTRIG.bit.START = 1;
+	ADC->INTFLAG.reg = ADC_INTFLAG_RESRDY; 		// Clear the Data Ready flag
+	while (ADC->STATUS.bit.SYNCBUSY == 1);		// Start conversion again, since The first conversion after the reference is changed must not be used.
+	ADC->SWTRIG.bit.START = 1;
+	while (ADC->INTFLAG.bit.RESRDY == 0);   	// Waiting for conversion to complete
+	valueRead = ADC->RESULT.reg;			// Store the value
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+	ADC->CTRLA.bit.ENABLE = 0x00;             	// Disable ADC
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+
+	SerialUSB.print("pin BATT insertion analog: ");
+	SerialUSB.println(valueRead);
+
+	if (valueRead < 400) {
 		Wire.beginTransmission(battAdress);
 		uint8_t error = Wire.endTransmission();
-		if (error == 0) return true;
 
+		if (error == 0) return true;
+		else {
+			// TODO check if this is really necesary
+			// Try to wake up the gauge
+			sckOut("trying to wake up battery gauge...");
+			pinMode(pinGAUGE_INT, OUTPUT);
+			digitalWrite(pinGAUGE_INT, LOW);
+			delay(1);
+			digitalWrite(pinGAUGE_INT, HIGH);
+			delay(1);
+			pinMode(pinGAUGE_INT, INPUT_PULLUP);
+			Wire.beginTransmission(battAdress);
+			uint8_t error = Wire.endTransmission();
+			if (error == 0) return true;
+			battConfigured = false;
+			batteryPresent = false;
+			return false;
+		}
+	} else {
+		batteryPresent = false;
 		battConfigured = false;
 		return false;
 	}
+
+	
+
+	batteryPresent = true;
+	return true;
 }
 bool SckBase::battSetup()
 {
@@ -980,7 +1013,7 @@ bool SckBase::battSetup()
 }
 void SckBase::batteryEvent()
 {
-	/* sckOut("Battery event", PRIO_LOW); */
+	sckOut("Battery event", PRIO_LOW);
 	battPendingEvent = false;
 	if (!battSetup()) return;
 
@@ -1014,10 +1047,11 @@ void SckBase::chargerEvent()
 	sckOut("Charger event", PRIO_LOW);
 	chargerPendingEvent = false;
 
-	if (!battPresent()) {
-		sckOut("Battery removed!!");
-		charger.chargeState(0);
-	} else if (charger.getChargeStatus() == charger.CHRG_CHARGE_TERM_DONE) {
+	/* if (!battPresent()) { */
+		/* sckOut("Battery removed!!"); */
+		/* charger.chargeState(0); */
+	/* } else */ 
+	if (charger.getChargeStatus() == charger.CHRG_CHARGE_TERM_DONE) {
 		sckOut("Batterry fully charged!!");
 		charger.chargeState(0);
 	}

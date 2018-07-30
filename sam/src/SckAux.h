@@ -320,11 +320,11 @@ class Atlas
 enum PMslot {SLOT_A, SLOT_B, SLOT_AVG};
 enum PMcommands
 {
-         PM_START,          // Start both PMS
-         GET_PMA,        // Get values for PMS in slot A
-         GET_PMB,        // Get values for PMS in slot A
-         GET_PM_AVG,     // Get values for both PMS averaged
-         PM_STOP            // Stop both PMS
+	PM_START,          // Start both PMS
+	GET_PMA,        // Get values for PMS in slot A
+	GET_PMB,        // Get values for PMS in slot A
+	GET_PM_AVG,     // Get values for both PMS averaged
+	PM_STOP,            // Stop both PMS
  };
 
 class PMsensor

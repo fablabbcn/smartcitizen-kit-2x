@@ -261,16 +261,17 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
 		case SENSOR_PM_10: {
-			
 			if (command.startsWith("stop")) {
 				
-				pmSensor.stop();
+				if (pmSensor.stop()) return ("Stoping PM sensors...");
+				else return ("Failed stoping PM sensor!!");
 
 			} else if (command.startsWith("start")) {
 			    
-				pmSensor.start();
+				if (pmSensor.start()) return ("Starting PM sensors...");
+				else return ("Failed starting PM sensor!!");
 			    
-			}
+			} 
 			break;
 		} default: return "Unrecognized sensor!!!"; break;
 	}
@@ -791,7 +792,7 @@ float PMsensor::getReading(uint8_t wichReading)
 		case 10: return readingPM10; break;
 	}
 
-	return 0;
+	return -9999;
 }
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )

@@ -794,15 +794,30 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				sckOut("Received new config from ESP");
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);
-				uint8_t intMode = json["mo"];
-				SCKmodes wichMode = static_cast<SCKmodes>(intMode);
-				config.mode = wichMode;
-				config.publishInterval = json["pi"];
-				config.credentials.set = json["cs"];
-				strcpy(config.credentials.ssid, json["ss"]);
-				strcpy(config.credentials.pass, json["pa"]);
-				config.token.set = json["ts"];
-				strcpy(config.token.token, json["to"]);
+
+				json.printTo(SerialUSB);
+
+				if (json.containsKey("mo")) {
+					String stringMode = json["mo"];
+					if (stringMode.startsWith("net")) config.mode = MODE_NET;
+					else if (stringMode.startsWith("sd")) config.mode = MODE_SD;
+				} else config.mode = MODE_NOT_CONFIGURED;
+
+				if (json.containsKey("pi")) config.publishInterval = json["pi"];
+				else config.publishInterval = default_publish_interval;
+
+				if (json.containsKey("ss")) {
+					config.credentials.set = true;
+					strcpy(config.credentials.ssid, json["ss"]);
+					if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
+				} else config.credentials.set = false;
+				
+
+				if (json.containsKey("to")) {
+					config.token.set = true;
+					strcpy(config.token.token, json["to"]);
+				} else config.token.set = false;
+
 				st.helloPending = true;
 				saveConfig();
 				break;

@@ -26,5 +26,5 @@ struct Configuration {
 	uint32_t readInterval = default_publish_interval; 		// in seconds
 	Credentials credentials;
 	Token token;
-	SensorConfig sensors[SENSOR_COUNT]; 				// Not used on ESP
+	SensorConfig sensors[SENSOR_COUNT];
 };

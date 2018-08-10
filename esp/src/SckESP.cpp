@@ -186,14 +186,8 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 
 	case ESPMES_SET_CONFIG:
 	{
-
-			// TODO put this in a reusable function
 			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 			JsonObject& json = jsonBuffer.parseObject(netBuff);
-			uint8_t intMode = json["mo"];
-			SCKmodes wichMode = static_cast<SCKmodes>(intMode);
-			config.mode = wichMode;
-			config.publishInterval = json["pi"];
 			config.credentials.set = json["cs"];
 			strcpy(config.credentials.ssid, json["ss"]);
 			strcpy(config.credentials.pass, json["pa"]);
@@ -202,7 +196,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 
 			saveConfig(config);
 			break;
-
 	}
 	case ESPMES_GET_NETINFO:
 
@@ -382,28 +375,6 @@ bool SckESP::sendTime()
 	}
 	return true;
 }
-bool SckESP::sendConfig()
-{
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
-
-	json["mo"] = (uint8_t)config.mode;
-	json["pi"] = config.publishInterval;
-	json["cs"] = (uint8_t)config.credentials.set;
-	json["ss"] = config.credentials.ssid;
-	json["pa"] = config.credentials.pass;
-	json["ts"] = (uint8_t)config.token.set;
-	json["to"] = config.token.token;
-
-	sprintf(netBuff, "%c", SAMMES_SET_CONFIG);
-	json.printTo(&netBuff[1], json.measureLength() + 1);
-	if (sendMessage()) {
-		debugOUT(F("Sent configuration to SAM!!"));
-		return true;
-	}
-	debugOUT(F("ERROR Failed to send config to SAM!!!"));
-	return false;
-}
 
 // **** APmode and WebServer
 void SckESP::startAP()
@@ -564,17 +535,14 @@ void SckESP::webSet()
 	if (webServer.hasArg("mode")) {
 		String stringMode = webServer.arg("mode");
 		if (stringMode.equals("sdcard")) {
-			config.mode = MODE_SD;
 			json += "\"mode\":\"true\",";
-			jsonConf["mo"] = (uint8_t)MODE_SD;
+			jsonConf["mo"] = "sd";
 			debugOUT(F("Mode set to sdcard from apmode web!!!"));
 		} else if (stringMode.equals("network")) {
 			json += "\"mode\":\"true\",";
-			config.mode = MODE_NET;
-			jsonConf["mo"] = (uint8_t)MODE_NET;
+			jsonConf["mo"] = "net";
 			debugOUT(F("Mode set to network from apmode web!!!"));
 		} else {
-			config.mode = MODE_NOT_CONFIGURED;
 			json += "\"mode\":\"false\",";
 			debugOUT(F("Invalid mode from apmode web!!!"));
 		}
@@ -626,9 +594,8 @@ void SckESP::webSet()
 		String tinterval = webServer.arg("pubint");
 		uint32_t intTinterval = tinterval.toInt();
 
-		if (intTinterval < max_publish_interval && intTinterval > minimal_publish_interval) {
-			config.publishInterval = intTinterval;
-			jsonConf["ri"] = config.publishInterval;
+		if (intTinterval > 0) {
+			jsonConf["pi"] = intTinterval;
 			json += "\"pubint\":\"true\"";
 			debugOUT(F("Publish interval changed from apmode web!!!"));
 		} else {
@@ -641,7 +608,12 @@ void SckESP::webSet()
 	}
 	json += "\"pubint\":\"false\"";
 	
-	sendConfig();
+	sprintf(netBuff, "%c", SAMMES_SET_CONFIG);
+	jsonConf.printTo(&netBuff[1], jsonConf.measureLength() + 1);
+	if (sendMessage()) {
+		debugOUT(F("Sent configuration to SAM!!"));
+	} else debugOUT(F("ERROR Failed to send config to SAM!!!"));
+
 	webServer.send(200, "text/json", json);
 }
 bool SckESP::flashReadFile(String path)
@@ -669,12 +641,12 @@ bool SckESP::flashReadFile(String path)
 	if (SPIFFS.exists(path)) {
 	  
 		File file = SPIFFS.open(path, "r");
-		size_t sent = webServer.streamFile(file, contentType);
+		webServer.streamFile(file, contentType);
 		file.close();
 
 		return true;
 	}
-	webServer.send(404, "text/plain", "FileNotFound");
+	webServer.send(404, "text/plain", "File Not Found, maybe you need to upload ESP filesystem...");
 	return false;
 }
 bool SckESP::captivePortal()
@@ -689,8 +661,8 @@ bool SckESP::captivePortal()
 }
 bool SckESP::isIp(String str)
 {
-  for (int i = 0; i < str.length(); i++) {
-    int c = str.charAt(i);
+  for (uint8_t i=0; i<str.length(); i++) {
+    uint8_t c = str.charAt(i);
     if (c != '.' && (c < '0' || c > '9')) return false;
   }
   return true;
@@ -724,9 +696,8 @@ void SckESP::webStatus()
 		json += "\"password\":\"null\",";
 	}
 
-	if (config.mode == MODE_SD) json += "\"mode\":\"sdcard\",";
-	else if (config.mode == MODE_NET) json += "\"mode\":\"network\",";
-	else json += "\"mode\":\"not configured\",";
+	// mode
+	json +=  "\"mode\":\"wip\",";
 
 	// Hostname
 	json += "\"hostname\":\"" + String(hostname) + "\",";
@@ -800,7 +771,7 @@ void SckESP::scanAP()
 }
 
 // **** Configuration
-bool SckESP::saveConfig(Configuration newConfig)
+bool SckESP::saveConfig(ESP_Configuration newConfig)
 {
 	config = newConfig;
 	return saveConfig();
@@ -812,8 +783,6 @@ bool SckESP::saveConfig()
 
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
-	json["mo"] = (uint8_t)config.mode;
-	json["pi"] = config.publishInterval;
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
 	json["pa"] = config.credentials.pass;
@@ -847,12 +816,6 @@ bool SckESP::loadConfig()
 
 		if (json.success()) {
 
-			uint8_t intMode = json["mo"];
-			SCKmodes wichMode = static_cast<SCKmodes>(intMode);
-			config.mode = wichMode;
-
-			config.publishInterval = json["pi"];
-
 			config.credentials.set = json["cs"];
 			strcpy(config.credentials.ssid, json["ss"]);
 			strcpy(config.credentials.pass, json["pa"]);
@@ -866,7 +829,7 @@ bool SckESP::loadConfig()
 	}
 
 	debugOUT("Can't find valid configuration!!! loading defaults...");
-	Configuration newConfig;
+	ESP_Configuration newConfig;
 	config = newConfig;
 	saveConfig(config);
 	return false;

@@ -59,7 +59,7 @@ void SckTest::test_full()
 	if (!test_micsPot()) error = true;
 
 	// Test MICS ADC
-	/* if (!test_micsAdc()) error = true; */
+	if (!test_micsAdc()) error = true;
 
 	// Test SHT temp and hum
 	if (!test_SHT()) error = true;
@@ -75,7 +75,11 @@ void SckTest::test_full()
 
 	// Test PM sensor
 	if (!test_PM()) error = true;
-		
+
+	// Test auxiliary I2C bus
+	if (!test_auxWire()) error = true;
+
+	publishResult();
 
 	SerialUSB.println("\r\n********************************");
 	if (error) {
@@ -281,10 +285,16 @@ bool SckTest::test_micsAdc()
 {
 	SerialUSB.println("\r\nTesting MICS sensor...");
 
+	if (!testBase->getReading(SENSOR_CO_RESISTANCE)) {
+		SerialUSB.println("ERROR reading CO sensor");
+		return false;
+	} else test_report.tests[TEST_CARBON] = testBase->sensors[SENSOR_CO_RESISTANCE].reading.toFloat();
 	
-	// TODO finish this 
-	test_report.tests[TEST_CARBON] = 1;
-	test_report.tests[TEST_NITRO] = 1;
+	if (!testBase->getReading(SENSOR_NO2_RESISTANCE)) {
+		SerialUSB.println("ERROR reading NO2 sensor");
+		return false;
+	} else test_report.tests[TEST_NITRO] = testBase->sensors[SENSOR_NO2_RESISTANCE].reading.toFloat();
+
 	SerialUSB.println("MICS readings test finished OK");
 	return true;
 }
@@ -389,10 +399,60 @@ bool SckTest::test_PM()
 	return true;
 }
 
+bool SckTest::test_auxWire()
+{
+	SerialUSB.println("\r\nTesting auxiliary I2C bus...");
+
+	// Check if a external SHT was detected a get reading
+
+
+	SerialUSB.println("Auxiliary I2C bus test finished OK");
+	return true;
+}
+
 bool SckTest::test_ESP()
 {
+	SerialUSB.println("\r\nTesting ESP and WIFI connectivity...");
+	testBase->ESPcontrol(testBase->ESP_ON);
+	delay(250);
+
+	/* StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer; */
+	/* JsonObject& json = jsonBuffer.createObject(); */
+	/* json["cs"] = 1; */
+	/* json["ss"] = TEST_WIFI_SSID; */
+	/* json["pa"] = TEST_WIFI_PASSWD; */
+
+	/* sprintf(testBase->netBuff, "%c", ESPMES_SET_CONFIG); */
+	/* json.printTo(&testBase->netBuff[1], json.measureLength() + 1); */
+	/* while (!testBase->sendMessage()) { */
+	/* 	SerialUSB.println(testBase->netBuff); */
+	/* 	testBase->sendMessage(); */
+	/* 	delay(250); */
+	/* } */
+	/* SerialUSB.println("Sent wifi credentials to ESP"); */
+
+	strncpy(testBase->config.credentials.ssid, TEST_WIFI_SSID, 64);
+	strncpy(testBase->config.credentials.pass, TEST_WIFI_PASSWD, 64);
+	testBase->config.credentials.set = true;
+	testBase->config.mode = MODE_NET;
+	strncpy(testBase->config.token.token, "123456", 7);
+	testBase->config.token.set = true;
+	testBase->saveConfig();
+
+
+	if (testBase->pendingSyncConfig) {
+		SerialUSB.println(".");
+		testBase->sendConfig();
+		delay(500);
+	}
 
 	return true;
+}
+
+bool SckTest::publishResult()
+{
+	test_ESP();
+
 }
 
 #endif

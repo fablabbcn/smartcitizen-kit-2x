@@ -18,10 +18,10 @@ void TC5_Handler (void) {
 // Button events interrupt
 void ISR_button() {
 	base.butState = digitalRead(pinBUTTON);
-	base.butFeedback();
-
 #ifdef testing
 	sckTest.test_button();
+#else
+	base.butFeedback();
 #endif
 }
 // Battery events interrupt

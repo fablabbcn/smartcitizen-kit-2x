@@ -83,7 +83,7 @@ void SckBase::setup()
 	flash.setClock(133000);
 	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
 
-/* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this TODO complete this */
+/* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
 #ifdef autoTest
 	// TODO verify led blinking...
 	ESPcontrol(ESP_OFF);

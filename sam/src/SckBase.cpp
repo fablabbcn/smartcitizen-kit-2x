@@ -570,7 +570,7 @@ void SckBase::saveConfig(bool defaults)
 		led.update(led.PINK, led.PULSE_SOFT);
 
 	} else if (st.mode == MODE_NOT_CONFIGURED) {
-		enterSetup();	
+		enterSetup();
 	}	
 	
 	if (pendingSyncConfig) sendConfig();
@@ -833,13 +833,12 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_NETINFO:
 		{
-
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);
-				const char* tip = json["ip"];
-				const char* tmac = json["mac"];
-				const char* thostname = json["hn"];
-				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", thostname, tip, tmac);
+				ipAddress = json["ip"].as<String>();
+				macAddress = json["mac"].as<String>();
+				hostname = json["hn"].as<String>();
+				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname.c_str(), ipAddress.c_str(), macAddress.c_str());
 				sckOut();
 				break;
 

@@ -219,6 +219,9 @@ class SckBase
 		bool sendMessage(ESPMessage wichMessage, const char *content);
 		bool sendMessage(ESPMessage wichMessage);
 		bool sendMessage();
+		String ipAddress;
+		String macAddress;
+		String hostname;
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};

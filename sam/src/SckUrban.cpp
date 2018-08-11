@@ -459,6 +459,7 @@ bool Sck_MICS4514::getCOresistance()
 {
 	float sensorVoltage = getADC(CO_ADC_CHANN);
 
+	if (sensorVoltage == 0) return false;
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
 	coResistance = (((VCC - sensorVoltage) / sensorVoltage) * coLoadResistor) / 1000.0;
 	return true;

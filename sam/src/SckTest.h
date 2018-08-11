@@ -11,7 +11,7 @@ class SckTest
 	private:
 		SckBase* testBase;
 
-		bool error = false;
+		uint8_t errors = 0;
 
 		bool test_user();
 		bool test_battery();
@@ -30,7 +30,7 @@ class SckTest
 		bool test_PM();
 		bool test_auxWire();
 
-		bool test_ESP();
+		bool connect_ESP();
 		bool publishResult();
 
 		enum ButtonLed_sate { TEST_BLUE, TEST_RED, TEST_GREEN, TEST_FINISHED };

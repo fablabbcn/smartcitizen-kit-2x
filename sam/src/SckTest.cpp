@@ -25,7 +25,8 @@ void SckTest::test_full()
 
 
 	delay(2000);
-	testBase->ESPcontrol(testBase->ESP_OFF);
+	testBase->st.onShell = true;
+	testBase->ESPcontrol(testBase->ESP_ON);
 	SerialUSB.println("\r\n********************************");
 	SerialUSB.println("Starting SmartCitizenKit test...");
 
@@ -44,45 +45,49 @@ void SckTest::test_full()
 
 	// At the beginning the kit will be in static blue waiting for user clicks
 	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_STATIC);
-	if (!test_user()) error = true;
+	if (!test_user()) errors++;
 
 	// Test battery gauge
-	if (!test_battery()) error =true;
+	test_battery();
 
 	// Test SDcard
-	if (!test_sdcard()) error = true;
+	if (!test_sdcard()) errors++;
 
 	// Test Flash memory
-	if (!test_flash()) error = true;
+	if (!test_flash()) errors++;
 
 	// Test MICS POT
-	if (!test_micsPot()) error = true;
+	if (!test_micsPot()) errors++;
 
 	// Test MICS ADC
-	if (!test_micsAdc()) error = true;
+	test_micsAdc();
 
 	// Test SHT temp and hum
-	if (!test_SHT()) error = true;
+	test_SHT();
 
 	// Test Light 
-	if (!test_Light()) error = true;
+	if (!test_Light()) errors++;
 
 	// Test Pressure 
-	if (!test_Pressure()) error = true;
+	if (!test_Pressure()) errors++;
 
 	// Test MAX dust sensor
-	if (!test_MAX()) error = true;
+	test_MAX();
 
 	// Test PM sensor
-	if (!test_PM()) error = true;
+	test_PM();
 
 	// Test auxiliary I2C bus
-	if (!test_auxWire()) error = true;
+	if (!test_auxWire()) errors++;
 
-	publishResult();
+	// Test wifi connection
+	if (!connect_ESP()) errors++;
+	else {
+		publishResult();
+	}
 
 	SerialUSB.println("\r\n********************************");
-	if (error) {
+	if (errors > 0) {
 		testBase->led.update(testBase->led.RED, testBase->led.PULSE_STATIC);
 		SerialUSB.println("\r\nERROR... some tests failed!!!");
 	} else {
@@ -138,30 +143,30 @@ bool SckTest::test_battery()
 {
 	SerialUSB.println("\r\nTesting battery level");
 
-	if (!testBase->getReading(SENSOR_BATT_PERCENT)) {
+	uint8_t battErrors = errors;
+
+	if (!testBase->getReading(SENSOR_BATT_PERCENT) || testBase->sensors[SENSOR_BATT_PERCENT].reading.toFloat() < 0) {
 		SerialUSB.println("ERROR no battery detected!!");
-		return false;
+		errors ++;
 	} else {
-		if (testBase->sensors[SENSOR_BATT_PERCENT].reading.toFloat() < 0) {
-			SerialUSB.println("ERROR no battery detected!!");
-			return false;
-		}	
 		test_report.tests[TEST_BATT_GAUGE] = testBase->sensors[SENSOR_BATT_PERCENT].reading.toFloat();
 	}
 
-	if (!testBase->getReading(SENSOR_BATT_CHARGE_RATE)) {
+	if (!testBase->getReading(SENSOR_BATT_CHARGE_RATE) || testBase->sensors[SENSOR_BATT_CHARGE_RATE].reading.toFloat() <= 0) {
 		SerialUSB.println("ERROR no battery charge rate detected!!");
-		return false;
+		errors ++;
 	} else {
 		test_report.tests[TEST_BATT_CHG_RATE] = testBase->sensors[SENSOR_BATT_CHARGE_RATE].reading.toFloat();
 	}
 
-	if (!testBase->charger.getChargeStatus() == testBase->charger.CHRG_FAST_CHARGING) {
+	if (testBase->charger.getChargeStatus() != testBase->charger.CHRG_FAST_CHARGING) {
 		SerialUSB.println("ERROR battery is not charging!!");
-		return false;
+		errors ++;
 	} else {
 		test_report.tests[TEST_BATT_CHG] = 1;
 	}
+
+	if (battErrors < errors) return false;
 
 	SerialUSB.print(test_report.tests[TEST_BATT_GAUGE]);
 	SerialUSB.println(" %");
@@ -285,16 +290,18 @@ bool SckTest::test_micsAdc()
 {
 	SerialUSB.println("\r\nTesting MICS sensor...");
 
+	uint8_t adcErrors = errors;
 	if (!testBase->getReading(SENSOR_CO_RESISTANCE)) {
 		SerialUSB.println("ERROR reading CO sensor");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_CARBON] = testBase->sensors[SENSOR_CO_RESISTANCE].reading.toFloat();
 	
 	if (!testBase->getReading(SENSOR_NO2_RESISTANCE)) {
 		SerialUSB.println("ERROR reading NO2 sensor");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_NITRO] = testBase->sensors[SENSOR_NO2_RESISTANCE].reading.toFloat();
 
+	if (adcErrors < errors) return false;
 	SerialUSB.println("MICS readings test finished OK");
 	return true;
 }
@@ -303,16 +310,18 @@ bool SckTest::test_SHT()
 {
 	SerialUSB.println("\r\nTesting SHT31 sensor...");
 
+	uint8_t shtErrors = errors;
 	if (!testBase->getReading(SENSOR_TEMPERATURE)) {
 		SerialUSB.println("ERROR reading SHT31 temperature sensor");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_TEMP] = testBase->sensors[SENSOR_TEMPERATURE].reading.toFloat();
 
 	if (!testBase->getReading(SENSOR_HUMIDITY)) {
 		SerialUSB.println("ERROR reading SHT31 humidity sensor");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_HUM] = testBase->sensors[SENSOR_HUMIDITY].reading.toFloat();
 
+	if (shtErrors < errors) return false;
 	SerialUSB.println("SHT31 readings test finished OK");
 	return true;
 }
@@ -347,21 +356,23 @@ bool SckTest::test_MAX()
 {
 	SerialUSB.println("\r\nTesting Dust sensor...");
 	
+	uint8_t maxErrors = errors;
 	if (!testBase->getReading(SENSOR_PARTICLE_RED)) { 
 		SerialUSB.println("ERROR reading Dust Red channel sensor");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_MAX_RED] = testBase->sensors[SENSOR_PARTICLE_RED].reading.toFloat();
 
 	if (!testBase->getReading(SENSOR_PARTICLE_GREEN)) { 
 		SerialUSB.println("ERROR reading Dust Green channel sensor");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_MAX_GREEN] = testBase->sensors[SENSOR_PARTICLE_GREEN].reading.toFloat();
 
 	if (!testBase->getReading(SENSOR_PARTICLE_IR)) { 
 		SerialUSB.println("ERROR reading Dust InfraRed channel sensor");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_MAX_IR] = testBase->sensors[SENSOR_PARTICLE_IR].reading.toFloat();
 
+	if (maxErrors < errors) return false;
 	SerialUSB.println("MAX dust sensor reading test finished OK");
 	return true;
 }
@@ -380,21 +391,23 @@ bool SckTest::test_PM()
 {
 	SerialUSB.println("\r\nTesting PM sensor...");
 
+	uint8_t pmErrors = errors;
 	if (!testBase->getReading(SENSOR_PM_1)) {
 		SerialUSB.println("ERROR reading PM 1 sensor!!!");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_PM_1] = testBase->sensors[SENSOR_PM_1].reading.toFloat();
 
 	if (!testBase->getReading(SENSOR_PM_25)) {
 		SerialUSB.println("ERROR reading PM 2.5 sensor!!!");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_PM_25] = testBase->sensors[SENSOR_PM_25].reading.toFloat();
 
 	if (!testBase->getReading(SENSOR_PM_10)) {
 		SerialUSB.println("ERROR reading PM 10 sensor!!!");
-		return false;
+		errors ++;
 	} else test_report.tests[TEST_PM_10] = testBase->sensors[SENSOR_PM_10].reading.toFloat();
 
+	if (pmErrors < errors) return false;
 	SerialUSB.println("PMS reading test finished OK");
 	return true;
 }
@@ -405,31 +418,18 @@ bool SckTest::test_auxWire()
 
 	// Check if a external SHT was detected a get reading
 
+	// for now this is a fake
+	test_report.tests[TEST_AUXWIRE] = 1;
 
 	SerialUSB.println("Auxiliary I2C bus test finished OK");
 	return true;
 }
 
-bool SckTest::test_ESP()
+bool SckTest::connect_ESP()
 {
+	uint32_t started = millis();
+
 	SerialUSB.println("\r\nTesting ESP and WIFI connectivity...");
-	testBase->ESPcontrol(testBase->ESP_ON);
-	delay(250);
-
-	/* StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer; */
-	/* JsonObject& json = jsonBuffer.createObject(); */
-	/* json["cs"] = 1; */
-	/* json["ss"] = TEST_WIFI_SSID; */
-	/* json["pa"] = TEST_WIFI_PASSWD; */
-
-	/* sprintf(testBase->netBuff, "%c", ESPMES_SET_CONFIG); */
-	/* json.printTo(&testBase->netBuff[1], json.measureLength() + 1); */
-	/* while (!testBase->sendMessage()) { */
-	/* 	SerialUSB.println(testBase->netBuff); */
-	/* 	testBase->sendMessage(); */
-	/* 	delay(250); */
-	/* } */
-	/* SerialUSB.println("Sent wifi credentials to ESP"); */
 
 	strncpy(testBase->config.credentials.ssid, TEST_WIFI_SSID, 64);
 	strncpy(testBase->config.credentials.pass, TEST_WIFI_PASSWD, 64);
@@ -439,20 +439,98 @@ bool SckTest::test_ESP()
 	testBase->config.token.set = true;
 	testBase->saveConfig();
 
-
-	if (testBase->pendingSyncConfig) {
-		SerialUSB.println(".");
-		testBase->sendConfig();
-		delay(500);
+	while (testBase->pendingSyncConfig || !testBase->st.wifiStat.ok) {
+		testBase->update();
+		testBase->inputUpdate();
+		delay(1);
+		if (millis() - started > 60000) {
+			SerialUSB.println("ERROR timeout on wifi connection");
+			return false;
+		}
 	}
 
+	SerialUSB.println("Wifi connection OK");
+	test_report.tests[TEST_WIFI_TIME] = (millis() - started) / 1000;
 	return true;
 }
 
 bool SckTest::publishResult()
 {
-	test_ESP();
 
+		/* {{"time":"2018-07-17T06:55:06Z"}               // time */
+		/* {"id":"45f90530-504e4b4b-372e314a-ff031e17"},  // SAM id */
+		/* {"mac":"AB:45:2D:33:98"},                      // ESP MAC address */
+		/* {"errors":3},                                  // Number of errors */
+		/* {"tests": */
+		/* 			[ */
+		/* 		{"00":78.5},     // battery gauge - percent */
+		/* 		{"01":2},        // battery charge rate - mA */
+		/* 		{"02":1},        // battery charging - bool */
+		/* 		{"03":1},        // SD card - bool */
+		/* 		{"04":1},        // flash memory - bool */
+		/* 		{"05":1},        // user (button) - bool */
+		/* 		{"06":1},        // MICS POT - bool */
+		/* 		{"07":58.4},     // MICS carbon - kOhm */
+		/* 		{"08":23.5},     // MICS nitro - kOhm */
+		/* 		{"09":25.5},     // SHT31 temperature - C */
+		/* 		{"10":56.6},     // SHT31 humidity - percent */
+		/* 		{"11":228.7},    // Light - Lux */
+		/* 		{"12":28.7},     // Barometric pressure - kPa */
+		/* 		{"13":33.5},     // MAX red - units */
+		/* 		{"14":33.5},     // MAX green - units */
+		/* 		{"15":33.5},     // MAX ir -units */
+		/* 		{"16":48.7},     // Noise - dbA */
+		/* 		{"17":18.7},     // PM-1 - ug/m3 */
+		/* 		{"18":18.7},     // PM-2.5 - ug/m3 */
+		/* 		{"19":18.7},     // PM-10 - ug/m3 */
+		/* 		{"20":1},        // Auxiliary I2C bus - bool */
+		/* 		{"21":8}         // Wifi connection time - seconds */
+		/* 			] */
+		/* }} */
+
+	// Get time
+	if (!testBase->ISOtime()) {
+		testBase->sendMessage(ESPMES_GET_TIME, "");
+		while (!testBase->st.timeStat.ok) {
+			testBase->update();
+			testBase->inputUpdate();
+		}
+	}
+	test_report.time = testBase->ISOtimeBuff;
+	
+	// Get MAC address
+	testBase->sendMessage(ESPMES_GET_NETINFO);
+	while (testBase->macAddress.length() < 2) {
+		testBase->update();
+		testBase->inputUpdate();
+	}
+	test_report.mac = testBase->macAddress;
+
+	// build json
+	StaticJsonBuffer<2048> jsonBuffer;
+	JsonObject& json = jsonBuffer.createObject();
+
+	json["time"] = test_report.time;
+
+	json["id"] = String(String(test_report.id[0], HEX) + "-" + String(test_report.id[1], HEX) + "-" + String(test_report.id[2], HEX) + "-" + String(test_report.id[3], HEX));
+	json["mac"] = test_report.mac;
+	json["errors"] = errors;
+
+	JsonArray& jsonReport = json.createNestedArray("tests");
+
+	for (uint8_t i=0; i<TEST_COUNT; i++) {
+		JsonObject& nested = jsonReport.createNestedObject();
+		nested[String(i)] = test_report.tests[i];
+	}
+
+	sprintf(testBase->netBuff, "%c", ESPMES_MQTT_INVENTORY);
+	json.printTo(&testBase->netBuff[1], json.measureLength() + 1);
+	while (!testBase->sendMessage()) {
+		SerialUSB.println("*");
+		delay(100);
+	}
+
+	return true;
 }
 
 #endif

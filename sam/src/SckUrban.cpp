@@ -481,6 +481,7 @@ bool Sck_MICS4514::getNO2resistance()
 {
 	float sensorVoltage = getADC(NO2_ADC_CHANN);
 
+	if (sensorVoltage == 0) return false;
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
 	getNO2load();
 	no2Resistance = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;

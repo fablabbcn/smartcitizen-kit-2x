@@ -15,6 +15,7 @@ enum ESPMessage {
 	ESPMES_START_AP, 		// SAM->ESP, ESP starts AP
 	ESPMES_STOP_AP, 		// SAM->ESP, ESP stops AP
 	ESPMES_LED_OFF, 		// SAM->ESP, ESP turns off led (esud before sleep)
+	ESPMES_MQTT_INVENTORY, 		// SAM->ESP, ESP publish inventory and returns result
 
 	ESPMES_COUNT
 };
@@ -35,6 +36,8 @@ enum SAMMessage {
 	SAMMES_MQTT_PUBLISH_OK,		// ESP->SAM, On MQTT publish ok
 	SAMMES_MQTT_PUBLISH_ERROR, 	// ESP->SAM, On MQTT publish error
 	SAMMES_SET_CONFIG,		// ESP->SAM, Sends new config
+	SAMMES_MQTT_INVENTORY_OK,	// ESP->SAM, On MQTT inventory ok
+	SAMMES_MQTT_INVENTORY_ERROR, 	// ESP->SAM, On MQTT inventory error
 
 	SAMMES_COUNT
 };

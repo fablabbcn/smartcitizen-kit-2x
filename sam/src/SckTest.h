@@ -86,6 +86,4 @@ class SckTest
 
 // TODO
 // SAM firmware upload error reporting
-// ESP conexion, MAC address and MQTT post
-// SDcard report saving
 // remember to uncomment MICS sensor enabling 

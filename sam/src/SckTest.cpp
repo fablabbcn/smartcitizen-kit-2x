@@ -5,10 +5,9 @@
 
 void SckTest::test_full()
 {
-
 	// Enable sensors for test
-	/* testBase->enableSensor(SENSOR_CO_RESISTANCE); */
-	/* testBase->enableSensor(SENSOR_NO2_RESISTANCE); */
+	testBase->enableSensor(SENSOR_CO_RESISTANCE);
+	testBase->enableSensor(SENSOR_NO2_RESISTANCE);
 	testBase->enableSensor(SENSOR_TEMPERATURE);
 	testBase->enableSensor(SENSOR_HUMIDITY);
 	testBase->enableSensor(SENSOR_LIGHT);
@@ -16,13 +15,14 @@ void SckTest::test_full()
 	testBase->enableSensor(SENSOR_PARTICLE_RED);
 	testBase->enableSensor(SENSOR_PARTICLE_GREEN);
 	testBase->enableSensor(SENSOR_PARTICLE_IR);
-
+	testBase->enableSensor(SENSOR_PM_1);
+	testBase->enableSensor(SENSOR_PM_25);
+	testBase->enableSensor(SENSOR_PM_10);
 
 	// Make sure al results are 0
 	for (uint8_t i=0; i<TEST_COUNT; i++) {
 		test_report.tests[i] = 0;
 	}
-
 
 	delay(2000);
 	testBase->st.onShell = true;
@@ -38,10 +38,6 @@ void SckTest::test_full()
 		SerialUSB.print(test_report.id[i], HEX);
 	}
 	SerialUSB.println();
-
-	// Get ESP mac address
-	// hay que ver como hacer esto sencillo sin tener que entrar en base.update()
-	// podria ser en shell mode...
 
 	// At the beginning the kit will be in static blue waiting for user clicks
 	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_STATIC);
@@ -89,14 +85,15 @@ void SckTest::test_full()
 	SerialUSB.println("\r\n********************************");
 	if (errors > 0) {
 		testBase->led.update(testBase->led.RED, testBase->led.PULSE_STATIC);
-		SerialUSB.println("\r\nERROR... some tests failed!!!");
+		SerialUSB.print("\r\nERROR... ");
+		SerialUSB.print(errors);
+		SerialUSB.println(" tests failed!!!");
 	} else {
 		testBase->led.update(testBase->led.GREEN, testBase->led.PULSE_STATIC);
 		SerialUSB.println("\r\nTesting finished, all tests OK");
 	}
 	SerialUSB.println("\r\n********************************");
 	while(true);
-
 }
 
 bool SckTest::test_user()
@@ -456,6 +453,7 @@ bool SckTest::connect_ESP()
 
 bool SckTest::publishResult()
 {
+	SerialUSB.println();
 
 		/* {"time":"2018-07-17T06:55:06Z"               // time */
 		/* "id":"45f90530-504e4b4b-372e314a-ff031e17",  // SAM id */
@@ -537,7 +535,7 @@ bool SckTest::publishResult()
 
 	while (!testBase->st.publishStat.ok) {
 		testBase->st.publishStat.retry();
-		if (testBase->st.publishStat.error()) {
+		if (testBase->st.publishStat.error) {
 			SerialUSB.println("ERROR on publishing test results");
 			return true;
 		}
@@ -547,13 +545,15 @@ bool SckTest::publishResult()
 
 	SerialUSB.println("Test results sent to platform");
 
-	if (testBase->sdDetect() && testBase->sd.begin(pinCS_SDCARD) {
+	if (testBase->sdDetect() && testBase->sd.begin(pinCS_SDCARD)) {
 		File reportFile;
 		char reportFileName[14];
-		sprintf(reportFileName, "%lx.json", test_report.id[4])
+		sprintf(reportFileName, "%lx.json", test_report.id[4]);
 
 		reportFile = testBase->sd.open(reportFileName, FILE_WRITE);
-		json.printTo(reportFile);
+		char jsonPrint[json.measureLength() + 1];
+		json.printTo(jsonPrint, json.measureLength() + 1);
+		reportFile.print(jsonPrint);
 		reportFile.close();
 		SerialUSB.println("Report saved to sdcard");
 	} else {

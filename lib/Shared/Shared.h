@@ -36,8 +36,6 @@ enum SAMMessage {
 	SAMMES_MQTT_PUBLISH_OK,		// ESP->SAM, On MQTT publish ok
 	SAMMES_MQTT_PUBLISH_ERROR, 	// ESP->SAM, On MQTT publish error
 	SAMMES_SET_CONFIG,		// ESP->SAM, Sends new config
-	SAMMES_MQTT_INVENTORY_OK,	// ESP->SAM, On MQTT inventory ok
-	SAMMES_MQTT_INVENTORY_ERROR, 	// ESP->SAM, On MQTT inventory error
 
 	SAMMES_COUNT
 };

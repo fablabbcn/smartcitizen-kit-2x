@@ -226,8 +226,8 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			debugOUT("Receiving MQTT inventory...");
 			if (mqttInventory()) {
 				delay(500);
-				sendMessage(SAMMES_MQTT_INVENTORY_OK, "");
-			} else sendMessage(SAMMES_MQTT_INVENTORY_ERROR, "");
+				sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
+			} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 			break;
 	}
 	case ESPMES_CONNECT:

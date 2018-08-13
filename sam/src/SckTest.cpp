@@ -457,11 +457,11 @@ bool SckTest::connect_ESP()
 bool SckTest::publishResult()
 {
 
-		/* {{"time":"2018-07-17T06:55:06Z"}               // time */
-		/* {"id":"45f90530-504e4b4b-372e314a-ff031e17"},  // SAM id */
-		/* {"mac":"AB:45:2D:33:98"},                      // ESP MAC address */
-		/* {"errors":3},                                  // Number of errors */
-		/* {"tests": */
+		/* {"time":"2018-07-17T06:55:06Z"               // time */
+		/* "id":"45f90530-504e4b4b-372e314a-ff031e17",  // SAM id */
+		/* "mac":"AB:45:2D:33:98",                      // ESP MAC address */
+		/* "errors":3,                                  // Number of errors */
+		/* "tests": */
 		/* 			[ */
 		/* 		{"00":78.5},     // battery gauge - percent */
 		/* 		{"01":2},        // battery charge rate - mA */
@@ -486,7 +486,7 @@ bool SckTest::publishResult()
 		/* 		{"20":1},        // Auxiliary I2C bus - bool */
 		/* 		{"21":8}         // Wifi connection time - seconds */
 		/* 			] */
-		/* }} */
+		/* } */
 
 	// Get time
 	if (!testBase->ISOtime()) {
@@ -525,9 +525,40 @@ bool SckTest::publishResult()
 
 	sprintf(testBase->netBuff, "%c", ESPMES_MQTT_INVENTORY);
 	json.printTo(&testBase->netBuff[1], json.measureLength() + 1);
+
+	uint32_t started = millis();
 	while (!testBase->sendMessage()) {
-		SerialUSB.println("*");
+		if (millis() - started > 15000) {
+			SerialUSB.println("ERROR sending test report to ESP");
+			return false;
+		}
 		delay(100);
+	}
+
+	while (!testBase->st.publishStat.ok) {
+		testBase->st.publishStat.retry();
+		if (testBase->st.publishStat.error()) {
+			SerialUSB.println("ERROR on publishing test results");
+			return true;
+		}
+		testBase->update();
+		testBase->inputUpdate();
+	}
+
+	SerialUSB.println("Test results sent to platform");
+
+	if (testBase->sdDetect() && testBase->sd.begin(pinCS_SDCARD) {
+		File reportFile;
+		char reportFileName[14];
+		sprintf(reportFileName, "%lx.json", test_report.id[4])
+
+		reportFile = testBase->sd.open(reportFileName, FILE_WRITE);
+		json.printTo(reportFile);
+		reportFile.close();
+		SerialUSB.println("Report saved to sdcard");
+	} else {
+		SerialUSB.println("ERROR Failed to save report to sdcard");
+		return false;
 	}
 
 	return true;

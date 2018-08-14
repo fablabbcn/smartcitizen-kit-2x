@@ -200,7 +200,9 @@ def listdrives():
 def writeFile(name, buf):
     with open(name, "wb") as f:
         f.write(buf)
+    sys.stdout.write("\033[1;32m")
     print "Wrote %d bytes to %s." % (len(buf), name)
+    sys.stdout.write("\033[0;0m")
 
 def main():
     global appstartaddr
@@ -239,7 +241,7 @@ def main():
             outbuf = convertFromHexToUF2(inpbuf)
         else:
             outbuf = convertToUF2(inpbuf)
-        print "Converting to %s, output size: %d, start address: 0x%x" % (ext, len(outbuf), appstartaddr)
+        print "\r\nConverting to %s, output size: %d, start address: 0x%x" % (ext, len(outbuf), appstartaddr)
 
         if args.convert:
             drives = []
@@ -253,6 +255,11 @@ def main():
         else:
             if len(drives) == 0:
                 error("No drive to deploy.")
+
+        if len(drives) == 0:
+            sys.stdout.write("\033[1;31m")
+            error("\r\nNO DEVICE WAS FLASHED.\r\n")
+            sys.stdout.write("\033[0;0m")
         for d in drives:
             print "Flashing %s (%s)" % (d, boardID(d))
             writeFile(d + "/NEW.UF2", outbuf)

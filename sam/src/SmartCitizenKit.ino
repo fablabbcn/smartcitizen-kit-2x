@@ -42,10 +42,6 @@ void ISR_charger() {
 
 void setup() {
 
-#ifdef testing
-	base.outputLevel = OUT_SILENT;
-#endif
-
 	base.setup();
 
 #ifdef testing

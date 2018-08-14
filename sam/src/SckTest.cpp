@@ -43,6 +43,8 @@ void SckTest::test_full()
 	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_STATIC);
 	if (!test_user()) errors++;
 
+	testBase->outputLevel = OUT_SILENT;
+
 	// Test battery gauge
 	test_battery();
 
@@ -102,7 +104,9 @@ bool SckTest::test_user()
 	// Starts with the led blinking in blue, waiting for user action
 	// Every time the user clicks the button the led will change color Blue ->  Red -> Green ->
 	SerialUSB.println("\r\nPlease click the button until the led is blue again...");
-	while (butLedState != TEST_FINISHED);
+	while (butLedState != TEST_FINISHED) {
+		testBase->inputUpdate();
+	}
 
 	test_report.tests[TEST_USER] = 1;
 	return true;
@@ -436,6 +440,7 @@ bool SckTest::connect_ESP()
 	testBase->config.token.set = true;
 	testBase->saveConfig();
 
+	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_HARD_SLOW);
 	while (testBase->pendingSyncConfig || !testBase->st.wifiStat.ok) {
 		testBase->update();
 		testBase->inputUpdate();

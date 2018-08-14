@@ -61,9 +61,12 @@ void SckLed::tick()
 			analogWrite(pinGREEN, 255 - ledColor.g);
 			analogWrite(pinBLUE, 255 - ledColor.b);
 		} else {
-			analogWrite(pinRED, 255);
-			analogWrite(pinGREEN, 255);
-			analogWrite(pinBLUE, 255);
+			pinMode(pinRED, OUTPUT);
+			pinMode(pinGREEN, OUTPUT);
+			pinMode(pinBLUE, OUTPUT);
+			digitalWrite(pinRED, 1);
+			digitalWrite(pinGREEN, 1);
+			digitalWrite(pinBLUE, 1);
 		}
 		blinkON = !blinkON;
 	}

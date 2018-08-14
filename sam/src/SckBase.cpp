@@ -253,24 +253,29 @@ void SckBase::reviewState()
 
 				} else if (timeToPublish) {
 
-					if (st.publishStat.retry()) {
+					if (st.publishStat.retry()) netPublish();
 
-						if (netPublish()) {
-							// TODO go to sleep on receive MQTT success message (not here)
-						}
+					if (st.publishStat.ok) {
+
+						// TODO go to sleep on receive MQTT success message
+						sdPublish();
+
+						ESPcontrol(ESP_SLEEP);
+						timeToPublish = false;
+						lastPublishTime = rtc.getEpoch();
+						st.publishStat.reset(); 		// Restart publish error counter
 
 					} else if (st.publishStat.error) {
 
-						sckOut("ERROR publishing data to the platform!!!");
 						sckOut("Will retry on next publish interval!!!");
 
 						// TODO replace this with flash saving and in next publish push all flash readings
 						sdPublish();
 
-						ESPcontrol(ESP_SLEEP);
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
-						// We need this to  allow publish retry next time, this reading will be recovered from flash
+						ESPcontrol(ESP_SLEEP);
+						timeToPublish = false;
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
 					}
@@ -865,9 +870,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_MQTT_PUBLISH_OK:
 
-			st.publishStat.reset();
+			st.publishStat.setOk();
 			sckOut("Network publish OK!!   ");
-			ESPcontrol(ESP_SLEEP);
 			break;
 
 		case SAMMES_MQTT_PUBLISH_ERROR:
@@ -1084,8 +1088,8 @@ void SckBase::updateSensors()
 
 	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
 		timeToPublish = true;
-		lastPublishTime = rtc.getEpoch();
-		st.publishStat.reset();
+		/* lastPublishTime = rtc.getEpoch(); */
+		/* st.publishStat.reset(); */
 	}
 }
 bool SckBase::enableSensor(SensorType wichSensor)
@@ -1282,10 +1286,10 @@ bool SckBase::netPublish()
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 	bool result = sendMessage();
 
-	if (result) {
-		timeToPublish = false;
-		sdPublish();
-	}
+	/* if (result) { */
+	/* 	timeToPublish = false; */
+	/* 	sdPublish(); */
+	/* } */
 
 	return result;
 }

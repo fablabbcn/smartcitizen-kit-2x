@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# TODO
-# Multiplatform support
-# Check for errors
-# Check if openocd "bootloader" command generate problems in the fuses (https://github.com/Microsoft/uf2-samdx1#fuses)
+GREEN='\033[1;32m'
+RED='\033[1;31m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+NC='\033[0m' # No Color
 
 function SAM {
 	echo
-	echo "Remember to double click the reset button of your kit!!!"
+	echo -e "Remember to ${YELLOW}double click the reset button ${NC}of your kit!!!"
 	echo "Press any key to continue..." 
 	echo
 	read -n 1 -s -r 
@@ -15,7 +16,7 @@ function SAM {
 	cd sam
 	pio run
 	cd ..
-	tools/uf2conv.py -o sam/.pioenvs/sck2/fimrware.uf2 -d SCK-2.0 sam/.pioenvs/sck2/firmware.bin
+	tools/uf2conv.py -o SAM_fimrware.uf2 -d SCK-2.0 sam/.pioenvs/sck2/firmware.bin
 }
 
 function ESP {
@@ -32,7 +33,7 @@ function ESPFS {
 
 function BOOT {
 	echo
-	echo "Remeber to connect SAM-ICE programer to your kit!"
+	echo -e "Remeber to ${YELLOW}connect SAM-ICE programer${NC} to your kit!"
 	echo "Press any key to continue"
 	read -n 1 -s -r
 
@@ -45,23 +46,23 @@ function BOOT {
 case $1 in
 
 	sam)
-		echo "Flashing SAM"
+		echo -e "${NC}Flashing SAM${NC}"
 		SAM
 		;;
 	esp)
-		echo "Flashing ESP"
+		echo -e "${NC}Flashing ESP${NC}"
 		ESP
 		;;
 	espfs)
-		echo "Flashing ESP filesystem"
+		echo -e "${NC}Flashing ESP filesystem${NC}"
 		ESPFS
 		;;
 	boot)
-		echo "Flashing SAM bootloader"
+		echo -e "${NC}Flashing SAM bootloader${NC}"
 		BOOT
 		;;
 	all)
-		echo "Flashing everything"
+		echo -e "${NC}Flashing everything${NC}"
 		SAM
 		sleep 3
 		ESP

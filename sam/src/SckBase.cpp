@@ -305,8 +305,6 @@ void SckBase::reviewState()
 			
 		} else if (!st.timeStat.ok) {
 			
-			if (!st.espON) ESPcontrol(ESP_ON);
-
 			if (!st.wifiSet)  {
 					
 				sckOut("ERROR time is not synced and no wifi set!!!");
@@ -314,25 +312,32 @@ void SckBase::reviewState()
 
 			} else {
 				
-				st.wifiStat.retry();
+				if (!st.wifiStat.ok) {
+				
+					st.wifiStat.retry();
 
-				led.update(led.PINK, led.PULSE_SOFT);
+					if (!st.espON) ESPcontrol(ESP_ON);
+					else if (st.wifiStat.error) {
 
-				if (st.wifiStat.error) {
+						sckOut("ERROR time is not synced!!!");
 
-					sckOut("ERROR time is not synced!!!");
-					ESPcontrol(ESP_REBOOT); 	// Rebbot esp and start AP to receive sync from user via AP mode
-					led.update(led.PINK, led.PULSE_HARD_FAST);
+						ESPcontrol(ESP_OFF);
+						led.update(led.PINK, led.PULSE_HARD_FAST);
+						st.wifiStat.reset();
+					}
 
-				} else if (st.wifiStat.ok) {
+				
+				} else {
+
 					if (st.timeStat.retry()) {
 
 						if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
 
 					} else if (st.timeStat.error) {
 
+						sckOut("ERROR time sync failed!!!");
 						st.timeStat.reset();
-						ESPcontrol(ESP_REBOOT);
+						ESPcontrol(ESP_OFF);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
 					}
 				}

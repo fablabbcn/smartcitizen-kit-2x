@@ -43,6 +43,22 @@ After clonning the repository:
 
   * `pio run -t uploadfs`
 
+### SCK Shell
+
+The SCK provides a comprehensive command shell over USB to manage all the kits functionalities for advanced users. 
+
+_Use any Serial console as `screen`, `platformio device monitor`, or the serial monitor on the Arduino IDE_
+
+Example commands:
+
+```
+
+SCK> help
+
+SCK> config -wifi "myWifiName" "myPassword" -token myToken -mode network
+
+```
+
 
 ### Frontend + api setup
 
@@ -101,3 +117,7 @@ Full documentation under development. Follow the [forum](https://forum.smartciti
 ## License
 
 All the software unless stated is released under [GNU GPL v3.0](https://github.com/fablabbcn/smartcitizen-kit-20/blob/master/LICENSE) and the hardware design files under [CERN OHL v1.2](https://github.com/fablabbcn/smartcitizen-kit-20/blob/master/hardware/LICENSE)
+
+## Funding
+
+This work has received funding from the European Union's Horizon 2020 research and innovation program under the grant agreement [No. 689954](https://cordis.europa.eu/project/rcn/202639_en.html)

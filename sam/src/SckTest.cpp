@@ -26,7 +26,7 @@ void SckTest::test_full()
 
 	delay(2000);
 	testBase->st.onShell = true;
-	testBase->ESPcontrol(testBase->ESP_ON);
+	testBase->ESPcontrol(testBase->ESP_OFF);
 	SerialUSB.println("\r\n********************************");
 	SerialUSB.println("Starting SmartCitizenKit test...");
 

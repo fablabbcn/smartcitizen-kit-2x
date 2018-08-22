@@ -65,6 +65,11 @@ void SckBase::setup()
 		rtc.setDate(1, 1, 15);
 	}
 
+	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
+	rtc.setAlarmTime(3, 0, 0);
+	rtc.enableAlarm(rtc.MATCH_HHMMSS);
+	rtc.attachInterrupt(NVIC_SystemReset);
+
 	// SDcard and flash select pins
 	pinMode(pinCS_SDCARD, OUTPUT);
 	pinMode(pinCS_FLASH, OUTPUT);

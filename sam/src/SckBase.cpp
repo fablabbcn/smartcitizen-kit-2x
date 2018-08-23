@@ -1131,12 +1131,12 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		sensors[wichSensor].enabled = true;
 		
 		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_PM_1 || 
-			wichSensor == SENSOR_PM_25 ||
-			wichSensor == SENSOR_PM_10) {
-			sensors[SENSOR_PM_1].enabled = true;
-			sensors[SENSOR_PM_25].enabled = true;
-			sensors[SENSOR_PM_10].enabled = true;
+		if ( 	wichSensor == SENSOR_EXT_PM_1 || 
+			wichSensor == SENSOR_EXT_PM_25 ||
+			wichSensor == SENSOR_EXT_PM_10) {
+			sensors[SENSOR_EXT_PM_1].enabled = true;
+			sensors[SENSOR_EXT_PM_25].enabled = true;
+			sensors[SENSOR_EXT_PM_10].enabled = true;
 		}
 
 		return true;
@@ -1170,12 +1170,12 @@ bool SckBase::disableSensor(SensorType wichSensor)
 		sensors[wichSensor].enabled = false;
 
 		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_PM_1 || 
-			wichSensor == SENSOR_PM_25 ||
-			wichSensor == SENSOR_PM_10) {
-			sensors[SENSOR_PM_1].enabled = false;
-			sensors[SENSOR_PM_25].enabled = false;
-			sensors[SENSOR_PM_10].enabled = false;
+		if ( 	wichSensor == SENSOR_EXT_PM_1 || 
+			wichSensor == SENSOR_EXT_PM_25 ||
+			wichSensor == SENSOR_EXT_PM_10) {
+			sensors[SENSOR_EXT_PM_1].enabled = false;
+			sensors[SENSOR_EXT_PM_25].enabled = false;
+			sensors[SENSOR_EXT_PM_10].enabled = false;
 		}
 
 		return true;

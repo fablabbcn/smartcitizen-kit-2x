@@ -320,11 +320,14 @@ class Atlas
 enum PMslot {SLOT_A, SLOT_B, SLOT_AVG};
 enum PMcommands
 {
-         PM_START,          // Start both PMS
-         GET_PMA,        // Get values for PMS in slot A
-         GET_PMB,        // Get values for PMS in slot A
-         GET_PM_AVG,     // Get values for both PMS averaged
-         PM_STOP            // Stop both PMS
+	PM_START,        // Start both PMS
+	GET_PMA,         // Get values for PMS in slot A
+	GET_PMB,         // Get values for PMS in slot A
+	GET_PM_AVG,      // Get values for both PMS averaged
+	PM_STOP,         // Stop both PMS
+	DALLASTEMP_START,
+	DALLASTEMP_STOP,
+	GET_DALLASTEMP
  };
 
 class PMsensor
@@ -348,6 +351,22 @@ class PMsensor
 		bool started = false;
 		PMslot slot;
 		uint8_t values[6];		// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
+};
+
+class PM_DallasTemp
+{
+	public:
+		const byte deviceAddress = 0x02;
+		bool start();
+		bool stop();
+		float getReading();		
+	private:
+		union u_reading {
+			byte b[4];
+			float fval;
+		} uRead;
+
+		float reading;
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

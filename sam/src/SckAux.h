@@ -34,9 +34,9 @@ class AuxBoards
 		// List for storing Auxiliary sensors I2C address (SENSOR_COUNT - (BASE AND URBAN SENSORS))
 		// TODO: store this in epprom, load it on boot, make a function to change the addresses by console command
 		byte devAddress[SENSOR_COUNT - 18] {
-				0x02,		// SENSOR_PM_1
-				0x02,		// SENSOR_PM_25
-				0x02,		// SENSOR_PM_10
+				0x02,		// SENSOR_EXT_PM_1
+				0x02,		// SENSOR_EXT_PM_25
+				0x02,		// SENSOR_EXT_PM_10
 				0x55,		// SENSOR_GASESBOARD_AE1,
 				0x55,		// SENSOR_GASESBOARD_WE1,
 				0x56,		// SENSOR_GASESBOARD_AE2,

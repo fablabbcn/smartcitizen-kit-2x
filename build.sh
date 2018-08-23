@@ -15,7 +15,7 @@ function SAM {
 	cd sam
 	pio run
 	cd ..
-	tools/uf2conv.py -o sam/.pioenvs/sck2/fimrware.uf2 -d SCK-2.0 sam/.pioenvs/sck2/firmware.bin
+	tools/uf2conv.py -o SAM_firmware.uf2 -d SCK-2.0 sam/.pioenvs/sck2/firmware.bin
 }
 
 function ESP {

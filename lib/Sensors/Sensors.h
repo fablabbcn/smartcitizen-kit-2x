@@ -67,9 +67,11 @@ enum SensorType
 	SENSOR_ATLAS_DO,
 	SENSOR_ATLAS_DO_SAT,
 
-	SENSOR_PM_1,
-	SENSOR_PM_25,
-	SENSOR_PM_10,
+	SENSOR_EXT_PM_1,
+	SENSOR_EXT_PM_25,
+	SENSOR_EXT_PM_10,
+
+	SENSOR_PM_DALLAS_TEMP,
 	
 	SENSOR_SHT31_TEMP,
 	SENSOR_SHT31_HUM,
@@ -189,6 +191,8 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		false,		true,			"ug/m3"},
 			OneSensor { BOARD_AUX,			SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		false,		true,			"ug/m3"},
 			OneSensor { BOARD_AUX,			SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		false,		true,			"ug/m3"},
+
+			OneSensor { BOARD_AUX,			SENSOR_PM_DALLAS_TEMP,			"PM_DALLAS_TEMP",	"PMboard Dallas Temperature",			0,		false,		false,			"C"},
 
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"EXT_TEMP",		"External Temperature",				0,		false,		false,			"C"},
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"EXT_HUM",		"External Humidity",				0,		false,		false,			"%"},

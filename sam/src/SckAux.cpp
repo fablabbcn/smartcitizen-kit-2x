@@ -9,6 +9,7 @@ Atlas			atlasPH = Atlas(SENSOR_ATLAS_PH);
 Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
 Atlas			atlasDO = Atlas(SENSOR_ATLAS_DO);
 PMsensor		pmSensor = PMsensor(SLOT_AVG);
+PM_DallasTemp 		pmDallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 
 // Eeprom flash emulation to store I2C address
@@ -45,6 +46,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
 		case SENSOR_PM_10:			return pmSensor.start(); break;
+		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.start(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM:
 			if (sht31.start() && !gasBoard.start()) return true;
@@ -86,6 +88,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
 		case SENSOR_PM_10:			return pmSensor.stop(); break;
+		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.stop(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM: 			return sht31.stop(); break;
 		default: break;
@@ -123,6 +126,7 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_PM_1:			return pmSensor.getReading(1); break;
 		case SENSOR_PM_25:			return pmSensor.getReading(25); break;
 		case SENSOR_PM_10:			return pmSensor.getReading(10); break;
+		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.getReading(); break;
 		case SENSOR_SHT31_TEMP: 		if (sht31.update(true)) return sht31.temperature; break;
 		case SENSOR_SHT31_HUM: 			if (sht31.update(true)) return sht31.humidity; break;
 		default: break;
@@ -794,6 +798,47 @@ float PMsensor::getReading(uint8_t wichReading)
 
 	return -9999;
 }
+
+bool PM_DallasTemp::start()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(DALLASTEMP_START);
+	auxWire.endTransmission();
+	auxWire.requestFrom(deviceAddress, 1);
+
+	bool result = auxWire.read();
+	return result;
+}
+bool PM_DallasTemp::stop()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(DALLASTEMP_STOP);
+	auxWire.endTransmission();
+	auxWire.requestFrom(deviceAddress, 1);
+
+	bool result = auxWire.read();
+	return result;
+}
+float PM_DallasTemp::getReading()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(GET_DALLASTEMP);
+	auxWire.endTransmission();
+
+	// Get the reading
+	auxWire.requestFrom(deviceAddress, 4);
+	uint32_t start = millis();
+	while (!auxWire.available()) if ((millis() - start)>500) return -9999;
+	for (uint8_t i=0; i<4; i++) uRead.b[i] = auxWire.read();
+	return uRead.fval;
+}
+
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )
 {

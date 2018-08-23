@@ -1201,6 +1201,12 @@ bool SckBase::enableSensor(SensorType wichSensor)
 			sensors[SENSOR_PM_1].enabled = true;
 			sensors[SENSOR_PM_25].enabled = true;
 			sensors[SENSOR_PM_10].enabled = true;
+		} else if ( 	wichSensor == SENSOR_EXT_PM_1 || 
+				wichSensor == SENSOR_EXT_PM_25 ||
+				wichSensor == SENSOR_EXT_PM_10) {
+			sensors[SENSOR_EXT_PM_1].enabled = true;
+			sensors[SENSOR_EXT_PM_25].enabled = true;
+			sensors[SENSOR_EXT_PM_10].enabled = true;
 		}
 
 		return true;
@@ -1240,6 +1246,12 @@ bool SckBase::disableSensor(SensorType wichSensor)
 			sensors[SENSOR_PM_1].enabled = false;
 			sensors[SENSOR_PM_25].enabled = false;
 			sensors[SENSOR_PM_10].enabled = false;
+		} else if ( 	wichSensor == SENSOR_EXT_PM_1 || 
+				wichSensor == SENSOR_EXT_PM_25 ||
+				wichSensor == SENSOR_EXT_PM_10) {
+			sensors[SENSOR_EXT_PM_1].enabled = false;
+			sensors[SENSOR_EXT_PM_25].enabled = false;
+			sensors[SENSOR_EXT_PM_10].enabled = false;
 		}
 
 		return true;

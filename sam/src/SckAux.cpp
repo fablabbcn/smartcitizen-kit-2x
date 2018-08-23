@@ -43,9 +43,9 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.start(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.start(); break;
-		case SENSOR_PM_1:
-		case SENSOR_PM_25:
-		case SENSOR_PM_10:			return pmSensor.start(); break;
+		case SENSOR_EXT_PM_1:
+		case SENSOR_EXT_PM_25:
+		case SENSOR_EXT_PM_10:			return pmSensor.start(); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.start(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM:
@@ -85,9 +85,9 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.stop(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.stop(); break;
-		case SENSOR_PM_1:
-		case SENSOR_PM_25:
-		case SENSOR_PM_10:			return pmSensor.stop(); break;
+		case SENSOR_EXT_PM_1:
+		case SENSOR_EXT_PM_25:
+		case SENSOR_EXT_PM_10:			return pmSensor.stop(); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.stop(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM: 			return sht31.stop(); break;
@@ -123,9 +123,9 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_ATLAS_EC_SG:		return atlasEC.newReadingB; break;
 		case SENSOR_ATLAS_DO:			return atlasDO.newReading; break;
 		case SENSOR_ATLAS_DO_SAT:		return atlasDO.newReadingB; break;
-		case SENSOR_PM_1:			return pmSensor.getReading(1); break;
-		case SENSOR_PM_25:			return pmSensor.getReading(25); break;
-		case SENSOR_PM_10:			return pmSensor.getReading(10); break;
+		case SENSOR_EXT_PM_1:			return pmSensor.getReading(1); break;
+		case SENSOR_EXT_PM_25:			return pmSensor.getReading(25); break;
+		case SENSOR_EXT_PM_10:			return pmSensor.getReading(10); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.getReading(); break;
 		case SENSOR_SHT31_TEMP: 		if (sht31.update(true)) return sht31.temperature; break;
 		case SENSOR_SHT31_HUM: 			if (sht31.update(true)) return sht31.humidity; break;
@@ -262,9 +262,9 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			break;
 
 		}
-		case SENSOR_PM_1:
-		case SENSOR_PM_25:
-		case SENSOR_PM_10: {
+		case SENSOR_EXT_PM_1:
+		case SENSOR_EXT_PM_25:
+		case SENSOR_EXT_PM_10: {
 			
 			if (command.startsWith("stop")) {
 				

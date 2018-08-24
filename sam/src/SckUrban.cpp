@@ -22,9 +22,7 @@ bool SckUrban::setup(SckBase *base)
 					case SENSOR_LIGHT: 				if (!sck_bh1721fvc.start()) return false; break;
 					case SENSOR_TEMPERATURE:
 					case SENSOR_HUMIDITY: 				if (!sck_sht31.start()) return false; break;
-					case SENSOR_CO:
 					case SENSOR_CO_RESISTANCE:
-					case SENSOR_NO2:
 					case SENSOR_NO2_RESISTANCE:			if (!sck_mics4514.start(currentTime))	return false; break;
 					/* case SENSOR_NOISE_DBA: */
 					/* case SENSOR_NOISE_DBC: */
@@ -43,14 +41,10 @@ bool SckUrban::setup(SckBase *base)
 				}
 			} else {
 				switch(thisType) {
-					case SENSOR_CO:
 					case SENSOR_CO_RESISTANCE: 
-					case SENSOR_NO2:
 					case SENSOR_NO2_RESISTANCE:
 						// If all the sensors that requires heating are off
-						if (!base->sensors[SENSOR_CO].enabled &&
-						    !base->sensors[SENSOR_CO_RESISTANCE].enabled &&
-						    !base->sensors[SENSOR_NO2].enabled &&
+						if (!base->sensors[SENSOR_CO_RESISTANCE].enabled &&
 						    !base->sensors[SENSOR_NO2_RESISTANCE].enabled) {
 							uint32_t currentTime = 0;
 							if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
@@ -71,9 +65,7 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_LIGHT: 				if (sck_bh1721fvc.start()) return true; break;
 		case SENSOR_TEMPERATURE:
 		case SENSOR_HUMIDITY: 				if (sck_sht31.start()) return true; break;
-		case SENSOR_CO:
 		case SENSOR_CO_RESISTANCE:
-		case SENSOR_NO2:
 		case SENSOR_NO2_RESISTANCE:			if (sck_mics4514.start(0)) return true; break;
 		/* case SENSOR_NOISE_DBA: */
 		/* case SENSOR_NOISE_DBC: */
@@ -98,9 +90,7 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_LIGHT: 				if (sck_bh1721fvc.stop()) return true; break;
 		case SENSOR_TEMPERATURE:
 		case SENSOR_HUMIDITY: 				if (sck_sht31.stop()) return true; break;
-		case SENSOR_CO:
 		case SENSOR_CO_RESISTANCE:
-		case SENSOR_NO2:
 		case SENSOR_NO2_RESISTANCE:			if (sck_mics4514.stop(0)) return true; break;
 		/* case SENSOR_NOISE_DBA: */
 		/* case SENSOR_NOISE_DBC: */
@@ -128,11 +118,6 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 		case SENSOR_LIGHT:			if (sck_bh1721fvc.get(wait)) return String(sck_bh1721fvc.reading); break;
 		case SENSOR_TEMPERATURE: 		if (sck_sht31.update(wait)) return String(sck_sht31.temperature); break;
 		case SENSOR_HUMIDITY: 			if (sck_sht31.update(wait)) return String(sck_sht31.humidity); break;
-		case SENSOR_CO:
-			if (sck_sht31.update(wait)) {
-				if (sck_mics4514.getCO(sck_sht31.temperature, sck_sht31.humidity)) return String(sck_mics4514.co);
-			}
-			break;
 		case SENSOR_CO_RESISTANCE: 		if (sck_mics4514.getCOresistance()) return String(sck_mics4514.coResistance); break;
 		case SENSOR_CO_HEAT_TIME:
 			{
@@ -140,11 +125,6 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 				if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
 				return String(sck_mics4514.getHeatTime(currentTime)); break;
 			}
-		case SENSOR_NO2:
-			if (sck_sht31.update(wait)) {
-				if (sck_mics4514.getNO2(sck_sht31.temperature, sck_sht31.humidity)) return String(sck_mics4514.no2);
-			}
-			break;
 		case SENSOR_NO2_RESISTANCE: 		if (sck_mics4514.getNO2resistance()) return String(sck_mics4514.no2Resistance); break;
 		case SENSOR_NO2_HEAT_TIME:
 			{
@@ -175,8 +155,8 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 {
 
          switch (wichSensor) {
-		case SENSOR_CO:
-		case SENSOR_NO2: {
+		case SENSOR_CO_RESISTANCE:
+		case SENSOR_NO2_RESISTANCE: {
 			if (command.startsWith("help")) {
 				base->sckOut("Available commands for this sensor:\r\nStill nothing!!"); 
 				return true;
@@ -464,19 +444,6 @@ bool Sck_MICS4514::getCOresistance()
 	coResistance = (((VCC - sensorVoltage) / sensorVoltage) * coLoadResistor) / 1000.0;
 	return true;
 }
-bool Sck_MICS4514::getCO(float temperature, float humidity)
-{
-	if (!calCO.valid) return false;
-
-	getCOresistance();
-
-	co = calCO.A + (calCO.gas.fac1 * pow(coResistance, calCO.gas.ind1)) + (calCO.gas.fac2 * pow(coResistance, calCO.gas.ind2))
-	+ (calCO.temp.fac1 * pow(temperature, calCO.temp.ind1)) + (calCO.temp.fac2 * pow(temperature, calCO.temp.ind2))
-	+ (calCO.hum.fac1 * pow(humidity, calCO.hum.ind1)) + (calCO.hum.fac2 * pow(humidity, calCO.hum.ind2));
-
-	co = max(0, co);
-	return true;
-}
 bool Sck_MICS4514::getNO2resistance()
 {
 	float sensorVoltage = getADC(NO2_ADC_CHANN);
@@ -485,21 +452,6 @@ bool Sck_MICS4514::getNO2resistance()
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
 	getNO2load();
 	no2Resistance = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;
-	return true;
-}
-bool Sck_MICS4514::getNO2(float temperature, float humidity)
-{
-	if (!calNO2.valid) return false;
-
-	getNO2resistance();
-
-	no2 = calNO2.A + (calNO2.gas.fac1 * pow(no2Resistance, calNO2.gas.ind1)) + (calNO2.gas.fac2 * pow(no2Resistance, calNO2.gas.ind2))
-	+ (calNO2.temp.fac1 * pow(temperature, calNO2.temp.ind1)) + (calNO2.temp.fac2 * pow(temperature, calNO2.temp.ind2))
-	+ (calNO2.hum.fac1 * pow(humidity, calNO2.hum.ind1)) + (calNO2.hum.fac2 * pow(humidity, calNO2.hum.ind2));
-
-	no2 = no2 * 1000; 	// ppb
-
-	no2 = max(0, no2);
 	return true;
 }
 bool Sck_MICS4514::setNO2load(uint32_t value)

@@ -1351,14 +1351,26 @@ bool SckBase::netPublish()
 		return false;
 	}
 
-	// Prepare json for sending
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	// /* Example
+		// {	"data":[
+		// 		{"recorded_at":"2017-03-24T13:35:14Z",
+		// 			"sensors":[
+		// 				{"id":29,"value":48.45},
+		// 				{"id":13,"value":66},
+		// 				{"id":12,"value":28},
+		// 				{"id":10,"value":4.45}
+		// 			]
+		// 		}
+		// 	]
+		// }
+		// 	*/
 
+
+	sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
 	bool timeSet = false;
-	// Epoch time of the grouped readings
-	JsonArray& jsonSensors = json.createNestedArray("s");
 	uint8_t count = 0;
+
+	sprintf(netBuff, "%s%s", netBuff, "{\"data\":[{\"recorded_at\":\"");
 
 	for (uint16_t sensorIndex=0; sensorIndex<SENSOR_COUNT; sensorIndex++) {
 
@@ -1367,28 +1379,26 @@ bool SckBase::netPublish()
 		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
 
 			if (!timeSet) {
-				json["t"] = sensors[wichSensor].lastReadingTime;
+				char thisTime[20];
+				epoch2iso(sensors[wichSensor].lastReadingTime, thisTime);
+				sprintf(netBuff, "%s%s\",\"sensors\":[", netBuff, thisTime);
 				timeSet = true;
+				sprintf(netBuff, "%s{\"id\":%u, \"value\":%.02f}", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			}
 
-			JsonArray& jsonThisSensor = jsonSensors.createNestedArray();
-			jsonThisSensor.add(sensors[wichSensor].id);
-			jsonThisSensor.add(sensors[wichSensor].reading);
+			sprintf(netBuff, "%s,{\"id\":%u, \"value\":%.02f}", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			count ++;
 		}
 	}
 
+	sprintf(netBuff, "%s%s", netBuff, "]}]}");
+
 	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
 	sckOut(PRIO_MED);
-	sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
-	json.printTo(&netBuff[1], json.measureLength() + 1);
+
+	SerialUSB.println(netBuff);
+
 	bool result = sendMessage();
-
-	/* if (result) { */
-	/* 	timeToPublish = false; */
-	/* 	sdPublish(); */
-	/* } */
-
 	return result;
 }
 bool SckBase::sdPublish()

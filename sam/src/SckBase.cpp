@@ -1096,11 +1096,7 @@ void SckBase::updateSensors()
 	}
 	sckOut("-----------\r\n", PRIO_LOW);
 
-	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
-		timeToPublish = true;
-		/* lastPublishTime = rtc.getEpoch(); */
-		/* st.publishStat.reset(); */
-	}
+	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) timeToPublish = true;
 }
 bool SckBase::enableSensor(SensorType wichSensor)
 {
@@ -1307,8 +1303,6 @@ bool SckBase::netPublish()
 
 	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
 	sckOut(PRIO_MED);
-
-	SerialUSB.println(netBuff);
 
 	bool result = sendMessage();
 	return result;

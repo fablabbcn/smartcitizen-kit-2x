@@ -386,7 +386,7 @@ void config_com(SckBase* base, String parameters)
 			if (readIntI >= 0) {
 				String readIntC = parameters.substring(readIntI+8);
 				uint32_t readIntV = readIntC.toInt();
-				if (readIntV > minimal_publish_interval && readIntV < base->config.publishInterval) base->config.readInterval = readIntV;
+				if (readIntV > minimal_publish_interval && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
 			}
 			uint16_t credI = parameters.indexOf("-wifi");
 			if (credI >= 0) {

@@ -293,51 +293,14 @@ bool SckESP::mqttPublish()
 
 	if (mqttConnect()) {
 
-		// /* Example
-		// {	"data":[
-		// 		{"recorded_at":"2017-03-24T13:35:14Z",
-		// 			"sensors":[
-		// 				{"id":29,"value":48.45},
-		// 				{"id":13,"value":66},
-		// 				{"id":12,"value":28},
-		// 				{"id":10,"value":4.45}
-		// 			]
-		// 		}
-		// 	]
-		// }
-		// 	*/
-
-		// Prepare the payload
-		char myPayload[1024];
-
-		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-		JsonObject& json = jsonBuffer.parseObject(netBuff);
-
-		// Put time
-		sprintf(myPayload, "{\"data\":[{\"recorded_at\":\"%s\",\"sensors\":[", epoch2iso(json["t"]).c_str());
-
-		// Iterate over sensor array on json
-		bool putComma = false;
-		uint16_t arraySize = json["s"].size();
-		for (uint16_t i=0; i<arraySize; i++) {
-			uint16_t myID = json["s"][i][0];
-			String myValue = json["s"][i][1];
-			if (putComma) sprintf(myPayload, "%s,", myPayload);
-			else putComma = true;
-			sprintf(myPayload, "%s{\"id\":%i,\"value\":%s}", myPayload, myID, myValue.c_str());
-
-		}
-		sprintf(myPayload, "%s]}]}", myPayload);
-
-		debugOUT(String(myPayload));
-
-		// prepare the topic title
+		// Prepare the topic title
 		char pubTopic[27];
 		sprintf(pubTopic, "device/sck/%s/readings", config.token.token);
 
 		debugOUT(String(pubTopic));
+		debugOUT(String(netBuff));
 
-		if (MQTTclient.publish(pubTopic, myPayload)) {
+		if (MQTTclient.publish(pubTopic, netBuff)) {
 			debugOUT(F("MQTT readings published OK !!!"));
 			return true;
 		}

@@ -22,10 +22,8 @@ enum SensorType
 	SENSOR_LIGHT,
 	SENSOR_TEMPERATURE,
 	SENSOR_HUMIDITY,
-	SENSOR_CO,
 	SENSOR_CO_RESISTANCE,
 	SENSOR_CO_HEAT_TIME,
-	SENSOR_NO2,
 	SENSOR_NO2_RESISTANCE,
 	SENSOR_NO2_HEAT_TIME,
 	SENSOR_NO2_LOAD_RESISTANCE,
@@ -43,13 +41,10 @@ enum SensorType
 	// I2C Auxiliary Sensors
 	SENSOR_GASESBOARD_SLOT_1A,
 	SENSOR_GASESBOARD_SLOT_1W,
-	SENSOR_GASESBOARD_SLOT_1_CAL,
 	SENSOR_GASESBOARD_SLOT_2A,
 	SENSOR_GASESBOARD_SLOT_2W,
-	SENSOR_GASESBOARD_SLOT_2_CAL,
 	SENSOR_GASESBOARD_SLOT_3A,
 	SENSOR_GASESBOARD_SLOT_3W,
-	SENSOR_GASESBOARD_SLOT_3_CAL,
 	SENSOR_GASESBOARD_TEMPERATURE,
 	SENSOR_GASESBOARD_HUMIDITY,
 
@@ -140,12 +135,10 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_LIGHT, 				"LIGHT",		"Light", 					14,		true,		false,			"Lux"},
 			OneSensor { BOARD_URBAN, 		SENSOR_TEMPERATURE, 			"TEMP",			"Temperature", 					55,		true,		false,			"C"},
 			OneSensor { BOARD_URBAN, 		SENSOR_HUMIDITY,			"HUM",			"Humidity", 					56,		true,		false,			"%"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO, 				"CO_MICS",		"Carbon monoxide", 				82,		true,		true,			"ppm"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO_RESISTANCE,			"CO_MICS_RAW",		"Carbon monoxide resistance", 			16,		false,		true,			"kOhm"},
-			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"CO_MICS_THEAT",	"Carbon monoxide heat time",			0,		true,		false,			"sec"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2, 				"NO2_MICS",		"Nitrogen dioxide",				81,		true,		true,			"ppb"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2_RESISTANCE,			"NO2_MICS_RAW",		"Nitrogen dioxide resistance",			15,		false,		true,			"kOhm"},
-			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"NO2_MICS_THEAT",	"Nitrogen dioxide heat time",			0,		true,		false,			"sec"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_RESISTANCE,			"CO_MICS_RAW",		"Carbon monoxide resistance", 			16,		true,		true,			"kOhm"},
+			OneSensor { BOARD_URBAN, 		SENSOR_CO_HEAT_TIME, 			"CO_MICS_THEAT",	"Carbon monoxide heat time",			0,		false,		false,			"sec"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_RESISTANCE,			"NO2_MICS_RAW",		"Nitrogen dioxide resistance",			15,		true,		true,			"kOhm"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"NO2_MICS_THEAT",	"Nitrogen dioxide heat time",			0,		false,		false,			"sec"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_LOAD_RESISTANCE, 		"NO2_MICS_RLOAD",	"Nitrogen dioxide load resistance",		0,		false,		false,			"Ohms"},
 			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"NOISE_A",		"Noise dBA", 					53,		true,		false,			"dBA"}, */
 			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"NOISE_B",		"Noise dBC", 					0,		false,		false,			"dBC"}, */
@@ -160,15 +153,12 @@ class AllSensors
 
 			// I2C Auxiliary Sensors
 			// SCK Gases Board for Alphasense (3 Gas sensor Slots, + SHT31 Temp-Humidity)
-			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_1A,		"GB_1A",		"Gases Board 1A",				68,		false,		true,			"mV"},
-			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_1W,		"GB_1W",		"Gases Board 1W",				67,		false,		true,			"mV"},
-			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_1_CAL,		"GB_CO",		"Gases Board CO",				84,		false,		true,			"ppm"},
+			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_1A,		"GB_1A",		"Gases Board 1A",				65,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_1W,		"GB_1W",		"Gases Board 1W",				64,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_2A,		"GB_2A",		"Gases Board 2A",				62,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_2W, 		"GB_2W",		"Gases Board 2W",				61,		false,		true,			"mV"},
-			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_2_CAL,		"GB_NO2",		"Gases Board NO2",				83,		false,		true,			"ppb"},
-			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_3A, 		"GB_3A",		"Gases Board 3A",				65,		false,		true,			"mV"},
-			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_3W, 		"GB_3W",		"Gases Board 3W",				64,		false,		true,			"mV"},
-			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_3_CAL,		"GB_O3",		"Gases Board O3",				85,		false,		true,			"ppb"},
+			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_3A, 		"GB_3A",		"Gases Board 3A",				68,		false,		true,			"mV"},
+			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_SLOT_3W, 		"GB_3W",		"Gases Board 3W",				67,		false,		true,			"mV"},
 			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_TEMPERATURE, 		"GB_TEMP",		"Gases Board Temperature", 			79,		false,		false,			"C"},
 			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_HUMIDITY, 		"GB_HUM",		"Gases Board Humidity",				80,		false,		false,			"%"},
 
@@ -188,11 +178,11 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO,			"AS_DO",		"Atlas Dissolved Oxygen",			48,		false,		true,			"mg/L"},
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_DO_SAT,			"AS_DO_SAT",		"Atlas DO Saturation",				49,		false,		true,			"%"},
 
-			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_1,				"PM_1",			"PM 1.0",					89,		false,		true,			"ug/m3"},
-			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_25,				"PM_25",		"PM 2.5",					87,		false,		true,			"ug/m3"},
-			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_10,				"PM_10",		"PM 10.0",					88,		false,		true,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_1,			"PM_1",			"PM 1.0",					89,		false,		true,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_25,			"PM_25",		"PM 2.5",					87,		false,		true,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_10,			"PM_10",		"PM 10.0",					88,		false,		true,			"ug/m3"},
 
-			OneSensor { BOARD_AUX,			SENSOR_PM_DALLAS_TEMP,			"PM_DALLAS_TEMP",	"PMboard Dallas Temperature",			0,		false,		false,			"C"},
+			OneSensor { BOARD_AUX,			SENSOR_PM_DALLAS_TEMP,			"PM_DALLAS_TEMP",	"PM board Dallas Temperature",			96,		false,		false,			"C"},
 
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"EXT_TEMP",		"External Temperature",				0,		false,		false,			"C"},
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"EXT_HUM",		"External Humidity",				0,		false,		false,			"%"},

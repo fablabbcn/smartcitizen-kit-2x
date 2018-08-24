@@ -26,9 +26,6 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_GASESBOARD_SLOT_2W:
 		case SENSOR_GASESBOARD_SLOT_3A:
 		case SENSOR_GASESBOARD_SLOT_3W:
-		case SENSOR_GASESBOARD_SLOT_1_CAL:
-		case SENSOR_GASESBOARD_SLOT_2_CAL:
-		case SENSOR_GASESBOARD_SLOT_3_CAL:
 		case SENSOR_GASESBOARD_HUMIDITY:
 		case SENSOR_GASESBOARD_TEMPERATURE: 	return gasBoard.start(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.start(); break;
@@ -68,9 +65,6 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_GASESBOARD_SLOT_2W:
 		case SENSOR_GASESBOARD_SLOT_3A:
 		case SENSOR_GASESBOARD_SLOT_3W:
-		case SENSOR_GASESBOARD_SLOT_1_CAL:
-		case SENSOR_GASESBOARD_SLOT_2_CAL:
-		case SENSOR_GASESBOARD_SLOT_3_CAL:
 		case SENSOR_GASESBOARD_HUMIDITY:
 		case SENSOR_GASESBOARD_TEMPERATURE: 	return gasBoard.stop(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.stop(); break;
@@ -107,9 +101,6 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_GASESBOARD_SLOT_2W: 	return gasBoard.getElectrode(gasBoard.Slot2.electrode_W); break;
 		case SENSOR_GASESBOARD_SLOT_3A: 	return gasBoard.getElectrode(gasBoard.Slot3.electrode_A); break;
 		case SENSOR_GASESBOARD_SLOT_3W: 	return gasBoard.getElectrode(gasBoard.Slot3.electrode_W); break;
-		case SENSOR_GASESBOARD_SLOT_1_CAL: 	return gasBoard.getPPM(gasBoard.Slot1); break;
-		case SENSOR_GASESBOARD_SLOT_2_CAL: 	return gasBoard.getPPM(gasBoard.Slot2); break;
-		case SENSOR_GASESBOARD_SLOT_3_CAL: 	return gasBoard.getPPM(gasBoard.Slot3); break;
 		case SENSOR_GASESBOARD_HUMIDITY: 	return gasBoard.getHumidity(); break;
 		case SENSOR_GASESBOARD_TEMPERATURE: return gasBoard.getTemperature(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.getReading(); break;

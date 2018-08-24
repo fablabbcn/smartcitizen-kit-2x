@@ -75,19 +75,6 @@ class Sck_SHT31
 };
 
 // Gases CO and NO2
-struct calSub {
-	double fac1;
-	uint32_t ind1;
-	double fac2;
-	uint32_t ind2;
-};
-struct calData {
-	bool valid = false;
-	double A;
-	calSub gas;
-	calSub temp;
-	calSub hum;
-};
 class Sck_MICS4514
 {
 	// Datasheet
@@ -121,20 +108,14 @@ class Sck_MICS4514
 		bool setNO2load(uint32_t value);
 
 	public:
-		calData calCO;
-		calData calNO2;
 		float coResistance;
 		float no2Resistance;
-		float co;
-		float no2;
 		uint16_t no2LoadResistor;
 		bool start(uint32_t startTime);
 		bool stop(uint32_t stopTime);
 		bool startHeater();
 		bool getCOresistance();
 		bool getNO2resistance();
-		bool getCO(float temperature, float humidity);
-		bool getNO2(float temperature, float humidity);
 		bool getNO2load();
 		uint32_t getHeatTime(uint32_t currentTime);
 		float average(uint8_t wichPin);

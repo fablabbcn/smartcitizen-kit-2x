@@ -1380,9 +1380,9 @@ bool SckBase::netPublish()
 				sprintf(netBuff, "%s%s\",\"sensors\":[", netBuff, thisTime);
 				timeSet = true;
 				sprintf(netBuff, "%s{\"id\":%u, \"value\":%.02f}", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
+			} else {
+				sprintf(netBuff, "%s,{\"id\":%u, \"value\":%.02f}", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			}
-
-			sprintf(netBuff, "%s,{\"id\":%u, \"value\":%.02f}", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			count ++;
 		}
 	}

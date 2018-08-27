@@ -191,8 +191,8 @@ class AllSensors
 
 			OneSensor { BOARD_AUX,			SENSOR_PM_DALLAS_TEMP,			"PM_DALLAS_TEMP",	"PM board Dallas Temperature",			96,		false,		false,			"C"},
 
-			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"EXT_TEMP",		"External Temperature",				0,		false,		false,			"C"},
-			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"EXT_HUM",		"External Humidity",				0,		false,		false,			"%"},
+			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"EXT_TEMP",		"External Temperature",				79,		false,		false,			"C"},
+			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"EXT_HUM",		"External Humidity",				80,		false,		false,			"%"},
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96
 			OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,			"GR_OLED",		"Groove OLED",					0,		false,		false,			},

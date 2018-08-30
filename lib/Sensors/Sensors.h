@@ -27,9 +27,10 @@ enum SensorType
 	SENSOR_NO2_RESISTANCE,
 	SENSOR_NO2_HEAT_TIME,
 	SENSOR_NO2_LOAD_RESISTANCE,
-	/* SENSOR_NOISE_DBA, */
-	/* SENSOR_NOISE_DBC, */
-	/* SENSOR_NOISE_DBZ, */
+	SENSOR_NOISE_DBA,
+	SENSOR_NOISE_DBC,
+	SENSOR_NOISE_DBZ,
+	SENSOR_NOISE_FFT, 
 	SENSOR_ALTITUDE,
 	SENSOR_PRESSURE,
 	SENSOR_PRESSURE_TEMP,
@@ -140,9 +141,10 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_RESISTANCE,			"NO2_MICS_RAW",		"Nitrogen dioxide resistance",			15,		true,		true,			"kOhm"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_HEAT_TIME, 			"NO2_MICS_THEAT",	"Nitrogen dioxide heat time",			0,		false,		false,			"sec"},
 			OneSensor { BOARD_URBAN, 		SENSOR_NO2_LOAD_RESISTANCE, 		"NO2_MICS_RLOAD",	"Nitrogen dioxide load resistance",		0,		false,		false,			"Ohms"},
-			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"NOISE_A",		"Noise dBA", 					53,		true,		false,			"dBA"}, */
-			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"NOISE_B",		"Noise dBC", 					0,		false,		false,			"dBC"}, */
-			/* OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBZ, 			"NOISE_Z",		"Noise dBZ", 					0,		false,		false,			"dB"}, */
+			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBA, 			"NOISE_A",		"Noise dBA", 					53,		true,		false,			"dBA"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBC, 			"NOISE_B",		"Noise dBC", 					0,		false,		false,			"dBC"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_DBZ, 			"NOISE_Z",		"Noise dBZ", 					0,		false,		false,			"dB"},
+			OneSensor { BOARD_URBAN, 		SENSOR_NOISE_FFT, 			"NOISE_FFT",		"Noise FFT", 					0,		false,		false,			},
 			OneSensor { BOARD_URBAN, 		SENSOR_ALTITUDE, 			"ALT", 			"Altitude", 					0,		false,		false,			"M"},
 			OneSensor { BOARD_URBAN, 		SENSOR_PRESSURE, 			"PRESS",		"Barometric pressure",				58,		true,		false,			"kPa"},
 			OneSensor { BOARD_URBAN, 		SENSOR_PRESSURE_TEMP,			"PRESS_TEMP",		"Pressure internal temperature", 		0,		false,		false,			"C"},

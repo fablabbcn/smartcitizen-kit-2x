@@ -802,6 +802,7 @@ bool PM_DallasTemp::start()
 	bool result = auxWire.read();
 	return result;
 }
+
 bool PM_DallasTemp::stop()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -814,6 +815,7 @@ bool PM_DallasTemp::stop()
 	bool result = auxWire.read();
 	return result;
 }
+
 float PM_DallasTemp::getReading()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;

@@ -17,12 +17,13 @@ bool SckUrban::setup(SckBase *base)
 					case SENSOR_HUMIDITY: 				if (!sck_sht31.start()) return false; break;
 					case SENSOR_CO_RESISTANCE:
 					case SENSOR_NO2_RESISTANCE:			if (!sck_mics4514.start(currentTime))	return false; break;
-					/* case SENSOR_NOISE_DBA: */
-					/* case SENSOR_NOISE_DBC: */
-					/* case SENSOR_NOISE_DBZ: 				if (!sck_ics43432.configure()) return false; break; */
+					case SENSOR_NOISE_DBA:
+					case SENSOR_NOISE_DBC:
+					case SENSOR_NOISE_DBZ:
+					case SENSOR_NOISE_FFT: 				if (!sck_noise.start()) return false; break;
 					case SENSOR_ALTITUDE:
 					case SENSOR_PRESSURE:
-					case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.start()) return false; break;		
+					case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.start()) return false; break;
 					case SENSOR_PARTICLE_RED:
 					case SENSOR_PARTICLE_GREEN:
 					case SENSOR_PARTICLE_IR:
@@ -31,7 +32,7 @@ bool SckUrban::setup(SckBase *base)
 				}
 			} else {
 				switch(thisType) {
-					case SENSOR_CO_RESISTANCE: 
+					case SENSOR_CO_RESISTANCE:
 					case SENSOR_NO2_RESISTANCE:
 						// If all the sensors that requires heating are off
 						if (!base->sensors[SENSOR_CO_RESISTANCE].enabled &&
@@ -42,7 +43,7 @@ bool SckUrban::setup(SckBase *base)
 						}
 						break;
 					default: break;
-				}	
+				}
 			}
 		}
 	}
@@ -57,12 +58,13 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_HUMIDITY: 				if (sck_sht31.start()) return true; break;
 		case SENSOR_CO_RESISTANCE:
 		case SENSOR_NO2_RESISTANCE:			if (sck_mics4514.start(0)) return true; break;
-		/* case SENSOR_NOISE_DBA: */
-		/* case SENSOR_NOISE_DBC: */
-		/* case SENSOR_NOISE_DBZ: 				if (!sck_ics43432.configure()) return false; break; */
+		case SENSOR_NOISE_DBA:
+		case SENSOR_NOISE_DBC:
+		case SENSOR_NOISE_DBZ:
+		case SENSOR_NOISE_FFT: 				if (sck_noise.start()) return true; break;
 		case SENSOR_ALTITUDE:
 		case SENSOR_PRESSURE:
-		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.start()) return true; break;		
+		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.start()) return true; break;
 		case SENSOR_PARTICLE_RED:
 		case SENSOR_PARTICLE_GREEN:
 		case SENSOR_PARTICLE_IR:
@@ -82,12 +84,13 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_HUMIDITY: 				if (sck_sht31.stop()) return true; break;
 		case SENSOR_CO_RESISTANCE:
 		case SENSOR_NO2_RESISTANCE:			if (sck_mics4514.stop(0)) return true; break;
-		/* case SENSOR_NOISE_DBA: */
-		/* case SENSOR_NOISE_DBC: */
-		/* case SENSOR_NOISE_DBZ: 				if (!sck_ics43432.configure()) return false; break; */
+		case SENSOR_NOISE_DBA:
+		case SENSOR_NOISE_DBC:
+		case SENSOR_NOISE_DBZ:
+		case SENSOR_NOISE_FFT: 				if (sck_noise.start()) return true;
 		case SENSOR_ALTITUDE:
 		case SENSOR_PRESSURE:
-		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.stop()) return true; break;		
+		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.stop()) return true; break;
 		case SENSOR_PARTICLE_RED:
 		case SENSOR_PARTICLE_GREEN:
 		case SENSOR_PARTICLE_IR:
@@ -120,9 +123,17 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 				return String(sck_mics4514.getHeatTime(currentTime)); break;
 			}
 		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load()) return String(sck_mics4514.no2LoadResistor); break;
-		/* case SENSOR_NOISE_DBA: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(A_WEIGHTING)); break; */
-		/* case SENSOR_NOISE_DBC: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(C_WEIGHTING)); break; */
-		/* case SENSOR_NOISE_DBZ: 			if (sck_ics43432.bufferFilled()) return String(sck_ics43432.getReading(Z_WEIGHTING)); break; */
+		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading()) return String(sck_noise.readingDBA); break;
+		case SENSOR_NOISE_DBC: 			if (sck_noise.getReading()) return String(sck_noise.readingDBC); break;
+		case SENSOR_NOISE_DBZ: 			if (sck_noise.getReading()) return String(sck_noise.readingDBZ); break;
+		case SENSOR_NOISE_FFT: 			if (sck_noise.getReading()) {
+								String toReturn = String(sck_noise.readingFFT[0]);
+								for (uint16_t i=1; i<sck_noise.FFT_NUM; i++) {
+									toReturn = toReturn + "," + String(sck_noise.readingFFT[i]);
+								}
+								return toReturn;
+								break;
+							}
 		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude(wait)) return String(sck_mpl3115A2.altitude); break;
 		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure(wait)) return String(sck_mpl3115A2.pressure); break;
 		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature(wait)) return String(sck_mpl3115A2.temperature); break;
@@ -142,7 +153,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 		case SENSOR_CO_RESISTANCE:
 		case SENSOR_NO2_RESISTANCE: {
 			if (command.startsWith("help")) {
-				base->sckOut("Available commands for this sensor:\r\nStill nothing!!"); 
+				base->sckOut("Available commands for this sensor:\r\nStill nothing!!");
 				return true;
 			} else base->sckOut("Unrecognized command!! please try again..."); return false;
 			break;
@@ -578,7 +589,201 @@ float Sck_MICS4514::average(uint8_t wichPin)
 }
 
 // Noise
+bool Sck_Noise::start()
+{
+	return true;
+}
+bool Sck_Noise::stop()
+{
+	return true;
+}
+bool Sck_Noise::getReading()
+{
+	return true;
+}
+bool Sck_Noise::FFT(int32_t *source)
+{
+	int16_t scaledSource[SAMPLE_NUM]; 		// TODO una vez que todo funcione revisar si en ves de este buffer podemos usar el readingFFT
+	double divider = dynamicScale(source, scaledSource);
 
+	applyWindow(scaledSource, hannWindow, SAMPLE_NUM);
+
+	static int16_t ALIGN4 scratchData[SAMPLE_NUM * 2];
+
+	// Split the data
+	for(int i=0; i<SAMPLE_NUM*2; i+=2){
+		scratchData[i] = scaledSource[i/2]; // real
+		scratchData[i+1] = 0; // imaginary
+	}
+
+	arm_radix2_butterfly(scratchData, SAMPLE_NUM, (int16_t *)twiddleCoefQ15_512);
+	arm_bitreversal(scratchData, SAMPLE_NUM, (uint16_t *)armBitRevTable8);
+
+	for (int i=0; i<SAMPLE_NUM/2; i++) {
+
+		// Calculate result and normalize SpectrumBuffer, also revert dynamic scaling
+		uint32_t myReal = pow(scratchData[i*2], 2);
+		uuint32_t myImg = pow(scratchData[(i*2)+1], 2);
+
+		readingFFT[i] = sqrt(myReal + myImg) * divider / 2;
+	}
+
+	// Exception for the first bin
+	readingFFT[0] = readingFFT[0] * 2;
+
+	return 0;
+}
+double Sck_Noise::dynamicScale(int32_t *source, int16_t *scaledSource)
+{
+	int32_t maxLevel = 0;
+	for (uint16_t i=0; i<SAMPLE_NUM; i++) if (abs(source[i]) > maxLevel) maxLevel = source[i];
+	double divider = (maxLevel+1) / 32768.0; // 16 bits
+
+	for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = source[i] / divider;
+	return divider;
+}
+void Sck_Noise::applyWindow(int16_t *src, const int16_t *window, uint16_t len)
+{
+	while(len--){
+		int32_t val = *src * *window++;
+		*src = val >> 15;
+		src++;
+	}
+}
+void Sck_Noise::arm_radix2_butterfly(int16_t * pSrc, uint32_t fftLen, int16_t * pCoef)
+{
+
+	int i, j, k, l;
+	int n1, n2, ia;
+	int16_t xt, yt, cosVal, sinVal;
+
+	n2 = fftLen;
+
+	n1 = n2;
+	n2 = n2 >> 1;
+	ia = 0;
+
+	// loop for groups
+	for (j=0; j<n2; j++) {
+		cosVal = pCoef[ia * 2];
+		sinVal = pCoef[(ia * 2) + 1];
+		ia++;
+
+		// loop for butterfly
+		for (i=j; i<fftLen; i+=n1) {
+			l = i + n2;
+			xt = (pSrc[2 * i] >> 2u) - (pSrc[2 * l] >> 2u);
+			pSrc[2 * i] = ((pSrc[2 * i] >> 2u) + (pSrc[2 * l] >> 2u)) >> 1u;
+
+			yt = (pSrc[2 * i + 1] >> 2u) - (pSrc[2 * l + 1] >> 2u);
+			pSrc[2 * i + 1] =
+				((pSrc[2 * l + 1] >> 2u) + (pSrc[2 * i + 1] >> 2u)) >> 1u;
+
+			pSrc[2u * l] = (((int16_t) (((int32_t) xt * cosVal) >> 16)) +
+					((int16_t) (((int32_t) yt * sinVal) >> 16)));
+
+			pSrc[2u * l + 1u] = (((int16_t) (((int32_t) yt * cosVal) >> 16)) -
+					((int16_t) (((int32_t) xt * sinVal) >> 16)));
+
+		}                           // butterfly loop end
+	}                             // groups loop end
+
+	uint16_t twidCoefModifier = 2;
+
+	// loop for stage
+	for (k = fftLen / 2; k > 2; k = k >> 1) {
+		n1 = n2;
+		n2 = n2 >> 1;
+		ia = 0;
+
+		// loop for groups
+		for (j=0; j<n2; j++) {
+			cosVal = pCoef[ia * 2];
+			sinVal = pCoef[(ia * 2) + 1];
+
+			ia = ia + twidCoefModifier;
+
+			// loop for butterfly
+			for (i=j; i<fftLen; i+=n1) {
+				l = i + n2;
+				xt = pSrc[2 * i] - pSrc[2 * l];
+				pSrc[2 * i] = (pSrc[2 * i] + pSrc[2 * l]) >> 1u;
+
+				yt = pSrc[2 * i + 1] - pSrc[2 * l + 1];
+				pSrc[2 * i + 1] = (pSrc[2 * l + 1] + pSrc[2 * i + 1]) >> 1u;
+
+				pSrc[2u * l] = (((int16_t) (((int32_t) xt * cosVal) >> 16)) +
+						((int16_t) (((int32_t) yt * sinVal) >> 16)));
+
+				pSrc[2u * l + 1u] = (((int16_t) (((int32_t) yt * cosVal) >> 16)) -
+						((int16_t) (((int32_t) xt * sinVal) >> 16)));
+
+			}                         // butterfly loop end
+		}                           // groups loop end
+		twidCoefModifier = twidCoefModifier << 1u;
+	}                             // stages loop end
+
+	n1 = n2;
+	n2 = n2 >> 1;
+	ia = 0;
+	// loop for groups
+	for (j=0; j<n2; j++) {
+		cosVal = pCoef[ia * 2];
+		sinVal = pCoef[(ia * 2) + 1];
+
+		ia = ia + twidCoefModifier;
+
+		// loop for butterfly
+		for (i=j; i<fftLen; i+=n1) {
+			l = i + n2;
+			xt = pSrc[2 * i] - pSrc[2 * l];
+			pSrc[2 * i] = (pSrc[2 * i] + pSrc[2 * l]);
+
+			yt = pSrc[2 * i + 1] - pSrc[2 * l + 1];
+			pSrc[2 * i + 1] = (pSrc[2 * l + 1] + pSrc[2 * i + 1]);
+
+			pSrc[2u * l] = xt;
+
+			pSrc[2u * l + 1u] = yt;
+
+		}                           // butterfly loop end
+	}                             // groups loop end
+}
+void Sck_Noise::arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab)
+{
+	int32_t *pSrc = (int32_t *) pSrc16;
+	int32_t in;
+	uint32_t fftLenBy2, fftLenBy2p1;
+	uint32_t i, j;
+
+	/*  Initializations */
+	j = 0u;
+	fftLenBy2 = fftLen / 2u;
+	fftLenBy2p1 = (fftLen / 2u) + 1u;
+
+	/* Bit Reversal Implementation */
+	for (i = 0u; i <= (fftLenBy2 - 2u); i += 2u) {
+		if(i < j) {
+			in = pSrc[i];
+			pSrc[i] = pSrc[j];
+			pSrc[j] = in;
+
+			in = pSrc[i + fftLenBy2p1];
+			pSrc[i + fftLenBy2p1] = pSrc[j + fftLenBy2p1];
+			pSrc[j + fftLenBy2p1] = in;
+		}
+
+		in = pSrc[i + 1u];
+		pSrc[i + 1u] = pSrc[j + fftLenBy2];
+		pSrc[j + fftLenBy2] = in;
+
+		/*  Reading the index for the bit reversal */
+		j = *pBitRevTab;
+
+		/*  Updating the bit reversal index depending on the fft length  */
+		pBitRevTab++;
+	}
+}
 
 // Barometric pressure and Altitude
 bool Sck_MPL3115A2::start()
@@ -675,7 +880,8 @@ bool Sck_MAX30105::getIR(bool wait)
 	return true;
 }
 bool Sck_MAX30105::getTemperature(bool wait)
-{	// NOT WORKING!!! (sparkfun lib)
+{	
+	// NOT WORKING!!! (sparkfun lib)
 
 	sparkfun_max30105.wakeUp();
 

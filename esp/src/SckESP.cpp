@@ -122,7 +122,7 @@ void SckESP::debugOUT(String strOut)
 
 	if (telnetDebug) {
 		strOut += "\r\n";
-		DEBUG(strOut.c_str());
+		Debug.println(strOut.c_str());
 	}
 
 	if (serialDebug) sendMessage(SAMMES_DEBUG, strOut.c_str());

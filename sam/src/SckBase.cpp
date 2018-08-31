@@ -171,8 +171,14 @@ void SckBase::reviewState()
 		return;
 	}
 
-	if (battPendingEvent) batteryEvent();
-	if (chargerPendingEvent) chargerEvent();
+	if (battPendingEvent) {
+		battery.event();
+		battPendingEvent = false;
+	}
+	if (chargerPendingEvent) {
+		charger.event();
+		chargerPendingEvent = false;
+	}
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
@@ -487,7 +493,7 @@ void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 void SckBase::sckOut(PrioLevels priority, bool newLine)
 {
 	// Output via USB console
-	if (onUSB) {
+	if (charger.onUSB) {
 		if (outputLevel + priority > 1) {
 			if (newLine) SerialUSB.println(outBuff);
 			else SerialUSB.print(outBuff);
@@ -953,157 +959,10 @@ void SckBase::flashSelect()
 }
 
 // **** Power
-bool SckBase::battPresent()
-{
-	/* SerialUSB.print("charge status: "); */
-	/* SerialUSB.println(charger.getChargeStatus()); */
-
-	// First check pinBATT_INSERTION
-	uint32_t valueRead = 0;
-	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-	ADC->INPUTCTRL.bit.MUXPOS = ADC_Channel6; 	// Selection for the positive ADC input
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-	ADC->CTRLA.bit.ENABLE = 0x01;             	// Enable ADC
-	while (ADC->STATUS.bit.SYNCBUSY == 1); 		// Start conversion
-	ADC->SWTRIG.bit.START = 1;
-	ADC->INTFLAG.reg = ADC_INTFLAG_RESRDY; 		// Clear the Data Ready flag
-	while (ADC->STATUS.bit.SYNCBUSY == 1);		// Start conversion again, since The first conversion after the reference is changed must not be used.
-	ADC->SWTRIG.bit.START = 1;
-	while (ADC->INTFLAG.bit.RESRDY == 0);   	// Waiting for conversion to complete
-	valueRead = ADC->RESULT.reg;			// Store the value
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-	ADC->CTRLA.bit.ENABLE = 0x00;             	// Disable ADC
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-
-	/* SerialUSB.print("pin BATT insertion analog: "); */
-	/* SerialUSB.println(valueRead); */
-
-	if (valueRead < 400) {
-		Wire.beginTransmission(battAdress);
-		uint8_t error = Wire.endTransmission();
-
-		if (error == 0) return true;
-		else {
-			// TODO check if this is really necesary
-			// Try to wake up the gauge
-			sckOut("trying to wake up battery gauge...");
-			pinMode(pinGAUGE_INT, OUTPUT);
-			digitalWrite(pinGAUGE_INT, LOW);
-			delay(1);
-			digitalWrite(pinGAUGE_INT, HIGH);
-			delay(1);
-			pinMode(pinGAUGE_INT, INPUT_PULLUP);
-			Wire.beginTransmission(battAdress);
-			uint8_t error = Wire.endTransmission();
-			if (error == 0) return true;
-			battConfigured = false;
-			batteryPresent = false;
-			return false;
-		}
-	} else {
-		batteryPresent = false;
-		battConfigured = false;
-		return false;
-	}
-
-	
-
-	batteryPresent = true;
-	return true;
-}
-bool SckBase::battSetup()
-{
-	if (battConfigured) return true;
-
-	if (!battPresent()) {
-		sckOut("No battery detected!!!");
-		return false;
-	}
-
-	sckOut("Configuring battery...");
-
-	pinMode(pinGAUGE_INT, INPUT_PULLUP);
-	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
-
-	lipo.enterConfig();
-	lipo.setCapacity(battCapacity);
-	lipo.setGPOUTPolarity(LOW);
-	lipo.setGPOUTFunction(SOC_INT);
-	lipo.setSOCIDelta(1);
-	lipo.exitConfig();
-
-	battConfigured = true;
-
-	// TODO if battery is not full and we are not charging run charger.setup here
-
-	return true;
-}
-void SckBase::batteryEvent()
-{
-	sckOut("Battery event", PRIO_LOW);
-	battPendingEvent = false;
-	if (!battSetup()) return;
-
-	getReading(SENSOR_BATT_PERCENT);
-	sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
-	sckOut(PRIO_LOW);			
-}
-void SckBase::batteryReport()
-{
-	if (!battConfigured) {
-		if (!battSetup()) return;
-	}
-
-	sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i",
-			lipo.soc(),
-			lipo.voltage(),
-			lipo.current(AVG),
-			lipo.capacity(REMAIN),
-			lipo.capacity(FULL),
-			lipo.soh()
-	       );
-	sckOut();
-}
 void SckBase::sck_reset()
 {
 	sckOut("Bye!!");
 	NVIC_SystemReset();
-}
-void SckBase::chargerEvent()
-{
-	sckOut("Charger event", PRIO_LOW);
-	chargerPendingEvent = false;
-
-	/* if (!battPresent()) { */
-		/* sckOut("Battery removed!!"); */
-		/* charger.chargeState(0); */
-	/* } else */ 
-	if (charger.getChargeStatus() == charger.CHRG_CHARGE_TERM_DONE) {
-		sckOut("Batterry fully charged!!");
-		charger.chargeState(0);
-	}
-
-	while (charger.getDPMstatus()) {} // Wait for DPM detection finish
-
-	if (charger.getPowerGoodStatus()) {
-
-		onUSB = true;
-		// charger.OTG(false);
-
-	} else {
-
-		onUSB = false;
-		// charger.OTG(true);
-
-	}
-
-	// TODO, React to any charger fault
-	if (charger.getNewFault() != 0) {
-		sckOut("Charger fault!!!");
-	}
-
-	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }
 void SckBase::goToSleep()
 {
@@ -1268,7 +1127,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 				switch (wichSensor) {
 					case SENSOR_BATT_PERCENT:
 					{
-						if (!battPresent()) {
+						if (!battery.isPresent()) {
 							result = String("-1");
 							break;
 						}
@@ -1279,7 +1138,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 					}
 					case SENSOR_BATT_VOLTAGE:
 
-						if (!battPresent()) {
+						if (!battery.isPresent()) {
 							result = String("-1");
 							break;
 						}
@@ -1288,7 +1147,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 
 					case SENSOR_BATT_CHARGE_RATE:
 
-						if (!battPresent()) {
+						if (!battery.isPresent()) {
 							result = String("-1");
 							break;
 						}

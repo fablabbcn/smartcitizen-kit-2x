@@ -3,9 +3,13 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <Pins.h>
+#include "wiring_private.h"
 
+// Battery gauge TO BE REMOVED!
+#include <SparkFunBQ27441.h>
 
-class SckCharger {
+class SckCharger
+{
 private:
 	uint8_t address = 0x6B;
 
@@ -101,10 +105,27 @@ public:
 	bool getPowerGoodStatus();
 	bool getDPMstatus();
 	void forceInputCurrentLimitDetection();
+	void event();
 	chargeStatus getChargeStatus();
 	VBUSstatus getVBUSstatus();
 	byte getNewFault();		// TODO
+	bool onUSB = true;
 
 };
 
+class SckBatt
+{
+	private:
+		uint8_t address = 0x55;
+		bool present = false;
+		bool configured = false;
+		uint16_t capacitymAh = 2000;
+	public:
+		bool isPresent();
+		bool setup();
+		void batteryReport();
+		void event();
+};
+
 void ISR_charger();
+void ISR_battery();

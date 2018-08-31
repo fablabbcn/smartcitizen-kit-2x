@@ -1,4 +1,4 @@
-#include "SckCharger.h"
+#include "SckBatt.h"
 
 void SckCharger::setup()
 {
@@ -255,4 +255,140 @@ bool SckCharger::writeREG(byte wichRegister, byte data)
 
     if (readREG(wichRegister) == data) return true;
     else return false;
+}
+void SckCharger::event()
+{
+	/* sckOut("Charger event", PRIO_LOW); */
+
+	/* if (!battPresent()) { */
+		/* sckOut("Battery removed!!"); */
+		/* charger.chargeState(0); */
+	/* } else */ 
+	if (getChargeStatus() == CHRG_CHARGE_TERM_DONE) {
+		/* sckOut("Batterry fully charged!!"); */
+		chargeState(0);
+	}
+
+	while (getDPMstatus()) {} // Wait for DPM detection finish
+
+	if (getPowerGoodStatus()) {
+
+		onUSB = true;
+		// charger.OTG(false);
+
+	} else {
+
+		onUSB = false;
+		// charger.OTG(true);
+
+	}
+
+	// TODO, React to any charger fault
+	if (getNewFault() != 0) {
+		/* sckOut("Charger fault!!!"); */
+	}
+
+	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
+}
+
+// Battery
+bool SckBatt::isPresent()
+{
+	/* SerialUSB.print("charge status: "); */
+	/* SerialUSB.println(charger.getChargeStatus()); */
+
+	// First check pinBATT_INSERTION
+	uint32_t valueRead = 0;
+	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+	ADC->INPUTCTRL.bit.MUXPOS = ADC_Channel6; 	// Selection for the positive ADC input
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+	ADC->CTRLA.bit.ENABLE = 0x01;             	// Enable ADC
+	while (ADC->STATUS.bit.SYNCBUSY == 1); 		// Start conversion
+	ADC->SWTRIG.bit.START = 1;
+	ADC->INTFLAG.reg = ADC_INTFLAG_RESRDY; 		// Clear the Data Ready flag
+	while (ADC->STATUS.bit.SYNCBUSY == 1);		// Start conversion again, since The first conversion after the reference is changed must not be used.
+	ADC->SWTRIG.bit.START = 1;
+	while (ADC->INTFLAG.bit.RESRDY == 0);   	// Waiting for conversion to complete
+	valueRead = ADC->RESULT.reg;			// Store the value
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+	ADC->CTRLA.bit.ENABLE = 0x00;             	// Disable ADC
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+
+	/* SerialUSB.print("pin BATT insertion analog: "); */
+	/* SerialUSB.println(valueRead); */
+
+	if (valueRead < 400) {
+		Wire.beginTransmission(address);
+		uint8_t error = Wire.endTransmission();
+
+		if (error == 0) return true;
+		else {
+			// TODO check if this is really necesary
+			// Try to wake up the gauge
+			pinMode(pinGAUGE_INT, OUTPUT);
+			digitalWrite(pinGAUGE_INT, LOW);
+			delay(1);
+			digitalWrite(pinGAUGE_INT, HIGH);
+			delay(1);
+			pinMode(pinGAUGE_INT, INPUT_PULLUP);
+			Wire.beginTransmission(address);
+			uint8_t error = Wire.endTransmission();
+			if (error == 0) return true;
+			configured = false;
+			present = false;
+			return false;
+		}
+	} else {
+		present = false;
+		configured = false;
+		return false;
+	}
+
+	
+
+	present = true;
+	return true;
+}
+bool SckBatt::setup()
+{
+	if (configured) return true;
+
+	if (!isPresent()) return false;
+
+	pinMode(pinGAUGE_INT, INPUT_PULLUP);
+	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
+
+	lipo.enterConfig();
+	lipo.setCapacity(capacitymAh);
+	lipo.setGPOUTPolarity(LOW);
+	lipo.setGPOUTFunction(SOC_INT);
+	lipo.setSOCIDelta(1);
+	lipo.exitConfig();
+
+	configured = true;
+
+	// TODO if battery is not full and we are not charging run charger.setup here
+
+	return true;
+}
+void SckBatt::event()
+{
+	if (!setup()) return;
+	/* getReading(SENSOR_BATT_PERCENT); */
+	/* sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str()); */
+	/* sckOut(PRIO_LOW); */			
+}
+void SckBatt::batteryReport()
+{
+	if (!configured && !setup()) return;
+
+	/* sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i", */
+	/* 		lipo.soc(), */
+	/* 		lipo.voltage(), */
+	/* 		lipo.current(AVG), */
+	/* 		lipo.capacity(REMAIN), */
+	/* 		lipo.capacity(FULL), */
+	/* 		lipo.soh() */
+       /* ); */
 }

@@ -16,12 +16,9 @@
 #include <FlashStorage.h>
 #include <ArduinoJson.h>
 
-// Battery gauge TO BE REMOVED!
-#include <SparkFunBQ27441.h>
-
 #include "Pins.h"
 #include "SckLed.h"
-#include "SckCharger.h"
+#include "SckBatt.h"
 #include "Shared.h"
 #include "Config.h"
 #include "Commands.h"
@@ -36,7 +33,7 @@ enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
 enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
 class Status
 {
-	
+
 	private:
 		uint32_t _lastTryMillis = 0; // ms
 		uint32_t _timeout; 	// ms
@@ -149,12 +146,6 @@ class SckBase
 		void flashSelect();
 
 		// Power
-		uint16_t battCapacity = 2000;
-		bool batteryPresent = false;
-		bool onUSB = true;		
-		uint8_t battAdress = 0x55;
-		bool battSetup();
-		bool battConfigured = false;
 		uint32_t sleepTime;
 		void goToSleep();
 
@@ -244,14 +235,11 @@ class SckBase
 		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
+		void sck_reset();
+		SckBatt battery;
 		volatile bool battPendingEvent = false;
 		SckCharger charger;
 		volatile bool chargerPendingEvent = false;
-		void chargerEvent();
-		void sck_reset();
-		bool battPresent();
-		void batteryEvent();
-		void batteryReport();
 
 		// Misc
 		void getUniqueID();
@@ -271,26 +259,20 @@ class SckBase
 
 bool I2Cdetect(TwoWire *_Wire, byte address);
 void ISR_button();
-void ISR_battery();
 void ISR_sdDetect();
-void ISR_charger();
 
 
 // TODO
-// * Find out battery insertion resitor value (Maximo)
 // * Finish battery detection and setup
-//
+// * Finish power management and sleep
 // * Confirm OTG status
-// * Urban board pm sensor support
+// * Solve Solar pannel charging
+//
 // * Test MICS heaters and adapt the code
 // * Test MICS POT and adapt the code
-// * Decide what to do with MICS ADC
-// * Finish New kits TEST system
-// * Solve Solar pannel charging
 // * Finish Audio implementation
-// * Finish power management and sleep
 // * Finish FAT flash support
 // * MQTT over SSL
 // * Audio handshake
 // * Solve PID code problems
-// * 
+// *

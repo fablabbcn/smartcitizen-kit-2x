@@ -22,7 +22,6 @@
 #include "Pins.h"
 #include "SckLed.h"
 #include "SckCharger.h"
-#include "SckPot.h"
 #include "Shared.h"
 #include "Config.h"
 #include "Commands.h"

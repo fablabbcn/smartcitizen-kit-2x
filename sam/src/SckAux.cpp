@@ -737,13 +737,19 @@ uint8_t Atlas::getResponse()
 bool PMsensor::start()
 {
 	if (started) return true;
-	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+	if (!I2Cdetect(&auxWire, deviceAddress) || failed) return false;
 
 	auxWire.beginTransmission(deviceAddress);
 	auxWire.write(PM_START);
 	auxWire.endTransmission();
-	started = true;
-	return true;
+	auxWire.requestFrom(deviceAddress, 1);
+
+	bool result = auxWire.read();
+
+	if (result == 0) failed = true;
+	else started = true;
+
+	return result;
 }
 
 bool PMsensor::stop()

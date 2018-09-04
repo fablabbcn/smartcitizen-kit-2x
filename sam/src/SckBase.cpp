@@ -147,7 +147,6 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
-
 	// TEMP
 	if (st.onSetup) {
 		lightResults = readLight.read();
@@ -178,6 +177,16 @@ void SckBase::reviewState()
 	if (chargerPendingEvent) {
 		charger.event();
 		chargerPendingEvent = false;
+	}
+
+	if (battery.isPresent()) {
+		uint8_t nowChargeStatus = charger.getChargeStatus();
+		if (nowChargeStatus == 1 || nowChargeStatus == 2) {
+			led.chargeStatus = led.CHARGE_CHARGING;
+		} else {
+			if (charger.getPowerGoodStatus()) led.chargeStatus = led.CHARGE_FINISHED;
+			else led.chargeStatus = led.CHARGE_NULL;
+		}
 	}
 
 	/* struct SckState { */
@@ -411,7 +420,7 @@ void SckBase::inputUpdate()
 {
 
 	if (SerialUSB.available()) {
-
+		
 		char buff = SerialUSB.read();
 		uint16_t blen = serialBuff.length();
 

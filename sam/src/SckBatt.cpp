@@ -9,10 +9,10 @@ void SckCharger::setup()
 	// Disable I2C watchdog timer
 	I2Cwatchdog(0);
 
-	// Limit input current to 500mA.
+	// Limit input current.
 	inputCurrentLimit(900);
 
-	// Limit charge current to 512mA.
+	// Limit charge current.
 	chargerCurrentLimit(768);
 
 	// We shouldn't take more than 5 hours to charge the normal battery
@@ -96,6 +96,18 @@ bool SckCharger::chargeState(int8_t enable)
 	}
 
 	return (readREG(POWER_ON_CONF_REG) >> CHG_CONFIG) & 1;
+}
+bool SckCharger::batfetState(int8_t enable)
+{
+
+	if (enable > -1) {
+		byte tempMisc = readREG(MISC_REG);
+		if (!enable) tempMisc |= (1 << BATFET_DISABLE); 	// 0 -> batfet ON
+		else  tempMisc &= ~(1 << BATFET_DISABLE); 		// 1 -> batfet off
+		writeREG(MISC_REG, tempMisc);
+	}
+
+	return !((readREG(MISC_REG) >> BATFET_DISABLE) & 1);
 }
 bool SckCharger::OTG(int8_t enable)
 {
@@ -258,34 +270,36 @@ bool SckCharger::writeREG(byte wichRegister, byte data)
 }
 void SckCharger::event()
 {
-	/* sckOut("Charger event", PRIO_LOW); */
+	// TODO limpiar los Serial print
+	SerialUSB.println("Charger event");
 
-	/* if (!battPresent()) { */
-		/* sckOut("Battery removed!!"); */
-		/* charger.chargeState(0); */
-	/* } else */ 
 	if (getChargeStatus() == CHRG_CHARGE_TERM_DONE) {
 		/* sckOut("Batterry fully charged!!"); */
-		chargeState(0);
+		/* chargeState(0); */
 	}
 
 	while (getDPMstatus()) {} // Wait for DPM detection finish
 
 	if (getPowerGoodStatus()) {
 
-		onUSB = true;
+		SerialUSB.println("Power source connected");
+		if (!onUSB) {
+			onUSB = true;
+			// To start with a clean state and make sure charging is OK do a reset when power is connected.
+			NVIC_SystemReset();
+		}
 		// charger.OTG(false);
 
 	} else {
 
+		SerialUSB.println("No power source");
 		onUSB = false;
 		// charger.OTG(true);
-
 	}
 
 	// TODO, React to any charger fault
 	if (getNewFault() != 0) {
-		/* sckOut("Charger fault!!!"); */
+		SerialUSB.println("Charger fault!!");
 	}
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
@@ -294,9 +308,6 @@ void SckCharger::event()
 // Battery
 bool SckBatt::isPresent()
 {
-	/* SerialUSB.print("charge status: "); */
-	/* SerialUSB.println(charger.getChargeStatus()); */
-
 	// First check pinBATT_INSERTION
 	uint32_t valueRead = 0;
 	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
@@ -315,40 +326,43 @@ bool SckBatt::isPresent()
 	ADC->CTRLA.bit.ENABLE = 0x00;             	// Disable ADC
 	while (ADC->STATUS.bit.SYNCBUSY == 1);
 
-	/* SerialUSB.print("pin BATT insertion analog: "); */
-	/* SerialUSB.println(valueRead); */
-
+	// Verify analog read of pinBATT_INSERTION
 	if (valueRead < 400) {
+
+		// Verify that fuel gauge is responding (revisar esto, por que no siempre responde bien...)
+		// tengo que lograr una manera de resetear el gauge cuando la bateria se conecto despues del cable.
+		// si no se logra habra que documentar MUY BIEN para que el usuario nunca conecte la bateria despues del cable, o buscar una manera de no encender cuando eso pase....
 		Wire.beginTransmission(address);
 		uint8_t error = Wire.endTransmission();
 
-		if (error == 0) return true;
-		else {
-			// TODO check if this is really necesary
-			// Try to wake up the gauge
-			pinMode(pinGAUGE_INT, OUTPUT);
-			digitalWrite(pinGAUGE_INT, LOW);
-			delay(1);
-			digitalWrite(pinGAUGE_INT, HIGH);
-			delay(1);
-			pinMode(pinGAUGE_INT, INPUT_PULLUP);
-			Wire.beginTransmission(address);
-			uint8_t error = Wire.endTransmission();
-			if (error == 0) return true;
-			configured = false;
-			present = false;
-			return false;
+		if (error == 0) {
+
+			present = true;	
+			return true;
+		} else {
+			
+			SerialUSB.println("Gauge not responding!!");
+
+			//----- Se supone que esto lo saca de shutdown mode, pero no se despierta!!!!!
+			/* pinMode(pinGAUGE_INT, OUTPUT); */
+			/* digitalWrite(pinGAUGE_INT, LOW); */
+			/* delay(2); */
+			/* digitalWrite(pinGAUGE_INT, HIGH); */
+			/* delay(2); */
+			/* digitalWrite(pinGAUGE_INT, LOW); */
+			/* delay(2); */
+			/* pinMode(pinGAUGE_INT, INPUT_PULLUP); */
+			/* attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING); */
+			//------------------
+		
+		
 		}
-	} else {
-		present = false;
-		configured = false;
-		return false;
-	}
 
+	} 
 	
-
-	present = true;
-	return true;
+	present = false;
+	configured = false;
+	return false;
 }
 bool SckBatt::setup()
 {

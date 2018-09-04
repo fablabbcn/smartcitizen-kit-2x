@@ -263,6 +263,11 @@ void ISR_sdDetect();
 
 
 // TODO
+//
+// BUG: si desconecto el USB y lo vuelvo a conectar (con bateria) ya no acepta inputs de terminal, pero hace outputs
+// BUG: si la urban no es detectada no se deshabilitan los correspondientes sensores
+// BUG: el barometric pressure se cuelga si no esta presente
+//
 // * Finish battery detection and setup
 // * Finish power management and sleep
 // * Confirm OTG status

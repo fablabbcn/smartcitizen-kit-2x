@@ -290,8 +290,26 @@ void freeRAM_com(SckBase* base, String parameters)
 }
 void battReport_com(SckBase* base, String parameters)
 {
-	if (parameters.startsWith("-present")) base->battery.isPresent();
-	/* base->batteryReport(); */
+	// get
+	if (parameters.length() <= 0) {
+
+		if(!base->battery.isPresent()) {
+		
+			base->sckOut("No battery detected!!!");
+		
+		} else {
+		
+			base->sckOut("Battery detected!!!");
+		
+		
+		
+		}
+	
+	// set
+	} else {
+	
+	
+	}
 }
 void i2cDetect_com(SckBase* base, String parameters)
 {

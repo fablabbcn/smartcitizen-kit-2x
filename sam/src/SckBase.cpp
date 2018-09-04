@@ -112,8 +112,13 @@ void SckBase::setup()
 		sckOut("Urban board detected");
 		urbanPresent = true;
 		readLight.setup();
-		// readLight.debugFlag = true;
-	} else sckOut("No urban board detected!!");
+	} else {
+		sckOut("No urban board detected!!");
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
+		}
+	}
 
 
 	// Detect and enable auxiliary boards

@@ -27,4 +27,5 @@ struct Configuration {
 	Credentials credentials;
 	Token token;
 	SensorConfig sensors[SENSOR_COUNT];
+	bool sdDebug = false;
 };

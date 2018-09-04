@@ -474,13 +474,24 @@ void hello_com(SckBase* base, String parameters)
 }
 void debug_com(SckBase* base, String parameters)
 {
-
+	// Set
 	if (parameters.length() > 0) {
 		if (parameters.equals("-light")) {
 			base->readLight.debugFlag = !base->readLight.debugFlag;
 			sprintf(base->outBuff, "ReadLight debugFlag: %s", base->readLight.debugFlag  ? "true" : "false");
 			base->sckOut();
 		}
+		if (parameters.equals("-sdcard")) {
+			base->config.sdDebug = !base->config.sdDebug;
+			sprintf(base->outBuff, "SD card debug: %s", base->config.sdDebug ? "true" : "false");
+			base->sckOut();
+			base->saveConfig();
+		}
+	// Get	
+	} else {
+		sprintf(base->outBuff, "ReadLight debugFlag: %s", base->readLight.debugFlag  ? "true" : "false");
+		sprintf(base->outBuff, "%s\r\nSD card debug: %s", base->outBuff, base->config.sdDebug ? "true" : "false");
+		base->sckOut();
 	}
 }
 void shell_com(SckBase* base, String parameters)

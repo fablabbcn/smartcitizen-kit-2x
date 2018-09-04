@@ -141,7 +141,7 @@ class SckBase
 		struct SckFile {char name[13]; File file;};
 		SckFile configFile {"CONFIG.TXT"};
 		SckFile postFile {};
-		SckFile debugFile {"DEBUG.CSV"};
+		SckFile debugFile {"DEBUG.TXT"};
 		// Sd card
 		bool sdSelect();
 		// Flash memory

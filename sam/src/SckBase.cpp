@@ -174,6 +174,21 @@ void SckBase::reviewState()
 	if (battPendingEvent) batteryEvent();
 	if (chargerPendingEvent) chargerEvent();
 
+	// SD card debug check file size and backup big files.
+	if (config.sdDebug) {
+		// Just do this every hour
+		if (rtc.getEpoch() % 3600 == 0) {
+			if (sdSelect()) {
+				debugFile.file = sd.open(debugFile.name, FILE_WRITE);
+				uint32_t debugSize = debugFile.file.size();
+
+				// If file is bigger than 50mb rename the file.
+				if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
+				debugFile.file.close();
+			}
+		}
+	}
+
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
 	/* bool espON */
@@ -494,6 +509,19 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 		}
 	} else  {
 		digitalWrite(pinLED_USB, HIGH);
+	}
+
+	// Debug output to sdcard
+	if (config.sdDebug) {
+		if (!sdSelect()) return;
+		debugFile.file = sd.open(debugFile.name, FILE_WRITE);
+		if (debugFile.file) {
+			ISOtime();
+			debugFile.file.print(ISOtimeBuff);
+			debugFile.file.print("-->");
+			debugFile.file.println(outBuff);
+			debugFile.file.close();
+		}
 	}
 }
 void SckBase::prompt()

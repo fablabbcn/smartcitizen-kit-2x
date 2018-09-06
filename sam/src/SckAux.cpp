@@ -256,6 +256,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10: {
+
 			if (command.startsWith("stop")) {
 				
 				if (pmSensor.stop()) return ("Stoping PM sensors...");
@@ -737,6 +738,7 @@ uint8_t Atlas::getResponse()
 bool PMsensor::start()
 {
 	if (started) return true;
+
 	if (!I2Cdetect(&auxWire, deviceAddress) || failed) return false;
 
 	auxWire.beginTransmission(deviceAddress);
@@ -754,11 +756,13 @@ bool PMsensor::start()
 
 bool PMsensor::stop()
 {
+
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.beginTransmission(deviceAddress);
 	auxWire.write(PM_STOP);
 	auxWire.endTransmission();
+
 	started = false;
 	return true;
 }

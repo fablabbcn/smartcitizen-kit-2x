@@ -221,6 +221,15 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 			break;
 	}
+	case ESPMES_MQTT_INVENTORY:
+	{
+			debugOUT("Receiving MQTT inventory...");
+			if (mqttInventory()) {
+				delay(500);
+				sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
+			} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
+			break;
+	}
 	case ESPMES_CONNECT:
 
 		tryConnection();
@@ -308,7 +317,17 @@ bool SckESP::mqttPublish()
 	debugOUT(F("MQTT publish ERROR !!!"));
 	return false;
 }
-
+bool SckESP::mqttInventory()
+{
+	debugOUT(F("Trying MQTT inventory..."));
+	if (mqttConnect()) {
+		if (MQTTclient.publish("device/inventory", netBuff)) {
+			debugOUT(F("MQTT inventory published OK!!"));
+			return true;
+		}
+	}
+	return false;
+}
 
 // **** Notifications
 bool SckESP::sendNetinfo()

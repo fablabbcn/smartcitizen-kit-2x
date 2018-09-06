@@ -1,6 +1,12 @@
 #include "SckUrban.h"
 #include "SckBase.h"
 
+// Hardware Serial UART PM
+Uart SerialPM (&sercom5, pinPM_SERIAL_RX, pinPM_SERIAL_TX, SERCOM_RX_PAD_1, UART_TX_PAD_0);
+void SERCOM5_Handler() {
+	SerialPM.IrqHandler();
+}
+
 bool SckUrban::setup(SckBase *base)
 {
 	uint32_t currentTime = 0;
@@ -27,6 +33,10 @@ bool SckUrban::setup(SckBase *base)
 					case SENSOR_PARTICLE_GREEN:
 					case SENSOR_PARTICLE_IR:
 					case SENSOR_PARTICLE_TEMPERATURE: 		if (!sck_max30105.start()) return false; break;
+					case SENSOR_PM_1:
+					case SENSOR_PM_25:
+					case SENSOR_PM_10: 				if (!sck_pm.start()) return false; break;
+            
 					default: break;
 				}
 			} else {
@@ -92,6 +102,10 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_PARTICLE_GREEN:
 		case SENSOR_PARTICLE_IR:
 		case SENSOR_PARTICLE_TEMPERATURE: 		if (sck_max30105.stop()) return true; break;
+		case SENSOR_PM_1:
+		case SENSOR_PM_25:
+		case SENSOR_PM_10: 				if (sck_pm.stop()) return true; break;
+
 		default: break;
 	}
 
@@ -130,10 +144,13 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 		case SENSOR_PARTICLE_GREEN:		if (sck_max30105.getGreen(wait)) return String(sck_max30105.greenChann); break;
 		case SENSOR_PARTICLE_IR:		if (sck_max30105.getIR(wait)) return String(sck_max30105.IRchann); break;
 		case SENSOR_PARTICLE_TEMPERATURE:	if (sck_max30105.getTemperature(wait)) return String(sck_max30105.temperature); break;
+		case SENSOR_PM_1: 			if (sck_pm.update()) return String(sck_pm.pm1); break;
+		case SENSOR_PM_25: 			if (sck_pm.update()) return String(sck_pm.pm25); break;
+		case SENSOR_PM_10: 			if (sck_pm.update()) return String(sck_pm.pm10); break;
 		default: break;
 	}
 
-	return "none";
+	return "null";
 }
 bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 {
@@ -398,14 +415,14 @@ bool Sck_MICS4514::start(uint32_t startTime)
 	digitalWrite(pinPWM_HEATER_CO, HIGH);
 	digitalWrite(pinPWM_HEATER_NO2, HIGH);
 
-	pinMode(pinREAD_CO, INPUT);
-	pinMode(pinREAD_NO2, INPUT);
+	startHeater();
 
 	// Put the load resistor in middle position
 	setNO2load(8000);
 
 	startHeaterTime = startTime;
-	return startHeater();
+	/* return startHeater(); */
+	return true;
 }
 bool Sck_MICS4514::stop(uint32_t stopTime)
 {
@@ -421,16 +438,18 @@ bool Sck_MICS4514::stop(uint32_t stopTime)
 }
 bool Sck_MICS4514::getCOresistance()
 {
-	float sensorVoltage;
-	sensorVoltage = ((average(pinREAD_CO) * (float)VCC) / (float)ANALOG_RESOLUTION);
+	float sensorVoltage = getADC(CO_ADC_CHANN);
+
+	if (sensorVoltage == 0) return false;
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
 	coResistance = (((VCC - sensorVoltage) / sensorVoltage) * coLoadResistor) / 1000.0;
 	return true;
 }
 bool Sck_MICS4514::getNO2resistance()
 {
-	float sensorVoltage;
-	sensorVoltage = ((average(pinREAD_NO2) * (float)VCC) / (float)ANALOG_RESOLUTION);
+	float sensorVoltage = getADC(NO2_ADC_CHANN);
+
+	if (sensorVoltage == 0) return false;
 	if (sensorVoltage > VCC) sensorVoltage = VCC;
 	getNO2load();
 	no2Resistance = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;
@@ -549,8 +568,9 @@ bool Sck_MICS4514::startHeater()
 	REG_TCC1_PER = maxValue;         		// Set the frequency of the PWM on TCC0
 	while (TCC1->SYNCBUSY.bit.PER);
 
-	REG_TCC1_CC0 = (uint16_t)(maxValue * (dutyCycle_CO / 100.0)); 	// CO
-	REG_TCC1_CC1 = (uint16_t)(maxValue * (dutyCycle_NO2 / 100.0)); 	// NO2
+	REG_TCC1_CC1 = (uint16_t)(maxValue * (dutyCycle_CO / 100.0)); 	// CO
+	REG_TCC1_CC0 = (uint16_t)(maxValue * (dutyCycle_NO2 / 100.0)); 	// NO2
+
 	while (TCC1->SYNCBUSY.bit.CC1);
 
 	// Divide the 48MHz signal by 1 giving 48MHz (20.83ns) TCC0 timer tick and enable the outputs
@@ -576,6 +596,42 @@ float Sck_MICS4514::average(uint8_t wichPin)
 	float average = (float)total / numReadings;
 	return average;
 }
+float Sck_MICS4514::getADC(uint8_t wichChannel)
+{
+	byte dir[4] = {2,4,6,8};
+	byte ask = B11000000 + wichChannel;
+
+	uint32_t result = 0;
+	uint8_t numberOfSamples = 20;
+
+	// Average 5 samples
+	for (uint8_t i=0; i<numberOfSamples; i++) {
+		writeI2C(ADC_DIR, 0, ask);
+		writeI2C(ADC_DIR, 0, ask);
+		result += (readI2C(ADC_DIR, dir[wichChannel])<<4) + (readI2C(ADC_DIR, dir[wichChannel] + 1)>>4);
+	}
+	float resultInVoltage = (float)(result / numberOfSamples) * VCC / ANALOG_RESOLUTION;
+	return resultInVoltage;
+}
+void Sck_MICS4514::writeI2C(byte deviceaddress, byte address, byte data )
+{
+	Wire.beginTransmission(deviceaddress);
+	Wire.write(address);
+	Wire.write(data);
+	Wire.endTransmission();
+	delay(4);
+}
+byte Sck_MICS4514::readI2C(int deviceaddress, byte address)
+{
+	Wire.beginTransmission(deviceaddress);
+	Wire.write(address);
+	Wire.endTransmission();
+	Wire.requestFrom(deviceaddress,1);
+	if (Wire.available() != 1) return 0x00;
+	byte data = Wire.read();
+	return data;
+}
+
 
 // Noise
 
@@ -686,3 +742,68 @@ bool Sck_MAX30105::getTemperature(bool wait)
 	return true;
 }
 
+// PM sensor
+bool Sck_PM::start()
+{
+	digitalWrite(pinPM_ENABLE, HIGH);
+	SerialPM.begin(9600);
+	started = true;
+
+	return true;
+}
+bool Sck_PM::stop()
+{
+	digitalWrite(pinPM_ENABLE, LOW);
+	started = false;
+
+	return true;
+}
+bool Sck_PM::update()
+{
+	// TODO test correlation between this readings and turning of the fan between readings 
+	// implement a simple way to turn off PM sensor between readings
+	
+	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
+
+	// Empty serial buffer
+	while(SerialPM.available()) SerialPM.read();
+	
+	// Wait for new readings
+	uint32_t startPoint = millis();
+	while(SerialPM.available() < 25) if (millis() - startPoint > 1000) break; 
+
+	while(SerialPM.available()) {
+
+		byte sb = 0;
+		sb = SerialPM.read();
+
+		if (sb == 0x42) {
+			SerialPM.readBytes(buff, buffLong);
+			if (buff[0] == 0x4d) {
+
+				values[0] = buff[3];
+				values[1] = buff[4];
+				values[2] = buff[5];
+				values[3] = buff[6];
+				values[4] = buff[7];
+				values[5] = buff[8];
+
+				pm1 = (buff[3]<<8) + buff[4];
+				pm25 = (buff[5]<<8) + buff[6];
+				pm10 = (buff[7]<<8) + buff[8];
+
+				lastReading = millis();
+
+				return true;
+			}
+		}
+	}
+	return false;
+}
+bool Sck_PM::reset()
+{
+	digitalWrite(pinPM_ENABLE, LOW);
+	delay(200);
+	digitalWrite(pinPM_ENABLE, HIGH);
+	return true;
+}

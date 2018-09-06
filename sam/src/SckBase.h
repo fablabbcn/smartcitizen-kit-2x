@@ -1,12 +1,14 @@
 #pragma once
 
+/* #define testing // Uncomment this line for running test protocol */
+
 #include <Arduino.h>
 #include <RTCZero.h>
 #include <time.h>
 #include <SPI.h>
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
-/* #include <SPIFlash.h> */
+#include <SPIFlash.h>
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
 #include <RHReliableDatagram.h>
@@ -20,7 +22,6 @@
 #include "Pins.h"
 #include "SckLed.h"
 #include "SckCharger.h"
-#include "SckPot.h"
 #include "Shared.h"
 #include "Config.h"
 #include "Commands.h"
@@ -144,14 +145,16 @@ class SckBase
 		// Sd card
 		bool sdSelect();
 		// Flash memory
-		/* SPIFlash flash = SPIFlash(pinCS_FLASH); */
+		SPIFlash flash = SPIFlash(pinCS_FLASH);
 		void flashSelect();
 
 		// Power
 		uint16_t battCapacity = 2000;
 		bool batteryPresent = false;
-		bool onUSB = true;
-		void battSetup();
+		bool onUSB = true;		
+		uint8_t battAdress = 0x55;
+		bool battSetup();
+		bool battConfigured = false;
 		uint32_t sleepTime;
 		void goToSleep();
 
@@ -215,6 +218,9 @@ class SckBase
 		bool sendMessage(ESPMessage wichMessage, const char *content);
 		bool sendMessage(ESPMessage wichMessage);
 		bool sendMessage();
+		String ipAddress;
+		String macAddress;
+		String hostname;
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
@@ -238,9 +244,12 @@ class SckBase
 		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
+		volatile bool battPendingEvent = false;
 		SckCharger charger;
+		volatile bool chargerPendingEvent = false;
 		void chargerEvent();
 		void sck_reset();
+		bool battPresent();
 		void batteryEvent();
 		void batteryReport();
 
@@ -254,6 +263,10 @@ class SckBase
 			"sdcard",			// modeTitles[MODE_SD]
 			"sleep"				// modeTitles[MODE_SLEEP]
 		};
+
+#ifdef testing
+		friend class SckTest;
+#endif
 };
 
 bool I2Cdetect(TwoWire *_Wire, byte address);
@@ -261,3 +274,23 @@ void ISR_button();
 void ISR_battery();
 void ISR_sdDetect();
 void ISR_charger();
+
+
+// TODO
+// * Find out battery insertion resitor value (Maximo)
+// * Finish battery detection and setup
+//
+// * Confirm OTG status
+// * Urban board pm sensor support
+// * Test MICS heaters and adapt the code
+// * Test MICS POT and adapt the code
+// * Decide what to do with MICS ADC
+// * Finish New kits TEST system
+// * Solve Solar pannel charging
+// * Finish Audio implementation
+// * Finish power management and sleep
+// * Finish FAT flash support
+// * MQTT over SSL
+// * Audio handshake
+// * Solve PID code problems
+// * 

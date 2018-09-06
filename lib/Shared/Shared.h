@@ -15,6 +15,7 @@ enum ESPMessage {
 	ESPMES_START_AP, 		// SAM->ESP, ESP starts AP
 	ESPMES_STOP_AP, 		// SAM->ESP, ESP stops AP
 	ESPMES_LED_OFF, 		// SAM->ESP, ESP turns off led (esud before sleep)
+	ESPMES_MQTT_INVENTORY, 		// SAM->ESP, ESP publish inventory and returns result
 
 	ESPMES_COUNT
 };

@@ -20,6 +20,12 @@ FlashStorage(eepromConfig, Configuration);
 
 void SckBase::setup()
 {
+	/* delay(3000); */
+	SerialUSB.println("Starting...");
+	// TEMP turn off PMSpower
+	pinMode(pinBOARD_CONN_7, OUTPUT);
+	digitalWrite(pinBOARD_CONN_7, HIGH);
+
 	// Led
 	led.setup();
 
@@ -47,8 +53,9 @@ void SckBase::setup()
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
 
 	// Power management configuration
-	/* battSetup(); */
 	charger.setup();
+	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
+	/* battSetup(); */
 
 	// RTC setup
 	rtc.begin();
@@ -76,12 +83,13 @@ void SckBase::setup()
 
 	// Flash memory
 	// TODO disable debug messages from library
-	// flashSelect();
-	// flash.begin();
-	// flash.setClock(133000);
+	flashSelect();
+	flash.begin();
+	flash.setClock(133000);
 	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
 
-/* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this TODO complete this */
+/* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
+
 #ifdef autoTest
 	// TODO verify led blinking...
 	ESPcontrol(ESP_OFF);
@@ -164,11 +172,13 @@ void SckBase::update()
 // **** Mode Control
 void SckBase::reviewState()
 {
-
 	if (pendingSyncConfig) {
 		sendConfig();
 		return;
 	}
+
+	if (battPendingEvent) batteryEvent();
+	if (chargerPendingEvent) chargerEvent();
 
 	// SD card debug check file size and backup big files.
 	if (config.sdDebug) {
@@ -609,7 +619,7 @@ void SckBase::saveConfig(bool defaults)
 		led.update(led.PINK, led.PULSE_SOFT);
 
 	} else if (st.mode == MODE_NOT_CONFIGURED) {
-		enterSetup();	
+		enterSetup();
 	}	
 	
 	if (pendingSyncConfig) sendConfig();
@@ -872,13 +882,12 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_NETINFO:
 		{
-
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);
-				const char* tip = json["ip"];
-				const char* tmac = json["mac"];
-				const char* thostname = json["hn"];
-				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", thostname, tip, tmac);
+				ipAddress = json["ip"].as<String>();
+				macAddress = json["mac"].as<String>();
+				hostname = json["hn"].as<String>();
+				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname.c_str(), ipAddress.c_str(), macAddress.c_str());
 				sckOut();
 				break;
 
@@ -973,17 +982,83 @@ bool SckBase::sdSelect()
 // **** Flash memory
 void SckBase::flashSelect()
 {
-
 	digitalWrite(pinCS_SDCARD, HIGH);	// disables SDcard
 	digitalWrite(pinCS_FLASH, LOW);
 }
 
 // **** Power
-void SckBase::battSetup()
+bool SckBase::battPresent()
 {
+	/* SerialUSB.print("charge status: "); */
+	/* SerialUSB.println(charger.getChargeStatus()); */
 
-	pinMode(pinBATTERY_ALARM, INPUT_PULLUP);
-	attachInterrupt(pinBATTERY_ALARM, ISR_battery, LOW);
+	// First check pinBATT_INSERTION
+	uint32_t valueRead = 0;
+	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+	ADC->INPUTCTRL.bit.MUXPOS = ADC_Channel6; 	// Selection for the positive ADC input
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+	ADC->CTRLA.bit.ENABLE = 0x01;             	// Enable ADC
+	while (ADC->STATUS.bit.SYNCBUSY == 1); 		// Start conversion
+	ADC->SWTRIG.bit.START = 1;
+	ADC->INTFLAG.reg = ADC_INTFLAG_RESRDY; 		// Clear the Data Ready flag
+	while (ADC->STATUS.bit.SYNCBUSY == 1);		// Start conversion again, since The first conversion after the reference is changed must not be used.
+	ADC->SWTRIG.bit.START = 1;
+	while (ADC->INTFLAG.bit.RESRDY == 0);   	// Waiting for conversion to complete
+	valueRead = ADC->RESULT.reg;			// Store the value
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+	ADC->CTRLA.bit.ENABLE = 0x00;             	// Disable ADC
+	while (ADC->STATUS.bit.SYNCBUSY == 1);
+
+	/* SerialUSB.print("pin BATT insertion analog: "); */
+	/* SerialUSB.println(valueRead); */
+
+	if (valueRead < 400) {
+		Wire.beginTransmission(battAdress);
+		uint8_t error = Wire.endTransmission();
+
+		if (error == 0) return true;
+		else {
+			// TODO check if this is really necesary
+			// Try to wake up the gauge
+			sckOut("trying to wake up battery gauge...");
+			pinMode(pinGAUGE_INT, OUTPUT);
+			digitalWrite(pinGAUGE_INT, LOW);
+			delay(1);
+			digitalWrite(pinGAUGE_INT, HIGH);
+			delay(1);
+			pinMode(pinGAUGE_INT, INPUT_PULLUP);
+			Wire.beginTransmission(battAdress);
+			uint8_t error = Wire.endTransmission();
+			if (error == 0) return true;
+			battConfigured = false;
+			batteryPresent = false;
+			return false;
+		}
+	} else {
+		batteryPresent = false;
+		battConfigured = false;
+		return false;
+	}
+
+	
+
+	batteryPresent = true;
+	return true;
+}
+bool SckBase::battSetup()
+{
+	if (battConfigured) return true;
+
+	if (!battPresent()) {
+		sckOut("No battery detected!!!");
+		return false;
+	}
+
+	sckOut("Configuring battery...");
+
+	pinMode(pinGAUGE_INT, INPUT_PULLUP);
+	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
 
 	lipo.enterConfig();
 	lipo.setCapacity(battCapacity);
@@ -991,51 +1066,38 @@ void SckBase::battSetup()
 	lipo.setGPOUTFunction(SOC_INT);
 	lipo.setSOCIDelta(1);
 	lipo.exitConfig();
+
+	battConfigured = true;
+
+	// TODO if battery is not full and we are not charging run charger.setup here
+
+	return true;
 }
 void SckBase::batteryEvent()
 {
+	sckOut("Battery event", PRIO_LOW);
+	battPendingEvent = false;
+	if (!battSetup()) return;
 
-	SerialUSB.println("battery event");
-
-	// if (batteryPresent) {
-
-	// 	if (lipo.batPresent()) {
-	// 		getReading(SENSOR_BATT_PERCENT);
-	// 		sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
-	// 	} else {
-	// 		batteryPresent = false;
-	// 		sprintf(outBuff, "Battery removed!!");
-	// 	}
-
-	// } else {
-
-	// 	if (lipo.batPresent()) {
-	// 		SerialUSB.println("1");
-	// 		if (lipo.begin()) {
-	// 			batteryPresent = true;
-	// 			getReading(SENSOR_BATT_PERCENT);
-	// 			sprintf(outBuff, "Battery connected!! charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
-	// 		}
-	// 	} else {
-	// 		sprintf(outBuff, "Received unknown interrupt from battery gauge");
-	// 	}
-	// }
-	// sckOut();
+	getReading(SENSOR_BATT_PERCENT);
+	sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
+	sckOut(PRIO_LOW);			
 }
 void SckBase::batteryReport()
 {
+	if (!battConfigured) {
+		if (!battSetup()) return;
+	}
 
-	SerialUSB.println(lipo.voltage());
-
-	// sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i",
-	// 	lipo.soc(),
-	// 	lipo.voltage(),
-	// 	lipo.current(AVG),
-	// 	lipo.capacity(REMAIN),
-	// 	lipo.capacity(FULL),
-	// 	lipo.soh()
-	// );
-	// sckOut();
+	sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i",
+			lipo.soc(),
+			lipo.voltage(),
+			lipo.current(AVG),
+			lipo.capacity(REMAIN),
+			lipo.capacity(FULL),
+			lipo.soh()
+	       );
+	sckOut();
 }
 void SckBase::sck_reset()
 {
@@ -1044,11 +1106,16 @@ void SckBase::sck_reset()
 }
 void SckBase::chargerEvent()
 {
-	// Maybe when we have batt detection on top this is not necesary!!!
+	sckOut("Charger event", PRIO_LOW);
+	chargerPendingEvent = false;
+
+	/* if (!battPresent()) { */
+		/* sckOut("Battery removed!!"); */
+		/* charger.chargeState(0); */
+	/* } else */ 
 	if (charger.getChargeStatus() == charger.CHRG_CHARGE_TERM_DONE) {
-		sckOut("Batterry fully charged... or removed");
+		sckOut("Batterry fully charged!!");
 		charger.chargeState(0);
-		// led.update(led.YELLOW, led.PULSE_STATIC);
 	}
 
 	while (charger.getDPMstatus()) {} // Wait for DPM detection finish
@@ -1056,13 +1123,11 @@ void SckBase::chargerEvent()
 	if (charger.getPowerGoodStatus()) {
 
 		onUSB = true;
-		// led.update(led.GREEN, led.PULSE_STATIC);
 		// charger.OTG(false);
 
 	} else {
 
 		onUSB = false;
-		// led.update(led.BLUE, led.PULSE_STATIC);
 		// charger.OTG(true);
 
 	}
@@ -1070,7 +1135,6 @@ void SckBase::chargerEvent()
 	// TODO, React to any charger fault
 	if (charger.getNewFault() != 0) {
 		sckOut("Charger fault!!!");
-		// led.update(led.YELLOW, led.PULSE_STATIC);
 	}
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
@@ -1161,9 +1225,15 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		sensors[wichSensor].enabled = true;
 		
 		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_EXT_PM_1 || 
-			wichSensor == SENSOR_EXT_PM_25 ||
-			wichSensor == SENSOR_EXT_PM_10) {
+		if ( 	wichSensor == SENSOR_PM_1 || 
+			wichSensor == SENSOR_PM_25 ||
+			wichSensor == SENSOR_PM_10) {
+			sensors[SENSOR_PM_1].enabled = true;
+			sensors[SENSOR_PM_25].enabled = true;
+			sensors[SENSOR_PM_10].enabled = true;
+		} else if ( 	wichSensor == SENSOR_EXT_PM_1 || 
+				wichSensor == SENSOR_EXT_PM_25 ||
+				wichSensor == SENSOR_EXT_PM_10) {
 			sensors[SENSOR_EXT_PM_1].enabled = true;
 			sensors[SENSOR_EXT_PM_25].enabled = true;
 			sensors[SENSOR_EXT_PM_10].enabled = true;
@@ -1200,9 +1270,15 @@ bool SckBase::disableSensor(SensorType wichSensor)
 		sensors[wichSensor].enabled = false;
 
 		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_EXT_PM_1 || 
-			wichSensor == SENSOR_EXT_PM_25 ||
-			wichSensor == SENSOR_EXT_PM_10) {
+		if ( 	wichSensor == SENSOR_PM_1 || 
+			wichSensor == SENSOR_PM_25 ||
+			wichSensor == SENSOR_PM_10) {
+			sensors[SENSOR_PM_1].enabled = false;
+			sensors[SENSOR_PM_25].enabled = false;
+			sensors[SENSOR_PM_10].enabled = false;
+		} else if ( 	wichSensor == SENSOR_EXT_PM_1 || 
+				wichSensor == SENSOR_EXT_PM_25 ||
+				wichSensor == SENSOR_EXT_PM_10) {
 			sensors[SENSOR_EXT_PM_1].enabled = false;
 			sensors[SENSOR_EXT_PM_25].enabled = false;
 			sensors[SENSOR_EXT_PM_10].enabled = false;
@@ -1217,7 +1293,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 {
 
 	sensors[wichSensor].valid = false;
-	String result = "none";
+	String result = "null";
 	sensors[wichSensor].lastReadingTime = rtc.getEpoch();
 
 	switch (sensors[wichSensor].location) {
@@ -1226,20 +1302,32 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 				switch (wichSensor) {
 					case SENSOR_BATT_PERCENT:
 					{
-
-							uint32_t thisPercent = lipo.soc();
-							if (thisPercent > 100) thisPercent = 0;
-							result = String(thisPercent);
-
+						if (!battPresent()) {
+							result = String("-1");
 							break;
+						}
+						uint32_t thisPercent = lipo.soc();
+						if (thisPercent > 100) thisPercent = 100;
+						result = String(thisPercent);
+						break;
 					}
 					case SENSOR_BATT_VOLTAGE:
 
-						result = String(lipo.voltage()); break;
+						if (!battPresent()) {
+							result = String("-1");
+							break;
+						}
+						result = String(lipo.voltage());
+						break;
 
 					case SENSOR_BATT_CHARGE_RATE:
 
-						result = String(lipo.current(AVG)); break;
+						if (!battPresent()) {
+							result = String("-1");
+							break;
+						}
+						result = String(lipo.current(AVG));
+						break;
 
 					case SENSOR_VOLTIN:
 					{
@@ -1253,7 +1341,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 		case BOARD_URBAN:
 		{
 				result = urban.getReading(this, wichSensor, wait);
-				if (result.startsWith("none")) return false;
+				if (result.startsWith("null")) return false;
 				break;
 		}
 		case BOARD_AUX:
@@ -1405,7 +1493,7 @@ bool SckBase::sdPublish()
 					timeSet = true;
 				}
 				postFile.file.print(",");
-				if (!sensors[wichSensor].reading.startsWith("none")) postFile.file.print(sensors[wichSensor].reading);
+				if (!sensors[wichSensor].reading.startsWith("null")) postFile.file.print(sensors[wichSensor].reading);
 			}
 		}
 		postFile.file.println("");

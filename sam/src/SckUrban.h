@@ -14,10 +14,19 @@
 //
 // * Light - BH1721 -> (0x29)
 // * Temperature and Humidity - SHT31 -> (0x44)
-// * CO and NO2 - MICS4515	-> (digital POT 0x2F)
+// * CO and NO2 - MICS4515	
+//      digital POT -> 0x2F
+// 	ADS7924 MICSADC -> 0x48
 // * Noise  - Invensense ICS43432 I2S microphone;microphone:
 // * Barometric pressure - MPL3115 -> (0x60)
 // * Dust Particles - MAX30105 -> (0x57)
+
+// Pins
+const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_5;
+const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_3;
+const uint8_t pinPM_SERIAL_RX = pinBOARD_CONN_9;
+const uint8_t pinPM_SERIAL_TX = pinBOARD_CONN_11;
+const uint8_t pinPM_ENABLE = pinBOARD_CONN_7; 		// HIGH Enable PMS power
 
 enum SensorState
 {
@@ -83,17 +92,22 @@ class Sck_MICS4514
 	private:
 
 		// Carbon Monoxide
-		const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_5;		// PA8 - HEAT_CO
-		const uint8_t pinREAD_CO = pinBOARD_CONN_9;			// PB3 - READ_CO
-		const float dutyCycle_CO = 50.8;
+		const float dutyCycle_CO = 100 - 88.5;
+		// Se requieren 2.724v del hex inverter para tener 2.4v en el heater CO (calculados con el divisor 10 y 74 ohms)
+		// Esto deberia ser 100 - 82.54 %
+		const uint8_t CO_HEATER_ADC_CHANN = 3;
+		const uint8_t CO_ADC_CHANN = 2;
 		
 		// Nitrogen Dioxide
-		const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_3;		// PA9 - HEAT_NO2
-		const uint8_t pinREAD_NO2 = pinBOARD_CONN_11;			// PB2 - READ_NOX
-		const float dutyCycle_NO2 = 76.2;
+		const float dutyCycle_NO2 = 100.0 - 65.7;
+		// Se requieren 1.96v del hex inverter para tener 1.7v en el heater NO2 (calculados con el divisor de 10 y 66 ohms)
+		// Esto deberia ser 100 - 59.39 % pero experimentalmente da 65.7% (6.31% mas de lo calculado)
+		const uint8_t NO2_HEATER_ADC_CHANN = 1;
+		const uint8_t NO2_ADC_CHANN = 0;
 
 		const uint32_t ANALOG_RESOLUTION = 4095;
 		const uint32_t VCC = 3300;
+		byte ADC_DIR = 0x48;
 		
 		bool heaterRunning = false;
 		uint32_t startHeaterTime = 0;
@@ -105,7 +119,9 @@ class Sck_MICS4514
 		// NO2 adjustable load resistor
 		const byte POT_NO2_LOAD_ADDRESS = 0x2F;
 		const float ohmsPerStep	= 10000.0/127; // Ohms for each potenciometer step
-		bool setNO2load(uint32_t value);
+
+		void writeI2C(byte deviceaddress, byte address, byte data );
+		byte readI2C(int deviceaddress, byte address);
 
 	public:
 		float coResistance;
@@ -116,9 +132,11 @@ class Sck_MICS4514
 		bool startHeater();
 		bool getCOresistance();
 		bool getNO2resistance();
+		bool setNO2load(uint32_t value);
 		bool getNO2load();
 		uint32_t getHeatTime(uint32_t currentTime);
 		float average(uint8_t wichPin);
+		float getADC(uint8_t wichChannel);
 };
 
 // Noise
@@ -178,6 +196,30 @@ class Sck_MAX30105
 		bool getTemperature(bool wait=true);	// NOT WORKING!!! (sparkfun lib)
 };
 
+//PM sensors
+class Sck_PM
+{
+	private:
+
+		bool started = false;
+		uint32_t lastReading = 0;
+		uint8_t values[6] = {0,0,0,0,0,0};	// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
+
+		static const uint8_t buffLong = 23;
+		unsigned char buff[buffLong];
+
+	public:
+		// Readings
+		uint16_t pm1;
+		uint16_t pm25;
+		uint16_t pm10;
+
+		bool start();
+		bool stop();
+		bool update();
+		bool reset();
+};
+
 class SckBase;
 
 class SckUrban
@@ -213,5 +255,8 @@ class SckUrban
 
 		// Dust Particles
 		Sck_MAX30105 sck_max30105;
+
+		// PM sensor
+		Sck_PM sck_pm;
 };
 

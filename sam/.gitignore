@@ -11,3 +11,4 @@
 !.platformio/packages/framework-arduinosam/variants
 .platformio/packages/framework-arduinosam/variants/*
 !.platformio/packages/framework-arduinosam/variants/sck2
+SAM_firmware.uf2

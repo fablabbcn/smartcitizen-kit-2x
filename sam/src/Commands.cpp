@@ -35,12 +35,8 @@ void reset_com(SckBase* base, String parameters)
 }
 void getVersion_com(SckBase* base, String parameters)
 {
-	base->sckOut("Hardware Version: ");
-	base->sckOut("SAM Version: ");
-	base->sckOut("ESP version: ");
-
 	base->getUniqueID();
-	sprintf(base->outBuff, "Hardware ID: %lx-%lx-%lx-%lx", base->uniqueID[0], base->uniqueID[1], base->uniqueID[2], base->uniqueID[3]);
+	sprintf(base->outBuff, "Hardware Version: %s\r\nSAM version: %s\r\nESP version: %s\r\nHardware ID: %lx-%lx-%lx-%lx", hardwareVer.c_str(), SAMversion.c_str(), ESPversion.c_str(), base->uniqueID[0], base->uniqueID[1], base->uniqueID[2], base->uniqueID[3]);
 	base->sckOut();
 }
 void resetCause_com(SckBase* base, String parameters)

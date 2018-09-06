@@ -349,6 +349,8 @@ class PMsensor
 		float getReading(uint8_t wichReading);
 	private:
 		bool started = false;
+		bool failed = false;
+
 		PMslot slot;
 		uint8_t values[6];		// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
 };

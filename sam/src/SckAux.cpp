@@ -256,16 +256,18 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10: {
-			
+
 			if (command.startsWith("stop")) {
 				
-				pmSensor.stop();
+				if (pmSensor.stop()) return ("Stoping PM sensors...");
+				else return ("Failed stoping PM sensor!!");
 
 			} else if (command.startsWith("start")) {
 			    
-				pmSensor.start();
+				if (pmSensor.start()) return ("Starting PM sensors...");
+				else return ("Failed starting PM sensor!!");
 			    
-			}
+			} 
 			break;
 		} default: return "Unrecognized sensor!!!"; break;
 	}
@@ -736,22 +738,31 @@ uint8_t Atlas::getResponse()
 bool PMsensor::start()
 {
 	if (started) return true;
-	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	if (!I2Cdetect(&auxWire, deviceAddress) || failed) return false;
 
 	auxWire.beginTransmission(deviceAddress);
 	auxWire.write(PM_START);
 	auxWire.endTransmission();
-	started = true;
-	return true;
+	auxWire.requestFrom(deviceAddress, 1);
+
+	bool result = auxWire.read();
+
+	if (result == 0) failed = true;
+	else started = true;
+
+	return result;
 }
 
 bool PMsensor::stop()
 {
+
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.beginTransmission(deviceAddress);
 	auxWire.write(PM_STOP);
 	auxWire.endTransmission();
+
 	started = false;
 	return true;
 }
@@ -786,7 +797,7 @@ float PMsensor::getReading(uint8_t wichReading)
 		case 10: return readingPM10; break;
 	}
 
-	return 0;
+	return -9999;
 }
 
 bool PM_DallasTemp::start()

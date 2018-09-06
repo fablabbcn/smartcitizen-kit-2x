@@ -7,7 +7,6 @@ void SERCOM5_Handler() {
 	SerialPM.IrqHandler();
 }
 
-	
 bool SckUrban::setup(SckBase *base)
 {
 	uint32_t currentTime = 0;
@@ -37,6 +36,7 @@ bool SckUrban::setup(SckBase *base)
 					case SENSOR_PM_1:
 					case SENSOR_PM_25:
 					case SENSOR_PM_10: 				if (!sck_pm.start()) return false; break;
+            
 					default: break;
 				}
 			} else {
@@ -105,6 +105,7 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
 		case SENSOR_PM_10: 				if (sck_pm.stop()) return true; break;
+
 		default: break;
 	}
 

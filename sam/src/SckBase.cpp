@@ -89,6 +89,7 @@ void SckBase::setup()
 	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
 
 /* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
+
 #ifdef autoTest
 	// TODO verify led blinking...
 	ESPcontrol(ESP_OFF);
@@ -1487,7 +1488,6 @@ bool SckBase::sdPublish()
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled) {
 				if (!timeSet) {
-
 					epoch2iso(sensors[wichSensor].lastReadingTime, ISOtimeBuff);
 					postFile.file.print(ISOtimeBuff);
 					timeSet = true;

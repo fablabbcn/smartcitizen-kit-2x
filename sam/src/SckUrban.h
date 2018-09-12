@@ -22,8 +22,8 @@
 // * Dust Particles - MAX30105 -> (0x57)
 
 // Pins
-const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_5;
-const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_3;
+const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_3;
+const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_5;
 const uint8_t pinPM_SERIAL_RX = pinBOARD_CONN_9;
 const uint8_t pinPM_SERIAL_TX = pinBOARD_CONN_11;
 const uint8_t pinPM_ENABLE = pinBOARD_CONN_7; 		// HIGH Enable PMS power
@@ -131,7 +131,9 @@ class Sck_MICS4514
 		bool stop(uint32_t stopTime);
 		bool startHeater();
 		bool getCOresistance();
+		float getCOheatVoltage();
 		bool getNO2resistance();
+		float getNO2heatVoltage();
 		bool setNO2load(uint32_t value);
 		bool getNO2load();
 		uint32_t getHeatTime(uint32_t currentTime);

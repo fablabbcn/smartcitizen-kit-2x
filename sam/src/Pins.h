@@ -43,9 +43,9 @@ const uint8_t pinI2S_SD = 9;			// PA07 -- I2S_SD
 const uint8_t pinI2S_FS = 0;			// PA11 -- I2S_FS
 
 // BOARD CONNECTOR
-const uint8_t pinBOARD_CONN_3 = 3;		// PA09 -- MICS PWM Heater NO2
+const uint8_t pinBOARD_CONN_3 = 3;		// PA09 -- MICS PWM Heater CO
 const uint8_t pinBOARD_CONN_4 = pinWIRE_SCL;	// PA23 -- SCL_A
-const uint8_t pinBOARD_CONN_5 = 4;		// PA08 -- MICS PWM Heater CO
+const uint8_t pinBOARD_CONN_5 = 4;		// PA08 -- MICS PWM Heater NO2
 const uint8_t pinBOARD_CONN_6 = pinWIRE_SDA; 	// PA22 -- SDA_A
 const uint8_t pinBOARD_CONN_7 = 27;		// PA28 -- SW_PMS -- HIGH Enable PMS power
 const uint8_t pinBOARD_CONN_8 =	pinI2S_SCK;	// PA10 -- I2S_SCK

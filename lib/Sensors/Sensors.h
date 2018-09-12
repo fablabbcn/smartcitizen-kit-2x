@@ -211,7 +211,7 @@ class AllSensors
 		}
 
 		SensorType getTypeFromString(String strIn);
-
+		String removeSensorName(String strIn);
 	private:
 		uint8_t countMatchedWords(String baseString, String input);
 

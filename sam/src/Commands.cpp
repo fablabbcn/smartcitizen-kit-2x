@@ -176,7 +176,6 @@ void readSensor_com(SckBase* base, String parameters)
 void controlSensor_com(SckBase* base, String parameters)
 {
   	SensorType wichSensor = base->sensors.getTypeFromString(parameters);
-	parameters.remove(0, parameters.indexOf(" ")+1);
 
 	if (parameters.length() < 1) {
 		base->sckOut("ERROR No command received!! please try again...");
@@ -185,7 +184,7 @@ void controlSensor_com(SckBase* base, String parameters)
 		base->sckOut("ERROR Sensor not found!!!");
 		return;
 	} else {
-		base->controlSensor(wichSensor, parameters);
+		base->controlSensor(wichSensor, base->sensors.removeSensorName(parameters));
 	}
 }
 void monitorSensor_com(SckBase* base, String parameters)

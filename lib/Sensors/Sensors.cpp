@@ -52,3 +52,20 @@ uint8_t AllSensors::countMatchedWords(String baseString, String input)
 
 	return foundedCount;
 }
+String AllSensors::removeSensorName(String strIn)
+{
+	SensorType wichSensor = getTypeFromString(strIn);
+
+	// Makes comparison lower case and not strict
+	String titleCompare = list[wichSensor].title;
+	titleCompare.toLowerCase();
+	strIn.toLowerCase();
+
+	uint8_t wordsToRemove = countMatchedWords(titleCompare, strIn);
+	for (uint8_t i=0; i<wordsToRemove; i++) {
+		if (strIn.indexOf(" ") > 0) strIn.remove(0, strIn.indexOf(" ")+1);
+		else strIn.remove(0, strIn.length());
+	}
+
+	return strIn;
+}

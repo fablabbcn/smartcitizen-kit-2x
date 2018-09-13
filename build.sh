@@ -11,7 +11,12 @@ function SAM {
 	echo -e "Remember to ${YELLOW}double click the reset button ${NC}of your kit!!!"
 	echo "Press any key to continue..." 
 	echo
-	read -n 1 -s -r 
+	read -n 1 -s -r key
+
+	if [ "$key" = "u" ]
+	then
+		./tools/touch_port1200.py
+	fi
 
 	cd sam
 	pio run

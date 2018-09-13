@@ -202,8 +202,9 @@ class Sck_MAX30105
 class Sck_PM
 {
 	private:
-
 		bool started = false;
+		bool detectionFailed = false;
+
 		uint32_t lastReading = 0;
 		uint8_t values[6] = {0,0,0,0,0,0};	// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
 

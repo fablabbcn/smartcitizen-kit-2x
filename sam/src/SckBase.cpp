@@ -117,7 +117,14 @@ void SckBase::setup()
 	// Urban board
 	analogReadResolution(12);
 	if (urban.setup(this)) {
-		sckOut("Urban board detected");
+		sckOut("Urban board detected\r\nSearching for PM sensor...", PRIO_MED, false);
+		if (!urban.start(SENSOR_PM_1)) {
+			sckOut("nothing found!!!");
+			disableSensor(SENSOR_PM_1);
+		} else {
+			sckOut("found it!!!");
+			enableSensor(SENSOR_PM_1);
+		}
 		urbanPresent = true;
 		readLight.setup();
 	} else {
@@ -1221,7 +1228,6 @@ bool SckBase::enableSensor(SensorType wichSensor)
 	
 	if (result) {
 		sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
-		sckOut();
 		sensors[wichSensor].enabled = true;
 		
 		// Exceptions to disable multiple interdepending sensors
@@ -1231,16 +1237,18 @@ bool SckBase::enableSensor(SensorType wichSensor)
 			sensors[SENSOR_PM_1].enabled = true;
 			sensors[SENSOR_PM_25].enabled = true;
 			sensors[SENSOR_PM_10].enabled = true;
+			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_PM_25].title, sensors[SENSOR_PM_10].title);
 		} else if ( 	wichSensor == SENSOR_EXT_PM_1 || 
 				wichSensor == SENSOR_EXT_PM_25 ||
 				wichSensor == SENSOR_EXT_PM_10) {
 			sensors[SENSOR_EXT_PM_1].enabled = true;
 			sensors[SENSOR_EXT_PM_25].enabled = true;
 			sensors[SENSOR_EXT_PM_10].enabled = true;
+			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_EXT_PM_25].title, sensors[SENSOR_EXT_PM_10].title);
 		}
-
+		sckOut();
 		return true;
-	}
+	} 
 
 	return false;
 }
@@ -1266,7 +1274,6 @@ bool SckBase::disableSensor(SensorType wichSensor)
 	
 	if (result) {
 		sprintf(outBuff, "Disabling %s", sensors[wichSensor].title);
-		sckOut();
 		sensors[wichSensor].enabled = false;
 
 		// Exceptions to disable multiple interdepending sensors
@@ -1276,14 +1283,16 @@ bool SckBase::disableSensor(SensorType wichSensor)
 			sensors[SENSOR_PM_1].enabled = false;
 			sensors[SENSOR_PM_25].enabled = false;
 			sensors[SENSOR_PM_10].enabled = false;
-		} else if ( 	wichSensor == SENSOR_EXT_PM_1 || 
+			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_PM_25].title, sensors[SENSOR_PM_10].title);
+		} else if ( 	wichSensor == SENSOR_EXT_PM_1 ||
 				wichSensor == SENSOR_EXT_PM_25 ||
 				wichSensor == SENSOR_EXT_PM_10) {
 			sensors[SENSOR_EXT_PM_1].enabled = false;
 			sensors[SENSOR_EXT_PM_25].enabled = false;
 			sensors[SENSOR_EXT_PM_10].enabled = false;
+			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_EXT_PM_25].title, sensors[SENSOR_EXT_PM_10].title);
 		}
-
+		sckOut();
 		return true;
 	}
 

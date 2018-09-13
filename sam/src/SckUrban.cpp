@@ -12,7 +12,6 @@ bool SckUrban::setup(SckBase *base)
 	uint32_t currentTime = 0;
 	if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
 
-
 	// To protect MICS turn off heaters
 	sck_mics4514.stop(currentTime);
 
@@ -37,10 +36,6 @@ bool SckUrban::setup(SckBase *base)
 					case SENSOR_PARTICLE_GREEN:
 					case SENSOR_PARTICLE_IR:
 					case SENSOR_PARTICLE_TEMPERATURE: 		if (!sck_max30105.start()) return false; break;
-					case SENSOR_PM_1:
-					case SENSOR_PM_25:
-					case SENSOR_PM_10: 				if (!sck_pm.start()) return false; break;
-            
 					default: break;
 				}
 			}
@@ -72,6 +67,9 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_PARTICLE_GREEN:
 		case SENSOR_PARTICLE_IR:
 		case SENSOR_PARTICLE_TEMPERATURE: 		if (sck_max30105.start()) return true; break;
+		case SENSOR_PM_1:
+		case SENSOR_PM_25:
+		case SENSOR_PM_10: 				if (sck_pm.start()) return true; break;
 		default: break;
 	}
 
@@ -756,24 +754,38 @@ bool Sck_MAX30105::getTemperature(bool wait)
 // PM sensor
 bool Sck_PM::start()
 {
+	if (started) return true;
+	if (detectionFailed) return false;
+
+	pinMode(pinPM_ENABLE, OUTPUT);
 	digitalWrite(pinPM_ENABLE, HIGH);
 	SerialPM.begin(9600);
-	started = true;
 
-	return true;
+	uint32_t startTimer = millis();
+	while (millis() - startTimer < 4000) {
+		delay(50);
+		if (SerialPM.available()) {
+			started = true;
+			return true;
+		}
+	}
+	stop();
+	detectionFailed = true;
+	return false;
 }
 bool Sck_PM::stop()
 {
 	digitalWrite(pinPM_ENABLE, LOW);
+	SerialPM.end();
 	started = false;
+	detectionFailed = false;
 
 	return true;
 }
 bool Sck_PM::update()
 {
 	// TODO test correlation between this readings and turning of the fan between readings 
-	// implement a simple way to turn off PM sensor between readings
-	
+
 	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
 
 	// Empty serial buffer

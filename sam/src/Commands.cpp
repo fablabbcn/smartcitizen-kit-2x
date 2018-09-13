@@ -143,26 +143,33 @@ void sensorConfig_com(SckBase* base, String parameters)
 	} else {
 		uint16_t sensorIndex = parameters.indexOf(" ", parameters.indexOf("-"));
 		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(sensorIndex));
-
-		String msg;
+		bool saveNeeded = false;
 
 		if (sensorToChange == SENSOR_COUNT) {
 			base->sckOut("ERROR sensor not found");
 			return;
 		} else if (parameters.indexOf("-enable") >=0) {
-			base->enableSensor(sensorToChange);
+			if (!base->enableSensor(sensorToChange)) {
+				sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
+				base->sckOut();
+			} else saveNeeded = true;
 		} else if (parameters.indexOf("-disable") >=0) {
-			base->disableSensor(sensorToChange);
+			if (!base->disableSensor(sensorToChange)) {
+				sprintf(base->outBuff, "Failed disabling %s", base->sensors[sensorToChange].title);
+				base->sckOut();
+			} else saveNeeded = true;
 		} else if (parameters.indexOf("-interval") >=0) {
+			String msg;
 			msg = "Changing interval of ";
 			sensorIndex = parameters.indexOf(" ", parameters.indexOf("-interval"));
 			uint16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
 			String strInterval = parameters.substring(intervalIndex);
 			uint32_t intervalInt = strInterval.toInt();
 			if (intervalInt > minimal_sensor_reading_interval && intervalInt < max_sensor_reading_interval)	base->sensors[sensorToChange].interval = strInterval.toInt();
+			base->sckOut(msg + String(base->sensors[sensorToChange].title));
+			saveNeeded = true;
 		}
-		base->sckOut(msg + String(base->sensors[sensorToChange].title));
-		base->saveConfig();
+		if (saveNeeded) base->saveConfig();
 	}
 }
 void readSensor_com(SckBase* base, String parameters)

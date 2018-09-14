@@ -263,8 +263,9 @@ void monitorSensor_com(SckBase* base, String parameters)
 	strncpy(base->outBuff, "", 240);
 	uint32_t lastMillis = millis();
 	while (!SerialUSB.available()) {
+		sprintf(base->outBuff, "%s", "");
 		base->ISOtime();
-		if (printTime) sprintf(base->outBuff, "%s\t", base->ISOtimeBuff);
+		if (printTime) sprintf(base->outBuff, "%s%s\t", base->outBuff, base->ISOtimeBuff);
 		if (printMs) sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
 		lastMillis = millis();
 		for (uint8_t i=0; i<index; i++) {

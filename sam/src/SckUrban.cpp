@@ -415,7 +415,6 @@ bool Sck_MICS4514::start(uint32_t startTime)
 	setNO2load(8000);
 
 	startHeaterTime = startTime;
-	/* return startHeater(); */
 	return true;
 }
 bool Sck_MICS4514::stop(uint32_t stopTime)
@@ -435,6 +434,31 @@ bool Sck_MICS4514::stop(uint32_t stopTime)
 
 	return true;
 }
+bool Sck_MICS4514::startHeater()
+{
+	// TODO esto parece ejecutarse dos veces cuando habilitas por primera vez el sensor
+	heaterRunning = true;
+
+	// Recalculate heater resistors
+	heaterResistance_CO = getCOheatResistance();
+	heaterResistance_NO2 = getNO2heatResistance();
+
+	// Recalculate PWM dutyCycles
+	dutyCycle_CO = getCOpwm();
+	dutyCycle_NO2 = getNO2pwm();
+
+	// Start heaters
+	startPWM();
+
+	// Tunne heater voltage
+	for (uint8_t i=0; i<3; i++) {
+		dutyCycle_CO = getTunnedCOpwm();
+		dutyCycle_NO2 = getTunnedNO2pwm();
+		startPWM();
+	}
+
+	return true;
+}
 bool Sck_MICS4514::getCOresistance()
 {
 	float sensorVoltage = getADC(CO_ADC_CHANN);
@@ -448,6 +472,42 @@ float Sck_MICS4514::getCOheatVoltage()
 {
 
 	return getADC(CO_HEATER_ADC_CHANN)/1000.0;
+}
+float Sck_MICS4514::getCOpwm()
+{
+	float desired_voltage = sqrt(CO_HEATING_POWER * heaterResistance_CO);
+
+	// Take in account the series resistor
+	float voltageOut = desired_voltage / (heaterResistance_CO / (heaterResistance_CO + heater_seriesResistor));
+
+	// Calculate PWM dutyCycle
+	float desiredPWM = voltageOut / heater_VCC * 100;
+
+	return desiredPWM;
+}
+float Sck_MICS4514::getTunnedCOpwm()
+{
+	float desiredVoltage = sqrt(CO_HEATING_POWER * heaterResistance_CO);
+	float currentVoltage = getCOheatVoltage();
+
+	float diff = (desiredVoltage - currentVoltage) / desiredVoltage;
+	float tunnedPWM = (dutyCycle_CO * diff) + dutyCycle_CO;
+
+	return tunnedPWM;
+}
+float Sck_MICS4514::getCOheatResistance()
+{
+	// Turn on Heater
+	pinMode(pinPWM_HEATER_CO, OUTPUT);
+	digitalWrite(pinPWM_HEATER_CO, LOW);
+
+	float heater_voltage = getCOheatVoltage();
+	float heater_resistance = heater_voltage / (heater_VCC - heater_voltage) * heater_seriesResistor; 
+
+	// Turn off heater
+	digitalWrite(pinPWM_HEATER_CO, HIGH);
+
+	return heater_resistance;
 }
 bool Sck_MICS4514::getNO2resistance()
 {
@@ -463,6 +523,42 @@ float Sck_MICS4514::getNO2heatVoltage()
 {
 
 	return getADC(NO2_HEATER_ADC_CHANN)/1000.0;
+}
+float Sck_MICS4514::getNO2pwm()
+{
+	float desired_voltage = sqrt(NO2_HEATING_POWER * heaterResistance_NO2);
+
+	// Take in account the series resistor
+	float voltageOut = desired_voltage / (heaterResistance_NO2 / (heaterResistance_NO2 + heater_seriesResistor));
+
+	// Calculate PWM dutyCycle
+	float desiredPWM = voltageOut / heater_VCC * 100;
+
+	return desiredPWM;
+}
+float Sck_MICS4514::getTunnedNO2pwm()
+{
+	float desiredVoltage = sqrt(NO2_HEATING_POWER * heaterResistance_NO2);
+	float currentVoltage = getNO2heatVoltage();
+
+	float diff = (desiredVoltage - currentVoltage) / desiredVoltage;
+	float tunnedPWM = (dutyCycle_NO2 * diff) + dutyCycle_NO2;
+
+	return tunnedPWM;
+}
+float Sck_MICS4514::getNO2heatResistance()
+{
+	// Turn on Heater
+	pinMode(pinPWM_HEATER_NO2, OUTPUT);
+	digitalWrite(pinPWM_HEATER_NO2, LOW);
+
+	float heater_voltage = getNO2heatVoltage();
+	float heater_resistance = heater_voltage / (heater_VCC - heater_voltage) * heater_seriesResistor; 
+
+	// Turn off heater
+	digitalWrite(pinPWM_HEATER_NO2, HIGH);
+
+	return heater_resistance;
 }
 bool Sck_MICS4514::setNO2load(uint32_t value)
 {
@@ -506,10 +602,9 @@ bool Sck_MICS4514::getNO2load()
 
 	return true;
 }
-bool Sck_MICS4514::startHeater()
+bool Sck_MICS4514::startPWM()
 {
-	heaterRunning = true;
-
+	// TODO check results at different freq
 	// Frequency = GCLK frequency / (2 * N * PER)       where N = prescaler value (CTRLA register)
 
 	// Posible values for N:
@@ -521,26 +616,27 @@ bool Sck_MICS4514::startHeater()
 	// TCC_CTRLA_PRESCALER_DIV64
 	// TCC_CTRLA_PRESCALER_DIV256
 	// TCC_CTRLA_PRESCALER_DIV1024
-	#define MY_DIVIDER TCC_CTRLA_PRESCALER_DIV1
+	/* #define MY_DIVIDER TCC_CTRLA_PRESCALER_DIV1 */
+	#define MY_DIVIDER TCC_CTRLA_PRESCALER_DIV1024
 
  	// With N = 1
 	// FOR 12 bits
-	// Frequency = 48MHz / (2 * 1 * 4096) = 5,859.375 ~ 5.9 kHz
+	// Frequency = 48MHz / (2 * 1 * 4096) = 5,859.375 ~ 5.9 * 2 = 11.8 khz
 	// Resolution at 5.9kHz = log(4096 + 1) / log(2) = 12 bits
 	//
 	// FOR 10 bits
-	// Frequency = 48MHz / (2 * 1 * 1024) = 23,437.5 ~ 23.4 kHz
+	// Frequency = 48MHz / (2 * 1 * 1024) = 23,437.5 ~ 23.4 * 2 = 46.8 khz
 	// Resolution at 23.4kHz = log(1024 + 1) / log(2) = 10 bits
 	//
 	// FOR 8 bits
-	// Frequency = 48MHz / (2 * 1 * 256) = 93,750 ~ 93.7 kHz
+	// Frequency = 48MHz / (2 * 1 * 256) = 93,750 ~ 93.7 kHz * 2 = 187.4 khz
 	// Resolution at 93.7kHz = log(256 + 1) / log(2) = 8 bits
 	//
 	// FOR 6 bits
-	// Frequency = 48MHz / (2 * 1 * 96) = 250 kHz
+	// Frequency = 48MHz / (2 * 1 * 96) = 250 kHz * 2 = 500 khz
 	// Resolution at 250kHz = log(96 + 1) / log(2) = 6.6 bits
 
-	uint8_t resolution = 12;					// Resolution in bits
+	uint8_t resolution = 10;					// Resolution in bits
 	uint16_t maxValue = pow(2, resolution);
 
 	REG_GCLK_GENDIV = GCLK_GENDIV_DIV(1) |          // Divide the 48MHz clock source by divisor 1: 48MHz/1=48MHz
@@ -577,8 +673,8 @@ bool Sck_MICS4514::startHeater()
 	REG_TCC1_PER = maxValue;         		// Set the frequency of the PWM on TCC0
 	while (TCC1->SYNCBUSY.bit.PER);
 
-	REG_TCC1_CC1 = (uint16_t)(maxValue * (dutyCycle_CO / 100.0)); 	// CO
-	REG_TCC1_CC0 = (uint16_t)(maxValue * (dutyCycle_NO2 / 100.0)); 	// NO2
+	REG_TCC1_CC1 = (uint16_t)(maxValue * ((100 - dutyCycle_CO) / 100.0)); 	// CO
+	REG_TCC1_CC0 = (uint16_t)(maxValue * ((100 - dutyCycle_NO2) / 100.0)); 	// NO2
 
 	while (TCC1->SYNCBUSY.bit.CC1);
 

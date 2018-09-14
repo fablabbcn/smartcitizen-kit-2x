@@ -91,29 +91,32 @@ class Sck_MICS4514
 	// TODO create a generic class and instantiate CO, NO2
 	private:
 
+		const float heater_VCC = 3.235; 		// (volts) Measured on Hex inverter IC1
+		const float heater_seriesResistor = 10.0;
+
 		// Carbon Monoxide
-		const float dutyCycle_CO = 100 - 88.5;
-		// Se requieren 2.724v del hex inverter para tener 2.4v en el heater CO (calculados con el divisor 10 y 74 ohms)
-		// Esto deberia ser 100 - 82.54 %
+		float heaterResistance_CO = 74.0; 		// Nominal value from datasheet (will be recalculated on boot)
+		float dutyCycle_CO = 50.0;  			// Start with low power until we can get the Heater resistance value.
 		const uint8_t CO_HEATER_ADC_CHANN = 3;
 		const uint8_t CO_ADC_CHANN = 2;
+		const float CO_HEATING_POWER = 0.076; 		// (watts) Typical heating power from datasheet
 		
 		// Nitrogen Dioxide
-		const float dutyCycle_NO2 = 100.0 - 65.7;
-		// Se requieren 1.96v del hex inverter para tener 1.7v en el heater NO2 (calculados con el divisor de 10 y 66 ohms)
-		// Esto deberia ser 100 - 59.39 % pero experimentalmente da 65.7% (6.31% mas de lo calculado)
+		float heaterResistance_NO2 = 66.0; 		// Nominal value from datasheet (will be recalculated on boot)
+		float dutyCycle_NO2 = 50.0;  			// Start with low power until we can get the Heater resistance value.
 		const uint8_t NO2_HEATER_ADC_CHANN = 1;
 		const uint8_t NO2_ADC_CHANN = 0;
+		const float NO2_HEATING_POWER = 0.043;  		// (watts) Typical heating power from datasheet
 
 		const uint32_t ANALOG_RESOLUTION = 4095;
-		const uint32_t VCC = 3300;
+		const uint32_t VCC = 3278; 			// (mV) Measured manually on MICS input
 		byte ADC_DIR = 0x48;
 		
 		bool heaterRunning = false;
 		uint32_t startHeaterTime = 0;
 		uint32_t stopHeaterTime = 0;
 
-		// CO2 Fixed resistor
+		// CO Fixed resistor
 		uint32_t coLoadResistor = 750000;
 
 		// NO2 adjustable load resistor
@@ -130,10 +133,17 @@ class Sck_MICS4514
 		bool start(uint32_t startTime);
 		bool stop(uint32_t stopTime);
 		bool startHeater();
+		bool startPWM();
 		bool getCOresistance();
 		float getCOheatVoltage();
+		float getCOpwm();
+		float getTunnedCOpwm();
+		float getCOheatResistance();
 		bool getNO2resistance();
 		float getNO2heatVoltage();
+		float getNO2pwm();
+		float getTunnedNO2pwm();
+		float getNO2heatResistance();
 		bool setNO2load(uint32_t value);
 		bool getNO2load();
 		uint32_t getHeatTime(uint32_t currentTime);

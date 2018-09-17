@@ -461,7 +461,19 @@ void time_com(SckBase* base, String parameters)
 			base->sckOut("Time is not synced, trying to sync...");
 			base->sendMessage(ESPMES_GET_TIME, "");
 		}
-	} else if (parameters.toInt() > 0) base->setTime(parameters);
+	}
+	
+	// Force sync
+	if (parameters.equals("-sync")) {
+		if (!base->st.espON) {
+			base->ESPcontrol(base->ESP_ON);
+			delay(200);
+		}
+		if (base->sendMessage(ESPMES_GET_TIME, "")) base->sckOut("Asking time to ESP...");
+	}
+
+	// Receive Epoch time and sync
+	if (parameters.toInt() > 0) base->setTime(parameters);
 }
 void state_com(SckBase* base, String parameters)
 {

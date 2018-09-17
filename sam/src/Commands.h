@@ -105,7 +105,7 @@ class AllCommands {
 			OneCom {90,	COM_CONFIG,		"config",	"Shows/sets configuration [-defaults] [-mode sdcard/network] [-pubint seconds] [-readint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token]", config_com},
 			OneCom {100,	COM_ESP_CONTROL,	"esp",		"Controls or shows info from ESP [-on -off -sleep -wake -reboot -flash]",								esp_com},
 			OneCom {100,	COM_NETINFO,		"netinfo",	"Shows network information",														netInfo_com},
-			OneCom {100,	COM_TIME,		"time",		"Shows/sets or syncs (if needed) time",													time_com},
+			OneCom {100,	COM_TIME,		"time",		"Shows/sets time [epoch time] [-sync]",													time_com},
 			OneCom {100,	COM_STATE,		"state",	"Shows state flags",															state_com},
 			OneCom {100,	COM_HELLO,		"hello",	"Sends MQTT hello to platform",														hello_com},
 			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages [-light] [-sdcard]", 													debug_com},

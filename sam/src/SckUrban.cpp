@@ -87,7 +87,7 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_NOISE_DBA:
 		case SENSOR_NOISE_DBC:
 		case SENSOR_NOISE_DBZ:
-		case SENSOR_NOISE_FFT: 				if (sck_noise.start()) return true;
+		case SENSOR_NOISE_FFT: 				if (sck_noise.stop()) return true;
 		case SENSOR_ALTITUDE:
 		case SENSOR_PRESSURE:
 		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.stop()) return true; break;
@@ -599,6 +599,33 @@ bool Sck_Noise::stop()
 }
 bool Sck_Noise::getReading()
 {
+	if (!I2S.begin(I2S_PHILIPS_MODE, sampleRate, 32)) {
+		return false;
+	}
+
+
+	// Fill buffer with samples from I2S bus
+	int32_t source[SAMPLE_NUM];
+	uint16_t bufferIndex = 0;
+	while (bufferIndex < SAMPLE_NUM) {
+		uint32_t buff = I2S.read();
+		if (buff) {
+			source[bufferIndex] = buff;
+			bufferIndex ++;
+		}
+	}
+
+
+	// FFT
+	FFT(source);
+
+	for (uint16_t i=0; i<SAMPLE_NUM; i++) {
+		SerialUSB.println(readingFFT[i]);
+	}
+
+
+	// RMS
+	
 	return true;
 }
 bool Sck_Noise::FFT(int32_t *source)
@@ -623,7 +650,7 @@ bool Sck_Noise::FFT(int32_t *source)
 
 		// Calculate result and normalize SpectrumBuffer, also revert dynamic scaling
 		uint32_t myReal = pow(scratchData[i*2], 2);
-		uuint32_t myImg = pow(scratchData[(i*2)+1], 2);
+		uint32_t myImg = pow(scratchData[(i*2)+1], 2);
 
 		readingFFT[i] = sqrt(myReal + myImg) * divider / 2;
 	}

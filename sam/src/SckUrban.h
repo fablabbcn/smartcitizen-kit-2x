@@ -8,6 +8,7 @@
 #include "MAX30105.h"
 #include <Adafruit_MPL3115A2.h>
 #include "SckSoundTables.h"
+#include <I2S.h>
 
 // Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
 // It includes drivers for this sensors:
@@ -132,6 +133,7 @@ class Sck_Noise
 		double dynamicScale(int32_t *source, int16_t *scaledSource);
 
 	public:
+		const uint32_t sampleRate = 44100;
 		static const uint16_t SAMPLE_NUM = 512;
 		static const uint16_t FFT_NUM = 256;
 		float readingDBA;

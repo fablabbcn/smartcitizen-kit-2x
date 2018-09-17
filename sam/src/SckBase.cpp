@@ -1129,7 +1129,9 @@ void SckBase::chargerEvent()
 
 	if (charger.getPowerGoodStatus()) {
 
+		if (!onUSB) NVIC_SystemReset();
 		onUSB = true;
+
 		// charger.OTG(false);
 
 	} else {

@@ -126,6 +126,11 @@ class Sck_MICS4514
 class Sck_Noise
 {
 	private:
+		const uint16_t CONST_FACTOR = 256;
+		const double RMS_HANN = 0.61177;
+		const uint8_t FULL_SCALE_DBSPL = 120;
+		const uint8_t BIT_LENGTH = 24;
+		const double FULL_SCALE_DBFS = 20*log10(pow(2,(BIT_LENGTH)));
 		bool FFT(int32_t *source);
 		void arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab);
 		void arm_radix2_butterfly( int16_t * pSrc, uint32_t fftLen, int16_t * pCoef);

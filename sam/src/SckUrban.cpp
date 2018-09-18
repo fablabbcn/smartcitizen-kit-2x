@@ -605,35 +605,59 @@ bool Sck_Noise::getReading()
 
 	// wait 263000 I2s cycles or 85 ms at 441000 hz
 	uint32_t startPoint = millis();
-	while (millis() - startPoint < 500) {
-		SerialUSB.println("--------------------");
+	while (millis() - startPoint < 200) {
 		I2S.read();
 	}
 
 	// Fill buffer with samples from I2S bus
 	int32_t source[SAMPLE_NUM];
 	uint16_t bufferIndex = 0;
+
 	while (bufferIndex < SAMPLE_NUM) {
-		uint32_t buff = I2S.read();
+		int32_t buff = I2S.read();
+		/* if (buff != 0) { */
 		if (buff) {
 			source[bufferIndex] = buff;
 			bufferIndex ++;
 		}
 	}
 
-	for (uint16_t i=0; i<SAMPLE_NUM; i++) {
-		SerialUSB.println(readingFFT[i]);
-	}
+
+	I2S.end();
+
+	/* for (uint16_t i=0; i<SAMPLE_NUM; i++) { */
+	/* 	SerialUSB.println(source[i]); */
+	/* } */
 
 	// FFT
 	FFT(source);
 
-	for (uint16_t i=0; i<SAMPLE_NUM;/2 i++) {
+	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) {
+		/* SerialUSB.print(readingFFT[i]); */
+		/* SerialUSB.println(","); */
+	}
+
+	// Equalizing
+	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) {
+		readingFFT[i] *= equalTab[i];
+		/* SerialUSB.println(readingFFT[i]); */
+	}
+
+	// Weighting TODO implement a switch case for dba dbc and dbz depending on requested sensor
+	// TODO check weighting table (it is too big - 257)
+	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) {
+		readingFFT[i] *= weightA[i];
 		SerialUSB.println(readingFFT[i]);
 	}
 
-
 	// RMS
+	double rmsOut = 0;
+	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) rmsOut += readingFFT[i] * readingFFT[i];
+	rmsOut = sqrt(rmsOut / (SAMPLE_NUM/2));
+	rmsOut = rmsOut * 1/RMS_HANN * CONST_FACTOR * sqrt(SAMPLE_NUM/2) / sqrt(2);
+	rmsOut = (float) (FULL_SCALE_DBSPL-(FULL_SCALE_DBFS-20*log10(sqrt(2)*rmsOut)));
+
+	readingDBA = rmsOut;
 	
 	return true;
 }
@@ -664,6 +688,7 @@ bool Sck_Noise::FFT(int32_t *source)
 		readingFFT[i] = sqrt(myReal + myImg) * divider / 2;
 	}
 
+
 	// Exception for the first bin
 	readingFFT[0] = readingFFT[0] * 2;
 
@@ -672,7 +697,7 @@ bool Sck_Noise::FFT(int32_t *source)
 double Sck_Noise::dynamicScale(int32_t *source, int16_t *scaledSource)
 {
 	int32_t maxLevel = 0;
-	for (uint16_t i=0; i<SAMPLE_NUM; i++) if (abs(source[i]) > maxLevel) maxLevel = source[i];
+	for (uint16_t i=0; i<SAMPLE_NUM; i++) if (abs(source[i]) > maxLevel) maxLevel = abs(source[i]);
 	double divider = (maxLevel+1) / 32768.0; // 16 bits
 
 	for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = source[i] / divider;

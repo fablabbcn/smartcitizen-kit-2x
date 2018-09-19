@@ -615,7 +615,6 @@ bool Sck_Noise::getReading()
 
 	while (bufferIndex < SAMPLE_NUM) {
 		int32_t buff = I2S.read();
-		/* if (buff != 0) { */
 		if (buff) {
 			source[bufferIndex] = buff;
 			bufferIndex ++;
@@ -625,16 +624,16 @@ bool Sck_Noise::getReading()
 
 	I2S.end();
 
-	/* for (uint16_t i=0; i<SAMPLE_NUM; i++) { */
-	/* 	SerialUSB.println(source[i]); */
-	/* } */
+	for (uint16_t i=0; i<SAMPLE_NUM; i++) {
+		SerialUSB.println(source[i]);
+	}
 
 	// FFT
 	FFT(source);
 
 	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) {
-		/* SerialUSB.print(readingFFT[i]); */
-		/* SerialUSB.println(","); */
+		SerialUSB.print(readingFFT[i]);
+		SerialUSB.println(",");
 	}
 
 	// Equalizing
@@ -647,7 +646,7 @@ bool Sck_Noise::getReading()
 	// TODO check weighting table (it is too big - 257)
 	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) {
 		readingFFT[i] *= weightA[i];
-		SerialUSB.println(readingFFT[i]);
+		/* SerialUSB.println(readingFFT[i]); */
 	}
 
 	// RMS
@@ -659,12 +658,21 @@ bool Sck_Noise::getReading()
 
 	readingDBA = rmsOut;
 	
+	SerialUSB.println(8388607, BIN);
+	SerialUSB.println(-8288607, BIN);
+	SerialUSB.println(8288607>>7, BIN);
+	SerialUSB.println(8288607>>7, DEC);
+	SerialUSB.println(-8288607>>7, BIN);
+	
 	return true;
 }
 bool Sck_Noise::FFT(int32_t *source)
 {
 	int16_t scaledSource[SAMPLE_NUM]; 		// TODO una vez que todo funcione revisar si en ves de este buffer podemos usar el readingFFT
 	double divider = dynamicScale(source, scaledSource);
+
+	SerialUSB.print("divider: ");
+	SerialUSB.println(divider);
 
 	applyWindow(scaledSource, hannWindow, SAMPLE_NUM);
 
@@ -685,7 +693,8 @@ bool Sck_Noise::FFT(int32_t *source)
 		uint32_t myReal = pow(scratchData[i*2], 2);
 		uint32_t myImg = pow(scratchData[(i*2)+1], 2);
 
-		readingFFT[i] = sqrt(myReal + myImg) * divider / 2;
+		readingFFT[i] = sqrt(myReal + myImg) / 2;
+		/* readingFFT[i] = sqrt(myReal + myImg) * divider / 2; */
 	}
 
 
@@ -699,8 +708,11 @@ double Sck_Noise::dynamicScale(int32_t *source, int16_t *scaledSource)
 	int32_t maxLevel = 0;
 	for (uint16_t i=0; i<SAMPLE_NUM; i++) if (abs(source[i]) > maxLevel) maxLevel = abs(source[i]);
 	double divider = (maxLevel+1) / 32768.0; // 16 bits
+	if (divider < 1) divider = 1;
 
-	for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = source[i] / divider;
+
+	for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = (int16_t)source[i];
+	/* for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = source[i] / divider; */
 	return divider;
 }
 void Sck_Noise::applyWindow(int16_t *src, const int16_t *window, uint16_t len)

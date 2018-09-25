@@ -6,6 +6,12 @@ void AllCommands::in(SckBase* base, String strIn)
 {
 
 	if (strIn.length() <= 0) return;
+	if (strIn.startsWith("zz")) { 
+		strIn.replace("zz", "");
+		strIn.trim();
+		wildCard(base, strIn);
+		return;
+	}
 
 	CommandType reqComm = COM_COUNT;
 
@@ -26,6 +32,12 @@ void AllCommands::in(SckBase* base, String strIn)
 
 	if (reqComm < COM_COUNT) com_list[reqComm].function(base, strIn);
 	else base->sckOut("Unrecognized command!!");
+}
+void AllCommands::wildCard(SckBase* base, String strIn)
+{
+
+	shell_com(base, "-on");
+	base->ESPcontrol(base->ESP_OFF);
 }
 
 void reset_com(SckBase* base, String parameters)
@@ -111,7 +123,6 @@ void help_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "%s:%s%s", thisCommand->title, sep.c_str(), thisCommand->help);
 		base->sckOut();
 	}
-	base->sckOut();
 }
 void pinmux_com(SckBase* base, String parameters)
 {
@@ -497,4 +508,3 @@ void shell_com(SckBase* base, String parameters)
 	sprintf(base->outBuff, "Shell mode: %s", base->st.onShell ? "on" : "off");
 	base->sckOut();
 }
-

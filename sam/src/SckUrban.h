@@ -7,7 +7,8 @@
 #include "Pins.h"
 #include "MAX30105.h"
 #include <Adafruit_MPL3115A2.h>
-/* #include "FFTAnalyser.h" */
+#include "SckSoundTables.h"
+#include <I2S.h>
 
 // Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
 // It includes drivers for this sensors:
@@ -74,7 +75,7 @@ class Sck_SHT31
 	public:
 		uint8_t address = 0x44;
 		// Conntructor
-		Sck_SHT31(TwoWire *localWire); 
+		Sck_SHT31(TwoWire *localWire);
 
 		float temperature;
 		float humidity;
@@ -111,7 +112,7 @@ class Sck_MICS4514
 		const uint32_t ANALOG_RESOLUTION = 4095;
 		const uint32_t VCC = 3278; 			// (mV) Measured manually on MICS input
 		byte ADC_DIR = 0x48;
-		
+
 		bool heaterRunning = false;
 		uint32_t startHeaterTime = 0;
 		uint32_t stopHeaterTime = 0;
@@ -154,14 +155,29 @@ class Sck_MICS4514
 // Noise
 class Sck_Noise
 {
-
 	private:
+		const double RMS_HANN = 0.61177;
+		const uint8_t FULL_SCALE_DBSPL = 120;
+		const uint8_t BIT_LENGTH = 24;
+		const double FULL_SCALE_DBFS = 20*log10(pow(2,(BIT_LENGTH)));
+		bool FFT(int32_t *source);
+		void arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab);
+		void arm_radix2_butterfly( int16_t * pSrc, int16_t fftLen, int16_t * pCoef);
+		void applyWindow(int16_t *src, const uint16_t *window, uint16_t len);
+		double dynamicScale(int32_t *source, int16_t *scaledSource);
+		void fft2db();
 
 	public:
-		float reading;
+		bool debugFlag = false;
+		const uint32_t sampleRate = 44100;
+		static const uint16_t SAMPLE_NUM = 512;
+		static const uint16_t FFT_NUM = 256;
+		float readingDB;
+		int32_t readingFFT[FFT_NUM];
 		bool start();
 		bool stop();
-		bool get();
+		bool getReading(SensorType wichSensor);
+
 };
 
 // Barometric pressure and Altitude
@@ -261,7 +277,7 @@ class SckUrban
 		Sck_MICS4514 sck_mics4514;
 
 		// Noise
-		/* FFTAnalyser sck_ics43432; */
+		Sck_Noise sck_noise;
 
 		// Barometric pressure and Altitude
 		Sck_MPL3115A2 sck_mpl3115A2;

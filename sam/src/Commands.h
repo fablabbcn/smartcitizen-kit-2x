@@ -118,6 +118,7 @@ class AllCommands {
 		};
 
 		void in(SckBase* base, String strIn);
+		void wildCard(SckBase* base, String strIn);
 
 	private:
 

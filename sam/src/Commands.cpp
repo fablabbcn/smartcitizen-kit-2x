@@ -492,6 +492,7 @@ void debug_com(SckBase* base, String parameters)
 			sprintf(base->outBuff, "ReadLight debugFlag: %s", base->readLight.debugFlag  ? "true" : "false");
 			base->sckOut();
 		}
+		if (parameters.equals("-noise")) base->controlSensor(SENSOR_NOISE_DBA, "debug");
 	}
 }
 void shell_com(SckBase* base, String parameters)

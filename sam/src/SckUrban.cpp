@@ -157,6 +157,17 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 			} else base->sckOut("Unrecognized command!! please try again..."); return false;
 			break;
 		}
+		case SENSOR_NOISE_DBA:
+		case SENSOR_NOISE_DBC:
+		case SENSOR_NOISE_DBZ:
+		case SENSOR_NOISE_FFT: {
+			if (command.startsWith("debug")) {
+				sck_noise.debugFlag = !sck_noise.debugFlag;
+				sprintf(base->outBuff, "Noise debug: %s", sck_noise.debugFlag  ? "true" : "false");
+				base->sckOut();
+				return true;
+			}		       
+		}
 		default: break;
         }
 

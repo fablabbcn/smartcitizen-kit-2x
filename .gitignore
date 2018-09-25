@@ -4,3 +4,7 @@ mock-api/*.png
 npm-debug.log
 SAM_firmware.uf2
 
+# MAC stuff
+*/.DS_Store
+.DS_Store
+

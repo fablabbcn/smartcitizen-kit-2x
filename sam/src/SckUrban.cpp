@@ -123,15 +123,14 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 				return String(sck_mics4514.getHeatTime(currentTime)); break;
 			}
 		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load()) return String(sck_mics4514.no2LoadResistor); break;
-		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading()) return String(sck_noise.readingDBA); break;
-		case SENSOR_NOISE_DBC: 			if (sck_noise.getReading()) return String(sck_noise.readingDBC); break;
-		case SENSOR_NOISE_DBZ: 			if (sck_noise.getReading()) return String(sck_noise.readingDBZ); break;
-		case SENSOR_NOISE_FFT: 			if (sck_noise.getReading()) {
-								String toReturn = String(sck_noise.readingFFT[0]);
-								for (uint16_t i=1; i<sck_noise.FFT_NUM; i++) {
-									toReturn = toReturn + "," + String(sck_noise.readingFFT[i]);
-								}
-								return toReturn;
+		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading(SENSOR_NOISE_DBA)) return String(sck_noise.readingDB); break;
+		case SENSOR_NOISE_DBC: 			if (sck_noise.getReading(SENSOR_NOISE_DBC)) return String(sck_noise.readingDB); break;
+		case SENSOR_NOISE_DBZ: 			if (sck_noise.getReading(SENSOR_NOISE_DBZ)) return String(sck_noise.readingDB); break;
+		case SENSOR_NOISE_FFT: 			if (sck_noise.getReading(SENSOR_NOISE_FFT)) {
+								// TODO find a way to give access to readingsFFT instead of storing them on a String (too much RAM)
+								// For now it just prints the values to console
+								for (uint16_t i=1; i<sck_noise.FFT_NUM; i++) SerialUSB.println(sck_noise.readingFFT[i]);
+								return "Look above!";
 								break;
 							}
 		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude(wait)) return String(sck_mpl3115A2.altitude); break;
@@ -597,15 +596,15 @@ bool Sck_Noise::stop()
 {
 	return true;
 }
-bool Sck_Noise::getReading()
+bool Sck_Noise::getReading(SensorType wichSensor)
 {
 	if (!I2S.begin(I2S_PHILIPS_MODE, sampleRate, 32)) {
 		return false;
 	}
 
-	// wait 263000 I2s cycles or 85 ms at 441000 hz
+	// Wait 263000 I2s cycles or 85 ms at 441000 hz
 	uint32_t startPoint = millis();
-	while (millis() - startPoint < 200) {
+	while (millis() - startPoint < 100) {
 		I2S.read();
 	}
 
@@ -616,63 +615,71 @@ bool Sck_Noise::getReading()
 	while (bufferIndex < SAMPLE_NUM) {
 		int32_t buff = I2S.read();
 		if (buff) {
-			source[bufferIndex] = buff;
+			source[bufferIndex] = buff>>7;
 			bufferIndex ++;
 		}
 	}
-
-
 	I2S.end();
 
-	for (uint16_t i=0; i<SAMPLE_NUM; i++) {
-		SerialUSB.println(source[i]);
-	}
+	// Get de average of recorded samples
+	int32_t sum = 0;
+	for (uint16_t i=0; i<SAMPLE_NUM; i++) sum += source[i];
+	int32_t avg = sum / SAMPLE_NUM;
+
+	// Center samples in zero
+	for (uint16_t i=0; i<SAMPLE_NUM; i++) source[i] = source[i] - avg;
 
 	// FFT
 	FFT(source);
 
-	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) {
-		SerialUSB.print(readingFFT[i]);
-		SerialUSB.println(",");
-	}
-
-	// Equalizing
-	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) {
-		readingFFT[i] *= equalTab[i];
-		/* SerialUSB.println(readingFFT[i]); */
-	}
-
-	// Weighting TODO implement a switch case for dba dbc and dbz depending on requested sensor
-	// TODO check weighting table (it is too big - 257)
-	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) {
-		readingFFT[i] *= weightA[i];
-		/* SerialUSB.println(readingFFT[i]); */
+	switch(wichSensor) {
+	
+		case SENSOR_NOISE_DBA:
+			// Equalization and A weighting
+			for (uint16_t i=0; i<FFT_NUM; i++) readingFFT[i] *= (double)(equalWeight_A[i] / 65536.0);
+			break;
+		case SENSOR_NOISE_DBC:
+			// Equlization and C weighting
+			for (uint16_t i=0; i<FFT_NUM; i++) readingFFT[i] *= (double)(equalWeight_C[i] / 65536.0);
+			break;
+		case SENSOR_NOISE_DBZ:
+			// Just Equalization
+			for (uint16_t i=0; i<FFT_NUM; i++) readingFFT[i] *= (double)(equalTab[i] / 65536.0);
+			break;
+		case SENSOR_NOISE_FFT:
+			// Convert FFT to dB
+			fft2db();
+			return true;
+			break;
+		default: break;
 	}
 
 	// RMS
+	long long rmsSum = 0;
 	double rmsOut = 0;
-	for (uint16_t i=0; i<SAMPLE_NUM/2; i++) rmsOut += readingFFT[i] * readingFFT[i];
-	rmsOut = sqrt(rmsOut / (SAMPLE_NUM/2));
-	rmsOut = rmsOut * 1/RMS_HANN * CONST_FACTOR * sqrt(SAMPLE_NUM/2) / sqrt(2);
-	rmsOut = (float) (FULL_SCALE_DBSPL-(FULL_SCALE_DBFS-20*log10(sqrt(2)*rmsOut)));
+	for (uint16_t i=0; i<FFT_NUM; i++) rmsSum += pow(readingFFT[i], 2) / FFT_NUM;
+	rmsOut = sqrt(rmsSum);
+	rmsOut = rmsOut * 1 / RMS_HANN * sqrt(FFT_NUM) / sqrt(2);
+	rmsOut = (double) (FULL_SCALE_DBSPL - (FULL_SCALE_DBFS - (20 * log10(rmsOut)))); // TODO check if we need to add sqrt(2)
 
-	readingDBA = rmsOut;
-	
-	SerialUSB.println(8388607, BIN);
-	SerialUSB.println(-8288607, BIN);
-	SerialUSB.println(8288607>>7, BIN);
-	SerialUSB.println(8288607>>7, DEC);
-	SerialUSB.println(-8288607>>7, BIN);
-	
+	readingDB = rmsOut;
+
+	if (debugFlag) {
+		SerialUSB.println("samples, FFT_weighted");
+		for (uint16_t i=0; i<SAMPLE_NUM; i++) {
+			SerialUSB.print(source[i]);
+			SerialUSB.print(",");
+			if (i < 256) SerialUSB.println(readingFFT[i]);
+			else SerialUSB.println();
+		}
+	}
+
 	return true;
 }
 bool Sck_Noise::FFT(int32_t *source)
 {
-	int16_t scaledSource[SAMPLE_NUM]; 		// TODO una vez que todo funcione revisar si en ves de este buffer podemos usar el readingFFT
+	int16_t scaledSource[SAMPLE_NUM];
 	double divider = dynamicScale(source, scaledSource);
-
-	SerialUSB.print("divider: ");
-	SerialUSB.println(divider);
 
 	applyWindow(scaledSource, hannWindow, SAMPLE_NUM);
 
@@ -680,11 +687,11 @@ bool Sck_Noise::FFT(int32_t *source)
 
 	// Split the data
 	for(int i=0; i<SAMPLE_NUM*2; i+=2){
-		scratchData[i] = scaledSource[i/2]; // real
-		scratchData[i+1] = 0; // imaginary
+		scratchData[i] = scaledSource[i/2]; // Real
+		scratchData[i+1] = 0; // Imaginary
 	}
 
-	arm_radix2_butterfly(scratchData, SAMPLE_NUM, (int16_t *)twiddleCoefQ15_512);
+	arm_radix2_butterfly(scratchData, (int16_t)SAMPLE_NUM, (int16_t *)twiddleCoefQ15_512);
 	arm_bitreversal(scratchData, SAMPLE_NUM, (uint16_t *)armBitRevTable8);
 
 	for (int i=0; i<SAMPLE_NUM/2; i++) {
@@ -693,13 +700,11 @@ bool Sck_Noise::FFT(int32_t *source)
 		uint32_t myReal = pow(scratchData[i*2], 2);
 		uint32_t myImg = pow(scratchData[(i*2)+1], 2);
 
-		readingFFT[i] = sqrt(myReal + myImg) / 2;
-		/* readingFFT[i] = sqrt(myReal + myImg) * divider / 2; */
+		readingFFT[i] = sqrt(myReal + myImg) * divider * 4;
 	}
 
-
 	// Exception for the first bin
-	readingFFT[0] = readingFFT[0] * 2;
+	readingFFT[0] = readingFFT[0] / 2;
 
 	return 0;
 }
@@ -710,21 +715,37 @@ double Sck_Noise::dynamicScale(int32_t *source, int16_t *scaledSource)
 	double divider = (maxLevel+1) / 32768.0; // 16 bits
 	if (divider < 1) divider = 1;
 
+	for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = source[i] / divider;
 
-	for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = (int16_t)source[i];
-	/* for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = source[i] / divider; */
 	return divider;
 }
-void Sck_Noise::applyWindow(int16_t *src, const int16_t *window, uint16_t len)
-{
+void Sck_Noise::applyWindow(int16_t *src, const uint16_t *window, uint16_t len)
+{ 
+	/* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
+		-------
+		This is an FFT library for ARM cortex M0+ CPUs
+		Adafruit invests time and resources providing this open source code, 
+		please support Adafruit and open-source hardware by purchasing products from Adafruit!
+		Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
+		------
+	*/
+
 	while(len--){
 		int32_t val = *src * *window++;
 		*src = val >> 15;
 		src++;
 	}
 }
-void Sck_Noise::arm_radix2_butterfly(int16_t * pSrc, uint32_t fftLen, int16_t * pCoef)
+void Sck_Noise::arm_radix2_butterfly(int16_t * pSrc, int16_t fftLen, int16_t * pCoef)
 {
+	/* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
+		-------
+		This is an FFT library for ARM cortex M0+ CPUs
+		Adafruit invests time and resources providing this open source code, 
+		please support Adafruit and open-source hardware by purchasing products from Adafruit!
+		Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
+		------
+	*/
 
 	int i, j, k, l;
 	int n1, n2, ia;
@@ -824,6 +845,15 @@ void Sck_Noise::arm_radix2_butterfly(int16_t * pSrc, uint32_t fftLen, int16_t * 
 }
 void Sck_Noise::arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab)
 {
+	/* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
+		-------
+		This is an FFT library for ARM cortex M0+ CPUs
+		Adafruit invests time and resources providing this open source code, 
+		please support Adafruit and open-source hardware by purchasing products from Adafruit!
+		Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
+		------
+	*/
+
 	int32_t *pSrc = (int32_t *) pSrc16;
 	int32_t in;
 	uint32_t fftLenBy2, fftLenBy2p1;
@@ -856,6 +886,14 @@ void Sck_Noise::arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pB
 		/*  Updating the bit reversal index depending on the fft length  */
 		pBitRevTab++;
 	}
+}
+void Sck_Noise::fft2db()
+{
+    for (uint16_t i=0; i<FFT_NUM; i++) {
+	    if (readingFFT[i] > 0) {
+	    	readingFFT[i] = FULL_SCALE_DBSPL - (FULL_SCALE_DBFS - (20 * log10(sqrt(2) * readingFFT[i]))); // TODO check if we need to add sqrt(2)
+	    }
+    }
 }
 
 // Barometric pressure and Altitude

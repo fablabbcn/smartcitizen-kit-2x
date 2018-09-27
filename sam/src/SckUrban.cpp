@@ -13,7 +13,9 @@ bool SckUrban::setup(SckBase *base)
 	if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
 
 	// To protect MICS turn off heaters
+	sck_mics4514.startPWM(); 	// Workaround Noise not working without mics init
 	sck_mics4514.stop(currentTime);
+
 
 	for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 		SensorType thisType = SENSOR_COUNT;
@@ -770,25 +772,28 @@ bool Sck_Noise::stop()
 }
 bool Sck_Noise::getReading(SensorType wichSensor)
 {
-	if (!I2S.begin(I2S_PHILIPS_MODE, sampleRate, 32)) {
-		return false;
-	}
+	if (!I2S.begin(I2S_PHILIPS_MODE, sampleRate, 32)) return false;
 
 	// Wait 263000 I2s cycles or 85 ms at 441000 hz
 	uint32_t startPoint = millis();
-	while (millis() - startPoint < 100) {
-		I2S.read();
-	}
+	while (millis() - startPoint < 100) I2S.read();
 
 	// Fill buffer with samples from I2S bus
 	int32_t source[SAMPLE_NUM];
 	uint16_t bufferIndex = 0;
 
+	startPoint = millis();
+	uint8_t timeOut = 30; 	// (ms) Timeout to avoid hangs if the I2S is not responfing
 	while (bufferIndex < SAMPLE_NUM) {
 		int32_t buff = I2S.read();
 		if (buff) {
 			source[bufferIndex] = buff>>7;
 			bufferIndex ++;
+		}
+
+		if (millis() - startPoint > timeOut) {
+			I2S.end();
+			return false;
 		}
 	}
 	I2S.end();
@@ -832,9 +837,9 @@ bool Sck_Noise::getReading(SensorType wichSensor)
 	for (uint16_t i=0; i<FFT_NUM; i++) rmsSum += pow(readingFFT[i], 2) / FFT_NUM;
 	rmsOut = sqrt(rmsSum);
 	rmsOut = rmsOut * 1 / RMS_HANN * sqrt(FFT_NUM) / sqrt(2);
-	rmsOut = (double) (FULL_SCALE_DBSPL - (FULL_SCALE_DBFS - (20 * log10(rmsOut)))); // TODO check if we need to add sqrt(2)
 
-	readingDB = rmsOut;
+	// Convert to dB
+	readingDB = (double) (FULL_SCALE_DBSPL - (FULL_SCALE_DBFS - (20 * log10(rmsOut * sqrt(2)))));
 
 	if (debugFlag) {
 		SerialUSB.println("samples, FFT_weighted");
@@ -1062,9 +1067,8 @@ void Sck_Noise::arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pB
 void Sck_Noise::fft2db()
 {
     for (uint16_t i=0; i<FFT_NUM; i++) {
-	    if (readingFFT[i] > 0) {
-	    	readingFFT[i] = FULL_SCALE_DBSPL - (FULL_SCALE_DBFS - (20 * log10(sqrt(2) * readingFFT[i]))); // TODO check if we need to add sqrt(2)
-	    }
+	    if (readingFFT[i] > 0) readingFFT[i] = FULL_SCALE_DBSPL - (FULL_SCALE_DBFS - (20 * log10(readingFFT[i] * sqrt(2))));
+	    if (readingFFT[i] < 0) readingFFT[i] = 0;
     }
 }
 

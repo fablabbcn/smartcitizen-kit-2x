@@ -5,9 +5,6 @@
 #include <Pins.h>
 #include "wiring_private.h"
 
-// Battery gauge TO BE REMOVED!
-#include <SparkFunBQ27441.h>
-
 class SckCharger
 {
 private:
@@ -117,15 +114,92 @@ public:
 
 class SckBatt
 {
+	// Parts of this code where taken from https://github.com/sparkfun/SparkFun_BQ27441_Arduino_Library
+	// Thanks Sparkfun!!
 	private:
+		// Nominal Voltage of battery in volts
+		const float nominalVoltage = 3.7;
+
+		// Minimum operating voltage in mV.
+		const uint16_t terminateVoltage = 2500;
+		const uint8_t terminateVoltageOffset = 10;
+
+		// Low limit of current flow at which charger stops charging cycle in mAh (wih added error margin)
+		// Page 31 of http://www.ti.com/lit/ds/symlink/bq24259.pdf
+		const uint16_t taperCurrent = 313;
+
+		// Page 39 of http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf
+		// 00 = Chem ID 3230 is used.
+		// 01 = Chem ID 1202 is used. (default batt of SCK)
+		// 10 = Chem ID 3142 is used.
+		// 11 = RSVD
+		const byte chemID = 1;
+
+		uint8_t designCapacityOffset = 6;
+
+		// Design energy in mWh, page 49 of (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf)
+		// designEnergy = designCapacity * nominalVoltage
+		uint8_t designEnergyOffset = 8;
+
+		// Taper Rate: used to sync full charger between gauge and charger
+		// taperRate = designCapacity / (0.1 * taperCurrent)
+		uint8_t taperRateOffset = 21;
+
+		// Gauge Control() commands
+	    	const uint16_t GAUGE_REG_CTRL_STATUS		= 0x00;
+		const uint16_t GAUGE_CTRL_GET_CHEM_ID		= 0x0008;
+		const uint16_t GAUGE_CTRL_SET_CHEM_A		= 0x0030; // Chem profile: 3230 - 4.35v charging voltage
+		const uint16_t GAUGE_CTRL_SET_CHEM_B		= 0x0031; // Chem profile: 1202- 4.2v charging voltage (default for SCK)
+		const uint16_t GAUGE_CTRL_SET_CHEM_C		= 0x0032; // Chem profile: 3142 - 4.4v charging voltage
+
+		const uint16_t GAUGE_CTRL_SET_CONFIG_UPDATE 	= 0x0013;
+		const uint16_t GAUGE_CTRL_SET_UNSEALED 		= 0x8000;
+		const uint16_t GAUGE_CTRL_SET_SEALED 		= 0x0020;
+		const uint16_t GAUGE_CTRL_SOFT_RESET 		= 0x0042;
+
+		const uint16_t GAUGE_REG_FLAGS 			= 0x06;
+		const uint16_t GAUGE_FLAGS_CONFIG_UPDATE 	= 4;
+	
+		const uint8_t GAUGE_CLASSID_STATE 		= 82;
+
+		const uint8_t GAUGE_COM_VOLTAGE 		= 0x04;
+		const uint8_t GAUGE_COM_SOC 			= 0x1C;
+		const uint8_t GAUGE_COM_CURRENT 		= 0x10;
+		const uint8_t GAUGE_COM_POWER 			= 0x18;
+
+		bool enterConfig();
+		bool exitConfig(); // TODO
+		bool setChemID(uint16_t wichID);
+		bool setSubclass(uint8_t subclassID, uint8_t offset, uint16_t value);
+		uint16_t getSubclass(uint8_t subclassID, uint8_t offset);
+		uint16_t readWord(uint16_t subAddress);
+		uint16_t readControlWord(uint16_t function); 	// param function is the subcommand of control() to be read
+		bool writeExtendedData(uint8_t classID, uint8_t offset, uint8_t * data, uint8_t len);
+		uint8_t readExtendedData(uint8_t classID, uint8_t offset);
+		bool blockDataControl();
+		bool blockDataClass(uint8_t id);
+		bool blockDataOffset(uint8_t offset);
+		uint8_t computeBlockChecksum(void);
+		bool writeBlockData(uint8_t offset, uint8_t data);
+		uint8_t readBlockData(uint8_t offset);
+		bool writeBlockChecksum(uint8_t csum);
+		bool i2cWriteBytes(uint8_t subAddress, uint8_t * src, uint8_t count); 		// Write a specified number of bytes over I2C to a given subAddress
+		bool i2cReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count); 	// Read a specified number of bytes over I2C at a given subAddress
+		
 		uint8_t address = 0x55;
 		bool present = false;
 		bool configured = false;
-		uint16_t capacitymAh = 2000;
-	public:
-		bool isPresent();
 		bool setup();
-		void batteryReport();
+	public:
+		// Design capacity in mAh, page 49 of (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf)
+		uint16_t designCapacity = 2000;
+
+		bool isPresent();
+		float voltage();
+		int16_t current();
+		int16_t power(); 	// Negative during discharge, positive when charging, (mWh)
+		uint8_t percent();
+		void report();
 		void event();
 };
 

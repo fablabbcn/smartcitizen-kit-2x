@@ -115,8 +115,6 @@ bool SckCharger::OTG(int8_t enable)
 	// TODO review OTG function
 	if (enable > -1) {
 		
-		// detach
-
 		byte conf = readREG(POWER_ON_CONF_REG);
 		if (enable) {
 
@@ -130,7 +128,6 @@ bool SckCharger::OTG(int8_t enable)
 			writeREG(POWER_ON_CONF_REG, conf);
 			chargeState(true);				// Charge on
 		}
-		// writeREG(POWER_ON_CONF_REG, conf);
 		
 	}
 	
@@ -282,7 +279,6 @@ void SckCharger::event()
 
 	if (getPowerGoodStatus()) {
 
-		SerialUSB.println("Power source connected");
 		if (!onUSB) {
 			onUSB = true;
 			// To start with a clean state and make sure charging is OK do a reset when power is connected.
@@ -292,14 +288,13 @@ void SckCharger::event()
 
 	} else {
 
-		SerialUSB.println("No power source");
 		onUSB = false;
 		// charger.OTG(true);
 	}
 
 	// TODO, React to any charger fault
 	if (getNewFault() != 0) {
-		SerialUSB.println("Charger fault!!");
+		/* SerialUSB.println("Charger fault!!"); */
 	}
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
@@ -308,6 +303,8 @@ void SckCharger::event()
 // Battery
 bool SckBatt::isPresent()
 {
+	// TODO revisar el asunto de que el charger este cargando aunque no haya bateria y nos falsee esta lectura
+
 	// First check pinBATT_INSERTION
 	uint32_t valueRead = 0;
 	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
@@ -329,62 +326,82 @@ bool SckBatt::isPresent()
 	// Verify analog read of pinBATT_INSERTION
 	if (valueRead < 400) {
 
-		// Verify that fuel gauge is responding (revisar esto, por que no siempre responde bien...)
-		// tengo que lograr una manera de resetear el gauge cuando la bateria se conecto despues del cable.
-		// si no se logra habra que documentar MUY BIEN para que el usuario nunca conecte la bateria despues del cable, o buscar una manera de no encender cuando eso pase....
 		Wire.beginTransmission(address);
 		uint8_t error = Wire.endTransmission();
 
 		if (error == 0) {
-
 			present = true;	
+			if (!configured) setup();
 			return true;
-		} else {
-			
-			SerialUSB.println("Gauge not responding!!");
-
-			//----- Se supone que esto lo saca de shutdown mode, pero no se despierta!!!!!
-			/* pinMode(pinGAUGE_INT, OUTPUT); */
-			/* digitalWrite(pinGAUGE_INT, LOW); */
-			/* delay(2); */
-			/* digitalWrite(pinGAUGE_INT, HIGH); */
-			/* delay(2); */
-			/* digitalWrite(pinGAUGE_INT, LOW); */
-			/* delay(2); */
-			/* pinMode(pinGAUGE_INT, INPUT_PULLUP); */
-			/* attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING); */
-			//------------------
-		
-		
 		}
-
 	} 
 	
+	if (present) SerialUSB.println("battery removed!!!"); // TODO borrar esto pero notificar de alguna manera que detectamos la desconexion
 	present = false;
 	configured = false;
 	return false;
 }
 bool SckBatt::setup()
 {
+	// This function should only be called if we are sure the batt is present (from inside battery.isPresent())
 	if (configured) return true;
 
-	if (!isPresent()) return false;
+	SerialUSB.println("Setting up battery!!"); // TODO borrar esto
 
 	pinMode(pinGAUGE_INT, INPUT_PULLUP);
 	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
 
-	lipo.enterConfig();
-	lipo.setCapacity(capacitymAh);
-	lipo.setGPOUTPolarity(LOW);
-	lipo.setGPOUTFunction(SOC_INT);
-	lipo.setSOCIDelta(1);
-	lipo.exitConfig();
+	
+	// --- Configure battery
+	enterConfig();
+
+	// Set chemID
+	setChemID(GAUGE_CTRL_SET_CHEM_B);
+	
+	// Set Design Capacity
+	setSubclass(GAUGE_CLASSID_STATE, designCapacityOffset, designCapacity);
+	
+	// Set Design Energy
+	setSubclass(GAUGE_CLASSID_STATE, designEnergyOffset, designCapacity * nominalVoltage);
+	
+	// Set Terminate Voltage
+	setSubclass(GAUGE_CLASSID_STATE, terminateVoltageOffset, terminateVoltage);
+	
+	// Set Taper Rate 
+	setSubclass(GAUGE_CLASSID_STATE, taperRateOffset, designCapacity  / (0.1 * taperCurrent));
+
+
+	// --- Configure interrupt
+	// Set Interrupt polarity
+	
+	// Set Interrupt function
+	
+	// Set interrupt trigger threshold
+	//
+
+	exitConfig();
 
 	configured = true;
 
 	// TODO if battery is not full and we are not charging run charger.setup here
 
 	return true;
+}
+float SckBatt::voltage()
+{
+	return readWord(GAUGE_COM_VOLTAGE) / 1000.0;
+}
+uint8_t SckBatt::percent()
+{
+	return readWord(GAUGE_COM_SOC);
+}
+int16_t SckBatt::current()
+{
+	return readWord(GAUGE_COM_CURRENT);
+}
+int16_t SckBatt::power()
+{
+	return readWord(GAUGE_COM_POWER);
 }
 void SckBatt::event()
 {
@@ -393,9 +410,17 @@ void SckBatt::event()
 	/* sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str()); */
 	/* sckOut(PRIO_LOW); */			
 }
-void SckBatt::batteryReport()
+void SckBatt::report()
 {
-	if (!configured && !setup()) return;
+	SerialUSB.println(readControlWord(GAUGE_CTRL_GET_CHEM_ID), HEX);
+	SerialUSB.println(getSubclass(GAUGE_CLASSID_STATE, designCapacityOffset));
+	SerialUSB.println(getSubclass(GAUGE_CLASSID_STATE, designEnergyOffset));
+	SerialUSB.println(getSubclass(GAUGE_CLASSID_STATE, terminateVoltageOffset));
+	SerialUSB.println(getSubclass(GAUGE_CLASSID_STATE, taperRateOffset));
+	SerialUSB.println(voltage());
+	SerialUSB.println(percent());
+
+	/* if (!configured && !setup()) return; */
 
 	/* sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i", */
 	/* 		lipo.soc(), */
@@ -405,4 +430,212 @@ void SckBatt::batteryReport()
 	/* 		lipo.capacity(FULL), */
 	/* 		lipo.soh() */
        /* ); */
+}
+bool SckBatt::enterConfig()
+{
+	// Unseal (We need to send the command twice)
+	if (!(readControlWord(GAUGE_CTRL_SET_UNSEALED) && readControlWord(GAUGE_CTRL_SET_UNSEALED))) return false;
+
+	// Enter config update mode and wait until the command is complete
+	if (readControlWord(GAUGE_CTRL_SET_CONFIG_UPDATE)) {
+		int16_t timeout = 2000;
+		while ((timeout--) && (!(readWord(GAUGE_REG_FLAGS) & GAUGE_FLAGS_CONFIG_UPDATE))) delay(1);
+		if (timeout < 1) return false;
+	}
+
+	return true;
+}
+bool SckBatt::exitConfig()
+{
+	// Soft Reset exits Config Update state
+	if (!readControlWord(GAUGE_CTRL_SOFT_RESET)) return false;
+
+	// Wait Config Update State change has been done
+	int16_t timeout = 2000;
+	while ((timeout--) && ((readWord(GAUGE_REG_FLAGS) & GAUGE_FLAGS_CONFIG_UPDATE))) delay(1);
+	if (timeout < 1) return false;
+
+	// Seal the device
+	readControlWord(GAUGE_CTRL_SET_SEALED);
+
+	return false;
+}
+bool SckBatt::setChemID(uint16_t wichID)
+{
+	if (readControlWord(wichID)){
+
+		uint16_t profile = readControlWord(GAUGE_CTRL_GET_CHEM_ID);
+
+		uint16_t desiredProfile = 0;
+		if (wichID == GAUGE_CTRL_SET_CHEM_A) desiredProfile = 0x3230;
+		else if (wichID == GAUGE_CTRL_SET_CHEM_B) desiredProfile = 0x1202;
+		else if (wichID == GAUGE_CTRL_SET_CHEM_C) desiredProfile = 0x3142;
+
+		if (profile == desiredProfile) return true;
+	}
+
+	return false;
+}
+bool SckBatt::setSubclass(uint8_t subclassID, uint8_t offset, uint16_t value)
+{
+	uint8_t MSB = value >> 8;
+	uint8_t LSB = value & 0x00FF;
+	uint8_t toSendData[2] = {MSB, LSB};
+
+	SerialUSB.println(value);
+
+	writeExtendedData(subclassID, offset, toSendData, 2);
+
+	return (getSubclass(subclassID, offset) == value);
+}
+uint16_t SckBatt::getSubclass(uint8_t subclassID, uint8_t offset)
+{
+	uint8_t MSB = readExtendedData(subclassID, offset);
+	uint8_t LSB = readExtendedData(subclassID, offset+1);
+
+	return ((uint16_t)MSB << 8) | LSB;
+
+}
+uint16_t SckBatt::readWord(uint16_t subAddress)
+{
+	uint8_t data[2];
+	i2cReadBytes(subAddress, data, 2);
+	return ((uint16_t) data[1] << 8) | data[0];
+}
+uint16_t SckBatt::readControlWord(uint16_t function)
+{
+	uint8_t subCommandMSB = (function >> 8);
+	uint8_t subCommandLSB = (function & 0x00FF);
+	uint8_t command[2] = {subCommandLSB, subCommandMSB};
+	uint8_t data[2] = {0, 0};
+	
+	i2cWriteBytes((uint8_t) 0, command, 2);
+	
+	if (i2cReadBytes((uint8_t) 0, data, 2)) return ((uint16_t)data[1] << 8) | data[0];
+	
+	return false;
+}
+bool SckBatt::writeExtendedData(uint8_t classID, uint8_t offset, uint8_t * data, uint8_t len)
+{
+	if (len > 32) return false;
+	
+	// Enable block data memory control
+	if (!blockDataControl()) return false;
+
+	// Write class ID using DataBlockClass()
+	if (!blockDataClass(classID)) return false;
+	
+	// Write 32-bit block offset (usually 0)
+	blockDataOffset(offset / 32);
+
+	// Compute checksum going in
+	computeBlockChecksum();
+
+	// Write data bytes:
+	for (int i = 0; i < len; i++) {
+		// Write to offset, mod 32 if offset is greater than 32
+		// The blockDataOffset above sets the 32-bit block
+		writeBlockData((offset % 32) + i, data[i]);
+	}
+	
+	// Write new checksum using BlockDataChecksum (0x60)
+	uint8_t newCsum = computeBlockChecksum();
+	writeBlockChecksum(newCsum);
+
+	return true;
+}
+uint8_t SckBatt::readExtendedData(uint8_t classID, uint8_t offset)
+{
+	uint8_t retData = 0;
+		
+	// Enable block data memory control
+	if (!blockDataControl()) return false;
+
+	// Write class ID using DataBlockClass()
+	if (!blockDataClass(classID)) return false;
+
+	// Write 32-bit block offset (usually 0)
+	blockDataOffset(offset / 32);
+	
+	// Compute checksum going in
+	computeBlockChecksum();
+
+	retData = readBlockData(offset % 32); // Read from offset (limit to 0-31)
+	
+	return retData;
+}
+bool SckBatt::blockDataControl()
+{
+	// Issue a BlockDataControl() command to enable BlockData access
+	uint8_t enableByte = 0x00;
+	return i2cWriteBytes(0x61, &enableByte, 1);
+}
+bool SckBatt::blockDataClass(uint8_t id)
+{
+	// Issue a DataClass() command to set the data class to be accessed
+	return i2cWriteBytes(0x3E, &id, 1);
+}
+bool SckBatt::blockDataOffset(uint8_t offset)
+{
+	// Issue a DataBlock() command to set the data block to be accessed
+	return i2cWriteBytes(0x3F, &offset, 1);
+}
+uint8_t SckBatt::computeBlockChecksum()
+{
+	uint8_t data[32];
+	i2cReadBytes(0x40, data, 32);
+
+	uint8_t csum = 0;
+	for (int i=0; i<32; i++)
+	{
+		csum += data[i];
+	}
+	csum = 255 - csum;
+	
+	return csum;
+}
+bool SckBatt::writeBlockChecksum(uint8_t csum)
+{
+	// Use the BlockDataCheckSum() command to write a checksum value
+	return i2cWriteBytes(0x60, &csum, 1);	
+}
+bool SckBatt::writeBlockData(uint8_t offset, uint8_t data)
+{
+	// Use BlockData() to write a byte to an offset of the loaded data
+	uint8_t address = offset + 0x40;
+	return i2cWriteBytes(address, &data, 1);
+}
+uint8_t SckBatt::readBlockData(uint8_t offset)
+{
+	// Use BlockData() to read a byte from the loaded extended data
+	uint8_t ret;
+	uint8_t address = offset + 0x40;
+	i2cReadBytes(address, &ret, 1);
+	return ret;
+}
+bool SckBatt::i2cWriteBytes(uint8_t subAddress, uint8_t * src, uint8_t count)
+{
+	Wire.beginTransmission(address);
+	Wire.write(subAddress);
+	for (int i=0; i<count; i++) Wire.write(src[i]);
+	Wire.endTransmission(true);
+	
+	return true;	
+}
+bool SckBatt::i2cReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count)
+{
+	int16_t timeout = 2000;	
+	Wire.beginTransmission(address);
+	Wire.write(subAddress);
+	Wire.endTransmission(true);
+	
+	Wire.requestFrom(address, count);
+	while ((Wire.available() < count) && timeout--)
+		delay(1);
+	if (timeout) {
+		for (int i=0; i<count; i++) dest[i] = Wire.read();
+		return true;
+	}
+	
+	return false;
 }

@@ -296,6 +296,8 @@ void battReport_com(SckBase* base, String parameters)
 		} else {
 		
 			base->sckOut("Battery detected!!!");
+
+			base->battery.report();
 		
 		
 		

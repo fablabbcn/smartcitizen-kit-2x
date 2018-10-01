@@ -55,7 +55,6 @@ void SckBase::setup()
 	// Power management configuration
 	charger.setup();
 	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
-	/* battSetup(); */
 
 	// RTC setup
 	rtc.begin();
@@ -187,7 +186,7 @@ void SckBase::reviewState()
 			if (charger.getPowerGoodStatus()) led.chargeStatus = led.CHARGE_FINISHED;
 			else led.chargeStatus = led.CHARGE_NULL;
 		}
-	}
+	} else led.chargeStatus = led.CHARGE_NULL;
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
@@ -1140,8 +1139,9 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 							result = String("-1");
 							break;
 						}
-						uint32_t thisPercent = lipo.soc();
+						uint32_t thisPercent = battery.percent();
 						if (thisPercent > 100) thisPercent = 100;
+						else if (thisPercent < 0) thisPercent = 0;
 						result = String(thisPercent);
 						break;
 					}
@@ -1151,7 +1151,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 							result = String("-1");
 							break;
 						}
-						result = String(lipo.voltage());
+						result = String(battery.voltage());
 						break;
 
 					case SENSOR_BATT_CHARGE_RATE:
@@ -1160,7 +1160,8 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 							result = String("-1");
 							break;
 						}
-						result = String(lipo.current(AVG));
+						result = String(battery.current());
+						break;
 						break;
 
 					case SENSOR_VOLTIN:

@@ -54,7 +54,7 @@ private:
 
 public:
 
-	enum chargeStatus {
+	enum ChargeStatus {
 		CHRG_NOT_CHARGING,
 		CHRG_PRE_CHARGE,
 		CHRG_FAST_CHARGING,
@@ -104,11 +104,12 @@ public:
 	bool getDPMstatus();
 	void forceInputCurrentLimitDetection();
 	void event();
-	chargeStatus getChargeStatus();
+	ChargeStatus getChargeStatus();
 	VBUSstatus getVBUSstatus();
 	byte getNewFault();		// TODO
 	bool onUSB = true;
-
+	bool batfetON = false;
+	ChargeStatus chargeStatus = CHRG_NOT_CHARGING;
 
 };
 
@@ -187,10 +188,10 @@ class SckBatt
 		bool i2cReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count); 	// Read a specified number of bytes over I2C at a given subAddress
 		
 		uint8_t address = 0x55;
-		bool present = false;
 		bool configured = false;
 		bool setup();
 	public:
+		bool present = false;
 		// Design capacity in mAh, page 49 of (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf)
 		uint16_t designCapacity = 2000;
 

@@ -55,6 +55,7 @@ void SckBase::setup()
 	// Power management configuration
 	charger.setup();
 	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
+	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
 
 	// RTC setup
 	rtc.begin();

@@ -18,11 +18,12 @@ void SckCharger::setup()
 	// We shouldn't take more than 5 hours to charge the normal battery
 	chargeTimer(5);
 
-	// if (getVBUSstatus() == VBUS_USB_HOST || getVBUSstatus() == VBUS_ADAPTER_PORT) OTG(false);
-	// else OTG(true);
 	OTG(true);
 
 	attachInterrupt(pinCHARGER_INT, ISR_charger, FALLING);
+
+	batfetState(0);
+
 }
 bool SckCharger::resetConfig()
 {
@@ -102,8 +103,13 @@ bool SckCharger::batfetState(int8_t enable)
 
 	if (enable > -1) {
 		byte tempMisc = readREG(MISC_REG);
-		if (!enable) tempMisc |= (1 << BATFET_DISABLE); 	// 0 -> batfet ON
-		else  tempMisc &= ~(1 << BATFET_DISABLE); 		// 1 -> batfet off
+		if (!enable) {
+			tempMisc |= (1 << BATFET_DISABLE); 	// 0 -> batfet ON
+			batfetON = true;
+		} else  {
+			tempMisc &= ~(1 << BATFET_DISABLE); 		// 1 -> batfet off
+			batfetON = false;
+		}
 		writeREG(MISC_REG, tempMisc);
 	}
 
@@ -217,13 +223,13 @@ void SckCharger::forceInputCurrentLimitDetection()
 	tempMisc |= (1 << DPDM_EN);
 	writeREG(MISC_REG, tempMisc);
 }
-SckCharger::chargeStatus SckCharger::getChargeStatus()
+SckCharger::ChargeStatus SckCharger::getChargeStatus()
 {
 
 	byte status = readREG(SYS_STATUS_REG);
 	status &= (0b11 << CHRG_STAT);
 	status >>= CHRG_STAT;
-	return static_cast<chargeStatus>(status);
+	return static_cast<ChargeStatus>(status);
 }
 SckCharger::VBUSstatus SckCharger::getVBUSstatus()
 {
@@ -256,58 +262,40 @@ byte SckCharger::readREG(byte wichRegister)
 }
 bool SckCharger::writeREG(byte wichRegister, byte data)
 {
-
 	Wire.beginTransmission(address);
 	Wire.write(wichRegister);
-    Wire.write(data);
-    Wire.endTransmission(true);
+	Wire.write(data);
+	Wire.endTransmission(true);
 
-    if (readREG(wichRegister) == data) return true;
-    else return false;
+	if (readREG(wichRegister) == data) return true;
+	else return false;
 }
 void SckCharger::event()
 {
-	// TODO limpiar los Serial print
-	SerialUSB.println("Charger event");
-
-	if (getChargeStatus() == CHRG_CHARGE_TERM_DONE) {
-		/* sckOut("Batterry fully charged!!"); */
-		/* chargeState(0); */
-	}
-
 	while (getDPMstatus()) {} // Wait for DPM detection finish
 
 	if (getPowerGoodStatus()) {
 
 		if (!onUSB) {
 			onUSB = true;
+
 			// To start with a clean state and make sure charging is OK do a reset when power is connected.
 			NVIC_SystemReset();
 		}
-		// charger.OTG(false);
 
 	} else {
-
 		onUSB = false;
-		// charger.OTG(true);
-	}
-
-	// TODO, React to any charger fault
-	if (getNewFault() != 0) {
-		/* SerialUSB.println("Charger fault!!"); */
 	}
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
+
 }
 
 // Battery
 bool SckBatt::isPresent()
 {
-	// TODO revisar el asunto de que el charger este cargando aunque no haya bateria y nos falsee esta lectura
-
 	// First check pinBATT_INSERTION
 	uint32_t valueRead = 0;
-	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
 	while (ADC->STATUS.bit.SYNCBUSY == 1);
 	ADC->INPUTCTRL.bit.MUXPOS = ADC_Channel6; 	// Selection for the positive ADC input
 	while (ADC->STATUS.bit.SYNCBUSY == 1);
@@ -323,20 +311,12 @@ bool SckBatt::isPresent()
 	ADC->CTRLA.bit.ENABLE = 0x00;             	// Disable ADC
 	while (ADC->STATUS.bit.SYNCBUSY == 1);
 
-	// Verify analog read of pinBATT_INSERTION
 	if (valueRead < 400) {
-
-		Wire.beginTransmission(address);
-		uint8_t error = Wire.endTransmission();
-
-		if (error == 0) {
-			present = true;	
-			if (!configured) setup();
-			return true;
-		}
+		present = true;	
+		if (!configured) setup();
+		return true;
 	} 
 	
-	if (present) SerialUSB.println("battery removed!!!"); // TODO borrar esto pero notificar de alguna manera que detectamos la desconexion
 	present = false;
 	configured = false;
 	return false;
@@ -346,11 +326,14 @@ bool SckBatt::setup()
 	// This function should only be called if we are sure the batt is present (from inside battery.isPresent())
 	if (configured) return true;
 
-	SerialUSB.println("Setting up battery!!"); // TODO borrar esto
+	// Check if gauge is alive
+	Wire.beginTransmission(address);
+	uint8_t error = Wire.endTransmission();
+	if (error != 0) return false;
 
+	// Setup pins
 	pinMode(pinGAUGE_INT, INPUT_PULLUP);
 	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
-
 	
 	// --- Configure battery
 	enterConfig();
@@ -481,8 +464,6 @@ bool SckBatt::setSubclass(uint8_t subclassID, uint8_t offset, uint16_t value)
 	uint8_t MSB = value >> 8;
 	uint8_t LSB = value & 0x00FF;
 	uint8_t toSendData[2] = {MSB, LSB};
-
-	SerialUSB.println(value);
 
 	writeExtendedData(subclassID, offset, toSendData, 2);
 

@@ -147,6 +147,7 @@ class SckBase
 
 		// Power
 		uint32_t sleepTime;
+		void updatePower();
 		void goToSleep();
 
 

@@ -170,24 +170,7 @@ void SckBase::reviewState()
 		return;
 	}
 
-	if (battPendingEvent) {
-		battery.event();
-		battPendingEvent = false;
-	}
-	if (chargerPendingEvent) {
-		charger.event();
-		chargerPendingEvent = false;
-	}
-
-	if (battery.isPresent()) {
-		uint8_t nowChargeStatus = charger.getChargeStatus();
-		if (nowChargeStatus == 1 || nowChargeStatus == 2) {
-			led.chargeStatus = led.CHARGE_CHARGING;
-		} else {
-			if (charger.getPowerGoodStatus()) led.chargeStatus = led.CHARGE_FINISHED;
-			else led.chargeStatus = led.CHARGE_NULL;
-		}
-	} else led.chargeStatus = led.CHARGE_NULL;
+	updatePower();
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
@@ -1003,6 +986,80 @@ void SckBase::goToSleep()
 
 	if (localSleepTime > 0) LowPower.deepSleep(localSleepTime);
 	else LowPower.deepSleep();
+}
+void SckBase::updatePower()
+{
+	// Update charge status
+	SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
+	charger.chargeStatus = charger.getChargeStatus();
+
+	// Update battery presence status
+	bool prevBattPresent = battery.present;
+	battery.present = battery.isPresent();
+
+	if (battPendingEvent) {
+		battery.event();
+		battPendingEvent = false;
+	}
+
+	if (chargerPendingEvent) {
+		sckOut("charger event");
+		charger.event();
+		chargerPendingEvent = false;
+	}
+
+	// TODO low battery led flash!
+
+	// If battery status changed
+	if (prevBattPresent != battery.present) {
+		
+		if (battery.present) {
+		
+			// Pop notification
+			sckOut("Battery inserted!!");
+
+			// Make sure charger is enabled
+			charger.batfetState(1);
+
+
+		} else {
+			
+			// Pop notification
+			sckOut("Battery removed!!");
+
+			// Disconnect charger
+			charger.batfetState(0);
+		}
+	
+	}
+
+	// If charger status changed
+	if (prevChargeStatus != charger.chargeStatus) {
+
+		if (battery.present && charger.onUSB) {
+
+			switch(charger.chargeStatus) {
+				case charger.CHRG_PRE_CHARGE:
+				case charger.CHRG_FAST_CHARGING:
+					sckOut("Charging battery...");
+					led.chargeStatus = led.CHARGE_CHARGING;
+					break;
+
+				case charger.CHRG_NOT_CHARGING:
+				case charger.CHRG_CHARGE_TERM_DONE:
+					sckOut("Battery fully charged...");
+					led.chargeStatus = led.CHARGE_FINISHED;
+					break;
+				default: break;
+			}
+		
+		} else {
+		
+			// No led feedback if no battery
+			led.chargeStatus = led.CHARGE_NULL;
+		
+		}
+	}
 }
 /* void SckBase::wakeUp() */
 /* { */

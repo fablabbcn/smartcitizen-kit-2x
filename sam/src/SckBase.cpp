@@ -991,75 +991,106 @@ void SckBase::goToSleep()
 }
 void SckBase::updatePower()
 {
-	// Update charge status
-	SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
-	charger.chargeStatus = charger.getChargeStatus();
 
-	// Update battery presence status
+	// Update battery present status
 	bool prevBattPresent = battery.present;
 	battery.present = battery.isPresent();
 
-	if (battPendingEvent) {
-		battery.event();
-		battPendingEvent = false;
+	// If charge level has changed
+	if (battPendingEvent || battery.lowBatCounter > 0 || battery.emergencyLowBatCounter > 0) {
+
+		// Update battery last percent
+		battery.percent();
+
+		// Check low battery
+		if (battery.lastPercent < battery.threshold_emergency && !charger.onUSB) {
+			
+			battery.emergencyLowBatCounter++;
+
+			if (battery.emergencyLowBatCounter == 5) {
+				sckOut("Almost no battery left, going to emergency sleep!!");
+				// TODO
+				// led.powerEmergency = true;
+				// go to emergency sleep
+			}
+
+		} else if (battery.lastPercent < battery.threshold_low && !charger.onUSB) {
+			
+			battery.lowBatCounter++;
+			
+			if (battery.lowBatCounter == 5) {
+				sckOut("Battery is low, connect the charger!!");
+				// TODO
+				// led.lowBatt = true;
+			}
+
+		} else {
+
+			battery.lowBatCounter = 0;
+			battery.emergencyLowBatCounter = 0;
+		}
+
+		if (battPendingEvent) {
+			sprintf(outBuff, "Battery changed: %u %%", battery.lastPercent);
+			sckOut();
+			battPendingEvent = false;
+		}
 	}
 
-	if (chargerPendingEvent) {
-		sckOut("charger event");
-		charger.event();
-		chargerPendingEvent = false;
-	}
-
-	// TODO low battery led flash!
-
-	// If battery status changed
+	// If battery status changed enable/disable charging
 	if (prevBattPresent != battery.present) {
 		
 		if (battery.present) {
-		
-			// Pop notification
 			sckOut("Battery inserted!!");
-
-			// Make sure charger is enabled
-			charger.batfetState(1);
-
-
+			if (!charger.chargeState()) charger.chargeState(true); 	// Enable charging
 		} else {
-			
-			// Pop notification
 			sckOut("Battery removed!!");
-
-			// Disconnect charger
-			charger.batfetState(0);
+			charger.chargeState(false); 	// Disable charging
 		}
-	
 	}
 
-	// If charger status changed
-	if (prevChargeStatus != charger.chargeStatus) {
+	// If there is some event on charger
+	if (chargerPendingEvent) {
+		charger.event(); 	// This updates the USB connection status
+		chargerPendingEvent = false;
 
-		if (battery.present && charger.onUSB) {
+		if (!charger.onUSB) {
+			sckOut("Battery is not charging");
+			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
+		}
 
-			switch(charger.chargeStatus) {
-				case charger.CHRG_PRE_CHARGE:
-				case charger.CHRG_FAST_CHARGING:
-					sckOut("Charging battery...");
-					led.chargeStatus = led.CHARGE_CHARGING;
-					break;
+	}
 
-				case charger.CHRG_NOT_CHARGING:
-				case charger.CHRG_CHARGE_TERM_DONE:
-					sckOut("Battery fully charged...");
-					led.chargeStatus = led.CHARGE_FINISHED;
-					break;
-				default: break;
+	if (charger.onUSB) {
+	
+		// Update charge status
+		SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
+		charger.chargeStatus = charger.getChargeStatus();
+
+		// If charger status changed
+		if (prevChargeStatus != charger.chargeStatus) {
+
+			if (battery.present && charger.onUSB) {
+
+				switch(charger.chargeStatus) {
+					case charger.CHRG_PRE_CHARGE:
+					case charger.CHRG_FAST_CHARGING:
+						sckOut("Charging battery...");
+						led.chargeStatus = led.CHARGE_CHARGING;
+						break;
+
+					case charger.CHRG_NOT_CHARGING:
+					case charger.CHRG_CHARGE_TERM_DONE:
+						sckOut("Battery fully charged");
+						led.chargeStatus = led.CHARGE_FINISHED;
+						break;
+					default: break;
+				}
+
+			} else {
+				sckOut("Battery is not charging");
+				led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 			}
-		
-		} else {
-		
-			// No led feedback if no battery
-			led.chargeStatus = led.CHARGE_NULL;
-		
 		}
 	}
 }

@@ -1099,7 +1099,6 @@ bool SckBase::enableSensor(SensorType wichSensor)
 				case SENSOR_BATT_VOLTAGE: result = true;
 				case SENSOR_BATT_CHARGE_RATE: result = true;
 				case SENSOR_BATT_POWER: result = true;
-				case SENSOR_VOLTIN: result = true;
 				default: break;
 			}			 
 		}
@@ -1148,7 +1147,6 @@ bool SckBase::disableSensor(SensorType wichSensor)
 				case SENSOR_BATT_VOLTAGE: result = true;
 				case SENSOR_BATT_CHARGE_RATE: result = true;
 				case SENSOR_BATT_POWER: result = true;
-				case SENSOR_VOLTIN: result = true;
 				default: break;
 			}			 
 		}
@@ -1231,11 +1229,6 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 						result = String(battery.power());
 						break;
 
-					case SENSOR_VOLTIN:
-					{
-
-							break;
-					}
 					default: break;
 				}
 				break;

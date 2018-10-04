@@ -17,7 +17,6 @@ enum SensorType
 	SENSOR_BATT_VOLTAGE,
 	SENSOR_BATT_CHARGE_RATE,
 	SENSOR_BATT_POWER,
-	SENSOR_VOLTIN,
 
 	// Urban Sensors
 	SENSOR_LIGHT,
@@ -134,7 +133,6 @@ class AllSensors
 			OneSensor { BOARD_BASE, 		SENSOR_BATT_VOLTAGE,			"BATT_VOLT",		"Battery voltage",				0,		false,		false,			"V"},
 			OneSensor { BOARD_BASE, 		SENSOR_BATT_CHARGE_RATE,		"BATT_CHG_RATE",	"Battery charge rate",				0,		false,		false,			"mA"},
 			OneSensor { BOARD_BASE, 		SENSOR_BATT_POWER,			"BATT_POWER",		"Battery power rate",				0,		false,		false,			"mW"},
-			OneSensor { BOARD_BASE, 		SENSOR_VOLTIN,				"INPUT_VOLT",		"Input voltage", 				0,		false,		false,			"V"},
 
 			// Urban Sensors
 			OneSensor { BOARD_URBAN, 		SENSOR_LIGHT, 				"LIGHT",		"Light", 					14,		true,		false,			"Lux"},

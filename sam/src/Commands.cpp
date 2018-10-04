@@ -284,28 +284,45 @@ void freeRAM_com(SckBase* base, String parameters)
 	sprintf(base->outBuff, "Free RAM: %lu bytes", free);
 	base->sckOut();
 }
-void battReport_com(SckBase* base, String parameters)
+void batt_com(SckBase* base, String parameters)
 {
+	if(!base->battery.isPresent()) {
+			base->sckOut("No battery present");
+			return;
+	}
+
 	// get
 	if (parameters.length() <= 0) {
 
-		if(!base->battery.isPresent()) {
-		
-			base->sckOut("No battery detected!!!");
-		
-		} else {
-		
-			base->sckOut("Battery detected!!!");
-
-			base->battery.report();
-		
-		
-		
-		}
+			sprintf(base->outBuff, "Charge: %u %%\r\nVoltage: %0.2f V\r\nCharge current: %i mA\r\nPower: %i mW\r\nCapacity: %u/%u mAh\r\nState of health: %u %%",
+			base->battery.percent(),
+			base->battery.voltage(),
+			base->battery.current(),
+			base->battery.power(),
+			base->battery.remainCapacity(),
+			base->battery.designCapacity,
+			base->battery.health()
+			);
 	
+			base->sckOut();
 	// set
 	} else {
 	
+		uint16_t capI = parameters.indexOf("-cap");
+		if (capI >=0) {
+			String capC = parameters.substring(capI+5);
+			capC.trim();
+			uint16_t capU = capC.toInt();
+
+			if (capU > 100 && capU < 8000) {
+				base->sckOut("Reconfiguring battery...");
+				base->battery.designCapacity = capU;
+				base->battery.setup(true);
+				batt_com(base, "");
+			} else {
+				base->sckOut("Wrong or unsuported battery capacity!!");
+			}
+		}
 	
 	}
 }
@@ -342,37 +359,55 @@ void i2cDetect_com(SckBase* base, String parameters)
 		base->sckOut();
 	}
 }
-void getCharger_com(SckBase* base, String parameters)
+void charger_com(SckBase* base, String parameters)
 {
+	// Get
+	if (parameters.length() <= 0) {
 
-	// sprintf(base->outBuff, "%u", base->charger.chargeTimer(parameters.toInt()));
-	// base->sckOut();
+		sprintf(base->outBuff, "Battery: %s", base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
+		base->sckOut();
 
-	if (parameters.endsWith("otg")) base->charger.OTG(0);
+		sprintf(base->outBuff, "USB: %s", base->charger.VBUSStatusTitles[base->charger.getVBUSstatus()]);
+		base->sckOut();
 
-	sprintf(base->outBuff, "Battery: %s", base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
-	base->sckOut();
+		sprintf(base->outBuff, "OTG: %s", base->charger.enTitles[base->charger.OTG()]);
+		base->sckOut();
 
-	sprintf(base->outBuff, "USB: %s", base->charger.VBUSStatusTitles[base->charger.getVBUSstatus()]);
-	base->sckOut();
+		sprintf(base->outBuff, "Charge: %s", base->charger.enTitles[base->charger.chargeState()]);
+		base->sckOut();
 
-	sprintf(base->outBuff, "OTG: %s", base->charger.enTitles[base->charger.OTG()]);
-	base->sckOut();
+		sprintf(base->outBuff, "Batfet: %s", base->charger.enTitles[base->charger.batfetState()]);
+		base->sckOut();
 
-	sprintf(base->outBuff, "Charge: %s", base->charger.enTitles[base->charger.chargeState()]);
-	base->sckOut();
+		sprintf(base->outBuff, "Charger current limit: %u mA", base->charger.chargerCurrentLimit());
+		base->sckOut();
 
-	sprintf(base->outBuff, "Charger current limit: %u mA", base->charger.chargerCurrentLimit());
-	base->sckOut();
+		sprintf(base->outBuff, "Input current limit: %u mA", base->charger.inputCurrentLimit());
+		base->sckOut();
 
-	sprintf(base->outBuff, "Input current limit: %u mA", base->charger.inputCurrentLimit());
-	base->sckOut();
+		sprintf(base->outBuff, "I2c watchdog timer: %u sec (0: disabled)", base->charger.I2Cwatchdog());
+		base->sckOut();
 
-	sprintf(base->outBuff, "I2c watchdog timer: %u sec (0: disabled)", base->charger.I2Cwatchdog());
-	base->sckOut();
+		sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
+		base->sckOut();
 
-	sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
-	base->sckOut();
+	// Set
+	} else {
+	
+		uint16_t chargeI = parameters.indexOf("-charge");
+		if (chargeI >=0) {
+			String chargeC = parameters.substring(chargeI+8);
+			if (chargeC.startsWith("on")) base->charger.chargeState(1);
+			if (chargeC.startsWith("off")) base->charger.chargeState(0);
+		}
+
+		uint16_t otgI = parameters.indexOf("-otg");
+		if (otgI >=0) {
+			String otgC = parameters.substring(otgI+5);
+			if (otgC.startsWith("on")) base->charger.OTG(1);
+			if (otgC.startsWith("off")) base->charger.OTG(0);
+		}
+	}
 }
 void config_com(SckBase* base, String parameters)
 {

@@ -1126,12 +1126,16 @@ bool SckBase::enableSensor(SensorType wichSensor)
 	switch (sensors[wichSensor].location) {
 		case BOARD_BASE:
 		{
-			// TODO review this
 			switch (wichSensor) {
-				case SENSOR_BATT_PERCENT: result = true;
-				case SENSOR_BATT_VOLTAGE: result = true;
-				case SENSOR_BATT_CHARGE_RATE: result = true;
-				case SENSOR_BATT_POWER: result = true;
+				case SENSOR_BATT_PERCENT: 
+				 	// Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
+					result = true; 
+					break;
+				case SENSOR_BATT_VOLTAGE:
+				case SENSOR_BATT_CHARGE_RATE:
+				case SENSOR_BATT_POWER: 
+					if (battery.isPresent()) result = true;
+					break;
 				default: break;
 			}			 
 		}
@@ -1174,12 +1178,13 @@ bool SckBase::disableSensor(SensorType wichSensor)
 	switch (sensors[wichSensor].location) {
 		case BOARD_BASE:
 		{
-			// TODO review this
 			switch (wichSensor) {
-				case SENSOR_BATT_PERCENT: result = true;
-				case SENSOR_BATT_VOLTAGE: result = true;
-				case SENSOR_BATT_CHARGE_RATE: result = true;
-				case SENSOR_BATT_POWER: result = true;
+				case SENSOR_BATT_PERCENT:
+				case SENSOR_BATT_VOLTAGE:
+				case SENSOR_BATT_CHARGE_RATE:
+				case SENSOR_BATT_POWER: 
+					result = true;
+					break;
 				default: break;
 			}			 
 		}

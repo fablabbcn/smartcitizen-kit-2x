@@ -22,7 +22,7 @@ void SckCharger::setup()
 
 	attachInterrupt(pinCHARGER_INT, ISR_charger, FALLING);
 
-	batfetState(0);
+	chargeState(0);
 
 }
 bool SckCharger::resetConfig()
@@ -225,7 +225,6 @@ void SckCharger::forceInputCurrentLimitDetection()
 }
 SckCharger::ChargeStatus SckCharger::getChargeStatus()
 {
-
 	byte status = readREG(SYS_STATUS_REG);
 	status &= (0b11 << CHRG_STAT);
 	status >>= CHRG_STAT;
@@ -272,23 +271,18 @@ bool SckCharger::writeREG(byte wichRegister, byte data)
 }
 void SckCharger::event()
 {
-	while (getDPMstatus()) {} // Wait for DPM detection finish
+	// Wait for DPM detection finish
+	while (getDPMstatus()) delay(1);
 
 	if (getPowerGoodStatus()) {
-
 		if (!onUSB) {
 			onUSB = true;
-
-			// To start with a clean state and make sure charging is OK do a reset when power is connected.
-			NVIC_SystemReset();
+			NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
 		}
 
-	} else {
-		onUSB = false;
-	}
+	} else onUSB = false;
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
-
 }
 
 // Battery
@@ -312,29 +306,32 @@ bool SckBatt::isPresent()
 	while (ADC->STATUS.bit.SYNCBUSY == 1);
 
 	if (valueRead < 400) {
-		present = true;	
-		if (!configured) setup();
-		return true;
+		Wire.beginTransmission(address);
+		uint8_t error = Wire.endTransmission();
+
+		if (error == 0) {
+			present = true;	
+			if (!configured) {
+				if (!setup()) return false;
+			}
+			return true;
+		}
 	} 
 	
 	present = false;
 	configured = false;
 	return false;
 }
-bool SckBatt::setup()
+bool SckBatt::setup(bool force)
 {
 	// This function should only be called if we are sure the batt is present (from inside battery.isPresent())
-	if (configured) return true;
+	if (configured && !force) return true;
 
 	// Check if gauge is alive
 	Wire.beginTransmission(address);
 	uint8_t error = Wire.endTransmission();
 	if (error != 0) return false;
 
-	// Setup pins
-	pinMode(pinGAUGE_INT, INPUT_PULLUP);
-	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
-	
 	// --- Configure battery
 	enterConfig();
 
@@ -353,20 +350,15 @@ bool SckBatt::setup()
 	// Set Taper Rate 
 	setSubclass(GAUGE_CLASSID_STATE, taperRateOffset, designCapacity  / (0.1 * taperCurrent));
 
+	// Allow reporting 100% even when Charge termination is not detected
+	setSubclass(GAUGE_CLASSID_OPCONFIG, opConfig_C_Offset, 0b10001111);
 
-	// --- Configure interrupt
-	// Set Interrupt polarity
-	
-	// Set Interrupt function
-	
-	// Set interrupt trigger threshold
-	//
+	// Configure interrupt for 1 percent changes in charge, active LOW
+	interruptSetup();
 
 	exitConfig();
 
 	configured = true;
-
-	// TODO if battery is not full and we are not charging run charger.setup here
 
 	return true;
 }
@@ -376,7 +368,8 @@ float SckBatt::voltage()
 }
 uint8_t SckBatt::percent()
 {
-	return readWord(GAUGE_COM_SOC);
+	lastPercent = readWord(GAUGE_COM_SOC);
+	return lastPercent;
 }
 int16_t SckBatt::current()
 {
@@ -386,33 +379,13 @@ int16_t SckBatt::power()
 {
 	return readWord(GAUGE_COM_POWER);
 }
-void SckBatt::event()
+uint8_t SckBatt::health()
 {
-	if (!setup()) return;
-	/* getReading(SENSOR_BATT_PERCENT); */
-	/* sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str()); */
-	/* sckOut(PRIO_LOW); */			
+	return readWord(GAUGE_COM_SOH);
 }
-void SckBatt::report()
+uint16_t SckBatt::remainCapacity()
 {
-	SerialUSB.println(readControlWord(GAUGE_CTRL_GET_CHEM_ID), HEX);
-	SerialUSB.println(getSubclass(GAUGE_CLASSID_STATE, designCapacityOffset));
-	SerialUSB.println(getSubclass(GAUGE_CLASSID_STATE, designEnergyOffset));
-	SerialUSB.println(getSubclass(GAUGE_CLASSID_STATE, terminateVoltageOffset));
-	SerialUSB.println(getSubclass(GAUGE_CLASSID_STATE, taperRateOffset));
-	SerialUSB.println(voltage());
-	SerialUSB.println(percent());
-
-	/* if (!configured && !setup()) return; */
-
-	/* sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i", */
-	/* 		lipo.soc(), */
-	/* 		lipo.voltage(), */
-	/* 		lipo.current(AVG), */
-	/* 		lipo.capacity(REMAIN), */
-	/* 		lipo.capacity(FULL), */
-	/* 		lipo.soh() */
-       /* ); */
+	return readWord(GAUGE_COM_REMAIN_CAPACITY);
 }
 bool SckBatt::enterConfig()
 {
@@ -458,6 +431,24 @@ bool SckBatt::setChemID(uint16_t wichID)
 	}
 
 	return false;
+}
+bool SckBatt::interruptSetup()
+{
+	// (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf) page 38
+	// Default opConfig = 0110010001111000
+	// (no) changes:
+	// GPIOPOL (bit 11) --> 0 (LOW level interrupt)
+	// BATLOWEN (bit 2) --> 0 (enables SOC_INT)
+	uint16_t newOPConfig = 0b0110010001111000;
+	if (!setSubclass(GAUGE_CLASSID_OPCONFIG, opConfigOffset, newOPConfig)) return false;
+
+	// (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf) page 50
+	// SOC interrupt delta (if charge percent changes this or more it will raise an interrupt)
+	// State class (82), offset 20.
+	// new value: 1%
+	if (!setSubclass(GAUGE_CLASSID_STATE, 20, 1)) return false;
+
+	return true;
 }
 bool SckBatt::setSubclass(uint8_t subclassID, uint8_t offset, uint16_t value)
 {

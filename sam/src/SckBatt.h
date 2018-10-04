@@ -142,9 +142,13 @@ class SckBatt
 		// designEnergy = designCapacity * nominalVoltage
 		uint8_t designEnergyOffset = 8;
 
-		// Taper Rate: used to sync full charger between gauge and charger
+		// Taper Rate: used to sync full charge between gauge and charger
 		// taperRate = designCapacity / (0.1 * taperCurrent)
 		uint8_t taperRateOffset = 21;
+
+		// OpConfig
+		const uint8_t opConfigOffset 			= 0;
+		const uint8_t opConfig_C_Offset			= 2;
 
 		// Gauge Control() commands
 	    	const uint16_t GAUGE_REG_CTRL_STATUS		= 0x00;
@@ -162,15 +166,19 @@ class SckBatt
 		const uint16_t GAUGE_FLAGS_CONFIG_UPDATE 	= 4;
 	
 		const uint8_t GAUGE_CLASSID_STATE 		= 82;
+		const uint8_t GAUGE_CLASSID_OPCONFIG 		= 64;
 
 		const uint8_t GAUGE_COM_VOLTAGE 		= 0x04;
 		const uint8_t GAUGE_COM_SOC 			= 0x1C;
 		const uint8_t GAUGE_COM_CURRENT 		= 0x10;
 		const uint8_t GAUGE_COM_POWER 			= 0x18;
+		const uint8_t GAUGE_COM_SOH 			= 0x20;
+		const uint8_t GAUGE_COM_REMAIN_CAPACITY		= 0x2A;
 
 		bool enterConfig();
-		bool exitConfig(); // TODO
+		bool exitConfig();
 		bool setChemID(uint16_t wichID);
+		bool interruptSetup();
 		bool setSubclass(uint8_t subclassID, uint8_t offset, uint16_t value);
 		uint16_t getSubclass(uint8_t subclassID, uint8_t offset);
 		uint16_t readWord(uint16_t subAddress);
@@ -189,19 +197,26 @@ class SckBatt
 		
 		uint8_t address = 0x55;
 		bool configured = false;
-		bool setup();
 	public:
+		const uint8_t threshold_low = 10;
+		const uint8_t threshold_emergency = 2;
+		uint8_t lowBatCounter = 0;
+		uint8_t emergencyLowBatCounter = 0;
+
 		bool present = false;
+		uint8_t lastPercent = 0;
 		// Design capacity in mAh, page 49 of (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf)
 		uint16_t designCapacity = 2000;
 
+		bool setup(bool force=false);
 		bool isPresent();
 		float voltage();
 		int16_t current();
 		int16_t power(); 	// Negative during discharge, positive when charging, (mWh)
 		uint8_t percent();
-		void report();
-		void event();
+		uint8_t health();
+		uint16_t remainCapacity();
+
 };
 
 void ISR_charger();

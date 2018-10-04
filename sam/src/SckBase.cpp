@@ -56,6 +56,8 @@ void SckBase::setup()
 	charger.setup();
 	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
 	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
+	pinMode(pinGAUGE_INT, INPUT_PULLUP);
+	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
 
 	// RTC setup
 	rtc.begin();

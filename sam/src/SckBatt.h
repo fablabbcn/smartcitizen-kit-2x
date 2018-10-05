@@ -208,8 +208,8 @@ class SckBatt
 		// Design capacity in mAh, page 49 of (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf)
 		uint16_t designCapacity = 2000;
 
-		bool setup(bool force=false);
-		bool isPresent();
+		bool setup(SckCharger charger, bool force=false);
+		bool isPresent(SckCharger charger);
 		float voltage();
 		int16_t current();
 		int16_t power(); 	// Negative during discharge, positive when charging, (mWh)

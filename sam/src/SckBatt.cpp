@@ -15,7 +15,7 @@ void SckCharger::setup()
 	// Limit charge current.
 	chargerCurrentLimit(768);
 
-	// We shouldn't take more than 5 hours to charge the normal battery
+	// Set charger timer to 5 hours (It will be recalculated based on battery capacity and current limit)
 	chargeTimer(5);
 
 	OTG(true);
@@ -139,21 +139,21 @@ bool SckCharger::OTG(int8_t enable)
 	
 	return (readREG(POWER_ON_CONF_REG) >> OTG_CONFIG) & 1;
 }
-uint8_t SckCharger::I2Cwatchdog(int16_t seconds)
+uint8_t SckCharger::I2Cwatchdog(int16_t rseconds)
 {
 
 	// I2C Watchdog Timer Setting. (Two bits 4:5) 00 – Disable timer, 01 – 40 s, 10 – 80 s, 11 – 160 s
 	uint8_t values[4] = {0, 40, 80, 160};
 
-	if (seconds > -1) {
+	if (rseconds > -1) {
 
 		byte timerCtrl = readREG(CHG_TERM_TIMER_CTRL);
 		timerCtrl &= ~(0b11 << I2C_WATCHDOG);				// Clear bits
-		if (seconds > 0 && seconds < 40) seconds = 40;		// Exception (go for the minimal value, don't disable)
+		if (rseconds > 0 && rseconds < 40) rseconds = 40;		// Exception (go for the minimal value, don't disable)
 
 		// Go for the lower closest to the requested value
 		for (uint8_t i=3; i>=0; i--) {
-			if (seconds >= values[i]) {
+			if (rseconds >= values[i]) {
 				timerCtrl |= (i << I2C_WATCHDOG);
 				break;	
 			}
@@ -164,31 +164,29 @@ uint8_t SckCharger::I2Cwatchdog(int16_t seconds)
 
 	return values[(readREG(CHG_TERM_TIMER_CTRL) & (0b11 << I2C_WATCHDOG)) >> I2C_WATCHDOG];
 }
-uint8_t SckCharger::chargeTimer(int8_t hours)
+uint8_t SckCharger::chargeTimer(int8_t rhours)
 {
-
 	// 0 hours = disable timer
-
 	// Fast Charge Timer Setting. (Two bits 1:2) 00 – 5 hrs, 01 – 8 hrs, 10 – 12 hrs, 11 – 20 hrs
 	uint8_t values[4] = {5, 8, 12, 20};
 
-	if (hours > -1) {
+	if (rhours > -1) {
 		
 		byte chgTimer = readREG(CHG_TERM_TIMER_CTRL);
 
 		chgTimer &= ~(1 << CHG_TIMER_ENABLE);		// Disable timer
 		writeREG(CHG_TERM_TIMER_CTRL, chgTimer);
 
-		if (hours > 0) {
+		if (rhours > 0) {
 
-			if (hours < 5) hours = 5;
+			if (rhours < 5) rhours = 5;
 
 			chgTimer &= ~(0b11 << CHG_TIMER); 	// Clear bits
 
-			// Go for the lower closest to the requested value
-			for (uint8_t i=3; i>=0; i--) {
-				if (hours >= values[i]) {
-					chgTimer |= (i << CHG_TIMER);
+			// Go for the upper closest to the requested value
+			for (uint8_t i=0; i<4; i++) {
+				if (rhours <= values[i]) {
+					chgTimer |= (i<<CHG_TIMER);
 					break;	
 				}
 			}
@@ -199,7 +197,7 @@ uint8_t SckCharger::chargeTimer(int8_t hours)
 		}
 	}
 
-	// if enabled return actual value
+	// if enabled return actual value, if disabled return 0
 	if ((readREG(CHG_TERM_TIMER_CTRL) & (1 << CHG_TIMER_ENABLE)) >> CHG_TIMER_ENABLE) return values[(readREG(CHG_TERM_TIMER_CTRL) & (0b11 << CHG_TIMER)) >> CHG_TIMER];
 	else return 0;
 }
@@ -286,7 +284,7 @@ void SckCharger::event()
 }
 
 // Battery
-bool SckBatt::isPresent()
+bool SckBatt::isPresent(SckCharger charger)
 {
 	// First check pinBATT_INSERTION
 	uint32_t valueRead = 0;
@@ -312,7 +310,7 @@ bool SckBatt::isPresent()
 		if (error == 0) {
 			present = true;	
 			if (!configured) {
-				if (!setup()) return false;
+				if (!setup(charger)) return false;
 			}
 			return true;
 		}
@@ -322,7 +320,7 @@ bool SckBatt::isPresent()
 	configured = false;
 	return false;
 }
-bool SckBatt::setup(bool force)
+bool SckBatt::setup(SckCharger charger, bool force)
 {
 	// This function should only be called if we are sure the batt is present (from inside battery.isPresent())
 	if (configured && !force) return true;
@@ -359,6 +357,11 @@ bool SckBatt::setup(bool force)
 	exitConfig();
 
 	configured = true;
+
+	// Setup charger timer depending on battery design capacity
+	uint16_t currLimit = charger.chargerCurrentLimit();
+	int8_t timeNeeded = ceil(designCapacity / currLimit);
+	charger.chargeTimer(timeNeeded);
 
 	return true;
 }

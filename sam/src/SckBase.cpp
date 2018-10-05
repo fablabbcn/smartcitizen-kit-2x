@@ -994,7 +994,7 @@ void SckBase::updatePower()
 
 	// Update battery present status
 	bool prevBattPresent = battery.present;
-	battery.present = battery.isPresent();
+	battery.present = battery.isPresent(charger);
 
 	// If charge level has changed
 	if (battPendingEvent || battery.lowBatCounter > 0 || battery.emergencyLowBatCounter > 0) {
@@ -1134,7 +1134,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
 				case SENSOR_BATT_VOLTAGE:
 				case SENSOR_BATT_CHARGE_RATE:
 				case SENSOR_BATT_POWER: 
-					if (battery.isPresent()) result = true;
+					if (battery.isPresent(charger)) result = true;
 					break;
 				default: break;
 			}			 
@@ -1231,7 +1231,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 				switch (wichSensor) {
 					case SENSOR_BATT_PERCENT:
 					{
-						if (!battery.isPresent()) {
+						if (!battery.isPresent(charger)) {
 							result = String("-1");
 							break;
 						}
@@ -1243,7 +1243,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 					}
 					case SENSOR_BATT_VOLTAGE:
 
-						if (!battery.isPresent()) {
+						if (!battery.isPresent(charger)) {
 							result = String("-1");
 							break;
 						}
@@ -1252,7 +1252,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 
 					case SENSOR_BATT_CHARGE_RATE:
 
-						if (!battery.isPresent()) {
+						if (!battery.isPresent(charger)) {
 							result = String("-1");
 							break;
 						}
@@ -1260,7 +1260,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 						break;
 					case SENSOR_BATT_POWER:
 
-						if (!battery.isPresent()) {
+						if (!battery.isPresent(charger)) {
 							result = String("-1");
 							break;
 						}

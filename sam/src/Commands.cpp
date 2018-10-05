@@ -286,7 +286,7 @@ void freeRAM_com(SckBase* base, String parameters)
 }
 void batt_com(SckBase* base, String parameters)
 {
-	if(!base->battery.isPresent()) {
+	if(!base->battery.isPresent(base->charger)) {
 			base->sckOut("No battery present");
 			return;
 	}
@@ -314,10 +314,10 @@ void batt_com(SckBase* base, String parameters)
 			capC.trim();
 			uint16_t capU = capC.toInt();
 
-			if (capU > 100 && capU < 8000) {
+			if (capU > 100 && capU <= 8000) {
 				base->sckOut("Reconfiguring battery...");
 				base->battery.designCapacity = capU;
-				base->battery.setup(true);
+				base->battery.setup(base->charger, true);
 				batt_com(base, "");
 			} else {
 				base->sckOut("Wrong or unsuported battery capacity!!");

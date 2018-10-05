@@ -156,7 +156,8 @@ var app = new Vue({
             '?ssid=' + that.selectedWifi +
             '&password=' + that.wifipass +
             '&token=' + that.usertoken +
-            '&epoch=' + that.browsertime,
+            '&epoch=' + that.browsertime +
+            '&mode=network',
             function(res){
               console.log('Kit response: ' + res);
             });
@@ -166,7 +167,7 @@ var app = new Vue({
 
       if (purpose == 'synctime'){
         this.notify('Starting to log on SD CARD..', 2000);
-        this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime, function(res){
+        this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime + '&mode=sdcard', function(res){
           // TODO: What is the correct response.key from the kit?
           that.notify(JSON.parse(res).todo, 5000);
         });
@@ -243,6 +244,9 @@ var app = new Vue({
     },
     usertokenCheck: function(){
       return this.usertoken.length === 6;
+    },
+    selectedWifiCheck: function(){
+      return this.selectedWifi.length > 0;
     }
   }
 });

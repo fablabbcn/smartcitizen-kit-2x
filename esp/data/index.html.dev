@@ -94,7 +94,7 @@
             <label>Password</label>
             <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password" autocapitalize="none" >
           </div>
-          <button class="btn bg-cyan" type="button" id="connect" v-on:click="jsPost('set','connect')">Connect</button>
+          <button class="btn" v-bind:class="{ 'bg-cyan': selectedWifiCheck }" type="button" id="connect" :disabled=!selectedWifiCheck v-on:click="jsPost('set','connect')">Connect</button>
 
 
         </div>
@@ -105,8 +105,8 @@
           <p>Your kit is now trying to connect to the online platform, and this website has no connection to the kit anymore.</p>
           <p>Check the light on your Kit:</p>
           <ul>
-            <li><span class="text-green" >GREEN</span>: Everything is fine, your Kit is online.</li>
-            <li><span class="text-red" >RED</span>: Some problem happened, push the button on your Kit and join the SCK WiFi again.</li>
+            <li><span class="text-green" >BLUE</span>: Your kit received the configuration and is trying to connect. If the led starts blinking there was a problem with the wifi credentials.</li>
+            <li><span class="text-red" >RED</span>: Some problem happened, reset your Kit and try again.</li>
           </ul>
         </div>
 
@@ -142,6 +142,7 @@
           <p>Your Kit can store the data on a microSD card that later you can read with your computer.</p>
           <p>This is useful when no WiFi is available at your location.</p>
           <p>You will need to insert a valid microSD card and click the button.</p>
+          <!--
           <table>
             <tr>
               <td>SD CARD</td>
@@ -152,6 +153,7 @@
               <td>{{ kitstatus.time }}</td>
             </tr>
           </table>
+          -->
           <button class="btn bg-cyan" type="button" v-on:click="jsPost('set', 'synctime')">START LOGGING</button>
           <p>You will be disconnected and the Kit will start recording data.</p>
         </div>

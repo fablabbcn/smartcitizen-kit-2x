@@ -7,7 +7,7 @@
   <body>
 
     <div id="loading">
-      <h1 style="color:#38cef3; font-family:Arial, sans-serif; padding:100px 10px;">The page is loading... please wait!</h1>
+      <h1 style="color:#0C2EFB; font-family:Arial, sans-serif; padding:100px 10px;">Loading... please wait!</h1>
     </div>
 
     <div class="container"id="app" style="display:none">
@@ -105,7 +105,7 @@
           <p>Your kit is now trying to connect to the online platform, and this website has no connection to the kit anymore.</p>
           <p>Check the light on your Kit:</p>
           <ul>
-            <li><span class="text-green" >BLUE</span>: Your kit received the configuration and is trying to connect. If the led starts blinking there was a problem with the wifi credentials.</li>
+            <li><span class="text-cyan" >BLUE</span>: Your kit received the configuration and is trying to connect. If the led starts blinking there was a problem with the wifi credentials.</li>
             <li><span class="text-red" >RED</span>: Some problem happened, reset your Kit and try again.</li>
           </ul>
         </div>

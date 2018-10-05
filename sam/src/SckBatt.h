@@ -206,7 +206,7 @@ class SckBatt
 		bool present = false;
 		uint8_t lastPercent = 0;
 		// Design capacity in mAh, page 49 of (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf)
-		uint16_t designCapacity = 2000;
+		uint16_t designCapacity = 2000; 	// Don't change this default here, change it in Config.h. This will be overwriten by config value
 
 		bool setup(SckCharger charger, bool force=false);
 		bool isPresent(SckCharger charger);

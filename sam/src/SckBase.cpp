@@ -523,6 +523,12 @@ void SckBase::loadConfig()
 		wichSensor->interval = config.sensors[i].interval;
 	}
 
+	// If battery capacity is not set, update it
+	if (config.battDesignCapacity != battery.designCapacity) {
+		battery.designCapacity = config.battDesignCapacity;
+		battery.setup(charger, true);
+	}
+
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;
 	st.mode = config.mode;
@@ -548,6 +554,12 @@ void SckBase::saveConfig(bool defaults)
 	}
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
+
+	// If battery capacity changed, update it
+	if (config.battDesignCapacity != battery.designCapacity) {
+		battery.designCapacity = config.battDesignCapacity;
+		battery.setup(charger, true);
+	}
 
 	// Update state
 	if (urbanPresent) urban.setup(this);

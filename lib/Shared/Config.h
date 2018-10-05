@@ -27,4 +27,5 @@ struct Configuration {
 	Credentials credentials;
 	Token token;
 	SensorConfig sensors[SENSOR_COUNT];
+	uint16_t battDesignCapacity = 2000;
 };

@@ -316,8 +316,11 @@ void batt_com(SckBase* base, String parameters)
 
 			if (capU > 100 && capU <= 8000) {
 				base->sckOut("Reconfiguring battery...");
-				base->battery.designCapacity = capU;
-				base->battery.setup(base->charger, true);
+			
+				if (base->config.battDesignCapacity != capU) {
+					base->config.battDesignCapacity = capU;
+					base->saveConfig();
+				}
 				batt_com(base, "");
 			} else {
 				base->sckOut("Wrong or unsuported battery capacity!!");

@@ -10,10 +10,10 @@ void SckCharger::setup()
 	I2Cwatchdog(0);
 
 	// Limit input current.
-	inputCurrentLimit(900);
+	inputCurrentLimit(1500);
 
 	// Limit charge current.
-	chargerCurrentLimit(768);
+	chargerCurrentLimit(1024);
 
 	// Set charger timer to 5 hours (It will be recalculated based on battery capacity and current limit)
 	chargeTimer(5);

@@ -2,8 +2,6 @@
 
 void SckCharger::setup()
 {
-	pinMode(pinCHARGER_INT, INPUT_PULLUP);
-
 	resetConfig();
 
 	// Disable I2C watchdog timer
@@ -19,8 +17,6 @@ void SckCharger::setup()
 	chargeTimer(5);
 
 	OTG(true);
-
-	attachInterrupt(pinCHARGER_INT, ISR_charger, FALLING);
 
 	chargeState(0);
 
@@ -267,7 +263,7 @@ bool SckCharger::writeREG(byte wichRegister, byte data)
 	if (readREG(wichRegister) == data) return true;
 	else return false;
 }
-void SckCharger::event()
+void SckCharger::detectUSB()
 {
 	// Wait for DPM detection finish
 	while (getDPMstatus()) delay(1);

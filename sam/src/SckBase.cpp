@@ -155,7 +155,11 @@ void SckBase::update()
 		if (lightResults.ok) parseLightRead();
 	}
 
+	// Update state every 500 ms
 	if (millis() % 500 == 0) reviewState();
+
+	// Update power every second
+	if (millis() % 1000 == 0) updatePower();
 
 	if (butState != butOldState) {
 		buttonEvent();
@@ -171,8 +175,6 @@ void SckBase::reviewState()
 		sendConfig();
 		return;
 	}
-
-	updatePower();
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
@@ -1061,17 +1063,8 @@ void SckBase::updatePower()
 		}
 	}
 
-	// If there is some event on charger
-	if (chargerPendingEvent) {
-		charger.event(); 	// This updates the USB connection status
-		chargerPendingEvent = false;
-
-		if (!charger.onUSB) {
-			sckOut("Battery is not charging");
-			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
-		}
-
-	}
+ 	// This updates the USB connection status
+	charger.detectUSB();
 
 	if (charger.onUSB) {
 	
@@ -1104,6 +1097,9 @@ void SckBase::updatePower()
 				led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 			}
 		}
+	} else {
+		sckOut("Battery is not charging");
+		led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 	}
 }
 /* void SckBase::wakeUp() */

@@ -269,15 +269,18 @@ bool SckCharger::writeREG(byte wichRegister, byte data)
 }
 void SckCharger::event()
 {
-	// Wait for DPM detection finish
-	while (getDPMstatus()) delay(1);
+	VBUSstatus vbusStatus = getVBUSstatus();
 
-	if (getPowerGoodStatus()) {
+	if (vbusStatus == VBUS_UNKNOWN) {
+		// Wait for DPM detection finish
+		while (getDPMstatus()) delay(1);
+	}
+
+	if (vbusStatus == VBUS_ADAPTER_PORT) {
 		if (!onUSB) {
 			onUSB = true;
 			NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
 		}
-
 	} else onUSB = false;
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds

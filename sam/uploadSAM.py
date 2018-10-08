@@ -29,6 +29,8 @@ def before_build():
     if not os.path.isdir(".platformio/packges/framework-arduinosam/variants/sck2"):
         checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduinosam/variants/sck2"])
         checkout.wait()
+        checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduinosam/libraries/__cores__/samd/I2S/src/utility/SAMD21_I2SDevice.h"])
+        checkout.wait()
 
 before_build() 
 # env.AddPreAction("buildprog", before_build)

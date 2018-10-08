@@ -1012,47 +1012,6 @@ void SckBase::updatePower()
 	// Update USB connection status
 	charger.detectUSB();
 
-	// If charge level has changed
-	if (battPendingEvent || battery.lowBatCounter > 0 || battery.emergencyLowBatCounter > 0) {
-
-		// Update battery last percent
-		battery.percent();
-
-		// Check low battery
-		if (battery.lastPercent < battery.threshold_emergency && !charger.onUSB) {
-			
-			battery.emergencyLowBatCounter++;
-
-			if (battery.emergencyLowBatCounter == 5) {
-				sckOut("Almost no battery left, going to emergency sleep!!");
-				// TODO
-				// led.powerEmergency = true;
-				// go to emergency sleep
-			}
-
-		} else if (battery.lastPercent < battery.threshold_low && !charger.onUSB) {
-			
-			battery.lowBatCounter++;
-			
-			if (battery.lowBatCounter == 5) {
-				sckOut("Battery is low, connect the charger!!");
-				// TODO
-				// led.lowBatt = true;
-			}
-
-		} else {
-
-			battery.lowBatCounter = 0;
-			battery.emergencyLowBatCounter = 0;
-		}
-
-		if (battPendingEvent) {
-			sprintf(outBuff, "Battery changed: %u %%", battery.lastPercent);
-			sckOut();
-			battPendingEvent = false;
-		}
-	}
-
 	// If battery status changed enable/disable charging
 	if (prevBattPresent != battery.present) {
 		
@@ -1067,6 +1026,12 @@ void SckBase::updatePower()
 
 
 	if (charger.onUSB) {
+
+		// Reset lowBatt counter
+		battery.lowBatCounter = 0;
+
+		// Reset emergencyLowBatt counter
+		battery.emergencyLowBatCounter = 0;
 	
 		// Update charge status
 		SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
@@ -1098,9 +1063,29 @@ void SckBase::updatePower()
 			}
 		}
 	} else {
-		sckOut("Battery is not charging");
-		led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 
+		// Emergency lowBatt
+		if (battery.lastPercent < battery.threshold_emergency) {
+			if (battery.emergencyLowBatCounter < 5) {
+				battery.emergencyLowBatCounter++;
+				led.chargeStatus = led.CHARGE_NULL;
+			} else led.chargeStatus = led.CHARGE_LOW;
+			// TODO replace this with proper led feeback and sleep mode
+			/* led.powerEmergency = true; */
+		
+		// Detect lowBatt
+		} else if (battery.lastPercent < battery.threshold_low) {
+			if (battery.lowBatCounter < 5) {
+				battery.lowBatCounter++;
+				led.chargeStatus = led.CHARGE_NULL;
+			}
+			else led.chargeStatus = led.CHARGE_LOW;
+
+		} else {
+			sckOut("Battery is not charging");
+			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
+		
+		}
 	}
 }
 /* void SckBase::wakeUp() */

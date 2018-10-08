@@ -157,6 +157,9 @@ void SckBase::update()
 
 	if (millis() % 500 == 0) reviewState();
 
+	if (millis() % 1000 == 0) updatePower();
+	
+
 	if (butState != butOldState) {
 		buttonEvent();
 		butOldState = butState;
@@ -172,7 +175,6 @@ void SckBase::reviewState()
 		return;
 	}
 
-	updatePower();
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/

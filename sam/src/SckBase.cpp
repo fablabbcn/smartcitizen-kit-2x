@@ -193,11 +193,16 @@ void SckBase::reviewState()
 		if (rtc.getEpoch() % 3600 == 0) {
 			if (sdSelect()) {
 				debugFile.file = sd.open(debugFile.name, FILE_WRITE);
-				uint32_t debugSize = debugFile.file.size();
+				if (debugFile.file) {
 
-				// If file is bigger than 50mb rename the file.
-				if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
-				debugFile.file.close();
+					uint32_t debugSize = debugFile.file.size();
+				
+					// If file is bigger than 50mb rename the file.
+					if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
+					debugFile.file.close();
+
+				} else st.cardPresent = false;
+
 			}
 		}
 	}
@@ -534,7 +539,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 			debugFile.file.print("-->");
 			debugFile.file.println(outBuff);
 			debugFile.file.close();
-		}
+		} else st.cardPresent = false;
 	}
 }
 void SckBase::prompt()
@@ -965,8 +970,14 @@ bool SckBase::sdDetect()
 	st.cardPresent = !digitalRead(pinCARD_DETECT);
 
 	if (st.cardPresent) { 
-		sckOut("Sdcard inserted");
-		return true;
+		sckOut("Sdcard inserted ", PRIO_MED, false);
+		if (sd.begin(pinCS_SDCARD, SPI_HALF_SPEED)) {
+			sckOut("and ready to use");
+			return true;
+		}
+		sckOut(" ERROR initializing it!!!");
+		st.cardPresent = false; 	// If we cant initialize sdcard, don't use it!
+		return false;
 	} else sckOut("No Sdcard found!!");
 	return false;
 }
@@ -978,12 +989,7 @@ bool SckBase::sdSelect()
 	digitalWrite(pinCS_FLASH, HIGH);	// disables Flash
 	digitalWrite(pinCS_SDCARD, LOW);
 
-	if (sd.begin(pinCS_SDCARD)) {
-		return true;
-	} else {
-		sckOut(F("Sdcard ERROR!!"));
-		return false;
-	}
+	return true;
 }
 
 // **** Flash memory
@@ -1512,7 +1518,7 @@ bool SckBase::sdPublish()
 		timeToPublish = false;
 		sckOut("Sd card publish OK!!", PRIO_MED);
 		return true;
-	}
+	} else st.cardPresent = false;
 	return false;
 }
 void SckBase::publish()

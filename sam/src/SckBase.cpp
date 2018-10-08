@@ -1072,6 +1072,12 @@ void SckBase::updatePower()
 		}
 	}
 
+	if (battPendingEvent) {
+		battery.percent();
+		sprintf(outBuff, "Battery changed: %u %%", battery.lastPercent);
+		sckOut();
+		battPendingEvent = false;
+	}
 
 	if (charger.onUSB) {
 
@@ -1089,6 +1095,8 @@ void SckBase::updatePower()
 		if (prevChargeStatus != charger.chargeStatus) {
 
 			if (battery.present) {
+
+				battery.percent();
 
 				switch(charger.chargeStatus) {
 					case charger.CHRG_PRE_CHARGE:
@@ -1128,8 +1136,7 @@ void SckBase::updatePower()
 			if (battery.lowBatCounter < 5) {
 				battery.lowBatCounter++;
 				led.chargeStatus = led.CHARGE_NULL;
-			}
-			else led.chargeStatus = led.CHARGE_LOW;
+			} else led.chargeStatus = led.CHARGE_LOW;
 
 		} else {
 			sckOut("Battery is not charging");

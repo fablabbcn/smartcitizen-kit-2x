@@ -103,7 +103,7 @@ public:
 	bool getPowerGoodStatus();
 	bool getDPMstatus();
 	void forceInputCurrentLimitDetection();
-	void event();
+	void detectUSB();
 	ChargeStatus getChargeStatus();
 	VBUSstatus getVBUSstatus();
 	byte getNewFault();		// TODO

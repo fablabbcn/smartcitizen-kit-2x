@@ -159,11 +159,6 @@ void SckBase::update()
 
 	if (millis() % 1000 == 0) updatePower();
 
-	if (chargerPendingEvent) {
-		charger.event();
-		chargerPendingEvent = false;
-	}
-
 	if (butState != butOldState) {
 		buttonEvent();
 		butOldState = butState;
@@ -1013,6 +1008,9 @@ void SckBase::updatePower()
 	// Update battery present status
 	bool prevBattPresent = battery.present;
 	battery.present = battery.isPresent(charger);
+
+	// Update USB connection status
+	charger.detectUSB();
 
 	// If charge level has changed
 	if (battPendingEvent || battery.lowBatCounter > 0 || battery.emergencyLowBatCounter > 0) {

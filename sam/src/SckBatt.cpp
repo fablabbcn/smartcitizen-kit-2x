@@ -20,8 +20,6 @@ void SckCharger::setup()
 
 	OTG(true);
 
-	attachInterrupt(pinCHARGER_INT, ISR_charger, FALLING);
-
 	chargeState(0);
 
 }
@@ -267,7 +265,7 @@ bool SckCharger::writeREG(byte wichRegister, byte data)
 	if (readREG(wichRegister) == data) return true;
 	else return false;
 }
-void SckCharger::event()
+void SckCharger::detectUSB()
 {
 	VBUSstatus vbusStatus = getVBUSstatus();
 

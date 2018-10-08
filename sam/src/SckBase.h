@@ -240,7 +240,6 @@ class SckBase
 		SckBatt battery;
 		volatile bool battPendingEvent = false;
 		SckCharger charger;
-		volatile bool chargerPendingEvent = false;
 
 		// Misc
 		void getUniqueID();

@@ -32,10 +32,6 @@ void ISR_battery() {
 void ISR_sdDetect() {
 	base.sdDetect();
 }
-// Battery charger interrupt
-void ISR_charger() {
-	base.chargerPendingEvent = true;
-}
 // void ISR_alarm() {
 // 	base.wakeUp();
 // };

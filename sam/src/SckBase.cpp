@@ -1223,6 +1223,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
 				case SENSOR_BATT_VOLTAGE: result = true;
 				case SENSOR_BATT_CHARGE_RATE: result = true;
 				case SENSOR_VOLTIN: result = true;
+				case SENSOR_SDCARD: result = true;
 				default: break;
 			}			 
 		}
@@ -1272,6 +1273,7 @@ bool SckBase::disableSensor(SensorType wichSensor)
 				case SENSOR_BATT_VOLTAGE: result = true;
 				case SENSOR_BATT_CHARGE_RATE: result = true;
 				case SENSOR_VOLTIN: result = true;
+				case SENSOR_SDCARD: result = true;
 				default: break;
 			}			 
 		}
@@ -1319,31 +1321,24 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 				switch (wichSensor) {
 					case SENSOR_BATT_PERCENT:
 					{
-						if (!battPresent()) {
-							result = String("-1");
-							break;
+						if (!battPresent()) result = String("-1");
+						else {
+							uint32_t thisPercent = lipo.soc();
+							if (thisPercent > 100) thisPercent = 100;
+							result = String(thisPercent);
 						}
-						uint32_t thisPercent = lipo.soc();
-						if (thisPercent > 100) thisPercent = 100;
-						result = String(thisPercent);
 						break;
 					}
 					case SENSOR_BATT_VOLTAGE:
 
-						if (!battPresent()) {
-							result = String("-1");
-							break;
-						}
-						result = String(lipo.voltage());
+						if (!battPresent()) result = String("-1");
+						else result = String(lipo.voltage());
 						break;
 
 					case SENSOR_BATT_CHARGE_RATE:
 
-						if (!battPresent()) {
-							result = String("-1");
-							break;
-						}
-						result = String(lipo.current(AVG));
+						if (!battPresent()) result = String("-1");
+						else result = String(lipo.current(AVG));
 						break;
 
 					case SENSOR_VOLTIN:
@@ -1351,6 +1346,11 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 
 							break;
 					}
+					case SENSOR_SDCARD:
+						if (st.cardPresent) result = String("1");
+						else result = String("0");
+						break;
+
 					default: break;
 				}
 				break;

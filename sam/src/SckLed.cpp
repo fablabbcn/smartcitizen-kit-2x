@@ -45,6 +45,18 @@ void SckLed::tick()
 
 	if (pulseMode == PULSE_SOFT) {
 		Color c = *(currentPulse + colorIndex);
+
+		if (chargeStatus == CHARGE_CHARGING) {
+			if (colorIndex >= 0 && colorIndex <= 2) c = colors[ORANGE];
+		} else if (chargeStatus == CHARGE_FINISHED) {
+			if (colorIndex >= 0 && colorIndex <= 2) c = colors[GREEN];
+		} else if (chargeStatus == CHARGE_LOW) {
+			if (colorIndex >= 6 && colorIndex <= 8) c = colors[ORANGE];
+			else if (colorIndex >= 11 && colorIndex <= 13) c = colors[ORANGE];
+			else if (colorIndex >= 16 && colorIndex <= 18) c = colors[ORANGE];
+			else c = *(currentPulse + 24);
+		}
+
 		analogWrite(pinRED, 255 - c.r);
 		analogWrite(pinGREEN, 255 - c.g);
 		analogWrite(pinBLUE, 255 - c.b);

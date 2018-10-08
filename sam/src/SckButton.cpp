@@ -16,7 +16,6 @@ void SckBase::buttonEvent()
 
 		}
 
-
 	} else {
 		// Button Up
 		sckOut("Button Up", PRIO_LOW);

@@ -32,15 +32,21 @@ public:
 		PULSE_STATIC
 	};
 
+	enum ChargeStatus {
+		CHARGE_NULL,
+		CHARGE_CHARGING,
+		CHARGE_FINISHED,
+		CHARGE_LOW,
+		CHARGE_EMERGENCY
+	};
+
 	void setup();
 	void update(ColorName colorName, pulseModes pulse);
 	void off();
 	void tick();
 
 	// Powerfeedback
-	bool charging = false;
-	bool lowBatt = false;
-	bool batFull = false;
+	ChargeStatus chargeStatus = CHARGE_NULL;
 
 private:
 

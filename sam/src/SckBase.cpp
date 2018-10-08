@@ -55,7 +55,9 @@ void SckBase::setup()
 	// Power management configuration
 	charger.setup();
 	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
-	/* battSetup(); */
+	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
+	pinMode(pinGAUGE_INT, INPUT_PULLUP);
+	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
 
 	// RTC setup
 	rtc.begin();
@@ -160,7 +162,6 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
-
 	// TEMP
 	if (st.onSetup) {
 		lightResults = readLight.read();
@@ -168,6 +169,8 @@ void SckBase::update()
 	}
 
 	if (millis() % 500 == 0) reviewState();
+
+	if (millis() % 1000 == 0) updatePower();
 
 	if (butState != butOldState) {
 		buttonEvent();
@@ -184,8 +187,6 @@ void SckBase::reviewState()
 		return;
 	}
 
-	if (battPendingEvent) batteryEvent();
-	if (chargerPendingEvent) chargerEvent();
 
 	// SD card debug check file size and backup big files.
 	if (config.sdDebug) {
@@ -438,7 +439,7 @@ void SckBase::inputUpdate()
 {
 
 	if (SerialUSB.available()) {
-
+		
 		char buff = SerialUSB.read();
 		uint16_t blen = serialBuff.length();
 
@@ -520,7 +521,7 @@ void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 void SckBase::sckOut(PrioLevels priority, bool newLine)
 {
 	// Output via USB console
-	if (onUSB) {
+	if (charger.onUSB) {
 		if (outputLevel + priority > 1) {
 			if (newLine) SerialUSB.println(outBuff);
 			else SerialUSB.print(outBuff);
@@ -569,6 +570,12 @@ void SckBase::loadConfig()
 		wichSensor->interval = config.sensors[i].interval;
 	}
 
+	// If battery capacity is not set, update it
+	if (config.battDesignCapacity != battery.designCapacity) {
+		battery.designCapacity = config.battDesignCapacity;
+		battery.setup(charger, true);
+	}
+
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;
 	st.mode = config.mode;
@@ -594,6 +601,12 @@ void SckBase::saveConfig(bool defaults)
 	}
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
+
+	// If battery capacity changed, update it
+	if (config.battDesignCapacity != battery.designCapacity) {
+		battery.designCapacity = config.battDesignCapacity;
+		battery.setup(charger, true);
+	}
 
 	// Update state
 	if (urbanPresent) urban.setup(this);
@@ -1000,159 +1013,10 @@ void SckBase::flashSelect()
 }
 
 // **** Power
-bool SckBase::battPresent()
-{
-	/* SerialUSB.print("charge status: "); */
-	/* SerialUSB.println(charger.getChargeStatus()); */
-
-	// First check pinBATT_INSERTION
-	uint32_t valueRead = 0;
-	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-	ADC->INPUTCTRL.bit.MUXPOS = ADC_Channel6; 	// Selection for the positive ADC input
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-	ADC->CTRLA.bit.ENABLE = 0x01;             	// Enable ADC
-	while (ADC->STATUS.bit.SYNCBUSY == 1); 		// Start conversion
-	ADC->SWTRIG.bit.START = 1;
-	ADC->INTFLAG.reg = ADC_INTFLAG_RESRDY; 		// Clear the Data Ready flag
-	while (ADC->STATUS.bit.SYNCBUSY == 1);		// Start conversion again, since The first conversion after the reference is changed must not be used.
-	ADC->SWTRIG.bit.START = 1;
-	while (ADC->INTFLAG.bit.RESRDY == 0);   	// Waiting for conversion to complete
-	valueRead = ADC->RESULT.reg;			// Store the value
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-	ADC->CTRLA.bit.ENABLE = 0x00;             	// Disable ADC
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-
-	/* SerialUSB.print("pin BATT insertion analog: "); */
-	/* SerialUSB.println(valueRead); */
-
-	if (valueRead < 400) {
-		Wire.beginTransmission(battAdress);
-		uint8_t error = Wire.endTransmission();
-
-		if (error == 0) return true;
-		else {
-			// TODO check if this is really necesary
-			// Try to wake up the gauge
-			sckOut("trying to wake up battery gauge...");
-			pinMode(pinGAUGE_INT, OUTPUT);
-			digitalWrite(pinGAUGE_INT, LOW);
-			delay(1);
-			digitalWrite(pinGAUGE_INT, HIGH);
-			delay(1);
-			pinMode(pinGAUGE_INT, INPUT_PULLUP);
-			Wire.beginTransmission(battAdress);
-			uint8_t error = Wire.endTransmission();
-			if (error == 0) return true;
-			battConfigured = false;
-			batteryPresent = false;
-			return false;
-		}
-	} else {
-		batteryPresent = false;
-		battConfigured = false;
-		return false;
-	}
-
-	
-
-	batteryPresent = true;
-	return true;
-}
-bool SckBase::battSetup()
-{
-	if (battConfigured) return true;
-
-	if (!battPresent()) {
-		sckOut("No battery detected!!!");
-		return false;
-	}
-
-	sckOut("Configuring battery...");
-
-	pinMode(pinGAUGE_INT, INPUT_PULLUP);
-	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
-
-	lipo.enterConfig();
-	lipo.setCapacity(battCapacity);
-	lipo.setGPOUTPolarity(LOW);
-	lipo.setGPOUTFunction(SOC_INT);
-	lipo.setSOCIDelta(1);
-	lipo.exitConfig();
-
-	battConfigured = true;
-
-	// TODO if battery is not full and we are not charging run charger.setup here
-
-	return true;
-}
-void SckBase::batteryEvent()
-{
-	sckOut("Battery event", PRIO_LOW);
-	battPendingEvent = false;
-	if (!battSetup()) return;
-
-	getReading(SENSOR_BATT_PERCENT);
-	sprintf(outBuff, "Battery charge %s%%", sensors[SENSOR_BATT_PERCENT].reading.c_str());
-	sckOut(PRIO_LOW);			
-}
-void SckBase::batteryReport()
-{
-	if (!battConfigured) {
-		if (!battSetup()) return;
-	}
-
-	sprintf(outBuff, "Charge: %u %%\r\nVoltage: %u V\r\nCharge current: %i mA\r\nCapacity: %u/%u mAh\r\nState of health: %i",
-			lipo.soc(),
-			lipo.voltage(),
-			lipo.current(AVG),
-			lipo.capacity(REMAIN),
-			lipo.capacity(FULL),
-			lipo.soh()
-	       );
-	sckOut();
-}
 void SckBase::sck_reset()
 {
 	sckOut("Bye!!");
 	NVIC_SystemReset();
-}
-void SckBase::chargerEvent()
-{
-	sckOut("Charger event", PRIO_LOW);
-	chargerPendingEvent = false;
-
-	/* if (!battPresent()) { */
-		/* sckOut("Battery removed!!"); */
-		/* charger.chargeState(0); */
-	/* } else */ 
-	if (charger.getChargeStatus() == charger.CHRG_CHARGE_TERM_DONE) {
-		sckOut("Batterry fully charged!!");
-		charger.chargeState(0);
-	}
-
-	while (charger.getDPMstatus()) {} // Wait for DPM detection finish
-
-	if (charger.getPowerGoodStatus()) {
-
-		if (!onUSB) NVIC_SystemReset();
-		onUSB = true;
-
-		// charger.OTG(false);
-
-	} else {
-
-		onUSB = false;
-		// charger.OTG(true);
-
-	}
-
-	// TODO, React to any charger fault
-	if (charger.getNewFault() != 0) {
-		sckOut("Charger fault!!!");
-	}
-
-	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }
 void SckBase::goToSleep()
 {
@@ -1184,6 +1048,92 @@ void SckBase::goToSleep()
 
 	if (localSleepTime > 0) LowPower.deepSleep(localSleepTime);
 	else LowPower.deepSleep();
+}
+void SckBase::updatePower()
+{
+
+	// Update battery present status
+	bool prevBattPresent = battery.present;
+	battery.present = battery.isPresent(charger);
+
+	// Update USB connection status
+	charger.detectUSB();
+
+	// If battery status changed enable/disable charging
+	if (prevBattPresent != battery.present) {
+		
+		if (battery.present) {
+			sckOut("Battery inserted!!");
+			if (!charger.chargeState()) charger.chargeState(true); 	// Enable charging
+		} else {
+			sckOut("Battery removed!!");
+			charger.chargeState(false); 	// Disable charging
+		}
+	}
+
+
+	if (charger.onUSB) {
+
+		// Reset lowBatt counter
+		battery.lowBatCounter = 0;
+
+		// Reset emergencyLowBatt counter
+		battery.emergencyLowBatCounter = 0;
+	
+		// Update charge status
+		SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
+		charger.chargeStatus = charger.getChargeStatus();
+
+		// If charger status changed
+		if (prevChargeStatus != charger.chargeStatus) {
+
+			if (battery.present && charger.onUSB) {
+
+				switch(charger.chargeStatus) {
+					case charger.CHRG_PRE_CHARGE:
+					case charger.CHRG_FAST_CHARGING:
+						sckOut("Charging battery...");
+						led.chargeStatus = led.CHARGE_CHARGING;
+						break;
+
+					case charger.CHRG_NOT_CHARGING:
+					case charger.CHRG_CHARGE_TERM_DONE:
+						sckOut("Battery fully charged");
+						led.chargeStatus = led.CHARGE_FINISHED;
+						break;
+					default: break;
+				}
+
+			} else {
+				sckOut("Battery is not charging");
+				led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
+			}
+		}
+	} else {
+
+		// Emergency lowBatt
+		if (battery.lastPercent < battery.threshold_emergency) {
+			if (battery.emergencyLowBatCounter < 5) {
+				battery.emergencyLowBatCounter++;
+				led.chargeStatus = led.CHARGE_NULL;
+			} else led.chargeStatus = led.CHARGE_LOW;
+			// TODO replace this with proper led feeback and sleep mode
+			/* led.powerEmergency = true; */
+		
+		// Detect lowBatt
+		} else if (battery.lastPercent < battery.threshold_low) {
+			if (battery.lowBatCounter < 5) {
+				battery.lowBatCounter++;
+				led.chargeStatus = led.CHARGE_NULL;
+			}
+			else led.chargeStatus = led.CHARGE_LOW;
+
+		} else {
+			sckOut("Battery is not charging");
+			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
+		
+		}
+	}
 }
 /* void SckBase::wakeUp() */
 /* { */
@@ -1217,13 +1167,19 @@ bool SckBase::enableSensor(SensorType wichSensor)
 	switch (sensors[wichSensor].location) {
 		case BOARD_BASE:
 		{
-			// TODO review this
 			switch (wichSensor) {
-				case SENSOR_BATT_PERCENT: result = true;
-				case SENSOR_BATT_VOLTAGE: result = true;
-				case SENSOR_BATT_CHARGE_RATE: result = true;
-				case SENSOR_VOLTIN: result = true;
-				case SENSOR_SDCARD: result = true;
+				case SENSOR_BATT_PERCENT: 
+				 	// Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
+					result = true; 
+					break;
+				case SENSOR_BATT_VOLTAGE:
+				case SENSOR_BATT_CHARGE_RATE:
+				case SENSOR_BATT_POWER: 
+					if (battery.isPresent(charger)) result = true;
+					break;
+				case SENSOR_SDCARD: 
+					result = true;
+					break;
 				default: break;
 			}			 
 		}
@@ -1267,13 +1223,14 @@ bool SckBase::disableSensor(SensorType wichSensor)
 	switch (sensors[wichSensor].location) {
 		case BOARD_BASE:
 		{
-			// TODO review this
 			switch (wichSensor) {
-				case SENSOR_BATT_PERCENT: result = true;
-				case SENSOR_BATT_VOLTAGE: result = true;
-				case SENSOR_BATT_CHARGE_RATE: result = true;
-				case SENSOR_VOLTIN: result = true;
-				case SENSOR_SDCARD: result = true;
+				case SENSOR_BATT_PERCENT:
+				case SENSOR_BATT_VOLTAGE:
+				case SENSOR_BATT_CHARGE_RATE:
+				case SENSOR_BATT_POWER: 
+				case SENSOR_SDCARD:
+					result = true;
+					break;
 				default: break;
 			}			 
 		}
@@ -1321,36 +1278,42 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 				switch (wichSensor) {
 					case SENSOR_BATT_PERCENT:
 					{
-						if (!battPresent()) result = String("-1");
-						else {
-							uint32_t thisPercent = lipo.soc();
-							if (thisPercent > 100) thisPercent = 100;
-							result = String(thisPercent);
+						if (!battery.isPresent(charger)) {
+							result = String("-1");
+							break;
 						}
+						uint32_t thisPercent = battery.percent();
+						if (thisPercent > 100) thisPercent = 100;
+						else if (thisPercent < 0) thisPercent = 0;
+						result = String(thisPercent);
 						break;
 					}
 					case SENSOR_BATT_VOLTAGE:
-
-						if (!battPresent()) result = String("-1");
-						else result = String(lipo.voltage());
+						if (!battery.isPresent(charger)) {
+							result = String("-1");
+							break;
+						}
+						result = String(battery.voltage());
 						break;
 
 					case SENSOR_BATT_CHARGE_RATE:
-
-						if (!battPresent()) result = String("-1");
-						else result = String(lipo.current(AVG));
-						break;
-
-					case SENSOR_VOLTIN:
-					{
-
+						if (!battery.isPresent(charger)) {
+							result = String("-1");
 							break;
-					}
+						}
+						result = String(battery.current());
+						break;
+					case SENSOR_BATT_POWER:
+
+						if (!battery.isPresent(charger)) {
+							result = String("-1");
+							break;
+						}
+						result = String(battery.power());
+						break;
 					case SENSOR_SDCARD:
 						if (st.cardPresent) result = String("1");
 						else result = String("0");
-						break;
-
 					default: break;
 				}
 				break;

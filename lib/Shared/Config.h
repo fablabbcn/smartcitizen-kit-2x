@@ -28,4 +28,5 @@ struct Configuration {
 	Token token;
 	SensorConfig sensors[SENSOR_COUNT];
 	bool sdDebug = false;
+	uint16_t battDesignCapacity = 2000;
 };

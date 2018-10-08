@@ -1068,6 +1068,7 @@ void SckBase::updatePower()
 		} else {
 			sckOut("Battery removed!!");
 			charger.chargeState(false); 	// Disable charging
+			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 		}
 	}
 
@@ -1087,7 +1088,7 @@ void SckBase::updatePower()
 		// If charger status changed
 		if (prevChargeStatus != charger.chargeStatus) {
 
-			if (battery.present && charger.onUSB) {
+			if (battery.present) {
 
 				switch(charger.chargeStatus) {
 					case charger.CHRG_PRE_CHARGE:
@@ -1098,9 +1099,11 @@ void SckBase::updatePower()
 
 					case charger.CHRG_NOT_CHARGING:
 					case charger.CHRG_CHARGE_TERM_DONE:
+						if (charger.chargeState()) charger.chargeState(false);
 						sckOut("Battery fully charged");
 						led.chargeStatus = led.CHARGE_FINISHED;
 						break;
+
 					default: break;
 				}
 

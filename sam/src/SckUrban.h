@@ -228,7 +228,6 @@ class Sck_MAX30105
 class Sck_PM
 {
 	private:
-		bool started = false;
 		bool detectionFailed = false;
 
 		uint32_t lastReading = 0;
@@ -242,6 +241,8 @@ class Sck_PM
 		uint16_t pm1;
 		uint16_t pm25;
 		uint16_t pm10;
+
+		bool started = false;
 
 		bool start();
 		bool stop();

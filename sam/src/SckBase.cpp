@@ -119,14 +119,8 @@ void SckBase::setup()
 	// Urban board
 	analogReadResolution(12);
 	if (urban.setup(this)) {
-		sckOut("Urban board detected\r\nSearching for PM sensor...", PRIO_MED, false);
-		if (!urban.start(SENSOR_PM_1)) {
-			sckOut("nothing found!!!");
-			disableSensor(SENSOR_PM_1);
-		} else {
-			sckOut("found it!!!");
-			enableSensor(SENSOR_PM_1);
-		}
+		sckOut("Urban board detected", PRIO_MED, false);
+		urban.stop(SENSOR_PM_1); 	// Make sure PM is off until battery is ready for it
 		urbanPresent = true;
 		readLight.setup();
 	} else {
@@ -1067,7 +1061,9 @@ void SckBase::updatePower()
 			if (!charger.chargeState()) charger.chargeState(true); 	// Enable charging
 		} else {
 			sckOut("Battery removed!!");
+			sckOut("Stoping PM sensor...");
 			charger.chargeState(false); 	// Disable charging
+			urban.sck_pm.stop();
 			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 		}
 	}
@@ -1149,6 +1145,18 @@ void SckBase::updatePower()
 			sckOut("Battery is not charging");
 			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 		
+		}
+	}
+
+	// PM sensor only works if battery is available
+	if (sensors[SENSOR_PM_1].enabled) {
+		if (!urban.sck_pm.started) {
+			if (millis() > 10000 && battery.present) {
+				if (battery.lastPercent > battery.threshold_emergency || charger.chargeStatus == charger.CHRG_FAST_CHARGING) {
+					sckOut("Starting PM sensor...");
+					urban.sck_pm.start();
+				}
+			} 	
 		}
 	}
 }

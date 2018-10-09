@@ -22,7 +22,7 @@ void SckBase::buttonEvent()
 
 		if (st.sleeping) {
 
-			// TODO go to sleep
+			goToSleep();
 
 		} else if (st.onSetup || wakingUp) {
 
@@ -71,5 +71,6 @@ void SckBase::butFeedback()
 			if (st.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC);
 			else if (st.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC);
 		} else if (st.onSetup) led.update(led.RED2, led.PULSE_STATIC);
+		if (st.sleeping) sck_reset();
 	}
 }

@@ -1037,6 +1037,9 @@ void SckBase::goToSleep()
 	/* USBDevice.detach(); */
 	/* USBDeviceAttached = false; */
 
+	// Stop PM sensor
+	if (urban.sck_pm.started) urban.sck_pm.stop();
+
 	uint32_t localSleepTime = sleepTime;
 	sleepTime = 0;
 
@@ -1149,7 +1152,7 @@ void SckBase::updatePower()
 	}
 
 	// PM sensor only works if battery is available
-	if (sensors[SENSOR_PM_1].enabled) {
+	if (sensors[SENSOR_PM_1].enabled && !st.sleeping) {
 		if (!urban.sck_pm.started) {
 			if (millis() > 10000 && battery.present) {
 				if (battery.lastPercent > battery.threshold_emergency || charger.chargeStatus == charger.CHRG_FAST_CHARGING) {

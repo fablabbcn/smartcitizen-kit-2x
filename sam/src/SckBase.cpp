@@ -1052,12 +1052,15 @@ void SckBase::updatePower()
 	// Update battery present status
 	bool prevBattPresent = battery.present;
 	battery.isPresent(charger);
+	bool battChanged = false;
 
 	// Update USB connection status
 	charger.detectUSB();
 
 	// If battery status changed enable/disable charging
 	if (prevBattPresent != battery.present) {
+
+		battChanged = true;
 		
 		if (battery.present) {
 			sckOut("Battery inserted!!");
@@ -1091,7 +1094,7 @@ void SckBase::updatePower()
 		charger.chargeStatus = charger.getChargeStatus();
 
 		// If charger status changed
-		if (prevChargeStatus != charger.chargeStatus) {
+		if (prevChargeStatus != charger.chargeStatus || battChanged) {
 
 			if (battery.present) {
 
@@ -1101,10 +1104,8 @@ void SckBase::updatePower()
 					case charger.CHRG_PRE_CHARGE:
 					case charger.CHRG_FAST_CHARGING:
 
-						if (battery.current() > 50) {
-							sckOut("Charging battery...");
-							led.chargeStatus = led.CHARGE_CHARGING;
-						}
+						sckOut("Charging battery...");
+						led.chargeStatus = led.CHARGE_CHARGING;
 						break;
 
 					case charger.CHRG_NOT_CHARGING:
@@ -1122,6 +1123,7 @@ void SckBase::updatePower()
 				}
 
 			} else {
+				if (charger.chargeState()) charger.chargeState(false);
 				sckOut("Battery is not charging");
 				led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 			}

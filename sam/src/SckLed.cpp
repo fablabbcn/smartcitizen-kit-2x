@@ -7,7 +7,7 @@ void SckLed::setup()
 	pinMode(pinGREEN, OUTPUT);
 	pinMode(pinBLUE, OUTPUT);
 
-	ledColor = colors[GREEN];
+	ledColor = colors[WHITE];
 	pulseMode = PULSE_STATIC;
 	tick();
 }

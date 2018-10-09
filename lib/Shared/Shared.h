@@ -50,7 +50,7 @@ enum SAMMessage {
 #define ESP_ADDRESS 2
 
 const String hardwareVer = "2.0";
-const String SAMversion	= "0.2.0";
+const String SAMversion	= "0.2.1";
 const String SAMbuildDate = String(__DATE__) + '-' + String(__TIME__);
 const String ESPversion = "0.2.0";
 const String ESPbuildDate = String(__DATE__) + '-' + String(__TIME__);

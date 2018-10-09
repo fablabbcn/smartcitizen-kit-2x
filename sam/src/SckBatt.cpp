@@ -20,8 +20,7 @@ void SckCharger::setup()
 
 	OTG(true);
 
-	chargeState(0);
-
+	chargeState(1);
 }
 bool SckCharger::resetConfig()
 {

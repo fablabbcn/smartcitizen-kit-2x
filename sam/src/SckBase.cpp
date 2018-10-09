@@ -1054,7 +1054,7 @@ void SckBase::updatePower()
 
 	// Update battery present status
 	bool prevBattPresent = battery.present;
-	battery.present = battery.isPresent(charger);
+	battery.isPresent(charger);
 
 	// Update USB connection status
 	charger.detectUSB();
@@ -1101,15 +1101,22 @@ void SckBase::updatePower()
 				switch(charger.chargeStatus) {
 					case charger.CHRG_PRE_CHARGE:
 					case charger.CHRG_FAST_CHARGING:
-						sckOut("Charging battery...");
-						led.chargeStatus = led.CHARGE_CHARGING;
+
+						if (battery.current() > 50) {
+							sckOut("Charging battery...");
+							led.chargeStatus = led.CHARGE_CHARGING;
+						}
 						break;
 
 					case charger.CHRG_NOT_CHARGING:
 					case charger.CHRG_CHARGE_TERM_DONE:
 						if (charger.chargeState()) charger.chargeState(false);
-						sckOut("Battery fully charged");
-						led.chargeStatus = led.CHARGE_FINISHED;
+						delay(100);
+						// Verify again that battery is present
+						if (battery.isPresent(charger)) {
+							sckOut("Battery fully charged");
+							led.chargeStatus = led.CHARGE_FINISHED;
+						}
 						break;
 
 					default: break;

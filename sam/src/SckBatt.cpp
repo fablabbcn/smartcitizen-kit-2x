@@ -13,7 +13,7 @@ void SckCharger::setup()
 	inputCurrentLimit(1500);
 
 	// Limit charge current.
-	chargerCurrentLimit(1024);
+	chargerCurrentLimit(768);
 
 	// Set charger timer to 5 hours (It will be recalculated based on battery capacity and current limit)
 	chargeTimer(5);

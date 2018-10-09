@@ -161,9 +161,9 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_GREEN,			"DUST_GREEN",		"Dust particle Green Channel",	 		0,		false,		false,			},
 			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_IR,			"DUST_IR",		"Dust particle InfraRed Channel",	 	0,		false,		false,			},
 			OneSensor { BOARD_URBAN, 		SENSOR_PARTICLE_TEMPERATURE,		"DUST_TEMP",		"Dust particle internal temperature",		0,		false,		false,			"C"},
-			OneSensor { BOARD_URBAN,		SENSOR_PM_1,				"PM_1",			"PM 1.0",					0,		true,		false,			"ug/m3"},
-			OneSensor { BOARD_URBAN,		SENSOR_PM_25,				"PM_25",		"PM 2.5",					0,		true,		false,			"ug/m3"},
-			OneSensor { BOARD_URBAN,		SENSOR_PM_10,				"PM_10",		"PM 10.0",					0,		true,		false,			"ug/m3"},
+			OneSensor { BOARD_URBAN,		SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		false,			"ug/m3"},
+			OneSensor { BOARD_URBAN,		SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		false,			"ug/m3"},
+			OneSensor { BOARD_URBAN,		SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		false,			"ug/m3"},
 
 
 			// I2C Auxiliary Sensors

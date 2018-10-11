@@ -141,6 +141,8 @@ class SckBase
 		SckFile debugFile {"DEBUG.TXT"};
 		// Sd card
 		bool sdSelect();
+		volatile bool sdInitPending = false;
+		bool sdInit();
 		// Flash memory
 		SPIFlash flash = SPIFlash(pinCS_FLASH);
 		void flashSelect();

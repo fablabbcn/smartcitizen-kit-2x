@@ -202,6 +202,8 @@ void SckBase::reviewState()
 		}
 	}
 
+	if (sdInitPending) sdInit();
+
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
 	/* bool espON */
@@ -972,19 +974,26 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 }
 
 // **** SD card
+bool SckBase::sdInit()
+{
+	sdInitPending = false;
+
+	if (sd.begin(pinCS_SDCARD, SPI_HALF_SPEED)) {
+		sckOut("Sd card ready to use");
+		st.cardPresent = true;
+		return true;
+	}
+	sckOut("ERROR on Sd card Init!!!");
+	st.cardPresent = false; 	// If we cant initialize sdcard, don't use it!
+	return false;
+}
 bool SckBase::sdDetect()
 {
 	st.cardPresent = !digitalRead(pinCARD_DETECT);
 
-	if (st.cardPresent) { 
-		sckOut("Sdcard inserted ", PRIO_MED, false);
-		if (sd.begin(pinCS_SDCARD, SPI_HALF_SPEED)) {
-			sckOut("and ready to use");
-			return true;
-		}
-		sckOut(" ERROR initializing it!!!");
-		st.cardPresent = false; 	// If we cant initialize sdcard, don't use it!
-		return false;
+	if (!digitalRead(pinCARD_DETECT)) {
+		sckOut("Sdcard inserted");
+		sdInitPending = true;
 	} else sckOut("No Sdcard found!!");
 	return false;
 }

@@ -1183,7 +1183,11 @@ void SckBase::updatePower()
 void SckBase::updateSensors()
 {
 	if (!st.timeStat.ok || st.helloPending) return;
+	if (st.onSetup) return;
+	if (st.mode == MODE_SD && !st.cardPresent) return;
+	else if (st.mode == MODE_NET && st.wifiStat.error) return;
 	if (rtc.getEpoch() - lastSensorUpdate < config.readInterval) return;
+
 	lastSensorUpdate = rtc.getEpoch();
 	sckOut("\r\n-----------", PRIO_LOW);
 	ISOtime();

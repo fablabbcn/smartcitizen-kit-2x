@@ -1162,6 +1162,10 @@ void SckBase::updatePower()
 		}
 	}
 
+	if (battery.lastPercent < battery.threshold_recharge) {
+		if (charger.onUSB) charger.chargeState(true);
+	}
+
 	// PM sensor only works if battery is available
 	if (sensors[SENSOR_PM_1].enabled && !st.sleeping) {
 		if (!urban.sck_pm.started) {

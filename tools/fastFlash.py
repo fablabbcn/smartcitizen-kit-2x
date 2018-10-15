@@ -150,8 +150,8 @@ def buildALL():
 
 esptoolEXE = os.path.join(os.path.expanduser("~"), ".platformio/packages/tool-esptool/esptool");
 FNULL = open(os.devnull, 'w')
-# updateGIT()
-# buildALL()
+updateGIT()
+buildALL()
 print("Monitoring for Smartcitizen kits connected via USB...")
 
 kitList = []

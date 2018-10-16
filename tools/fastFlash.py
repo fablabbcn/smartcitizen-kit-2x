@@ -3,6 +3,12 @@
 import serial, time, sys, glob, os, serial.tools.list_ports, subprocess, shutil
 import uf2conv
 
+def timeout(started):
+    if started + 30 < time.time():
+        return True
+    else: 
+        return False
+
 class bcolors:
     OKBLUE = '\033[36m'
     OKGREEN = '\033[92m'
@@ -13,37 +19,50 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 def findSCK():
+    dev = False
     devList = list(serial.tools.list_ports.comports())
-    for dev in devList:
+    for tested in devList:
         try:
-            if "Smartcitizen" in dev.product:
-                return dev
+            if "Smartcitizen" in tested.product:
+                return tested
         except:
             pass
     return False
+
+
+def getSerial(dev, speed):
+    started = time.time()
+    ser = False
+    while not ser and not timeout(started):
+        try:
+            ser = serial.Serial(dev.device, speed)
+        except:
+            pass
+
+    if ser: return ser
+    else: return False
+
 
 def findSCKdrive():
-    drives = uf2conv.getdrives()
-    for drv in drives:
-        try:
-            if "SCK-20" in drv:
-                return drv
-        except:
-            pass
+    drv = False
+    started = time.time()
+    while not drv and not timeout(started):
+        drives = uf2conv.getdrives()
+        for drv in drives:
+            try:
+                if "CURRENT.UF2" in os.listdir(drv):
+                    return drv
+            except:
+                pass
     return False
 
-def bootLoader():
-    dev = findSCK()
-    time.sleep(1)
-    ser = serial.Serial(dev.device, 1200)
-    ser.setDTR(False)
-    time.sleep(2)
 
-    while True:
-        drv = findSCKdrive()
-        if drv:
-            return drv
-    return false
+def bootLoader(dev):
+    ser = getSerial(dev, 1200)
+    ser.setDTR(False)
+    drv = findSCKdrive()
+    if drv: return drv
+    else: return False
 
 
 def flashESP(dev):
@@ -51,8 +70,9 @@ def flashESP(dev):
     flashedESP = 1
     retrys = 0
     while flashedESP != 0 and retrys < 3:
-        drv = bootLoader()
+        drv = bootLoader(dev)
         if drv: shutil.copyfile("tmp/bridge.uf2", drv + "/NEW.UF2")
+        else: ERROR()
         while not dev: dev = findSCK()
         time.sleep(2)
         flashedESP = subprocess.call([esptoolEXE, "-cp", dev.device, "-cb", "921600", "-ca", "0x000000", "-cf", "tmp/esp.bin"], stdout=FNULL, stderr=subprocess.STDOUT) 
@@ -65,9 +85,9 @@ def flashESP(dev):
     flashedESPFS = 1
     retrys = 0
     while flashedESPFS != 0 and retrys < 3:
-        drv = bootLoader()
-        if drv:
-            shutil.copyfile("tmp/bridge.uf2", drv + "/NEW.UF2")
+        drv = bootLoader(dev)
+        if drv: shutil.copyfile("tmp/bridge.uf2", drv + "/NEW.UF2")
+        else: ERROR()
         while not dev: dev = findSCK()
         time.sleep(2)
         flashedESPFS = subprocess.call([esptoolEXE, "-cp", dev.device, "-cb", "921600", "-ca", "0x300000", "-cf", "tmp/espfs.bin"], stdout=FNULL, stderr=subprocess.STDOUT)
@@ -79,7 +99,7 @@ def flashESP(dev):
 
 def flashSAM(dev):
     print(bcolors.WARNING + "Flashing SAM..."  + dev.serial_number[-4:] + bcolors.ENDC)
-    drv = bootLoader()
+    drv = bootLoader(dev)
     if drv:
         shutil.copyfile("tmp/sam.uf2", drv + "/NEW.UF2")
 
@@ -161,8 +181,6 @@ print("Monitoring for Smartcitizen kits connected via USB...")
 
 kitList = []
 while True:
-
-
     dev = findSCK()
     if dev:
         if dev.serial_number not in kitList:
@@ -201,11 +219,6 @@ while True:
                 ser.write("shell -on\r\n")
                 elapsed_time = time.time() - start_time
                 print(time.strftime(bcolors.OKBLUE + "Finished in %H:%M:%S" + bcolors.ENDC, time.gmtime(elapsed_time)))
-            # else:
-            #     print("Smartcitizen " + bcolors.OKBLUE + kitList[0] + bcolors.ENDC + bcolors.WARNING + " removed" + bcolors.ENDC)
-            #     print("===========================================================")
-            #     kitList.pop(kitList.index(dev.serial_number))
-
     else:
         if len(kitList) > 0:
             print("Smartcitizen " + bcolors.OKBLUE + kitList[0] + bcolors.ENDC + bcolors.WARNING + " removed" + bcolors.ENDC)

@@ -8,13 +8,13 @@ var livereload = require('gulp-livereload');
 // index.html    for localhost:8000
 // index.html.gz for production
 gulp.task('compress', function(){
-  gulp.src('../esp/data/index.html.dev')
+  gulp.src('../esp/data/index.html')
     .pipe(gfi({
       "/* inject css.css */": "../esp/data/css.css",
       "// inject vue.min.js": "../esp/data/vue.min.js",
       "// inject main.js": "../esp/data/main.js"
     }))
-    .pipe(rename('./index.html'))
+    .pipe(rename('./final.html'))
     .pipe(gulp.dest('../esp/data/'))
     .pipe(gzip())
     .pipe(rename('./index.gz'))
@@ -25,5 +25,5 @@ gulp.task('compress', function(){
 // Watch changes to index.html.dev, css.css, main.js'
 gulp.task('watch', function(){
   livereload.listen();
-  gulp.watch(['../esp/data/index.html.dev', '../esp/data/css.css', '../esp/data/main.js'], ['compress']);
+  gulp.watch(['../esp/data/index.html', '../esp/data/css.css', '../esp/data/main.js'], ['compress']);
 })

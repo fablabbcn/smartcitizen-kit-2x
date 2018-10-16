@@ -31,7 +31,7 @@ After clonning the repository:
 
   * `pio run`
   
-  	This step will **take a while** and end with an error because a bug... **don't worry*** go to next step)
+  	This step will **take a while** and end with an error because a bug... **don't worry** go to next step)
   
   * `pio run -t upload`
 
@@ -65,7 +65,7 @@ SCK> config -wifi "myWifiName" "myPassword" -token myToken -mode network
 The technology used here is:
 * HTML, CSS, JavaScript
 * (Vue.js)
-* **Make sure it is using the old javascript, so older phones work. **
+* ** Make sure it is using the old javascript, so older phones work. **
 
 And the files are under *esp/data*
 
@@ -80,9 +80,9 @@ Inside the ./mock-api folder do:
 
 1. `npm run api` - Starts api on [localhost:3000](http://localhost:3000)
 
-1. `gulp watch` - Watches changes and creates 2 files automatically; `index.html` and  `index.gz`
+1. `gulp watch` - Watches changes and creates 2 files automatically; `final.html` and `index.gz`
 
-Now you can start editing **esp/data/index.html.dev**
+Now you can start editing **esp/data/index.html**
 
 If your mock-api is not responding, see */esp/data/main.js*, **theUrl** should be (your API url:port)
 

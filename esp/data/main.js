@@ -137,6 +137,9 @@ var app = new Vue({
         if (path === 'status'){
           //that.notify('Getting status', 1000);
           that.kitstatus = JSON.parse(res);
+          if (that.kitstatus.token != "null") {
+            that.usertoken = that.kitstatus.token;
+          }
         }
 
       });

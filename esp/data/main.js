@@ -73,7 +73,7 @@ var app = new Vue({
     this.jsGet('status');
 
     // This checks if connection to the kit has been lost, every X sec
-    this.periodic(9000);
+    //this.periodic(9000);
   },
   methods: {
     copyTextToClipboard: function(containerid){

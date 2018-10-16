@@ -732,7 +732,7 @@ void SckESP::webStatus()
 	json += "\"mqtt\":\"to be removed\",";
 
 	// Last publish time
-	json += "\"last_publish\":\"to be removed\",";
+	json += "\"last_publish\":\"to be removed\"";
 
 	json += "}";
 	webServer.send(200, "text/json", json);

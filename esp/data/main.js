@@ -71,9 +71,12 @@ var app = new Vue({
     // 3. Fetch available Wifis + status
     this.jsGet('aplist');
     this.jsGet('status');
+    // This can only be run once. We don't want the usertoken to be updated every 9
+    // seconds if the user is typing it in
+    this.jsGet('status', 'usertoken');
 
     // This checks if connection to the kit has been lost, every X sec
-    //this.periodic(9000);
+    this.periodic(9000);
   },
   methods: {
     copyTextToClipboard: function(containerid){
@@ -126,7 +129,7 @@ var app = new Vue({
       xmlHttp.open( "GET", theUrl, true ); // false for synchronous request, true = async
       xmlHttp.send( null );
     },
-    jsGet: function(path) {
+    jsGet: function(path, extra) {
       var that = this;
 
       this.httpGet(this.theApi + path, function(res){
@@ -137,8 +140,10 @@ var app = new Vue({
         if (path === 'status'){
           //that.notify('Getting status', 1000);
           that.kitstatus = JSON.parse(res);
-          if (that.kitstatus.token != "null") {
-            that.usertoken = that.kitstatus.token;
+          if (extra === 'usertoken'){
+            if (that.kitstatus.token != "null") {
+              that.usertoken = that.kitstatus.token;
+            }
           }
         }
 

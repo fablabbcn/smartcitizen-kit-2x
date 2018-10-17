@@ -1137,6 +1137,10 @@ void SckBase::updatePower()
 				led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 			}
 		}
+
+		// Avoid PM sensor discharging battery when USB connected
+		if (battery.lastPercent < battery.threshold_recharge && battery.present) charger.chargeState(true);
+
 	} else {
 
 		// Emergency lowBatt
@@ -1162,17 +1166,13 @@ void SckBase::updatePower()
 		}
 	}
 
-	if (battery.lastPercent < battery.threshold_recharge) {
-		if (charger.onUSB) charger.chargeState(true);
-	}
 
 	// PM sensor only works if battery is available
 	if (sensors[SENSOR_PM_1].enabled && !st.sleeping) {
 		if (!urban.sck_pm.started) {
 			if (millis() > 10000 && battery.present) {
 				if (battery.lastPercent > battery.threshold_emergency || charger.chargeStatus == charger.CHRG_FAST_CHARGING) {
-					sckOut("Starting PM sensor...");
-					urban.sck_pm.start();
+					if (urban.sck_pm.start()) sckOut("Started PM sensor...");
 				}
 			} 	
 		}

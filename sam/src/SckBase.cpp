@@ -114,7 +114,10 @@ void SckBase::setup()
 	loadConfig();
 	if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
 	else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
-	else if (st.mode == MODE_NOT_CONFIGURED) led.update(led.RED, led.PULSE_SOFT);
+	else if (st.mode == MODE_NOT_CONFIGURED) {
+		led.update(led.RED, led.PULSE_SOFT);
+		writeHeader = true;
+	}
 
 	// Urban board
 	analogReadResolution(12);
@@ -1462,6 +1465,23 @@ bool SckBase::sdPublish()
 
 	sprintf(postFile.name, "%02d-%02d-%02d.CSV", rtc.getYear(), rtc.getMonth(), rtc.getDay());
 	if (!sd.exists(postFile.name)) writeHeader = true;
+	else {
+		if (writeHeader) {
+			// This means actual enabled/disabled sensors are different from saved ones
+			// So we rename original file and start a new one
+			char newName[13];
+			char prefix[13];
+			sprintf(prefix, "%02d-%02d-%02d.", rtc.getYear(), rtc.getMonth(), rtc.getDay());
+			bool fileExists = true;
+			uint16_t fileNumber = 1;
+			while (fileExists) {
+				sprintf(newName, "%s%02u", prefix, fileNumber);
+				fileNumber++;
+				if (!sd.exists(newName)) fileExists = false;
+			}
+			sd.rename(postFile.name, newName);
+		}
+	}
 
 	postFile.file = sd.open(postFile.name, FILE_WRITE);
 

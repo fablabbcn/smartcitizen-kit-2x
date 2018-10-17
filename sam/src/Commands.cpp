@@ -183,7 +183,10 @@ void sensorConfig_com(SckBase* base, String parameters)
 			base->sckOut(msg + String(base->sensors[sensorToChange].title));
 			saveNeeded = true;
 		}
-		if (saveNeeded) base->saveConfig();
+		if (saveNeeded) {
+			base->saveConfig();
+			base->writeHeader = true;
+		}
 	}
 }
 void readSensor_com(SckBase* base, String parameters)

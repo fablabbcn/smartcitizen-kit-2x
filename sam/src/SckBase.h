@@ -160,7 +160,6 @@ class SckBase
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish();
-		bool writeHeader = false;
 
 		// Timers
 		bool alarmRunning_TC3 = false;
@@ -195,6 +194,7 @@ class SckBase
 		void publish();
 		bool enableSensor(SensorType wichSensor);
 		bool disableSensor(SensorType wichSensor);
+		bool writeHeader = false;
 
 		// Configuration
 		Configuration config;

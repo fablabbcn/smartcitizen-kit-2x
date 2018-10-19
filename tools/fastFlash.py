@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import requests, json, binascii
 import serial, time, sys, glob, os, serial.tools.list_ports, subprocess, shutil
 import uf2conv
 
@@ -29,7 +30,6 @@ def findSCK():
             pass
     return False
 
-
 def getSerial(dev, speed):
     started = time.time()
     ser = False
@@ -41,7 +41,6 @@ def getSerial(dev, speed):
 
     if ser: return ser
     else: return False
-
 
 def findSCKdrive():
     drv = False
@@ -56,7 +55,6 @@ def findSCKdrive():
                 pass
     return False
 
-
 def bootLoader(dev):
     ser = getSerial(dev, 1200)
     ser.setDTR(False)
@@ -64,9 +62,8 @@ def bootLoader(dev):
     if drv: return drv
     else: return False
 
-
 def flashESP(dev):
-    print(bcolors.WARNING + "Flashing ESP... "  + dev.serial_number[-4:] + bcolors.ENDC)
+    print(bcolors.WARNING + "Flashing ESP...   "  + dev.serial_number[-4:] + bcolors.ENDC)
     flashedESP = 1
     retrys = 0
     while flashedESP != 0 and retrys < 3:
@@ -81,7 +78,7 @@ def flashESP(dev):
         ERROR()
         return False
 
-    print(bcolors.WARNING + "Flashing ESP filesystem..."  + dev.serial_number[-4:] + bcolors.ENDC)
+    print(bcolors.WARNING + "Flashing ESP filesystem...   "  + dev.serial_number[-4:] + bcolors.ENDC)
     flashedESPFS = 1
     retrys = 0
     while flashedESPFS != 0 and retrys < 3:
@@ -98,17 +95,24 @@ def flashESP(dev):
     return True
 
 def flashSAM(dev):
-    print(bcolors.WARNING + "Flashing SAM..."  + dev.serial_number[-4:] + bcolors.ENDC)
+    print(bcolors.WARNING + "Flashing SAM...   "  + dev.serial_number[-4:] + bcolors.ENDC)
     drv = bootLoader(dev)
     if drv:
         shutil.copyfile("tmp/sam.uf2", drv + "/NEW.UF2")
 
-   
+def getMAC(ser):
+    ser.write("netinfo\r\n")
+    while True:
+        ll = ser.readline()
+        if "MAC address" in ll:
+            if len(ll) > 15:
+                return ll.strip()[-17:]
+            else: 
+                ser.write("netinfo\r\n")
+
 def ERROR():
     print(bcolors.FAIL + "Something went wrong!!!" + bcolors.ENDC)
     
-
-# Aqui actualizo el github a la ultima version
 def updateGIT():
     print(bcolors.WARNING + "Updating git..." + bcolors.ENDC)
     os.chdir("..")
@@ -117,7 +121,6 @@ def updateGIT():
         ERROR()
     os.chdir("tools")
 
-# Aqui compilo los cuatro binarios
 def buildALL():
     tempdir = "tmp"
     if os.path.exists(tempdir):
@@ -167,33 +170,65 @@ def buildALL():
 
     os.chdir("../tools")
 
+def registerSCK(bearer, name, description=None, kit_id=None, latitude=None, longitude=None, exposure=None, user_tags=None):
+    headers = {'Authorization':'Bearer ' + bearer, 'Content-type': 'application/json',}
+    device = {}
+    device['name'] = name
+    device['device_token'] = binascii.b2a_hex(os.urandom(3))
+    if description is None: device['description'] = 'Iscape Citizen Kit test'
+    if kit_id is None: device['kit_id'] = 20
+    if latitude is None: device['latitude'] = 41.396867
+    if longitude is None: device['longitude'] = 2.194351
+    if exposure is None: device['exposure'] = 'indoor'
+    if user_tags is  None: device['user_tags'] = 'Lab, iSCAPE, Research, Experimental'
+
+    device_json = json.dumps(device)
+
+    backed_device = requests.post('https://api.smartcitizen.me/v0/devices', data=device_json, headers=headers)
+    
+    device['id'] = str(backed_device.json()['id'])
+
+    return device
+
+def csvAppend(SCK):
+    # serial_number,MAC,token,name,url
+    csvFile = open("kits.csv", "a")
+    csvFile.write(SCK['serial'] + ',' + SCK['mac'] + ',' + SCK['device_token'] + ',' + SCK['name'] + ',' + 'https://smartcitizen.me/kits/' + SCK['id'] + '\r\n')
+    csvFile.close()
+
+
+bearer = 'YOUR_TOKEN_HERE'
+wifi = 'WIFI_NETWORK_SSID'
+password = 'WIFI_PASSWORD'
 
 esptoolEXE = os.path.join(os.path.expanduser("~"), ".platformio/packages/tool-esptool/esptool");
 FNULL = open(os.devnull, 'w')
 
-if "-nobuild" in sys.argv:
-    print("Skipping building binaries")
-else:
+    
+
+if not "-nobuild" in sys.argv:
     updateGIT()
     buildALL()
+else:
+    print("Skipping building binaries")
+
 
 print("Monitoring for Smartcitizen kits connected via USB...")
-
 kitList = []
 while True:
     dev = findSCK()
     if dev:
         if dev.serial_number not in kitList:
             print("===========================================================")
-            print("Found Smartcitizen on " + bcolors.OKBLUE + dev.device + bcolors.ENDC + "\r\nSerial number: " + bcolors.OKBLUE + dev.serial_number + bcolors.ENDC)
+            print("Found Smartcitizen on " + bcolors.OKBLUE + dev.device + bcolors.ENDC)
             kitList.append(dev.serial_number)
             start_time = time.time()
             if flashESP(dev):
                 flashSAM(dev)
 
-                print(bcolors.WARNING + "Verifying..."  + dev.serial_number[-4:] + bcolors.ENDC)
-                while not dev: dev = findSCK()
                 time.sleep(5)
+                print(bcolors.WARNING + "Verifying...   "  + dev.serial_number[-4:] + bcolors.ENDC)
+                while not dev: dev = findSCK()
 
                 ser = False
                 while not ser:
@@ -207,18 +242,30 @@ while True:
                     if "Saved configuration on ESP" in ll: savedConf = True
 
                 time.sleep(2)
-                macReady = False
-                ser.write("netinfo\r\n")
-                while not macReady:
-                    ll = ser.readline()
-                    if "MAC address" in ll: macReady = True
+                MAC = getMAC(ser)
+                name = 'iSCAPE Citizen Kit #' + MAC[-5:-3] + MAC[-2:]
 
-                print(bcolors.OKGREEN + "Smartcitizen kit ready!!!")
-                print("Serial number: " + dev.serial_number)
-                print(ll + bcolors.ENDC)
-                ser.write("shell -on\r\n")
+                print(bcolors.WARNING + "Registering Kit on platform...   "  + dev.serial_number[-4:] + bcolors.ENDC)
+                SCK = registerSCK(bearer, name)
+        
+                ser.write('config -mode net -wifi "' + wifi + '" "' + password + '" -token ' + SCK['device_token'] + '\r\n')
+                
+                SCK['serial'] = dev.serial_number
+                SCK['mac'] = MAC
+
+                print(bcolors.WARNING + "Saving kit data on CSV...   "  + dev.serial_number[-4:] + bcolors.ENDC)
+                csvAppend(SCK)
+
+                print(bcolors.OKGREEN + "Smartcitizen kit ready!!!" + bcolors.ENDC)
+                print("\r\nSerial number: " + bcolors.OKBLUE +  SCK['serial'] + bcolors.ENDC)
+                print("Mac address: " + bcolors.OKBLUE + SCK['mac'] + bcolors.ENDC)
+                print("Device token: " + bcolors.OKBLUE + SCK['device_token'] + bcolors.ENDC)
+                print("Access Point name:" + bcolors.OKBLUE + " SmartCitizen" + SCK['mac'][-5:-3] + SCK['mac'][-2:] + bcolors.ENDC)
+                print("Platform kit name: " + bcolors.OKBLUE + SCK['name'] + bcolors.ENDC)
+                print("Platform page:" + bcolors.OKBLUE + " https://smartcitizen.me/kits/" + SCK['id'] + bcolors.ENDC)
+
                 elapsed_time = time.time() - start_time
-                print(time.strftime(bcolors.OKBLUE + "Finished in %H:%M:%S" + bcolors.ENDC, time.gmtime(elapsed_time)))
+                print("Finished in: " + bcolors.OKBLUE + time.strftime("%H:%M:%S" + bcolors.ENDC, time.gmtime(elapsed_time)))
     else:
         if len(kitList) > 0:
             print("Smartcitizen " + bcolors.OKBLUE + kitList[0] + bcolors.ENDC + bcolors.WARNING + " removed" + bcolors.ENDC)
@@ -226,18 +273,9 @@ while True:
         kitList = []
 
         
-
-#   start
-#   bootesp    
-#   esp
-#   bootfs
-#   fs
-#   sam
-#   verify
-
-    # portList = serialPorts()
-
-    # for port in portList:
-    #     if port not in flashingList:
-    #         flashingList.append(port)
-    #         flash(port)
+# TODO
+# put name and bearer in a external variables file
+# Only build binaries if git pull got something new
+# argument for flashing only sam, esp or espfs
+# multiple simultaneos kits support
+# BUG sometimes it hangs on flashing esp or espfs

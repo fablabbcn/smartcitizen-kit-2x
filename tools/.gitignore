@@ -2,3 +2,5 @@ kits.csv
 inventory.csv
 tmp
 uf2conv.pyc
+secret.py*
+

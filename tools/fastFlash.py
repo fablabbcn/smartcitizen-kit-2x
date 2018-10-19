@@ -4,6 +4,12 @@ import requests, json, binascii
 import serial, time, sys, glob, os, serial.tools.list_ports, subprocess, shutil
 import uf2conv
 
+try:
+    import secret
+except:
+    print("Create a file called secret.py with 3 variables: \nbearer = YOUR_TOKEN\nwifi = YOUR_WIFI_SSID\npassowrd = YOUR_WIFI_PASSWORD\nand try again!!")
+    sys.exit()
+
 def timeout(started):
     if started + 30 < time.time():
         return True
@@ -197,14 +203,8 @@ def csvAppend(SCK):
     csvFile.close()
 
 
-bearer = 'YOUR_TOKEN_HERE'
-wifi = 'WIFI_NETWORK_SSID'
-password = 'WIFI_PASSWORD'
-
 esptoolEXE = os.path.join(os.path.expanduser("~"), ".platformio/packages/tool-esptool/esptool");
 FNULL = open(os.devnull, 'w')
-
-    
 
 if not "-nobuild" in sys.argv:
     updateGIT()
@@ -274,7 +274,6 @@ while True:
 
         
 # TODO
-# put name and bearer in a external variables file
 # Only build binaries if git pull got something new
 # argument for flashing only sam, esp or espfs
 # multiple simultaneos kits support

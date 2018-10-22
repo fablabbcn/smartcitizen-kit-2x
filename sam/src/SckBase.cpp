@@ -243,7 +243,7 @@ void SckBase::reviewState()
 
 	} else if (st.mode == MODE_NET) {
 		
-		updateSensors();
+		if (!st.helloPending) updateSensors();
 
 		if (st.helloPending || !st.timeStat.ok || timeToPublish) {
 
@@ -336,7 +336,6 @@ void SckBase::reviewState()
 
 	} else if  (st.mode == MODE_SD) {
 
-		updateSensors();
 
 		if (!st.cardPresent) {
 		
@@ -387,6 +386,9 @@ void SckBase::reviewState()
 		} else {
 			led.update(led.PINK, led.PULSE_SOFT);
 			if (st.espON) ESPcontrol(ESP_OFF);
+
+			updateSensors();
+
 			if (timeToPublish) {
 				if (!sdPublish()) {
 					sckOut("ERROR failed publishing to SD card");

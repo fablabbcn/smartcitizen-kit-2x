@@ -504,8 +504,10 @@ void config_com(SckBase* base, String parameters)
 	else sprintf(base->outBuff, "%snot configured\r\n", base->outBuff);
 
 	sprintf(base->outBuff, "%sToken: ", base->outBuff);
-	if (currentConfig.token.set) sprintf(base->outBuff, "%s%s", base->outBuff, currentConfig.token.token);
-	else sprintf(base->outBuff, "%snot configured", base->outBuff);
+	if (currentConfig.token.set) sprintf(base->outBuff, "%s%s\r\n", base->outBuff, currentConfig.token.token);
+	else sprintf(base->outBuff, "%snot configured\r\n", base->outBuff);
+
+	sprintf(base->outBuff, "%sMac address:  %s", base->outBuff, base->config.mac.address);
 	base->sckOut();
 }
 void esp_com(SckBase* base, String parameters)

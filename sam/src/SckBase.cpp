@@ -122,7 +122,7 @@ void SckBase::setup()
 	// Urban board
 	analogReadResolution(12);
 	if (urban.setup(this)) {
-		sckOut("Urban board detected", PRIO_MED, false);
+		sckOut("Urban board detected");
 		urban.stop(SENSOR_PM_1); 	// Make sure PM is off until battery is ready for it
 		urbanPresent = true;
 		readLight.setup();
@@ -156,6 +156,8 @@ void SckBase::setup()
 	}
 
 	if (saveNeeded) saveConfig();
+
+	saveInfo();
 }
 void SckBase::update()
 {
@@ -183,6 +185,7 @@ void SckBase::reviewState()
 		sendConfig();
 		return;
 	}
+	if (!config.mac.valid) sendMessage(ESPMES_GET_NETINFO);
 
 
 	// SD card debug check file size and backup big files.
@@ -585,7 +588,16 @@ void SckBase::saveConfig(bool defaults)
 	sckOut("Saving config...", PRIO_LOW);
 	if (defaults) {
 		Configuration defaultConfig;
+
+		if (config.mac.valid) macAddress = String(config.mac.address); 	// If we already have a mac address keep it
+		
 		config = defaultConfig;
+		
+		if (macAddress.length() > 0) {
+			sprintf(config.mac.address, "%s", macAddress.c_str()); 
+			config.mac.valid = true;
+		}
+
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].interval = default_sensor_reading_interval;
@@ -645,8 +657,6 @@ void SckBase::saveConfig(bool defaults)
 	} else if (st.mode == MODE_NOT_CONFIGURED) {
 		enterSetup();
 	}	
-	
-	if (pendingSyncConfig) sendConfig();
 }
 Configuration SckBase::getConfig()
 {
@@ -655,6 +665,11 @@ Configuration SckBase::getConfig()
 }
 bool SckBase::sendConfig()
 {
+	if (!st.espON) {
+		ESPcontrol(ESP_ON);
+		return false;
+	}
+
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
 
@@ -668,15 +683,15 @@ bool SckBase::sendConfig()
 
 	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
-	if (!st.espON) {
-		ESPcontrol(ESP_ON);
-		delay(250);
+
+	for (uint8_t i=0; i<3; i++) {
+		if (sendMessage()) {
+			pendingSyncConfig = false;
+			sckOut("Saved configuration on ESP!!", PRIO_LOW);
+			return true;
+		}
 	}
-	if (sendMessage()) {
-		pendingSyncConfig = false;
-		sckOut("Saved configuration on ESP!!", PRIO_LOW);
-		return true;
-	}
+
 	return false;
 }
 bool SckBase::parseLightRead()
@@ -911,8 +926,24 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				ipAddress = json["ip"].as<String>();
 				macAddress = json["mac"].as<String>();
 				hostname = json["hn"].as<String>();
+
+				if (macAddress.length() <= 0 ) {
+					sckOut("No net info received!! retrying...");
+					sendMessage(ESPMES_GET_NETINFO);
+					break;
+				}
+
 				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname.c_str(), ipAddress.c_str(), macAddress.c_str());
 				sckOut();
+
+				// Udate mac address if we haven't yet
+				if (!config.mac.valid) {
+					sprintf(config.mac.address, "%s", macAddress.c_str());
+					config.mac.valid = true;
+					saveInfo();
+					saveConfig();
+				}
+
 				break;
 
 		}
@@ -960,6 +991,9 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_BOOTED:
 
 			sckOut("ESP finished booting");
+
+			if (pendingSyncConfig) sendConfig();
+
 			if (st.onSetup) sendMessage(ESPMES_START_AP);
 			else if (st.mode == MODE_NET) {
 
@@ -1009,6 +1043,27 @@ bool SckBase::sdSelect()
 	digitalWrite(pinCS_SDCARD, LOW);
 
 	return true;
+}
+void SckBase::saveInfo()
+{
+
+	// Info file
+	if (!config.mac.valid) sendMessage(ESPMES_GET_NETINFO);
+	else if (sdSelect()) {
+		if (sd.exists(infoFile.name)) sd.remove(infoFile.name);
+		infoFile.file = sd.open(infoFile.name, FILE_WRITE);
+		getUniqueID();
+		sprintf(outBuff, "Hardware Version: %s\r\nSAM version: %s\r\nSAM build date: %s", hardwareVer.c_str(), SAMversion.c_str(), SAMbuildDate.c_str());
+		infoFile.file.println(outBuff);
+		sprintf(outBuff, "ESP version: %s\r\nESP build date: %s\r\nHardware ID: %lx-%lx-%lx-%lx", ESPversion.c_str(), ESPbuildDate.c_str(), uniqueID[0], uniqueID[1], uniqueID[2], uniqueID[3]);
+		infoFile.file.println(outBuff);
+		sprintf(outBuff, "MAC address: %s", config.mac.address);
+		infoFile.file.println(outBuff);
+		infoFile.file.close();
+		sckOut("Saved INFO.TXT file!!");
+	}
+
+
 }
 
 // **** Flash memory

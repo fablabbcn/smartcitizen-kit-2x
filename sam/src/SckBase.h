@@ -139,6 +139,7 @@ class SckBase
 		SckFile configFile {"CONFIG.TXT"};
 		SckFile postFile {};
 		SckFile debugFile {"DEBUG.TXT"};
+		SckFile infoFile {"INFO.TXT"};
 		// Sd card
 		bool sdSelect();
 		volatile bool sdInitPending = false;
@@ -200,6 +201,7 @@ class SckBase
 		Configuration config;
 		Configuration getConfig();
 		void saveConfig(bool defaults=false);
+		void saveInfo();
 
 		// Input/Output
 		void inputUpdate();

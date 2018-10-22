@@ -1165,8 +1165,6 @@ void SckBase::updatePower()
 
 			if (battery.present) {
 
-				battery.percent();
-
 				switch(charger.chargeStatus) {
 					case charger.CHRG_PRE_CHARGE:
 					case charger.CHRG_FAST_CHARGING:

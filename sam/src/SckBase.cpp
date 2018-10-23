@@ -1162,6 +1162,7 @@ void SckBase::updatePower()
 		SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
 		charger.chargeStatus = charger.getChargeStatus();
 
+		bool justStoppedCharging = false;
 		// If charger status changed
 		if (prevChargeStatus != charger.chargeStatus || battChanged) {
 
@@ -1178,11 +1179,11 @@ void SckBase::updatePower()
 					case charger.CHRG_NOT_CHARGING:
 					case charger.CHRG_CHARGE_TERM_DONE:
 						if (charger.chargeState()) charger.chargeState(false);
-						delay(100);
 						// Verify again that battery is present
 						if (battery.isPresent(charger)) {
 							sckOut("Battery fully charged");
 							led.chargeStatus = led.CHARGE_FINISHED;
+							justStoppedCharging = true;
 						}
 						break;
 
@@ -1197,7 +1198,7 @@ void SckBase::updatePower()
 		}
 
 		// Avoid PM sensor discharging battery when USB connected
-		if (battery.lastPercent < battery.threshold_recharge && battery.present) charger.chargeState(true);
+		if (battery.lastPercent < battery.threshold_recharge && battery.present && !justStoppedCharging) charger.chargeState(true);
 
 	} else {
 

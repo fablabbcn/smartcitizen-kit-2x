@@ -675,8 +675,6 @@ bool SckBase::sendConfig()
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
 
-	json["mo"] = (uint8_t)config.mode;
-	json["pi"] = config.publishInterval;
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
 	json["pa"] = config.credentials.pass;

@@ -327,9 +327,7 @@ void SckBase::reviewState()
 						timeToPublish = false;
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
-					}
-
-					if (st.publishStat.retry()) netPublish();
+					} else if (st.publishStat.retry()) netPublish();
 				}
 			}
 		} 

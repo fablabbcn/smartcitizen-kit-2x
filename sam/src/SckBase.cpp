@@ -304,8 +304,6 @@ void SckBase::reviewState()
 
 				} else if (timeToPublish) {
 
-					if (st.publishStat.retry()) netPublish();
-
 					if (st.publishStat.ok) {
 
 						// TODO go to sleep on receive MQTT success message
@@ -330,6 +328,8 @@ void SckBase::reviewState()
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
 					}
+
+					if (st.publishStat.retry()) netPublish();
 				}
 			}
 		} 

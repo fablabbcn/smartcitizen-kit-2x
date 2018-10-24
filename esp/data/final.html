@@ -73,9 +73,11 @@
             <label>Token</label>
             <input name="token" autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false' type="text" maxlength="6" v-model='usertoken' minlength="6" placeholder="6 letters">
           </div>
-          <p v-show='!usertokenCheck'>
-          {{ 6 - usertoken.length }} letters missing.
-          </p>
+          <div style="height:20px; margin-top:10px">
+            <p v-show='!usertokenCheck' style="margin:0;">
+            {{ 6 - usertoken.length }} letters missing.
+            </p>
+          </div>
           <button class="btn next" v-bind:class="{ 'bg-cyan': usertokenCheck }" type="button" :disabled=!usertokenCheck v-on:click='gotoPage()'>Next</button>
 
         </div>

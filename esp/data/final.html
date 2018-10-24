@@ -722,8 +722,8 @@ var app = new Vue({
         this.weHaveTriedConnecting = true;
         this.notify('Kit is trying to connect online...', 2000);
         that.httpGet(that.theApi + path +
-            '?ssid=' + that.selectedWifi +
-            '&password=' + that.wifipass +
+            '?ssid=' + escape(that.selectedWifi) +
+            '&password=' + escape(that.wifipass) +
             '&token=' + that.usertoken +
             '&epoch=' + that.browsertime +
             '&mode=network',

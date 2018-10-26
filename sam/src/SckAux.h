@@ -318,7 +318,7 @@ class Atlas
 		bool start();
 		bool beginDone = false;
 		bool stop();
-		float getReading();
+		bool getReading();
 		bool getBusyState();
 
 		void goToSleep();

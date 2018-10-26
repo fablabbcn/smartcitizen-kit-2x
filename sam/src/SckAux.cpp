@@ -119,12 +119,12 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_INA219_CURRENT: 		return ina219.getReading(ina219.CURRENT); break;
 		case SENSOR_INA219_LOADVOLT: 		return ina219.getReading(ina219.LOAD_VOLT); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.getReading(); break;
-		case SENSOR_ATLAS_TEMPERATURE: 		while (atlasTEMP.getBusyState()); return atlasTEMP.newReading; break;
-		case SENSOR_ATLAS_PH:			while (atlasPH.getBusyState());	return atlasPH.newReading; break;
-		case SENSOR_ATLAS_EC:			while (atlasEC.getBusyState()); return atlasEC.newReading; break;
-		case SENSOR_ATLAS_EC_SG:		while (atlasEC.getBusyState()); return atlasEC.newReadingB; break;
-		case SENSOR_ATLAS_DO:			while (atlasDO.getBusyState()); return atlasDO.newReading; break;
-		case SENSOR_ATLAS_DO_SAT:		while (atlasDO.getBusyState()); return atlasDO.newReadingB; break;
+		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()); return atlasTEMP.newReading; break;
+		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) return atlasPH.newReading; break;
+		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) return atlasEC.newReading; break;
+		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) return atlasEC.newReadingB; break;
+		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) return atlasDO.newReading; break;
+		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) return atlasDO.newReadingB; break;
 		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.getReading(moistureChirp.CHIRP_MOISTURE); break;
 		case SENSOR_CHIRP_TEMPERATURE:		return moistureChirp.getReading(moistureChirp.CHIRP_TEMPERATURE); break;
 		case SENSOR_CHIRP_LIGHT:		return moistureChirp.getReading(moistureChirp.CHIRP_LIGHT); break;
@@ -614,10 +614,16 @@ bool Atlas::stop()
 	return true;
 }
 
-float Atlas::getReading()
+bool Atlas::getReading()
 {
 
-	return newReading;
+	if (millis() - lastUpdate < 2000) return true;
+	uint32_t started = millis();
+	while (getBusyState()) {
+		if (millis() - started > 5000) return false; 	// Timeout
+		delay(2);
+	}
+	return true;
 }
 
 bool Atlas::getBusyState()
@@ -759,6 +765,8 @@ uint8_t Atlas::getResponse()
 	uint8_t code;
 
 	auxWire.requestFrom(deviceAddress, 20, 1);
+	uint32_t time = millis();
+	while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
 	code = auxWire.read();
 
 	atlasResponse = "";
@@ -779,8 +787,6 @@ uint8_t Atlas::getResponse()
 				atlasResponse += buff;
 			}
 			auxWire.endTransmission();
-
-			goToSleep();
 
 			if (atlasResponse.length() > 0) {
 				return 1;

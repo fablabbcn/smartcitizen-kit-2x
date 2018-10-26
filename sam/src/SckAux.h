@@ -342,8 +342,6 @@ class Moisture {
 		byte deviceAddress = 0x20;
 		I2CSoilMoistureSensor chirp = I2CSoilMoistureSensor(deviceAddress);
 		bool alreadyStarted = false;
-		bool measuringLight = false;
-		uint32_t lightStarted;
 
 	public:
 
@@ -354,7 +352,6 @@ class Moisture {
 		bool start();
 		bool stop();
 		float getReading(typeOfReading wichReading);
-		bool getBusyState(typeOfReading wichReading);
 		bool changeAddress(byte newAddress);
 		uint8_t getVersion(); 
 		

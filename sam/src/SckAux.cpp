@@ -124,10 +124,10 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_ATLAS_EC:			while (atlasEC.getBusyState()); return atlasEC.newReading; break;
 		case SENSOR_ATLAS_EC_SG:		while (atlasEC.getBusyState()); return atlasEC.newReadingB; break;
 		case SENSOR_ATLAS_DO:			while (atlasDO.getBusyState()); return atlasDO.newReading; break;
-		case SENSOR_ATLAS_DO_SAT:		while(atlasDO.getBusyState()); return atlasDO.newReadingB; break;
-		case SENSOR_CHIRP_MOISTURE:		while(moistureChirp.getBusyState(moistureChirp.CHIRP_MOISTURE)); return moistureChirp.getReading(moistureChirp.CHIRP_MOISTURE); break;
-		case SENSOR_CHIRP_TEMPERATURE:		while(moistureChirp.getBusyState(moistureChirp.CHIRP_TEMPERATURE)); return moistureChirp.getReading(moistureChirp.CHIRP_TEMPERATURE); break;
-		case SENSOR_CHIRP_LIGHT:		while(moistureChirp.getBusyState(moistureChirp.CHIRP_LIGHT)); return moistureChirp.getReading(moistureChirp.CHIRP_LIGHT); break;
+		case SENSOR_ATLAS_DO_SAT:		while (atlasDO.getBusyState()); return atlasDO.newReadingB; break;
+		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.getReading(moistureChirp.CHIRP_MOISTURE); break;
+		case SENSOR_CHIRP_TEMPERATURE:		return moistureChirp.getReading(moistureChirp.CHIRP_TEMPERATURE); break;
+		case SENSOR_CHIRP_LIGHT:		return moistureChirp.getReading(moistureChirp.CHIRP_LIGHT); break;
 		case SENSOR_EXT_PM_1:			return pmSensor.getReading(1); break;
 		case SENSOR_EXT_PM_25:			return pmSensor.getReading(25); break;
 		case SENSOR_EXT_PM_10:			return pmSensor.getReading(10); break;
@@ -151,9 +151,6 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 		case SENSOR_ATLAS_EC_SG: 	return atlasEC.getBusyState(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 	return atlasDO.getBusyState(); break;
-		case SENSOR_CHIRP_MOISTURE:	return moistureChirp.getBusyState(moistureChirp.CHIRP_MOISTURE); break;
-		case SENSOR_CHIRP_TEMPERATURE:	return moistureChirp.getBusyState(moistureChirp.CHIRP_TEMPERATURE); break;
-		case SENSOR_CHIRP_LIGHT: 	return moistureChirp.getBusyState(moistureChirp.CHIRP_LIGHT); break;
 		default: return false; break;
 	}
 }
@@ -816,6 +813,11 @@ bool Moisture::stop()
 
 float Moisture::getReading(typeOfReading wichReading) 
 {
+	uint32_t started = millis();
+	while (chirp.isBusy()) {
+		if (millis() - started > 5000) return 0; 	// Timeout
+		delay(1);
+	}
 
 	switch(wichReading) {
 		case CHIRP_MOISTURE: {
@@ -830,38 +832,16 @@ float Moisture::getReading(typeOfReading wichReading)
 
 		} case CHIRP_LIGHT: {
 
-			measuringLight = false;
-			return chirp.getLight(false);
+			float thisReading = chirp.getLight(false); 	// We are sending the reading from previous request
+			chirp.startMeasureLight(); 			// Ask for next reading
+			
+			return thisReading;
 			break;
 
 		} default: break;
 	}
 
 	return 0;
-}
-
-bool Moisture::getBusyState(typeOfReading wichReading) 
-{
-
-	if (chirp.isBusy()) return true;		
-	
-	if (wichReading == CHIRP_LIGHT) {
-
-		if (measuringLight) {
-
-			if (millis() - lightStarted < 3000) return true;
-
-		} else {
-
-			chirp.startMeasureLight();
-			lightStarted = millis();
-			measuringLight = true;
-			return true;
-
-		}
-	} 
-
-	return false;
 }
 
 uint8_t Moisture::getVersion() 

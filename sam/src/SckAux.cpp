@@ -112,12 +112,12 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_INA219_CURRENT: 		return ina219.getReading(ina219.CURRENT); break;
 		case SENSOR_INA219_LOADVOLT: 		return ina219.getReading(ina219.LOAD_VOLT); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.getReading(); break;
-		case SENSOR_ATLAS_PH:			return atlasPH.newReading; break;
 		case SENSOR_ATLAS_TEMPERATURE: 		while (atlasTEMP.getBusyState()); return atlasTEMP.newReading; break;
-		case SENSOR_ATLAS_EC:			return atlasEC.newReading; break;
-		case SENSOR_ATLAS_EC_SG:		return atlasEC.newReadingB; break;
-		case SENSOR_ATLAS_DO:			return atlasDO.newReading; break;
-		case SENSOR_ATLAS_DO_SAT:		return atlasDO.newReadingB; break;
+		case SENSOR_ATLAS_PH:			while (atlasPH.getBusyState());	return atlasPH.newReading; break;
+		case SENSOR_ATLAS_EC:			while (atlasEC.getBusyState()); return atlasEC.newReading; break;
+		case SENSOR_ATLAS_EC_SG:		while (atlasEC.getBusyState()); return atlasEC.newReadingB; break;
+		case SENSOR_ATLAS_DO:			while (atlasDO.getBusyState()); return atlasDO.newReading; break;
+		case SENSOR_ATLAS_DO_SAT:		while(atlasDO.getBusyState()); return atlasDO.newReadingB; break;
 		case SENSOR_EXT_PM_1:			return pmSensor.getReading(1); break;
 		case SENSOR_EXT_PM_25:			return pmSensor.getReading(25); break;
 		case SENSOR_EXT_PM_10:			return pmSensor.getReading(10); break;
@@ -608,10 +608,12 @@ bool Atlas::getBusyState()
 				state = TEMP_COMP_SENT;
 				break;
 			}
+
 			if (tempCompensation()) state = TEMP_COMP_SENT;
 			break;
 
 		} case TEMP_COMP_SENT: {
+
 			if (millis() - lastCommandSent >= shortWait) {
 				if (sendCommand((char*)"r")) state = ASKED_READING;
 			}

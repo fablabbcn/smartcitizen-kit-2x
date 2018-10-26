@@ -626,6 +626,7 @@ float Atlas::getReading()
 bool Atlas::getBusyState()
 {
 
+	if (millis() - lastUpdate < 2) return true;
 	switch (state) {
 
 		case REST: {
@@ -689,6 +690,7 @@ bool Atlas::getBusyState()
 		}
 	}
 
+	lastUpdate = millis();
 	return true;
 }
 
@@ -731,8 +733,14 @@ bool Atlas::tempCompensation()
 	float temperature = 0;
 
 	if (waterTemp_DS18B20.detected) temperature = waterTemp_DS18B20.getReading();	
-	else if (atlasTEMP.detected) temperature = atlasTEMP.getReading();
-	else {
+	else if (atlasTEMP.detected) {
+
+		if (millis() - atlasTEMP.lastUpdate > 10000) {
+			while (atlasTEMP.getBusyState()) delay(2);
+		}
+
+		temperature = atlasTEMP.newReading;
+	} else {
 
 		// No available sensor for temp compensation
 		// Still we want the readings

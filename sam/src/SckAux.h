@@ -271,6 +271,7 @@ class Atlas
 		float newReadingB;
 		String atlasResponse;
 		uint32_t lastCommandSent = 0;
+		uint32_t lastUpdate = 0;
 		enum State {
 			REST,
 			TEMP_COMP_SENT,

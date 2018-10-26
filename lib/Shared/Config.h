@@ -18,12 +18,14 @@ enum SCKmodes {
 struct SensorConfig { bool enabled; uint32_t interval; };
 struct Credentials { bool set=false; char ssid[64]="null"; char pass[64]="null"; };
 struct Token { bool set=false; char token[7]="null"; };
+struct MAC { bool valid=false; char address[18]="not synced"; };
 
 struct Configuration {
 	bool valid = true;
 	SCKmodes mode = MODE_NOT_CONFIGURED;				// This mode only changes on user configuration, it can only be MODE_SD or MODE_NET or MODE_NOT_CONFIGURED
 	uint32_t publishInterval = default_publish_interval; 		// in seconds
 	uint32_t readInterval = default_publish_interval; 		// in seconds
+	MAC mac; 							// Stored here after first boot
 	Credentials credentials;
 	Token token;
 	SensorConfig sensors[SENSOR_COUNT];

@@ -8,6 +8,7 @@ WaterTemp_DS18B20 	waterTemp_DS18B20;
 Atlas			atlasPH = Atlas(SENSOR_ATLAS_PH);
 Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
 Atlas			atlasDO = Atlas(SENSOR_ATLAS_DO);
+Atlas 			atlasTEMP = Atlas(SENSOR_ATLAS_TEMPERATURE);
 PMsensor		pmSensor = PMsensor(SLOT_AVG);
 PM_DallasTemp 		pmDallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
@@ -35,6 +36,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_INA219_LOADVOLT: 		return ina219.start(); break;
 		case SENSOR_GROOVE_OLED: 		return groove_OLED.start(); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.start(); break;
+		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.start(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.start();
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.start(); break;
@@ -74,6 +76,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_INA219_LOADVOLT: 		return ina219.stop(); break;
 		case SENSOR_GROOVE_OLED: 		return groove_OLED.stop(); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.stop(); break;
+		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.stop(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.stop();
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.stop(); break;
@@ -110,6 +113,7 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_INA219_LOADVOLT: 		return ina219.getReading(ina219.LOAD_VOLT); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.getReading(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.newReading; break;
+		case SENSOR_ATLAS_TEMPERATURE: 		while (atlasTEMP.getBusyState()); return atlasTEMP.newReading; break;
 		case SENSOR_ATLAS_EC:			return atlasEC.newReading; break;
 		case SENSOR_ATLAS_EC_SG:		return atlasEC.newReadingB; break;
 		case SENSOR_ATLAS_DO:			return atlasDO.newReading; break;
@@ -131,6 +135,7 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 
 	switch(wichSensor) {
 		case SENSOR_GROOVE_OLED:	return true; break;
+		case SENSOR_ATLAS_TEMPERATURE:  return atlasTEMP.getBusyState(); break;
 		case SENSOR_ATLAS_PH: 		return atlasPH.getBusyState(); break;
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_SG: 	return atlasEC.getBusyState(); break;
@@ -574,6 +579,8 @@ bool Atlas::start()
 		} else return false;
 	}
 
+	detected = true;
+
 	goToSleep();
 
 	return true;
@@ -596,6 +603,11 @@ bool Atlas::getBusyState()
 	switch (state) {
 
 		case REST: {
+
+			if (TEMP) {
+				state = TEMP_COMP_SENT;
+				break;
+			}
 			if (tempCompensation()) state = TEMP_COMP_SENT;
 			break;
 
@@ -606,7 +618,11 @@ bool Atlas::getBusyState()
 			break;
 
 		} case ASKED_READING: {
-			if (millis() - lastCommandSent >= longWait) {
+
+		   	uint16_t customWait = longWait;
+			if (TEMP) customWait = mediumWait;
+
+			if (millis() - lastCommandSent >= customWait) {
 
 				uint8_t code = getResponse();
 
@@ -620,7 +636,7 @@ bool Atlas::getBusyState()
 					// Reading OK
 					state = REST;
 
-					if (PH)	newReading = atlasResponse.toFloat();
+					if (PH || TEMP)	newReading = atlasResponse.toFloat();
 					if (EC || DO) {
 						String first = atlasResponse.substring(0, atlasResponse.indexOf(","));
 						String second = atlasResponse.substring(atlasResponse.indexOf(",")+1);

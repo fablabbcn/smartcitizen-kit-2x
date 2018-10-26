@@ -44,7 +44,6 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.start(); break;
 		case SENSOR_CHIRP_TEMPERATURE:
-		case SENSOR_CHIRP_LIGHT:
 		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.start(); break;
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
@@ -87,7 +86,6 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.stop(); break;
 		case SENSOR_CHIRP_TEMPERATURE:
-		case SENSOR_CHIRP_LIGHT:
 		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.stop(); break;
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
@@ -127,7 +125,6 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) return atlasDO.newReadingB; break;
 		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.getReading(moistureChirp.CHIRP_MOISTURE); break;
 		case SENSOR_CHIRP_TEMPERATURE:		return moistureChirp.getReading(moistureChirp.CHIRP_TEMPERATURE); break;
-		case SENSOR_CHIRP_LIGHT:		return moistureChirp.getReading(moistureChirp.CHIRP_LIGHT); break;
 		case SENSOR_EXT_PM_1:			return pmSensor.getReading(1); break;
 		case SENSOR_EXT_PM_25:			return pmSensor.getReading(25); break;
 		case SENSOR_EXT_PM_10:			return pmSensor.getReading(10); break;
@@ -267,8 +264,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			}
 			break;
 
-		} case SENSOR_CHIRP_LIGHT:
-		case SENSOR_CHIRP_TEMPERATURE:
+		} case SENSOR_CHIRP_TEMPERATURE:
 		case SENSOR_CHIRP_MOISTURE: {
 
 			if (command.startsWith("get ver")) {

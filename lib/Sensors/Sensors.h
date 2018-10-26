@@ -63,6 +63,7 @@ enum SensorType
 	SENSOR_INA219_LOADVOLT,
 
 	SENSOR_WATER_TEMP_DS18B20,
+	SENSOR_ATLAS_TEMPERATURE,
 	SENSOR_ATLAS_PH,
 	SENSOR_ATLAS_EC,
 	SENSOR_ATLAS_EC_SG,
@@ -191,6 +192,7 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_INA219_LOADVOLT,			"INA_VLOAD",		"INA219 Load voltage",				0,		false,		false,			"V"},
 
 			OneSensor { BOARD_AUX,			SENSOR_WATER_TEMP_DS18B20,		"DS_WAT_TEMP",		"DS18B20 Water temperature",			42,		false,		false,			"C"},
+			OneSensor { BOARD_AUX, 			SENSOR_ATLAS_TEMPERATURE, 		"AS_TEMP", 		"Atlas Temperature", 				51, 		false, 		false, 			"C"},
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_PH,			"AS_PH",		"Atlas PH",					43,		false,		true,			"pH"},
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC,			"AS_COND",		"Atlas Conductivity",				45,		false,		true,			"uS/cm"},
 			OneSensor { BOARD_AUX,			SENSOR_ATLAS_EC_SG,			"AS_SG",		"Atlas Specific gravity",			46,		false,		true,			},

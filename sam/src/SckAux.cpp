@@ -478,6 +478,8 @@ bool WaterTemp_DS18B20::start()
 	DS_bridge.wireSkip();
 	DS_bridge.wireWriteByte(0x44);
 
+	detected = true;
+
 	return true;
 }
 
@@ -700,16 +702,23 @@ bool Atlas::sendCommand(char* command)
 
 bool Atlas::tempCompensation()
 {
-
 	String stringData;
 	char data[10];
+	float temperature = 0;
 
-	float temperature = waterTemp_DS18B20.getReading();
+	if (waterTemp_DS18B20.detected) temperature = waterTemp_DS18B20.getReading();	
+	else if (atlasTEMP.detected) temperature = atlasTEMP.getReading();
+	else {
 
+		// No available sensor for temp compensation
+		// Still we want the readings
+		return true;
+	}
+
+	// Error on reading temperature
 	if (temperature == 0) return false;
 
 	sprintf(data,"T,%.2f",temperature);
-
 	if (sendCommand(data)) return true;
 
 	return false;

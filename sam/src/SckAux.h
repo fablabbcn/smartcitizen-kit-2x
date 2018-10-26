@@ -243,6 +243,8 @@ class WaterTemp_DS18B20
 
 		uint8_t conf =0x05;
 
+		bool detected = false;
+
 		/* Start the transmission of data for the DS18B20 trough the DS2482_100 bridge */
 		bool start();
 		bool stop();

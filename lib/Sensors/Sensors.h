@@ -182,7 +182,7 @@ class AllSensors
 			OneSensor { BOARD_AUX, 			SENSOR_GASESBOARD_HUMIDITY, 		"GB_HUM",		"Gases Board Humidity",				80,		false,		false,			"%"},
 
 			// Groove I2C ADC
-			OneSensor { BOARD_AUX,			SENSOR_GROOVE_I2C_ADC,			"GR_ADC",		"Groove ADC",					0,		false,		false,			"V"},
+			OneSensor { BOARD_AUX,			SENSOR_GROOVE_I2C_ADC,			"GR_ADC",		"Groove ADC",					25,		false,		false,			"V"},
 
 			// Adafruit INA291 High Side DC Current Sensor
 			OneSensor { BOARD_AUX,			SENSOR_INA219_BUSVOLT,			"INA_VBUS",		"INA219 Bus voltage",				0,		false,		false,			"V"},

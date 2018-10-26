@@ -21,6 +21,9 @@
 // DS2482 library (I2C-1Wire bridge)
 #include <DS2482.h>
 
+// I2C Moisture Sensor (chirp)
+#include <I2CSoilMoistureSensor.h>
+
 
 extern TwoWire auxWire;
 
@@ -315,6 +318,35 @@ class Atlas
 		uint16_t shortWait = 310; //ms
 
 	private:
+};
+
+class Moisture {
+	private:
+		// TODO save this in flash so we can change the address and remember it.
+		// TODO create command to recover I2C addres to default (0x20)
+		byte deviceAddress = 0x20;
+		I2CSoilMoistureSensor chirp = I2CSoilMoistureSensor(deviceAddress);
+		bool alreadyStarted = false;
+		bool measuringLight = false;
+		uint32_t lightStarted;
+
+	public:
+
+		enum typeOfReading { CHIRP_MOISTURE, CHIRP_TEMPERATURE, CHIRP_LIGHT };
+
+		bool detected = false;
+
+		bool start();
+		bool stop();
+		float getReading(typeOfReading wichReading);
+		bool getBusyState(typeOfReading wichReading);
+		bool changeAddress(byte newAddress);
+		uint8_t getVersion(); 
+		
+		// TODO 
+		// * Measure sensor consumption 
+		// * Send sensor to sleep between readings (needs FIX, it hangs)
+		void sleep();
 };
 
 enum PMslot {SLOT_A, SLOT_B, SLOT_AVG};

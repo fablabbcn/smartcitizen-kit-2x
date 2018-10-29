@@ -2,7 +2,7 @@
 #include "Sensors.h"
 
 static const uint32_t minimal_publish_interval = 30;
-static const uint32_t default_publish_interval = 30;
+static const uint32_t default_publish_interval = 60;
 static const uint32_t max_publish_interval = 3600;		// One hour
 
 enum SCKmodes {

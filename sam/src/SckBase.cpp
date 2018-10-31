@@ -304,8 +304,6 @@ void SckBase::reviewState()
 
 				} else if (timeToPublish) {
 
-					if (st.publishStat.retry()) netPublish();
-
 					if (st.publishStat.ok) {
 
 						// TODO go to sleep on receive MQTT success message
@@ -329,7 +327,7 @@ void SckBase::reviewState()
 						timeToPublish = false;
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
-					}
+					} else if (st.publishStat.retry()) netPublish();
 				}
 			}
 		} 
@@ -394,6 +392,8 @@ void SckBase::reviewState()
 					sckOut("ERROR failed publishing to SD card");
 					led.update(led.PINK, led.PULSE_HARD_FAST);
 				}
+				timeToPublish = false;
+				lastPublishTime = rtc.getEpoch();
 			}
 		}
 	}
@@ -675,8 +675,6 @@ bool SckBase::sendConfig()
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
 
-	json["mo"] = (uint8_t)config.mode;
-	json["pi"] = config.publishInterval;
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
 	json["pa"] = config.credentials.pass;
@@ -777,7 +775,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_ON:
 		{
-				sckOut("ESP on...");
+				sckOut("ESP on...", PRIO_LOW);
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 				digitalWrite(pinPOWER_ESP, LOW);
@@ -788,7 +786,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_REBOOT:
 		{
-				sckOut("Restarting ESP...");
+				sckOut("Restarting ESP...", PRIO_LOW);
 				ESPcontrol(ESP_OFF);
 				delay(50);
 				ESPcontrol(ESP_ON);
@@ -1249,23 +1247,30 @@ void SckBase::updateSensors()
 	if (st.onSetup) return;
 	if (st.mode == MODE_SD && !st.cardPresent) return;
 	else if (st.mode == MODE_NET && st.wifiStat.error) return;
-	if (rtc.getEpoch() - lastSensorUpdate < config.readInterval) return;
 
-	lastSensorUpdate = rtc.getEpoch();
-	sckOut("\r\n-----------", PRIO_LOW);
-	ISOtime();
-	sckOut(ISOtimeBuff, PRIO_LOW);
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-		SensorType wichSensor = static_cast<SensorType>(i);
-		if (sensors[wichSensor].enabled) {
-			getReading(wichSensor, true);
-			sprintf(outBuff, "%s: %s %s", sensors[wichSensor].title, sensors[wichSensor].reading.c_str(), sensors[wichSensor].unit);
-			sckOut(PRIO_LOW);
+	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {
+		lastSensorUpdate = rtc.getEpoch();
+		sckOut("\r\n-----------", PRIO_LOW);
+		ISOtime();
+		sckOut(ISOtimeBuff, PRIO_LOW);
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType wichSensor = static_cast<SensorType>(i);
+			if (sensors[wichSensor].enabled && (rtc.getEpoch() - sensors[wichSensor].lastReadingTime >= sensors[wichSensor].interval)) {
+				if (getReading(wichSensor, true)) {
+					sensors[wichSensor].lastReadingTime = lastSensorUpdate;
+					sprintf(outBuff, "%s: %s %s", sensors[wichSensor].title, sensors[wichSensor].reading.c_str(), sensors[wichSensor].unit);
+					sckOut(PRIO_LOW);
+				}
+			}
 		}
+		sckOut("-----------\r\n", PRIO_LOW);
 	}
-	sckOut("-----------\r\n", PRIO_LOW);
 
-	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) timeToPublish = true;
+
+
+	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
+		timeToPublish = true;
+	}
 }
 bool SckBase::enableSensor(SensorType wichSensor)
 {
@@ -1376,7 +1381,6 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 
 	sensors[wichSensor].valid = false;
 	String result = "null";
-	sensors[wichSensor].lastReadingTime = rtc.getEpoch();
 
 	switch (sensors[wichSensor].location) {
 		case BOARD_BASE:
@@ -1601,7 +1605,6 @@ bool SckBase::sdPublish()
 		}
 		postFile.file.println("");
 		postFile.file.close();
-		timeToPublish = false;
 		sckOut("Sd card publish OK!!", PRIO_MED);
 		return true;
 	} else st.cardPresent = false;

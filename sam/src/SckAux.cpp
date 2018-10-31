@@ -12,6 +12,7 @@ Atlas 			atlasTEMP = Atlas(SENSOR_ATLAS_TEMPERATURE);
 Moisture 		moistureChirp;
 PMsensor		pmSensor = PMsensor(SLOT_AVG);
 PM_DallasTemp 		pmDallasTemp;
+Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 
 // Eeprom flash emulation to store I2C address
@@ -49,6 +50,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10:			return pmSensor.start(); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.start(); break;
+		case SENSOR_DALLAS_TEMP: 		return dallasTemp.start(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM:
 			if (sht31.start() && !gasBoard.start()) return true;
@@ -91,6 +93,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10:			return pmSensor.stop(); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.stop(); break;
+		case SENSOR_DALLAS_TEMP: 		return dallasTemp.stop(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM: 			return sht31.stop(); break;
 		default: break;
@@ -129,6 +132,7 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_EXT_PM_25:			return pmSensor.getReading(25); break;
 		case SENSOR_EXT_PM_10:			return pmSensor.getReading(10); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.getReading(); break;
+		case SENSOR_DALLAS_TEMP: 		if (dallasTemp.getReading()) return dallasTemp.reading; break;
 		case SENSOR_SHT31_TEMP: 		if (sht31.update(true)) return sht31.temperature; break;
 		case SENSOR_SHT31_HUM: 			if (sht31.update(true)) return sht31.humidity; break;
 		default: break;
@@ -965,6 +969,47 @@ float PM_DallasTemp::getReading()
 	return uRead.fval;
 }
 
+bool Sck_DallasTemp::start()
+{
+	pinPeripheral(pinAUX_WIRE_SCL, PIO_DIGITAL);
+	OneWire oneWire = OneWire(pinAUX_WIRE_SCL);
+	DallasTemperature _dallasTemp = DallasTemperature(&oneWire);
+
+	_dallasTemp.begin();
+	
+	// If no device is found return false
+	_dallasTemp.getAddress(_oneWireAddress, 0);
+
+	_dallasTemp.setResolution(12);
+	_dallasTemp.setWaitForConversion(true);
+
+	if (!getReading()) return false;
+
+	pinPeripheral(pinAUX_WIRE_SCL, PIO_SERCOM);
+
+	return true;
+}
+
+bool Sck_DallasTemp::stop()
+{
+
+	return true;
+}
+
+bool Sck_DallasTemp::getReading()
+{
+	pinPeripheral(pinAUX_WIRE_SCL, PIO_DIGITAL);
+	OneWire oneWire = OneWire(pinAUX_WIRE_SCL);
+	DallasTemperature _dallasTemp = DallasTemperature(&oneWire);
+
+	_dallasTemp.requestTemperatures();
+	reading = _dallasTemp.getTempC(_oneWireAddress);
+	if (reading <= DEVICE_DISCONNECTED_C) return false;
+
+	pinPeripheral(pinAUX_WIRE_SCL, PIO_SERCOM);
+	
+	return true;
+}
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )
 {

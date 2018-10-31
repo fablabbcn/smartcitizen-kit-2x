@@ -83,7 +83,7 @@ void SckESP::update()
 			case WL_CONNECT_FAILED: ledBlink(LED_FAST); sendMessage(SAMMES_PASS_ERROR); break;
 			case WL_NO_SSID_AVAIL: ledBlink(LED_FAST); sendMessage(SAMMES_SSID_ERROR); break;
 			case WL_DISCONNECTED:
-					       if (config.credentials.set) ledBlink(LED_SLOW);
+					       if (config.credentials.set && WiFi.getMode() != WIFI_AP) ledBlink(LED_SLOW);
 					       else ledBlink(LED_FAST);
 					       break;
 			default: ledBlink(LED_FAST); sendMessage(SAMMES_WIFI_UNKNOWN_ERROR); break;
@@ -102,6 +102,7 @@ void SckESP::tryConnection()
 		debugOUT(String F("Trying connection to wifi: ") + String(config.credentials.ssid) + " - " + String(config.credentials.pass));
 
 		WiFi.mode(WIFI_STA);
+		ledBlink(LED_SLOW);
 		// Support for open networks
 		String tp = String(config.credentials.pass);
 		if (tp.length() == 0) WiFi.begin(config.credentials.ssid);

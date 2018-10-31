@@ -136,10 +136,9 @@ def ERROR():
 def checkGITbranch():
     currentBranch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.STDOUT)
     if not "master" in currentBranch:
-        goOn = raw_input(bcolors.OKBLUE + "You are not on master branch\r\nAre you sure you want to continue? " + bcolors.ENDC + "[Y/n]")
-    if "n" in goOn:
-        print("Bye")
-        sys.exit()
+        if "n" in raw_input(bcolors.OKBLUE + "You are not on master branch\r\nAre you sure you want to continue? " + bcolors.ENDC + "[Y/n]"):
+            print("Bye")
+            sys.exit()
 
 def updateGIT():
     print(bcolors.WARNING + "Updating git..." + bcolors.ENDC)

@@ -78,6 +78,7 @@ enum SensorType
 	SENSOR_EXT_PM_10,
 
 	SENSOR_PM_DALLAS_TEMP,
+	SENSOR_DALLAS_TEMP,
 	
 	SENSOR_SHT31_TEMP,
 	SENSOR_SHT31_HUM,
@@ -208,6 +209,7 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_10,			"EXT_PM_10",		"External PM 10.0",				88,		false,		false,			"ug/m3"},
 
 			OneSensor { BOARD_AUX,			SENSOR_PM_DALLAS_TEMP,			"PM_DALLAS_TEMP",	"PM board Dallas Temperature",			96,		false,		false,			"C"},
+			OneSensor { BOARD_AUX,			SENSOR_DALLAS_TEMP,			"DALLAS_TEMP",		"Direct Dallas Temperature",			96,		false,		false,			"C"},
 
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"EXT_TEMP",		"External Temperature",				79,		false,		false,			"C"},
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"EXT_HUM",		"External Humidity",				80,		false,		false,			"%"},

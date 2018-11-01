@@ -43,8 +43,8 @@ void SckBase::setup()
 	// Auxiliary I2C bus
 	pinMode(pinPOWER_AUX_WIRE, OUTPUT);
 	digitalWrite(pinPOWER_AUX_WIRE, LOW);	// LOW -> ON , HIGH -> OFF
-	pinPeripheral(11, PIO_SERCOM);
-	pinPeripheral(13, PIO_SERCOM);
+	pinPeripheral(pinAUX_WIRE_SDA, PIO_SERCOM);
+	pinPeripheral(pinAUX_WIRE_SCL, PIO_SERCOM);
 	auxWire.begin();
 	delay(2000); 				// Give some time for external boards to boot
 

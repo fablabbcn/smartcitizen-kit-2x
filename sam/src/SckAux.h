@@ -24,6 +24,9 @@
 // I2C Moisture Sensor (chirp)
 #include <I2CSoilMoistureSensor.h>
 
+// Libraries for DallasTemp
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 extern TwoWire auxWire;
 
@@ -413,6 +416,19 @@ class PM_DallasTemp
 		} uRead;
 
 		float reading;
+};
+
+class Sck_DallasTemp
+{
+	// This is for a Dallas temperature sensor connected to the plugged in Aux groove connector using pin pinAUX_WIRE_SCL (13 - PA17)
+	public:
+		bool start();
+		bool stop();
+		bool getReading();
+
+		float reading;
+	private:
+		uint8_t _oneWireAddress[8];
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

@@ -988,6 +988,16 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 			st.publishStat.error = true;
 			break;
 
+		case SAMMES_MQTT_CUSTOM_OK:
+
+			sckOut("Custom MQTT publish OK!!");
+			break;
+
+		case SAMMES_MQTT_CUSTOM_ERROR:
+
+			sckOut("ERROR on custom MQTT publish");
+			break;
+
 		case SAMMES_BOOTED:
 
 			sckOut("ESP finished booting");
@@ -1008,6 +1018,19 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 		default: break;
 	}
+}
+void SckBase::mqttCustom(const char *topic, const char *payload)
+{
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& json = jsonBuffer.createObject();
+
+	json["to"] = topic;
+	json["pl"] = payload; 
+
+	sprintf(netBuff, "%c", ESPMES_MQTT_CUSTOM);
+	json.printTo(&netBuff[1], json.measureLength() + 1);
+
+	if (sendMessage()) sckOut("MQTT message sent to ESP...", PRIO_LOW);
 }
 
 // **** SD card

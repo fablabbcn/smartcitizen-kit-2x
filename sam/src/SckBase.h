@@ -217,6 +217,7 @@ class SckBase
 		String ipAddress;
 		String macAddress;
 		String hostname;
+		void mqttCustom(const char *topic, const char *payload);
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
@@ -265,23 +266,3 @@ bool I2Cdetect(TwoWire *_Wire, byte address);
 void ISR_button();
 void ISR_sdDetect();
 
-
-// TODO
-//
-// BUG: si desconecto el USB y lo vuelvo a conectar (con bateria) ya no acepta inputs de terminal, pero hace outputs
-// BUG: si la urban no es detectada no se deshabilitan los correspondientes sensores
-// BUG: el barometric pressure se cuelga si no esta presente
-//
-// * Finish battery detection and setup
-// * Finish power management and sleep
-// * Confirm OTG status
-// * Solve Solar pannel charging
-//
-// * Test MICS heaters and adapt the code
-// * Test MICS POT and adapt the code
-// * Finish Audio implementation
-// * Finish FAT flash support
-// * MQTT over SSL
-// * Audio handshake
-// * Solve PID code problems
-// *

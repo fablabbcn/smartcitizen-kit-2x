@@ -599,3 +599,11 @@ void shell_com(SckBase* base, String parameters)
 	sprintf(base->outBuff, "Shell mode: %s", base->st.onShell ? "on" : "off");
 	base->sckOut();
 }
+void custom_mqtt_com(SckBase* base, String parameters)
+{
+	uint8_t mfirst = parameters.indexOf("'", 0);
+	uint8_t msecond = parameters.indexOf("'", mfirst + 1);
+	uint8_t mthird = parameters.indexOf("'", msecond + 1);
+	uint8_t mfourth = parameters.indexOf("'", mthird + 1);
+	base->mqttCustom(parameters.substring(mfirst + 1, msecond).c_str(), parameters.substring(mthird + 1, mfourth).c_str());
+}

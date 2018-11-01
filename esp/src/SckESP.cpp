@@ -228,6 +228,15 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
 		}
+		case ESPMES_MQTT_CUSTOM:
+		{
+				debugOUT("Receiving MQQT custom publish request...");
+				if (mqttCustom()) {
+					delay(500);
+					sendMessage(SAMMES_MQTT_CUSTOM_OK, "");
+				} else sendMessage(SAMMES_MQTT_CUSTOM_ERROR, "");
+				break;
+		}
 		case ESPMES_CONNECT:
 
 			tryConnection();
@@ -318,6 +327,20 @@ bool SckESP::mqttInventory()
 	if (mqttConnect()) {
 		if (MQTTclient.publish("device/inventory", netBuff)) {
 			debugOUT(F("MQTT inventory published OK!!"));
+			return true;
+		}
+	}
+	return false;
+}
+bool SckESP::mqttCustom()
+{
+	debugOUT(F("Trying custom MQTT..."));
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& json = jsonBuffer.parseObject(netBuff);
+
+	if (mqttConnect()) {
+		if (MQTTclient.publish(json["to"], json["pl"])) {
+			debugOUT(F("Custom MQTT published OK!!"));
 			return true;
 		}
 	}

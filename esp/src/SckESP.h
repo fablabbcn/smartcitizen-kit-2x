@@ -61,6 +61,7 @@ class SckESP
 		bool mqttHellow();
 		bool mqttPublish();
 		bool mqttInventory();
+		bool mqttCustom();
 
 		// Led control
 		const uint8_t pinLED = 4; 	// GPIO5

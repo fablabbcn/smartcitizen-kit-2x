@@ -71,7 +71,7 @@ void SckESP::update()
 	if (WiFi.status() != currentWIFIStatus) {
 		currentWIFIStatus = WiFi.status();
 		switch (currentWIFIStatus) {
-			case WL_CONNECTED: 
+			case WL_CONNECTED:
 			{
 				ledSet(1);
 				while (!sendMessage(SAMMES_WIFI_CONNECTED)) {
@@ -83,9 +83,9 @@ void SckESP::update()
 			case WL_CONNECT_FAILED: ledBlink(LED_FAST); sendMessage(SAMMES_PASS_ERROR); break;
 			case WL_NO_SSID_AVAIL: ledBlink(LED_FAST); sendMessage(SAMMES_SSID_ERROR); break;
 			case WL_DISCONNECTED:
-					       if (config.credentials.set && WiFi.getMode() != WIFI_AP) ledBlink(LED_SLOW);
-					       else ledBlink(LED_FAST);
-					       break;
+				if (config.credentials.set && WiFi.getMode() != WIFI_AP) ledBlink(LED_SLOW);
+				else ledBlink(LED_FAST);
+				break;
 			default: ledBlink(LED_FAST); sendMessage(SAMMES_WIFI_UNKNOWN_ERROR); break;
 		}
 	}
@@ -96,7 +96,6 @@ void SckESP::update()
 }
 void SckESP::tryConnection()
 {
-
 	if (WiFi.status() != WL_CONNECTED) {
 
 		debugOUT(String F("Trying connection to wifi: ") + String(config.credentials.ssid) + " - " + String(config.credentials.pass));
@@ -120,7 +119,6 @@ void SckESP::wifiOFF()
 // **** Input/Output
 void SckESP::debugOUT(String strOut)
 {
-
 	if (telnetDebug) {
 		strOut += "\r\n";
 		Debug.println(strOut.c_str());
@@ -181,83 +179,81 @@ bool SckESP::sendMessage()
 }
 void SckESP::receiveMessage(ESPMessage wichMessage)
 {
-
 	switch(wichMessage)
-{
-
-	case ESPMES_SET_CONFIG:
 	{
-			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-			JsonObject& json = jsonBuffer.parseObject(netBuff);
-			config.credentials.set = json["cs"];
-			strcpy(config.credentials.ssid, json["ss"]);
-			strcpy(config.credentials.pass, json["pa"]);
-			config.token.set = json["ts"];
-			strcpy(config.token.token, json["to"]);
 
-			saveConfig(config);
+		case ESPMES_SET_CONFIG:
+		{
+				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+				JsonObject& json = jsonBuffer.parseObject(netBuff);
+				config.credentials.set = json["cs"];
+				strcpy(config.credentials.ssid, json["ss"]);
+				strcpy(config.credentials.pass, json["pa"]);
+				config.token.set = json["ts"];
+				strcpy(config.token.token, json["to"]);
+
+				saveConfig(config);
+				break;
+		}
+		case ESPMES_GET_NETINFO:
+
+			sendNetinfo();
 			break;
-	}
-	case ESPMES_GET_NETINFO:
 
-		sendNetinfo();
-		break;
+		case ESPMES_GET_TIME:
 
-	case ESPMES_GET_TIME:
-
-		sendTime();
-		break;
-
-	case ESPMES_MQTT_HELLO:
-
-		if (mqttHellow()) sendMessage(SAMMES_MQTT_HELLO_OK, "");
-		break;
-
-	case ESPMES_MQTT_PUBLISH:
-	{
-			debugOUT("Receiving new readings...");
-			if (mqttPublish()) {
-				delay(500);
-				sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
-			} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
+			sendTime();
 			break;
-	}
-	case ESPMES_MQTT_INVENTORY:
-	{
-			debugOUT("Receiving MQTT inventory...");
-			if (mqttInventory()) {
-				delay(500);
-				sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
-			} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
+
+		case ESPMES_MQTT_HELLO:
+
+			if (mqttHellow()) sendMessage(SAMMES_MQTT_HELLO_OK, "");
 			break;
+
+		case ESPMES_MQTT_PUBLISH:
+		{
+				debugOUT("Receiving new readings...");
+				if (mqttPublish()) {
+					delay(500);
+					sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
+				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
+				break;
+		}
+		case ESPMES_MQTT_INVENTORY:
+		{
+				debugOUT("Receiving MQTT inventory...");
+				if (mqttInventory()) {
+					delay(500);
+					sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
+				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
+				break;
+		}
+		case ESPMES_CONNECT:
+
+			tryConnection();
+			break;
+
+		case ESPMES_START_AP:
+
+			startAP();
+			break;
+
+		case ESPMES_STOP_AP:
+
+			stopAP();
+			break;
+		case ESPMES_LED_OFF:
+
+			ledSet(0);
+			break;
+
+		default: break;
 	}
-	case ESPMES_CONNECT:
-
-		tryConnection();
-		break;
-
-	case ESPMES_START_AP:
-
-		startAP();
-		break;
-
-	case ESPMES_STOP_AP:
-
-		stopAP();
-		break;
-	case ESPMES_LED_OFF:
-
-		ledSet(0);
-		break;
-
-	default: break;
-}
 }
 
 // **** MQTT
 bool SckESP::mqttConnect()
 {
-
 	if (MQTTclient.connected()) return true;
 
 	debugOUT(F("Connecting to MQTT server..."));
@@ -275,7 +271,6 @@ bool SckESP::mqttConnect()
 }
 bool SckESP::mqttHellow()
 {
-
 	debugOUT(F("Trying MQTT Hello..."));
 
 	if (mqttConnect()) {
@@ -298,7 +293,6 @@ bool SckESP::mqttHellow()
 }
 bool SckESP::mqttPublish()
 {
-
 	debugOUT(F("Trying MQTT publish..."));
 
 	if (mqttConnect()) {
@@ -333,7 +327,6 @@ bool SckESP::mqttInventory()
 // **** Notifications
 bool SckESP::sendNetinfo()
 {
-
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& jsonSend = jsonBuffer.createObject();
 	jsonSend["hn"] = hostname;
@@ -394,7 +387,6 @@ void SckESP::stopAP()
 }
 void SckESP::startWebServer()
 {
-
 	// Android captive portal.
 	webServer.on("/generate_204", [&](){
 		flashReadFile("/");
@@ -410,7 +402,7 @@ void SckESP::startWebServer()
 		flashReadFile(webServer.uri());
 	});
 
-	// Handle set 
+	// Handle set
 	// /set?ssid=value1&password=value2&token=value3&epoch=value&pubint=60&mode=value
 	//	ssid
 	//	password
@@ -425,9 +417,9 @@ void SckESP::startWebServer()
 	/* webServer.on("/console", [&](){ */
 
 	/* 	debugOUT(F("Received web console request.")); */
-		
+
 	/* 	clearParam(); */
-	/* 	strncpy(msgOut.param, webServer.arg(0).c_str(), 240); */ 
+	/* 	strncpy(msgOut.param, webServer.arg(0).c_str(), 240); */
 	/* 	msgOut.com = ESP_CONSOLE_COM; */
 	/* 	SAMsendMsg(); */
 
@@ -449,9 +441,9 @@ void SckESP::startWebServer()
 
 		debugOUT(F("Received web Access point request."));
 
-   		String json = "{\"nets\":[";
+		String json = "{\"nets\":[";
 
-   		// int netNum = WiFi.scanNetworks();
+		// int netNum = WiFi.scanNetworks();
 		for (int i=0; i<netNumber; i++) {
 			json += "{\"ssid\":\"" + String(WiFi.SSID(i));
 			json += "\",\"ch\":" + String(WiFi.channel(i));
@@ -466,7 +458,7 @@ void SckESP::startWebServer()
 
 	// Handle SSDP
 	webServer.on("/description.xml", HTTP_GET, [](){
-    	SSDP.schema(webServer.client());
+		SSDP.schema(webServer.client());
 	});
 
 	webServer.begin();
@@ -494,7 +486,7 @@ void SckESP::webSet()
 		String tssid = webServer.arg("ssid");
 		String tpass = "";
 		if (webServer.hasArg("password")) tpass = webServer.arg("password");
-			
+
 		// If ssid is no zero chars
 		if (tssid.length() > 0) {
 			config.credentials.set = true;
@@ -559,7 +551,7 @@ void SckESP::webSet()
 		uint32_t iepoch = tepoch.toInt();
 		const unsigned long DEFAULT_TIME = 1357041600; // Jan 1 2013
 
-		if (iepoch >= DEFAULT_TIME) { 
+		if (iepoch >= DEFAULT_TIME) {
 			setTime(iepoch);
 			debugOUT(F("Time updated from apmode web!!!"));
 			if (sendMessage(SAMMES_TIME, tepoch.c_str())) debugOUT(F("Time sent to SAM!!!"));
@@ -573,7 +565,7 @@ void SckESP::webSet()
 
 	// Publish interval (seconds)
 	if (webServer.hasArg("pubint")) {
-		
+
 		String tinterval = webServer.arg("pubint");
 		uint32_t intTinterval = tinterval.toInt();
 
@@ -585,12 +577,12 @@ void SckESP::webSet()
 			json += "\"pubint\":\"false\"";
 			debugOUT(F("Invalid publish interval from apmode web!!!"));
 		}
-				
+
 	} else {
 		json += "\"pubint\":\"false\"";
 	}
 	json += "\"pubint\":\"false\"";
-	
+
 	sprintf(netBuff, "%c", SAMMES_SET_CONFIG);
 	jsonConf.printTo(&netBuff[1], jsonConf.measureLength() + 1);
 	if (sendMessage()) {
@@ -601,13 +593,12 @@ void SckESP::webSet()
 }
 bool SckESP::flashReadFile(String path)
 {
-
 	if (captivePortal()) { // If caprive portal redirect instead of displaying the page.
- 	   return false;
+		return false;
 	}
-	
+
 	debugOUT("Received file request: " + path);
-	
+
 	// send index file in case no file is requested
 	if (path.endsWith("/")) path += "index.gz";
 
@@ -622,7 +613,7 @@ bool SckESP::flashReadFile(String path)
 	else if(path.endsWith(".ico")) contentType = "image/x-icon";
 
 	if (SPIFFS.exists(path)) {
-	  
+
 		File file = SPIFFS.open(path, "r");
 		webServer.streamFile(file, contentType);
 		file.close();
@@ -634,33 +625,32 @@ bool SckESP::flashReadFile(String path)
 }
 bool SckESP::captivePortal()
 {
-  if (!isIp(webServer.hostHeader()) && webServer.hostHeader() != (String(hostname)+".local")) {
-    webServer.sendHeader("Location", String("http://") + toStringIp(webServer.client().localIP()), true);
-    webServer.send (302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
-    webServer.client().stop(); // Stop is needed because we sent no content length
-    return true;
-  }
-  return false;
+	if (!isIp(webServer.hostHeader()) && webServer.hostHeader() != (String(hostname)+".local")) {
+		webServer.sendHeader("Location", String("http://") + toStringIp(webServer.client().localIP()), true);
+		webServer.send (302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
+		webServer.client().stop(); // Stop is needed because we sent no content length
+		return true;
+	}
+	return false;
 }
 bool SckESP::isIp(String str)
 {
-  for (uint8_t i=0; i<str.length(); i++) {
-    uint8_t c = str.charAt(i);
-    if (c != '.' && (c < '0' || c > '9')) return false;
-  }
-  return true;
+	for (uint8_t i=0; i<str.length(); i++) {
+		uint8_t c = str.charAt(i);
+		if (c != '.' && (c < '0' || c > '9')) return false;
+	}
+	return true;
 }
 String SckESP::toStringIp(IPAddress ip)
 {
-  String res = "";
-  for (int i = 0; i < 3; i++) {
-    res += String((ip >> (8 * i)) & 0xFF) + ".";
-  }
-  res += String(((ip >> 8 * 3)) & 0xFF);
-  return res;
+	String res = "";
+	for (int i = 0; i < 3; i++) {
+		res += String((ip >> (8 * i)) & 0xFF) + ".";
+	}
+	res += String(((ip >> 8 * 3)) & 0xFF);
+	return res;
 }
-
-void SckESP::webStatus() 
+void SckESP::webStatus()
 {
 
 	debugOUT(F("Received web status info request."));
@@ -669,7 +659,7 @@ void SckESP::webStatus()
 	String json;
 	if (config.token.set) json = "{\"token\":\"" + String(config.token.token) + "\",";
 	else json = "{\"token\":\"null\",";
-	
+
 	// Wifi config
 	if (config.credentials.set) {
 		json += "\"ssid\":\"" + String(config.credentials.ssid) + "\",";
@@ -695,7 +685,7 @@ void SckESP::webStatus()
 
 	// Time
 	String epochSTR = "0";
-	if (timeStatus() == timeSet) epochSTR = String(now());		
+	if (timeStatus() == timeSet) epochSTR = String(now());
 	json += "\"time\":" + epochSTR + ",";
 
 	// Battery
@@ -709,7 +699,7 @@ void SckESP::webStatus()
 	// SDcard
 	String sdPresent = "wip";
 	json += "\"sdcard\":\"" + sdPresent + "\",";
- 
+
 	// ESP firmware version
 	json += "\"ESPversion\":\"" + ESPversion + "\",";
 
@@ -719,7 +709,7 @@ void SckESP::webStatus()
 	String wip = "wip";
 	// SAM firmware version
 	json += "\"SAMversion\":\"" + wip + "\",";
-	
+
 	// SAM build date
 	json += "\"SAMbuilddate\":\"" + wip + "\",";
 
@@ -741,7 +731,6 @@ void SckESP::webStatus()
 }
 void SckESP::scanAP()
 {
-
 	debugOUT(F("Scaning Wifi networks..."));
 
 	netNumber = WiFi.scanNetworks();
@@ -782,7 +771,7 @@ bool SckESP::saveConfig()
 			ledBlink(LED_SLOW);
 			tryConnection();
 		} else {
-			startAP();	
+			startAP();
 		}
 		return true;
 	}
@@ -827,7 +816,6 @@ void SckESP::ledSet(uint8_t value)
 }
 void SckESP::ledBlink(float rate)
 {
-
 	blink.attach_ms(rate, ledToggle);
 }
 void SckESP::_ledToggle()

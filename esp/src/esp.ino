@@ -2,26 +2,29 @@
 
 SckESP esp;
 
-void setup() {
+void setup()
+{
 	esp.setup();
 }
-
-void loop() {
+void loop()
+{
 	esp.update();
 }
 
 
-void ledToggle() {
+void ledToggle()
+{
 	esp._ledToggle();
 }
-
-
-time_t ntpProvider() {
+time_t ntpProvider()
+{
 	return esp.getNtpTime();
 }
-void extSet() {
+void extSet()
+{
 	esp.webSet();
 }
-void extStatus() {
+void extStatus()
+{
 	esp.webStatus();
 }

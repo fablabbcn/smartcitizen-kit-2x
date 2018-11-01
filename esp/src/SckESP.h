@@ -21,7 +21,7 @@
 #define NTP_SERVER_NAME "ntp.smartcitizen.me"
 #define NTP_SERVER_PORT 80
 #define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
-#define MQTT_SERVER_PORT 80 
+#define MQTT_SERVER_PORT 80
 #define MQTT_QOS 1
 
 struct Credentials { bool set=false; char ssid[64]="null"; char pass[64]="null"; };
@@ -90,7 +90,7 @@ class SckESP
 		// AP mode
 		void startAP();
 		void stopAP();
-		void scanAP();		
+		void scanAP();
 		int netNumber;
 		void startWebServer();
 		bool flashReadFile(String path);

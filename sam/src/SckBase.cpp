@@ -647,6 +647,7 @@ void SckBase::saveConfig(bool defaults)
 		if (st.wifiSet && st.tokenSet) {
 		
 			pendingSyncConfig = true;
+			infoPublished = false;
 			st.onSetup = false;
 			sendMessage(ESPMES_STOP_AP, "");
 			led.update(led.BLUE, led.PULSE_SOFT);

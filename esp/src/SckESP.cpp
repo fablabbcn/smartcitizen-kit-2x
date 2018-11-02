@@ -356,6 +356,8 @@ bool SckESP::sendNetinfo()
 	ipAddr = WiFi.localIP().toString();
 	jsonSend["ip"] = ipAddr;
 	jsonSend["mac"] = macAddr;
+	jsonSend["ver"] = ESPversion;
+	jsonSend["bd"] = ESPbuildDate;
 
 	sprintf(netBuff, "%c", SAMMES_NETINFO);
 	jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);

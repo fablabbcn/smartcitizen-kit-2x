@@ -185,8 +185,7 @@ void SckBase::reviewState()
 		sendConfig();
 		return;
 	}
-	if (!config.mac.valid) sendMessage(ESPMES_GET_NETINFO);
-
+	if (!espInfoUpdated) sendMessage(ESPMES_GET_NETINFO);
 
 	// SD card debug check file size and backup big files.
 	if (config.sdDebug) {
@@ -926,6 +925,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				ipAddress = json["ip"].as<String>();
 				macAddress = json["mac"].as<String>();
 				hostname = json["hn"].as<String>();
+				ESPversion = json["ver"].as<String>();
+				ESPbuildDate = json["bd"].as<String>();
 
 				if (macAddress.length() <= 0 ) {
 					sckOut("No net info received!! retrying...");
@@ -934,6 +935,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				}
 
 				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname.c_str(), ipAddress.c_str(), macAddress.c_str());
+				sckOut();
+				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
 				sckOut();
 
 				// Udate mac address if we haven't yet
@@ -944,6 +947,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 					saveConfig();
 				}
 
+				if (!espInfoUpdated) {
+					espInfoUpdated = true;
+					saveInfo();
+				}
 				break;
 
 		}
@@ -1069,9 +1076,8 @@ bool SckBase::sdSelect()
 }
 void SckBase::saveInfo()
 {
-
 	// Info file
-	if (!config.mac.valid) sendMessage(ESPMES_GET_NETINFO);
+	if (!espInfoUpdated) sendMessage(ESPMES_GET_NETINFO);
 	else if (sdSelect()) {
 		if (sd.exists(infoFile.name)) sd.remove(infoFile.name);
 		infoFile.file = sd.open(infoFile.name, FILE_WRITE);
@@ -1085,8 +1091,6 @@ void SckBase::saveInfo()
 		infoFile.file.close();
 		sckOut("Saved INFO.TXT file!!");
 	}
-
-
 }
 
 // **** Flash memory

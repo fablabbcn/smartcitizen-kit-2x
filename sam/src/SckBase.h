@@ -90,7 +90,6 @@ struct SckState
 class SckBase
 {
 	private:
-
 		// Input/Output
 		String serialBuff;
 		String previousCommand;
@@ -114,6 +113,7 @@ class SckBase
 		void receiveMessage(SAMMessage wichMessage);
 		bool sendConfig();
 		bool pendingSyncConfig = false;
+		bool espInfoUpdated = false;
 
 		// Button
 		const uint16_t buttonLong = 5000;
@@ -166,6 +166,11 @@ class SckBase
 		bool alarmRunning_TC3 = false;
 
 	public:
+		const String hardwareVer = "2.0";
+		const String SAMversion	= "0.3.0-" + String(__GIT_HASH__);
+		const String SAMbuildDate = String(__DATE__) + '-' + String(__TIME__);
+		String ESPversion = "not synced";
+		String ESPbuildDate = "not synced";
 
 		// LightRead
 		ReadLight readLight;

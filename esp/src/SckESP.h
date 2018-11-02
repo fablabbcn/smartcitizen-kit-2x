@@ -34,7 +34,6 @@ struct ESP_Configuration {
 class SckESP
 {
 	private:
-
 		// Input/Output
 		bool serialDebug = false;		// Interfere with ESP <-> SAM comunnication (use with caution)
 		bool telnetDebug = false;
@@ -111,6 +110,9 @@ class SckESP
 
 
 	public:
+		const String ESPversion = "0.3.2-" + String(__GIT_HASH__);
+		const String ESPbuildDate = String(__DATE__) + '-' + String(__TIME__);
+
 		void setup();
 		void update();
 		void webSet();

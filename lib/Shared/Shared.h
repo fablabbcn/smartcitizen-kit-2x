@@ -52,8 +52,3 @@ enum SAMMessage {
 #define SAM_ADDRESS 1
 #define ESP_ADDRESS 2
 
-const String hardwareVer = "2.0";
-const String SAMversion	= "0.2.1-" + String(__GIT_HASH__);
-const String SAMbuildDate = String(__DATE__) + '-' + String(__TIME__);
-const String ESPversion = "0.2.0-" + String(__GIT_HASH__);
-const String ESPbuildDate = String(__DATE__) + '-' + String(__TIME__);

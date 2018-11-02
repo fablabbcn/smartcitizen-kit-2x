@@ -70,6 +70,7 @@ struct SckState
 	Status wifiStat = Status(1, 60000);
 	Status timeStat = Status(2, 3000);
 	Status helloStat = Status(3, 5000);
+	Status infoStat = Status(3, 5000);
 	Status publishStat = Status(3, 5000);
 
 	inline bool operator==(SckState a) {
@@ -113,7 +114,6 @@ class SckBase
 		void receiveMessage(SAMMessage wichMessage);
 		bool sendConfig();
 		bool pendingSyncConfig = false;
-		bool espInfoUpdated = false;
 
 		// Button
 		const uint16_t buttonLong = 5000;
@@ -127,6 +127,9 @@ class SckBase
 		// Configuration
 		void loadConfig();
 		bool parseLightRead();
+		bool publishInfo();
+		bool espInfoUpdated = false;
+		bool infoPublished = false;
 
 		// Urban board
 		bool urbanPresent = false;
@@ -144,6 +147,8 @@ class SckBase
 		bool sdSelect();
 		volatile bool sdInitPending = false;
 		bool sdInit();
+		bool saveInfo();
+		bool infoSaved = false;
 		// Flash memory
 		SPIFlash flash = SPIFlash(pinCS_FLASH);
 		void flashSelect();
@@ -206,7 +211,6 @@ class SckBase
 		Configuration config;
 		Configuration getConfig();
 		void saveConfig(bool defaults=false);
-		void saveInfo();
 
 		// Input/Output
 		void inputUpdate();

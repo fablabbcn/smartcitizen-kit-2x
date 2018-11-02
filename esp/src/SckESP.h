@@ -59,6 +59,7 @@ class SckESP
 		bool mqttConnect();
 		bool mqttHellow();
 		bool mqttPublish();
+		bool mqttInfo();
 		bool mqttInventory();
 		bool mqttCustom();
 

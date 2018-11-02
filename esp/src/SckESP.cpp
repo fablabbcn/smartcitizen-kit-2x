@@ -228,6 +228,15 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
 		}
+		case ESPMES_MQTT_INFO:
+		{
+				debugOUT("Receiving new info...");
+				if (mqttInfo()) {
+					delay(500);
+					sendMessage(SAMMES_MQTT_INFO_OK, "");
+				} else sendMessage(SAMMES_MQTT_INFO_ERROR, "");
+				break;
+		}
 		case ESPMES_MQTT_CUSTOM:
 		{
 				debugOUT("Receiving MQQT custom publish request...");
@@ -330,6 +339,27 @@ bool SckESP::mqttInventory()
 			return true;
 		}
 	}
+	return false;
+}
+bool SckESP::mqttInfo()
+{
+	debugOUT(F("Trying MQTT info..."));
+
+	if (mqttConnect()) {
+
+		// Prepare the topic title
+		char pubTopic[23];
+		sprintf(pubTopic, "device/sck/%s/info", config.token.token);
+
+		debugOUT(String(pubTopic));
+		debugOUT(String(netBuff));
+
+		if (MQTTclient.publish(pubTopic, netBuff)) {
+			debugOUT(F("MQTT info published OK !!!"));
+			return true;
+		}
+	}
+	debugOUT(F("MQTT info ERROR !!!"));
 	return false;
 }
 bool SckESP::mqttCustom()

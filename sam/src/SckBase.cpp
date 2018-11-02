@@ -156,8 +156,6 @@ void SckBase::setup()
 	}
 
 	if (saveNeeded) saveConfig();
-
-	saveInfo();
 }
 void SckBase::update()
 {
@@ -244,7 +242,7 @@ void SckBase::reviewState()
 		
 		if (!st.helloPending) updateSensors();
 
-		if (st.helloPending || !st.timeStat.ok || timeToPublish) {
+		if (st.helloPending || !st.timeStat.ok || timeToPublish || !infoPublished) {
 
 			if (!st.wifiStat.ok) {
 
@@ -299,6 +297,19 @@ void SckBase::reviewState()
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
 						st.timeStat.reset();
+					}
+
+				} else if (!infoPublished) {
+
+					if (st.infoStat.retry()) {
+						
+						if (publishInfo()) sckOut("Info sent!");
+
+					} else if (st.infoStat.error){
+					
+						sckOut("ERROR sending kit info to platform!!!");
+						st.infoStat.reset();
+
 					}
 
 				} else if (timeToPublish) {
@@ -721,6 +732,49 @@ bool SckBase::parseLightRead()
 	saveConfig();
 	return true;
 }
+bool SckBase::publishInfo()
+{
+	// Info file
+	if (!espInfoUpdated) sendMessage(ESPMES_GET_NETINFO);
+	else {
+		// Publish info to platform
+
+		/* { */
+		/* 	"time":"2018-07-17T06:55:06Z", */
+		/* 	"hw_ver":"2.0", */
+		/* 	"id":"45f90530-504e4b4b-372e314a-ff031e17", */
+		/* 	"sam_ver":"0.3.0-ce87e64", */
+		/* 	"sam_bd":"2018-07-17T06:55:06Z", */
+		/* 	"mac":"AB:45:2D:33:98", */
+		/* 	"esp_ver":"0.3.0-ce87e64", */
+		/* 	"esp_bd":"2018-07-17T06:55:06Z" */
+		/* } */
+
+		if (!st.espON) {
+			ESPcontrol(ESP_ON);
+			return false;
+		}
+
+		getUniqueID();
+
+		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+		JsonObject& json = jsonBuffer.createObject();
+
+		json["time"] = ISOtimeBuff;
+		json["hw_ver"] = hardwareVer.c_str();
+		json["id"] = uniqueID_str;
+		json["sam_ver"] = SAMversion.c_str();
+		json["sam_bd"] = SAMbuildDate.c_str();
+		json["mac"] = config.mac.address;
+		json["esp_ver"] = ESPversion.c_str();
+		json["esp_bd"] = ESPbuildDate.c_str();
+
+		sprintf(netBuff, "%c", ESPMES_MQTT_INFO);
+		json.printTo(&netBuff[1], json.measureLength() + 1);
+		if (sendMessage()) return true;
+	}
+	return false;
+}
 
 // **** ESP
 void SckBase::ESPcontrol(ESPcontrols controlCommand)
@@ -929,7 +983,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				ESPbuildDate = json["bd"].as<String>();
 
 				if (macAddress.length() <= 0 ) {
-					sckOut("No net info received!! retrying...");
+					sckOut("No ESP info received!! retrying...");
 					sendMessage(ESPMES_GET_NETINFO);
 					break;
 				}
@@ -943,7 +997,6 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				if (!config.mac.valid) {
 					sprintf(config.mac.address, "%s", macAddress.c_str());
 					config.mac.valid = true;
-					saveInfo();
 					saveConfig();
 				}
 
@@ -993,6 +1046,19 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			sckOut("ERROR on MQTT publish");
 			st.publishStat.error = true;
+			break;
+
+		case SAMMES_MQTT_INFO_OK:
+
+			st.infoStat.setOk();
+			infoPublished = true;
+			sckOut("Info publish OK!!");
+			break;
+
+		case SAMMES_MQTT_INFO_ERROR:
+
+			st.infoStat.error = true;
+			sckOut("ERROR on Info publish!!");
 			break;
 
 		case SAMMES_MQTT_CUSTOM_OK:
@@ -1074,23 +1140,25 @@ bool SckBase::sdSelect()
 
 	return true;
 }
-void SckBase::saveInfo()
+bool SckBase::saveInfo()
 {
-	// Info file
-	if (!espInfoUpdated) sendMessage(ESPMES_GET_NETINFO);
-	else if (sdSelect()) {
-		if (sd.exists(infoFile.name)) sd.remove(infoFile.name);
-		infoFile.file = sd.open(infoFile.name, FILE_WRITE);
-		getUniqueID();
-		sprintf(outBuff, "Hardware Version: %s\r\nSAM version: %s\r\nSAM build date: %s", hardwareVer.c_str(), SAMversion.c_str(), SAMbuildDate.c_str());
-		infoFile.file.println(outBuff);
-		sprintf(outBuff, "ESP version: %s\r\nESP build date: %s\r\nHardware ID: %lx-%lx-%lx-%lx", ESPversion.c_str(), ESPbuildDate.c_str(), uniqueID[0], uniqueID[1], uniqueID[2], uniqueID[3]);
-		infoFile.file.println(outBuff);
-		sprintf(outBuff, "MAC address: %s", config.mac.address);
-		infoFile.file.println(outBuff);
-		infoFile.file.close();
-		sckOut("Saved INFO.TXT file!!");
+	// Save info to sdcard
+	if (!infoSaved) {
+		if (sdSelect()) {
+			if (sd.exists(infoFile.name)) sd.remove(infoFile.name);
+			infoFile.file = sd.open(infoFile.name, FILE_WRITE);
+			getUniqueID();
+			sprintf(outBuff, "Hardware Version: %s\r\nSAM Hardware ID: %s\r\nSAM version: %s\r\nSAM build date: %s", hardwareVer.c_str(), uniqueID_str, SAMversion.c_str(), SAMbuildDate.c_str());
+			infoFile.file.println(outBuff);
+			sprintf(outBuff, "ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s\r\n", config.mac.address, ESPversion.c_str(), ESPbuildDate.c_str());
+			infoFile.file.println(outBuff);
+			infoFile.file.close();
+			infoSaved = true;
+			sckOut("Saved INFO.TXT file!!");
+			return true;
+		}
 	}
+	return false;
 }
 
 // **** Flash memory

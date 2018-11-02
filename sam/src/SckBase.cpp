@@ -120,7 +120,6 @@ void SckBase::setup()
 		sckOut("Urban board detected");
 		urban.stop(SENSOR_PM_1); 	// Make sure PM is off until battery is ready for it
 		urbanPresent = true;
-		readLight.setup();
 	} else {
 		sckOut("No urban board detected!!");
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -153,12 +152,6 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
-	// TEMP
-	if (st.onSetup) {
-		lightResults = readLight.read();
-		if (lightResults.ok) parseLightRead();
-	}
-
 	if (millis() % 500 == 0) reviewState();
 
 	if (millis() % 1000 == 0) updatePower();
@@ -213,7 +206,6 @@ void SckBase::reviewState()
 	/* }; */
 
 	/* state can be changed by: */
-	/* parseLightRead() */
 	/* loadConfig() */
 	/* receiveMessage() */
 	/* sdDetect() */
@@ -693,34 +685,6 @@ bool SckBase::sendConfig()
 	}
 
 	return false;
-}
-bool SckBase::parseLightRead()
-{
-	if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
-		if (lightResults.lines[1].length() > 0) {
-			lightResults.lines[1].toCharArray(config.credentials.ssid, 64);
-			lightResults.lines[2].toCharArray(config.credentials.pass, 64);
-			config.credentials.set = true;
-		}
-	}
-
-	if (lightResults.lines[0].endsWith(F("auth"))) {
-		if (lightResults.lines[3].length() > 0) {
-			lightResults.lines[3].toCharArray(config.token.token, 7);
-			config.token.set = true;
-		}
-		uint32_t receivedInterval = lightResults.lines[4].toInt();
-		if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) config.publishInterval = receivedInterval;
-	}
-
-	if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
-
-	readLight.reset();
-	config.mode = MODE_NET;
-	st.helloPending = true;
-	led.update(led.GREEN, led.PULSE_STATIC);
-	saveConfig();
-	return true;
 }
 bool SckBase::publishInfo()
 {

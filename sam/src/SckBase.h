@@ -25,7 +25,6 @@
 #include "Sensors.h"
 #include "SckUrban.h"
 #include "SckAux.h"
-#include "ReadLight.h"
 
 
 // Output
@@ -126,7 +125,6 @@ class SckBase
 
 		// Configuration
 		void loadConfig();
-		bool parseLightRead();
 		bool publishInfo();
 		bool espInfoUpdated = false;
 		bool infoPublished = false;
@@ -176,10 +174,6 @@ class SckBase
 		const String SAMbuildDate = String(__ISO_DATE__);
 		String ESPversion = "not synced";
 		String ESPbuildDate = "not synced";
-
-		// LightRead
-		ReadLight readLight;
-		dataLight lightResults;
 
 		void setup();
 		void update();

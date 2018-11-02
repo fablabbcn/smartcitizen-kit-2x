@@ -54,13 +54,13 @@ void SckESP::setup()
 		Debug.showColors(true);
 		Debug.setSerialEnabled(false);
 	}
-	sendMessage(SAMMES_DEBUG, "starting...");
-	if (!sendMessage(SAMMES_BOOTED)) bootedPending = true;
+	if (!sendStartInfo()) bootedPending = true;
 }
 void SckESP::update()
 {
 	if (bootedPending) {
-		if (sendMessage(SAMMES_BOOTED)) bootedPending = false;
+		if (sendStartInfo()) bootedPending = false;
+		return;
 	}
 
 	if (WiFi.getMode() == WIFI_AP) {
@@ -405,6 +405,19 @@ bool SckESP::sendTime()
 		sendMessage(SAMMES_TIME, epochSTR.c_str());
 	}
 	return true;
+}
+bool SckESP::sendStartInfo()
+{
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& jsonSend = jsonBuffer.createObject();
+	jsonSend["mac"] = macAddr;
+	jsonSend["ver"] = ESPversion;
+	jsonSend["bd"] = ESPbuildDate;
+
+	sprintf(netBuff, "%c", SAMMES_BOOTED);
+	jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
+
+	return sendMessage();
 }
 
 // **** APmode and WebServer

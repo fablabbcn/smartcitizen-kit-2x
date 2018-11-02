@@ -112,12 +112,7 @@ void SckBase::setup()
 
 	// Configuration
 	loadConfig();
-	if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
-	else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
-	else if (st.mode == MODE_NOT_CONFIGURED) {
-		led.update(led.RED, led.PULSE_SOFT);
-		writeHeader = true;
-	}
+	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
 
 	// Urban board
 	analogReadResolution(12);
@@ -133,7 +128,6 @@ void SckBase::setup()
 			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
 		}
 	}
-
 
 	// Detect and enable auxiliary boards
 	bool saveNeeded = false;
@@ -180,10 +174,11 @@ void SckBase::update()
 void SckBase::reviewState()
 {
 	if (pendingSyncConfig) {
-		sendConfig();
+		if (espInfoUpdated) sendConfig();
 		return;
 	}
-	if (!espInfoUpdated) sendMessage(ESPMES_GET_NETINFO);
+
+	if (sdInitPending) sdInit();
 
 	// SD card debug check file size and backup big files.
 	if (config.sdDebug) {
@@ -205,7 +200,6 @@ void SckBase::reviewState()
 		}
 	}
 
-	if (sdInitPending) sdInit();
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
@@ -597,7 +591,6 @@ void SckBase::loadConfig()
 void SckBase::saveConfig(bool defaults)
 {
 	// Save to eeprom
-	sckOut("Saving config...", PRIO_LOW);
 	if (defaults) {
 		Configuration defaultConfig;
 
@@ -650,7 +643,6 @@ void SckBase::saveConfig(bool defaults)
 			infoPublished = false;
 			st.onSetup = false;
 			sendMessage(ESPMES_STOP_AP, "");
-			led.update(led.BLUE, led.PULSE_SOFT);
 		
 		} else {
 
@@ -665,11 +657,8 @@ void SckBase::saveConfig(bool defaults)
 		if (st.wifiSet) pendingSyncConfig = true;
 		st.onSetup = false;
 		sendMessage(ESPMES_STOP_AP, "");
-		led.update(led.PINK, led.PULSE_SOFT);
 
-	} else if (st.mode == MODE_NOT_CONFIGURED) {
-		enterSetup();
-	}	
+	}
 }
 Configuration SckBase::getConfig()
 {
@@ -698,7 +687,7 @@ bool SckBase::sendConfig()
 	for (uint8_t i=0; i<3; i++) {
 		if (sendMessage()) {
 			pendingSyncConfig = false;
-			sckOut("Saved configuration on ESP!!", PRIO_LOW);
+			sckOut("Synced config with ESP!!", PRIO_LOW);
 			return true;
 		}
 	}
@@ -994,19 +983,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
 				sckOut();
 
-				// Udate mac address if we haven't yet
-				if (!config.mac.valid) {
-					sprintf(config.mac.address, "%s", macAddress.c_str());
-					config.mac.valid = true;
-					saveConfig();
-				}
-
-				if (!espInfoUpdated) {
-					espInfoUpdated = true;
-					saveInfo();
-				}
 				break;
-
 		}
 		case SAMMES_WIFI_CONNECTED:
 
@@ -1073,8 +1050,27 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 			break;
 
 		case SAMMES_BOOTED:
-
+		{
 			sckOut("ESP finished booting");
+
+			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+			JsonObject& json = jsonBuffer.parseObject(netBuff);
+			macAddress = json["mac"].as<String>();
+			ESPversion = json["ver"].as<String>();
+			ESPbuildDate = json["bd"].as<String>();
+
+			// Udate mac address if we haven't yet
+			if (!config.mac.valid) {
+				sckOut("Updated MAC address");
+				sprintf(config.mac.address, "%s", macAddress.c_str());
+				config.mac.valid = true;
+				saveConfig();
+			}
+
+			if (!espInfoUpdated) {
+				espInfoUpdated = true;
+				saveInfo();
+			}
 
 			if (pendingSyncConfig) sendConfig();
 
@@ -1089,7 +1085,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				else sendMessage(ESPMES_START_AP);
 			}
 			break;
-
+		}
 		default: break;
 	}
 }

@@ -54,6 +54,7 @@ class SckESP
 		bool sendCredentials();
 		bool sendNetinfo();
 		bool sendTime();
+		bool sendStartInfo();
 
 		// **** MQTT
 		bool mqttConnect();

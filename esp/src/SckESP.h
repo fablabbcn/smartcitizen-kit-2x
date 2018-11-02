@@ -111,7 +111,7 @@ class SckESP
 
 	public:
 		const String ESPversion = "0.3.2-" + String(__GIT_HASH__);
-		const String ESPbuildDate = String(__DATE__) + '-' + String(__TIME__);
+		const String ESPbuildDate = String(__ISO_DATE__);
 
 		void setup();
 		void update();

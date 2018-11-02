@@ -168,7 +168,7 @@ class SckBase
 	public:
 		const String hardwareVer = "2.0";
 		const String SAMversion	= "0.3.0-" + String(__GIT_HASH__);
-		const String SAMbuildDate = String(__DATE__) + '-' + String(__TIME__);
+		const String SAMbuildDate = String(__ISO_DATE__);
 		String ESPversion = "not synced";
 		String ESPbuildDate = "not synced";
 

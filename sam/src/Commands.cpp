@@ -48,11 +48,9 @@ void reset_com(SckBase* base, String parameters)
 void getVersion_com(SckBase* base, String parameters)
 {
 	base->getUniqueID();
-	sprintf(base->outBuff, "Hardware Version: %s\r\nSAM version: %s\r\nSAM build date: %s", base->hardwareVer.c_str(), base->SAMversion.c_str(), base->SAMbuildDate.c_str());
+	sprintf(base->outBuff, "Hardware Version: %s\r\nSAM Hardware ID: %s\r\nSAM version: %s\r\nSAM build date: %s", base->hardwareVer.c_str(), base->uniqueID_str, base->SAMversion.c_str(), base->SAMbuildDate.c_str());
 	base->sckOut();
-	sprintf(base->outBuff, "ESP version: %s\r\nESP build date: %s\r\nSAM Hardware ID: %lx-%lx-%lx-%lx", base->ESPversion.c_str(), base->ESPbuildDate.c_str(), base->uniqueID[0], base->uniqueID[1], base->uniqueID[2], base->uniqueID[3]);
-	base->sckOut();
-	sprintf(base->outBuff, "ESP MAC address: %s", base->config.mac.address);
+	sprintf(base->outBuff, "ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s\r\n", base->config.mac.address, base->ESPversion.c_str(), base->ESPbuildDate.c_str());
 	base->sckOut();
 }
 void resetCause_com(SckBase* base, String parameters)

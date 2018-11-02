@@ -1693,7 +1693,6 @@ void SckBase::epoch2iso(uint32_t toConvert, char* isoTime)
 
 void SckBase::getUniqueID()
 {
-
 	volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
 	uniqueID[0] = *ptr1;
 
@@ -1703,6 +1702,8 @@ void SckBase::getUniqueID()
 	uniqueID[2] = *ptr;
 	ptr++;
 	uniqueID[3] = *ptr;
+
+	sprintf(uniqueID_str,  "%lX%lX%lX%lX", uniqueID[0], uniqueID[1], uniqueID[2], uniqueID[3]);
 }
 bool I2Cdetect(TwoWire *_Wire, byte address)
 {

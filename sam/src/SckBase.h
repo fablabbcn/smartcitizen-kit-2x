@@ -254,6 +254,7 @@ class SckBase
 		// Misc
 		void getUniqueID();
 		uint32_t uniqueID[4];
+		char uniqueID_str[33];
 
 		const char *modeTitles[MODE_COUNT] PROGMEM = {
 			"not configured",		// modeTitles[MODE_NOT_CONFIGURED]

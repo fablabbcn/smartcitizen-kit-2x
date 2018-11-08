@@ -182,7 +182,7 @@ void SckBase::reviewState()
 				if (debugFile.file) {
 
 					uint32_t debugSize = debugFile.file.size();
-				
+
 					// If file is bigger than 50mb rename the file.
 					if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
 					debugFile.file.close();
@@ -225,7 +225,7 @@ void SckBase::reviewState()
 		if (!st.onSetup) enterSetup();
 
 	} else if (st.mode == MODE_NET) {
-		
+
 		if (!st.helloPending) updateSensors();
 
 		if (st.helloPending || !st.timeStat.ok || timeToPublish || !infoPublished) {
@@ -233,15 +233,15 @@ void SckBase::reviewState()
 			if (!st.wifiStat.ok) {
 
 				st.wifiStat.retry();
-				
+
 				if (!st.espON) ESPcontrol(ESP_ON);
 				else if (st.wifiStat.error) {
-					
+
 					sckOut("ERROR Can't publish without wifi!!!");
 
 					// TODO replace this with flash saving and in next publish push all flash readings
 					sdPublish();
-					
+
 					ESPcontrol(ESP_OFF); 		// Hard off not sleep to be sure the ESP state is reset
 					led.update(led.BLUE, led.PULSE_HARD_FAST);
 
@@ -250,9 +250,9 @@ void SckBase::reviewState()
 				}
 
 			} else {
-				
+
 				led.update(led.BLUE, led.PULSE_SOFT);
-			
+
 				if (st.helloPending) {
 
 					if (st.helloStat.retry()) {
@@ -288,11 +288,11 @@ void SckBase::reviewState()
 				} else if (!infoPublished) {
 
 					if (st.infoStat.retry()) {
-						
+
 						if (publishInfo()) sckOut("Info sent!");
 
 					} else if (st.infoStat.error){
-					
+
 						sckOut("ERROR sending kit info to platform!!!");
 						st.infoStat.reset();
 
@@ -326,28 +326,28 @@ void SckBase::reviewState()
 					} else if (st.publishStat.retry()) netPublish();
 				}
 			}
-		} 
+		}
 
 	} else if  (st.mode == MODE_SD) {
 
 
 		if (!st.cardPresent) {
-		
+
 			sckOut("ERROR can't find SD card!!!");
 			if (st.espON) ESPcontrol(ESP_OFF);
 			led.update(led.PINK, led.PULSE_HARD_FAST);
-			
+
 		} else if (!st.timeStat.ok) {
-			
+
 			if (!st.wifiSet)  {
-					
+
 				sckOut("ERROR time is not synced and no wifi set!!!");
 				led.update(led.PINK, led.PULSE_HARD_FAST);
 
 			} else {
-				
+
 				if (!st.wifiStat.ok) {
-				
+
 					st.wifiStat.retry();
 
 					if (!st.espON) ESPcontrol(ESP_ON);
@@ -360,7 +360,7 @@ void SckBase::reviewState()
 						st.wifiStat.reset();
 					}
 
-				
+
 				} else {
 
 					if (st.timeStat.retry()) {
@@ -376,7 +376,7 @@ void SckBase::reviewState()
 					}
 				}
 			}
-		
+
 		} else {
 			led.update(led.PINK, led.PULSE_SOFT);
 			if (st.espON) ESPcontrol(ESP_OFF);
@@ -439,7 +439,7 @@ void SckBase::inputUpdate()
 {
 
 	if (SerialUSB.available()) {
-		
+
 		char buff = SerialUSB.read();
 		uint16_t blen = serialBuff.length();
 
@@ -506,7 +506,7 @@ void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine)
 }
 void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 {
-	if (strncmp(strOut, outBuff, strlen(strOut)-1) == 0) { 
+	if (strncmp(strOut, outBuff, strlen(strOut)-1) == 0) {
 		outRepetitions++;
 		if (outRepetitions >= 10) {
 			sckOut("Last message repeated 10 times");
@@ -587,11 +587,11 @@ void SckBase::saveConfig(bool defaults)
 		Configuration defaultConfig;
 
 		if (config.mac.valid) macAddress = String(config.mac.address); 	// If we already have a mac address keep it
-		
+
 		config = defaultConfig;
-		
+
 		if (macAddress.length() > 0) {
-			sprintf(config.mac.address, "%s", macAddress.c_str()); 
+			sprintf(config.mac.address, "%s", macAddress.c_str());
 			config.mac.valid = true;
 		}
 
@@ -630,12 +630,12 @@ void SckBase::saveConfig(bool defaults)
 	if (st.mode == MODE_NET) {
 
 		if (st.wifiSet && st.tokenSet) {
-		
+
 			pendingSyncConfig = true;
 			infoPublished = false;
 			st.onSetup = false;
 			sendMessage(ESPMES_STOP_AP, "");
-		
+
 		} else {
 
 			if (!st.wifiSet) sckOut("ERROR Wifi not configured: can't set Network Mode!!!");
@@ -644,7 +644,7 @@ void SckBase::saveConfig(bool defaults)
 		}
 
 	} else if (st.mode == MODE_SD) {
-	
+
 		st.helloPending = false;
 		if (st.wifiSet) pendingSyncConfig = true;
 		st.onSetup = false;
@@ -696,7 +696,7 @@ bool SckBase::publishInfo()
 		/* { */
 		/* 	"time":"2018-07-17T06:55:06Z", */
 		/* 	"hw_ver":"2.0", */
-		/* 	"id":"45f90530-504e4b4b-372e314a-ff031e17", */
+		/* 	"id":"6C4C1AF4504E4B4B372E314AFF031619", */
 		/* 	"sam_ver":"0.3.0-ce87e64", */
 		/* 	"sam_bd":"2018-07-17T06:55:06Z", */
 		/* 	"mac":"AB:45:2D:33:98", */
@@ -817,14 +817,14 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				sckOut(PRIO_LOW);
 				st.wifiStat.reset();
 				espStarted = 0;
-				break;	
+				break;
 		}
 	}
 }
 void SckBase::ESPbusUpdate()
 {
 	if (manager.available()) {
-		
+
 		uint8_t len = NETPACK_TOTAL_SIZE;
 
 		if (manager.recvfromAck(netPack, &len)) {
@@ -906,7 +906,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 					strcpy(config.credentials.ssid, json["ss"]);
 					if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
 				} else config.credentials.set = false;
-				
+
 
 				if (json.containsKey("to")) {
 					config.token.set = true;
@@ -1059,7 +1059,7 @@ void SckBase::mqttCustom(const char *topic, const char *payload)
 	JsonObject& json = jsonBuffer.createObject();
 
 	json["to"] = topic;
-	json["pl"] = payload; 
+	json["pl"] = payload;
 
 	sprintf(netBuff, "%c", ESPMES_MQTT_CUSTOM);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
@@ -1184,7 +1184,7 @@ void SckBase::updatePower()
 	if (prevBattPresent != battery.present) {
 
 		battChanged = true;
-		
+
 		if (battery.present) {
 			sckOut("Battery inserted!!");
 			if (!charger.chargeState()) charger.chargeState(true); 	// Enable charging
@@ -1211,7 +1211,7 @@ void SckBase::updatePower()
 
 		// Reset emergencyLowBatt counter
 		battery.emergencyLowBatCounter = 0;
-	
+
 		// Update charge status
 		SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
 		charger.chargeStatus = charger.getChargeStatus();
@@ -1264,7 +1264,7 @@ void SckBase::updatePower()
 			} else led.chargeStatus = led.CHARGE_LOW;
 			// TODO replace this with proper led feeback and sleep mode
 			/* led.powerEmergency = true; */
-		
+
 		// Detect lowBatt
 		} else if (battery.lastPercent < battery.threshold_low) {
 			if (battery.lowBatCounter < 5) {
@@ -1275,7 +1275,7 @@ void SckBase::updatePower()
 		} else {
 			sckOut("Battery is not charging");
 			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
-		
+
 		}
 	}
 
@@ -1287,7 +1287,7 @@ void SckBase::updatePower()
 				if (battery.lastPercent > battery.threshold_emergency || charger.chargeStatus == charger.CHRG_FAST_CHARGING) {
 					if (urban.sck_pm.start()) sckOut("Started PM sensor...");
 				}
-			} 	
+			}
 		}
 	}
 }
@@ -1335,42 +1335,42 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		case BOARD_BASE:
 		{
 			switch (wichSensor) {
-				case SENSOR_BATT_PERCENT: 
+				case SENSOR_BATT_PERCENT:
 				 	// Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
-					result = true; 
+					result = true;
 					break;
 				case SENSOR_BATT_VOLTAGE:
 				case SENSOR_BATT_CHARGE_RATE:
-				case SENSOR_BATT_POWER: 
+				case SENSOR_BATT_POWER:
 					if (battery.isPresent(charger)) result = true;
 					break;
-				case SENSOR_SDCARD: 
+				case SENSOR_SDCARD:
 					result = true;
 					break;
 				default: break;
-			}			 
+			}
 		}
 		case BOARD_URBAN: if (urban.start(wichSensor)) result = true; break;
 		case BOARD_AUX:	{
-					if (auxBoards.start(wichSensor)) result = true; 
+					if (auxBoards.start(wichSensor)) result = true;
 					break;
 				}
 		default: break;
 	}
-	
+
 	if (result) {
 		sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
 		sensors[wichSensor].enabled = true;
-		
+
 		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_PM_1 || 
+		if ( 	wichSensor == SENSOR_PM_1 ||
 			wichSensor == SENSOR_PM_25 ||
 			wichSensor == SENSOR_PM_10) {
 			sensors[SENSOR_PM_1].enabled = true;
 			sensors[SENSOR_PM_25].enabled = true;
 			sensors[SENSOR_PM_10].enabled = true;
 			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_PM_25].title, sensors[SENSOR_PM_10].title);
-		} else if ( 	wichSensor == SENSOR_EXT_PM_1 || 
+		} else if ( 	wichSensor == SENSOR_EXT_PM_1 ||
 				wichSensor == SENSOR_EXT_PM_25 ||
 				wichSensor == SENSOR_EXT_PM_10) {
 			sensors[SENSOR_EXT_PM_1].enabled = true;
@@ -1380,7 +1380,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		}
 		sckOut();
 		return true;
-	} 
+	}
 
 	return false;
 }
@@ -1394,24 +1394,24 @@ bool SckBase::disableSensor(SensorType wichSensor)
 				case SENSOR_BATT_PERCENT:
 				case SENSOR_BATT_VOLTAGE:
 				case SENSOR_BATT_CHARGE_RATE:
-				case SENSOR_BATT_POWER: 
+				case SENSOR_BATT_POWER:
 				case SENSOR_SDCARD:
 					result = true;
 					break;
 				default: break;
-			}			 
+			}
 		}
 		case BOARD_URBAN: if (urban.stop(wichSensor)) result = true; break;
 		case BOARD_AUX: if (auxBoards.stop(wichSensor)) result = true; break;
 		default: break;
 	}
-	
+
 	if (result) {
 		sprintf(outBuff, "Disabling %s", sensors[wichSensor].title);
 		sensors[wichSensor].enabled = false;
 
 		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_PM_1 || 
+		if ( 	wichSensor == SENSOR_PM_1 ||
 			wichSensor == SENSOR_PM_25 ||
 			wichSensor == SENSOR_PM_10) {
 			sensors[SENSOR_PM_1].enabled = false;

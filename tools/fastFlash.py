@@ -320,7 +320,7 @@ while True:
             savedConf = False
             while not savedConf:
                 ll = ser.readline()
-                if "Saved configuration on ESP" in ll: savedConf = True
+                if "Synced config with ESP" in ll: savedConf = True
 
             time.sleep(2)
             SCK = getSCKdata(ser, SCK)

@@ -48,9 +48,9 @@ void reset_com(SckBase* base, String parameters)
 void getVersion_com(SckBase* base, String parameters)
 {
 	base->getUniqueID();
-	sprintf(base->outBuff, "Hardware Version: %s\r\nSAM version: %s\r\nSAM build date: %s", hardwareVer.c_str(), SAMversion.c_str(), SAMbuildDate.c_str());
+	sprintf(base->outBuff, "Hardware Version: %s\r\nSAM Hardware ID: %s\r\nSAM version: %s\r\nSAM build date: %s", base->hardwareVer.c_str(), base->uniqueID_str, base->SAMversion.c_str(), base->SAMbuildDate.c_str());
 	base->sckOut();
-	sprintf(base->outBuff, "ESP version: %s\r\nESP build date: %s\r\nHardware ID: %lx-%lx-%lx-%lx", ESPversion.c_str(), ESPbuildDate.c_str(), base->uniqueID[0], base->uniqueID[1], base->uniqueID[2], base->uniqueID[3]);
+	sprintf(base->outBuff, "ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s\r\n", base->config.mac.address, base->ESPversion.c_str(), base->ESPbuildDate.c_str());
 	base->sckOut();
 }
 void resetCause_com(SckBase* base, String parameters)
@@ -567,11 +567,6 @@ void debug_com(SckBase* base, String parameters)
 {
 	// Set
 	if (parameters.length() > 0) {
-		if (parameters.equals("-light")) {
-			base->readLight.debugFlag = !base->readLight.debugFlag;
-			sprintf(base->outBuff, "ReadLight debugFlag: %s", base->readLight.debugFlag  ? "true" : "false");
-			base->sckOut();
-		}
 		if (parameters.equals("-sdcard")) {
 			base->config.sdDebug = !base->config.sdDebug;
 			sprintf(base->outBuff, "SD card debug: %s", base->config.sdDebug ? "true" : "false");
@@ -580,7 +575,6 @@ void debug_com(SckBase* base, String parameters)
 		}
 	// Get	
 	} else {
-		sprintf(base->outBuff, "ReadLight debugFlag: %s", base->readLight.debugFlag  ? "true" : "false");
 		sprintf(base->outBuff, "%s\r\nSD card debug: %s", base->outBuff, base->config.sdDebug ? "true" : "false");
 		base->sckOut();
 	}

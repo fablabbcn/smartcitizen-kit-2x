@@ -54,13 +54,13 @@ void SckESP::setup()
 		Debug.showColors(true);
 		Debug.setSerialEnabled(false);
 	}
-	sendMessage(SAMMES_DEBUG, "starting...");
-	if (!sendMessage(SAMMES_BOOTED)) bootedPending = true;
+	if (!sendStartInfo()) bootedPending = true;
 }
 void SckESP::update()
 {
 	if (bootedPending) {
-		if (sendMessage(SAMMES_BOOTED)) bootedPending = false;
+		if (sendStartInfo()) bootedPending = false;
+		return;
 	}
 
 	if (WiFi.getMode() == WIFI_AP) {
@@ -228,6 +228,15 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
 		}
+		case ESPMES_MQTT_INFO:
+		{
+				debugOUT("Receiving new info...");
+				if (mqttInfo()) {
+					delay(500);
+					sendMessage(SAMMES_MQTT_INFO_OK, "");
+				} else sendMessage(SAMMES_MQTT_INFO_ERROR, "");
+				break;
+		}
 		case ESPMES_MQTT_CUSTOM:
 		{
 				debugOUT("Receiving MQQT custom publish request...");
@@ -332,6 +341,27 @@ bool SckESP::mqttInventory()
 	}
 	return false;
 }
+bool SckESP::mqttInfo()
+{
+	debugOUT(F("Trying MQTT info..."));
+
+	if (mqttConnect()) {
+
+		// Prepare the topic title
+		char pubTopic[23];
+		sprintf(pubTopic, "device/sck/%s/info", config.token.token);
+
+		debugOUT(String(pubTopic));
+		debugOUT(String(netBuff));
+
+		if (MQTTclient.publish(pubTopic, netBuff)) {
+			debugOUT(F("MQTT info published OK !!!"));
+			return true;
+		}
+	}
+	debugOUT(F("MQTT info ERROR !!!"));
+	return false;
+}
 bool SckESP::mqttCustom()
 {
 	debugOUT(F("Trying custom MQTT..."));
@@ -356,6 +386,8 @@ bool SckESP::sendNetinfo()
 	ipAddr = WiFi.localIP().toString();
 	jsonSend["ip"] = ipAddr;
 	jsonSend["mac"] = macAddr;
+	jsonSend["ver"] = ESPversion;
+	jsonSend["bd"] = ESPbuildDate;
 
 	sprintf(netBuff, "%c", SAMMES_NETINFO);
 	jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
@@ -373,6 +405,19 @@ bool SckESP::sendTime()
 		sendMessage(SAMMES_TIME, epochSTR.c_str());
 	}
 	return true;
+}
+bool SckESP::sendStartInfo()
+{
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& jsonSend = jsonBuffer.createObject();
+	jsonSend["mac"] = macAddr;
+	jsonSend["ver"] = ESPversion;
+	jsonSend["bd"] = ESPbuildDate;
+
+	sprintf(netBuff, "%c", SAMMES_BOOTED);
+	jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
+
+	return sendMessage();
 }
 
 // **** APmode and WebServer

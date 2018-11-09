@@ -112,12 +112,7 @@ void SckBase::setup()
 
 	// Configuration
 	loadConfig();
-	if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
-	else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
-	else if (st.mode == MODE_NOT_CONFIGURED) {
-		led.update(led.RED, led.PULSE_SOFT);
-		writeHeader = true;
-	}
+	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
 
 	// Urban board
 	analogReadResolution(12);
@@ -125,7 +120,6 @@ void SckBase::setup()
 		sckOut("Urban board detected");
 		urban.stop(SENSOR_PM_1); 	// Make sure PM is off until battery is ready for it
 		urbanPresent = true;
-		readLight.setup();
 	} else {
 		sckOut("No urban board detected!!");
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -133,7 +127,6 @@ void SckBase::setup()
 			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
 		}
 	}
-
 
 	// Detect and enable auxiliary boards
 	bool saveNeeded = false;
@@ -156,17 +149,9 @@ void SckBase::setup()
 	}
 
 	if (saveNeeded) saveConfig();
-
-	saveInfo();
 }
 void SckBase::update()
 {
-	// TEMP
-	if (st.onSetup) {
-		lightResults = readLight.read();
-		if (lightResults.ok) parseLightRead();
-	}
-
 	if (millis() % 500 == 0) reviewState();
 
 	if (millis() % 1000 == 0) updatePower();
@@ -182,11 +167,11 @@ void SckBase::update()
 void SckBase::reviewState()
 {
 	if (pendingSyncConfig) {
-		sendConfig();
+		if (espInfoUpdated) sendConfig();
 		return;
 	}
-	if (!config.mac.valid) sendMessage(ESPMES_GET_NETINFO);
 
+	if (sdInitPending) sdInit();
 
 	// SD card debug check file size and backup big files.
 	if (config.sdDebug) {
@@ -197,7 +182,7 @@ void SckBase::reviewState()
 				if (debugFile.file) {
 
 					uint32_t debugSize = debugFile.file.size();
-				
+
 					// If file is bigger than 50mb rename the file.
 					if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
 					debugFile.file.close();
@@ -208,7 +193,6 @@ void SckBase::reviewState()
 		}
 	}
 
-	if (sdInitPending) sdInit();
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
@@ -222,7 +206,6 @@ void SckBase::reviewState()
 	/* }; */
 
 	/* state can be changed by: */
-	/* parseLightRead() */
 	/* loadConfig() */
 	/* receiveMessage() */
 	/* sdDetect() */
@@ -242,23 +225,23 @@ void SckBase::reviewState()
 		if (!st.onSetup) enterSetup();
 
 	} else if (st.mode == MODE_NET) {
-		
+
 		if (!st.helloPending) updateSensors();
 
-		if (st.helloPending || !st.timeStat.ok || timeToPublish) {
+		if (st.helloPending || !st.timeStat.ok || timeToPublish || !infoPublished) {
 
 			if (!st.wifiStat.ok) {
 
 				st.wifiStat.retry();
-				
+
 				if (!st.espON) ESPcontrol(ESP_ON);
 				else if (st.wifiStat.error) {
-					
+
 					sckOut("ERROR Can't publish without wifi!!!");
 
 					// TODO replace this with flash saving and in next publish push all flash readings
 					sdPublish();
-					
+
 					ESPcontrol(ESP_OFF); 		// Hard off not sleep to be sure the ESP state is reset
 					led.update(led.BLUE, led.PULSE_HARD_FAST);
 
@@ -267,9 +250,9 @@ void SckBase::reviewState()
 				}
 
 			} else {
-				
+
 				led.update(led.BLUE, led.PULSE_SOFT);
-			
+
 				if (st.helloPending) {
 
 					if (st.helloStat.retry()) {
@@ -302,6 +285,19 @@ void SckBase::reviewState()
 						st.timeStat.reset();
 					}
 
+				} else if (!infoPublished) {
+
+					if (st.infoStat.retry()) {
+
+						if (publishInfo()) sckOut("Info sent!");
+
+					} else if (st.infoStat.error){
+
+						sckOut("ERROR sending kit info to platform!!!");
+						st.infoStat.reset();
+
+					}
+
 				} else if (timeToPublish) {
 
 					if (st.publishStat.ok) {
@@ -330,28 +326,28 @@ void SckBase::reviewState()
 					} else if (st.publishStat.retry()) netPublish();
 				}
 			}
-		} 
+		}
 
 	} else if  (st.mode == MODE_SD) {
 
 
 		if (!st.cardPresent) {
-		
+
 			sckOut("ERROR can't find SD card!!!");
 			if (st.espON) ESPcontrol(ESP_OFF);
 			led.update(led.PINK, led.PULSE_HARD_FAST);
-			
+
 		} else if (!st.timeStat.ok) {
-			
+
 			if (!st.wifiSet)  {
-					
+
 				sckOut("ERROR time is not synced and no wifi set!!!");
 				led.update(led.PINK, led.PULSE_HARD_FAST);
 
 			} else {
-				
+
 				if (!st.wifiStat.ok) {
-				
+
 					st.wifiStat.retry();
 
 					if (!st.espON) ESPcontrol(ESP_ON);
@@ -364,7 +360,7 @@ void SckBase::reviewState()
 						st.wifiStat.reset();
 					}
 
-				
+
 				} else {
 
 					if (st.timeStat.retry()) {
@@ -380,7 +376,7 @@ void SckBase::reviewState()
 					}
 				}
 			}
-		
+
 		} else {
 			led.update(led.PINK, led.PULSE_SOFT);
 			if (st.espON) ESPcontrol(ESP_OFF);
@@ -443,7 +439,7 @@ void SckBase::inputUpdate()
 {
 
 	if (SerialUSB.available()) {
-		
+
 		char buff = SerialUSB.read();
 		uint16_t blen = serialBuff.length();
 
@@ -510,7 +506,7 @@ void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine)
 }
 void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 {
-	if (strncmp(strOut, outBuff, strlen(strOut)-1) == 0) { 
+	if (strncmp(strOut, outBuff, strlen(strOut)-1) == 0) {
 		outRepetitions++;
 		if (outRepetitions >= 10) {
 			sckOut("Last message repeated 10 times");
@@ -587,16 +583,15 @@ void SckBase::loadConfig()
 void SckBase::saveConfig(bool defaults)
 {
 	// Save to eeprom
-	sckOut("Saving config...", PRIO_LOW);
 	if (defaults) {
 		Configuration defaultConfig;
 
 		if (config.mac.valid) macAddress = String(config.mac.address); 	// If we already have a mac address keep it
-		
+
 		config = defaultConfig;
-		
+
 		if (macAddress.length() > 0) {
-			sprintf(config.mac.address, "%s", macAddress.c_str()); 
+			sprintf(config.mac.address, "%s", macAddress.c_str());
 			config.mac.valid = true;
 		}
 
@@ -635,12 +630,12 @@ void SckBase::saveConfig(bool defaults)
 	if (st.mode == MODE_NET) {
 
 		if (st.wifiSet && st.tokenSet) {
-		
+
 			pendingSyncConfig = true;
+			infoPublished = false;
 			st.onSetup = false;
 			sendMessage(ESPMES_STOP_AP, "");
-			led.update(led.BLUE, led.PULSE_SOFT);
-		
+
 		} else {
 
 			if (!st.wifiSet) sckOut("ERROR Wifi not configured: can't set Network Mode!!!");
@@ -649,16 +644,13 @@ void SckBase::saveConfig(bool defaults)
 		}
 
 	} else if (st.mode == MODE_SD) {
-	
+
 		st.helloPending = false;
 		if (st.wifiSet) pendingSyncConfig = true;
 		st.onSetup = false;
 		sendMessage(ESPMES_STOP_AP, "");
-		led.update(led.PINK, led.PULSE_SOFT);
 
-	} else if (st.mode == MODE_NOT_CONFIGURED) {
-		enterSetup();
-	}	
+	}
 }
 Configuration SckBase::getConfig()
 {
@@ -687,40 +679,55 @@ bool SckBase::sendConfig()
 	for (uint8_t i=0; i<3; i++) {
 		if (sendMessage()) {
 			pendingSyncConfig = false;
-			sckOut("Saved configuration on ESP!!", PRIO_LOW);
+			sckOut("Synced config with ESP!!", PRIO_LOW);
 			return true;
 		}
 	}
 
 	return false;
 }
-bool SckBase::parseLightRead()
+bool SckBase::publishInfo()
 {
-	if (lightResults.lines[0].endsWith(F("wifi")) || lightResults.lines[0].endsWith(F("auth"))) {
-		if (lightResults.lines[1].length() > 0) {
-			lightResults.lines[1].toCharArray(config.credentials.ssid, 64);
-			lightResults.lines[2].toCharArray(config.credentials.pass, 64);
-			config.credentials.set = true;
+	// Info file
+	if (!espInfoUpdated) sendMessage(ESPMES_GET_NETINFO);
+	else {
+		// Publish info to platform
+
+		/* { */
+		/* 	"time":"2018-07-17T06:55:06Z", */
+		/* 	"hw_ver":"2.0", */
+		/* 	"id":"6C4C1AF4504E4B4B372E314AFF031619", */
+		/* 	"sam_ver":"0.3.0-ce87e64", */
+		/* 	"sam_bd":"2018-07-17T06:55:06Z", */
+		/* 	"mac":"AB:45:2D:33:98", */
+		/* 	"esp_ver":"0.3.0-ce87e64", */
+		/* 	"esp_bd":"2018-07-17T06:55:06Z" */
+		/* } */
+
+		if (!st.espON) {
+			ESPcontrol(ESP_ON);
+			return false;
 		}
+
+		getUniqueID();
+
+		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+		JsonObject& json = jsonBuffer.createObject();
+
+		json["time"] = ISOtimeBuff;
+		json["hw_ver"] = hardwareVer.c_str();
+		json["id"] = uniqueID_str;
+		json["sam_ver"] = SAMversion.c_str();
+		json["sam_bd"] = SAMbuildDate.c_str();
+		json["mac"] = config.mac.address;
+		json["esp_ver"] = ESPversion.c_str();
+		json["esp_bd"] = ESPbuildDate.c_str();
+
+		sprintf(netBuff, "%c", ESPMES_MQTT_INFO);
+		json.printTo(&netBuff[1], json.measureLength() + 1);
+		if (sendMessage()) return true;
 	}
-
-	if (lightResults.lines[0].endsWith(F("auth"))) {
-		if (lightResults.lines[3].length() > 0) {
-			lightResults.lines[3].toCharArray(config.token.token, 7);
-			config.token.set = true;
-		}
-		uint32_t receivedInterval = lightResults.lines[4].toInt();
-		if (receivedInterval > minimal_publish_interval && receivedInterval < max_publish_interval) config.publishInterval = receivedInterval;
-	}
-
-	if (lightResults.lines[0].endsWith(F("time"))) setTime(lightResults.lines[1]);
-
-	readLight.reset();
-	config.mode = MODE_NET;
-	st.helloPending = true;
-	led.update(led.GREEN, led.PULSE_STATIC);
-	saveConfig();
-	return true;
+	return false;
 }
 
 // **** ESP
@@ -810,14 +817,14 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				sckOut(PRIO_LOW);
 				st.wifiStat.reset();
 				espStarted = 0;
-				break;	
+				break;
 		}
 	}
 }
 void SckBase::ESPbusUpdate()
 {
 	if (manager.available()) {
-		
+
 		uint8_t len = NETPACK_TOTAL_SIZE;
 
 		if (manager.recvfromAck(netPack, &len)) {
@@ -899,7 +906,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 					strcpy(config.credentials.ssid, json["ss"]);
 					if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
 				} else config.credentials.set = false;
-				
+
 
 				if (json.containsKey("to")) {
 					config.token.set = true;
@@ -926,26 +933,21 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				ipAddress = json["ip"].as<String>();
 				macAddress = json["mac"].as<String>();
 				hostname = json["hn"].as<String>();
+				ESPversion = json["ver"].as<String>();
+				ESPbuildDate = json["bd"].as<String>();
 
 				if (macAddress.length() <= 0 ) {
-					sckOut("No net info received!! retrying...");
+					sckOut("No ESP info received!! retrying...");
 					sendMessage(ESPMES_GET_NETINFO);
 					break;
 				}
 
 				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname.c_str(), ipAddress.c_str(), macAddress.c_str());
 				sckOut();
-
-				// Udate mac address if we haven't yet
-				if (!config.mac.valid) {
-					sprintf(config.mac.address, "%s", macAddress.c_str());
-					config.mac.valid = true;
-					saveInfo();
-					saveConfig();
-				}
+				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
+				sckOut();
 
 				break;
-
 		}
 		case SAMMES_WIFI_CONNECTED:
 
@@ -988,6 +990,19 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 			st.publishStat.error = true;
 			break;
 
+		case SAMMES_MQTT_INFO_OK:
+
+			st.infoStat.setOk();
+			infoPublished = true;
+			sckOut("Info publish OK!!");
+			break;
+
+		case SAMMES_MQTT_INFO_ERROR:
+
+			st.infoStat.error = true;
+			sckOut("ERROR on Info publish!!");
+			break;
+
 		case SAMMES_MQTT_CUSTOM_OK:
 
 			sckOut("Custom MQTT publish OK!!");
@@ -999,8 +1014,27 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 			break;
 
 		case SAMMES_BOOTED:
-
+		{
 			sckOut("ESP finished booting");
+
+			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+			JsonObject& json = jsonBuffer.parseObject(netBuff);
+			macAddress = json["mac"].as<String>();
+			ESPversion = json["ver"].as<String>();
+			ESPbuildDate = json["bd"].as<String>();
+
+			// Udate mac address if we haven't yet
+			if (!config.mac.valid) {
+				sckOut("Updated MAC address");
+				sprintf(config.mac.address, "%s", macAddress.c_str());
+				config.mac.valid = true;
+				saveConfig();
+			}
+
+			if (!espInfoUpdated) {
+				espInfoUpdated = true;
+				saveInfo();
+			}
 
 			if (pendingSyncConfig) sendConfig();
 
@@ -1015,7 +1049,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				else sendMessage(ESPMES_START_AP);
 			}
 			break;
-
+		}
 		default: break;
 	}
 }
@@ -1025,7 +1059,7 @@ void SckBase::mqttCustom(const char *topic, const char *payload)
 	JsonObject& json = jsonBuffer.createObject();
 
 	json["to"] = topic;
-	json["pl"] = payload; 
+	json["pl"] = payload;
 
 	sprintf(netBuff, "%c", ESPMES_MQTT_CUSTOM);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
@@ -1067,26 +1101,25 @@ bool SckBase::sdSelect()
 
 	return true;
 }
-void SckBase::saveInfo()
+bool SckBase::saveInfo()
 {
-
-	// Info file
-	if (!config.mac.valid) sendMessage(ESPMES_GET_NETINFO);
-	else if (sdSelect()) {
-		if (sd.exists(infoFile.name)) sd.remove(infoFile.name);
-		infoFile.file = sd.open(infoFile.name, FILE_WRITE);
-		getUniqueID();
-		sprintf(outBuff, "Hardware Version: %s\r\nSAM version: %s\r\nSAM build date: %s", hardwareVer.c_str(), SAMversion.c_str(), SAMbuildDate.c_str());
-		infoFile.file.println(outBuff);
-		sprintf(outBuff, "ESP version: %s\r\nESP build date: %s\r\nHardware ID: %lx-%lx-%lx-%lx", ESPversion.c_str(), ESPbuildDate.c_str(), uniqueID[0], uniqueID[1], uniqueID[2], uniqueID[3]);
-		infoFile.file.println(outBuff);
-		sprintf(outBuff, "MAC address: %s", config.mac.address);
-		infoFile.file.println(outBuff);
-		infoFile.file.close();
-		sckOut("Saved INFO.TXT file!!");
+	// Save info to sdcard
+	if (!infoSaved) {
+		if (sdSelect()) {
+			if (sd.exists(infoFile.name)) sd.remove(infoFile.name);
+			infoFile.file = sd.open(infoFile.name, FILE_WRITE);
+			getUniqueID();
+			sprintf(outBuff, "Hardware Version: %s\r\nSAM Hardware ID: %s\r\nSAM version: %s\r\nSAM build date: %s", hardwareVer.c_str(), uniqueID_str, SAMversion.c_str(), SAMbuildDate.c_str());
+			infoFile.file.println(outBuff);
+			sprintf(outBuff, "ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s\r\n", config.mac.address, ESPversion.c_str(), ESPbuildDate.c_str());
+			infoFile.file.println(outBuff);
+			infoFile.file.close();
+			infoSaved = true;
+			sckOut("Saved INFO.TXT file!!");
+			return true;
+		}
 	}
-
-
+	return false;
 }
 
 // **** Flash memory
@@ -1151,7 +1184,7 @@ void SckBase::updatePower()
 	if (prevBattPresent != battery.present) {
 
 		battChanged = true;
-		
+
 		if (battery.present) {
 			sckOut("Battery inserted!!");
 			if (!charger.chargeState()) charger.chargeState(true); 	// Enable charging
@@ -1178,7 +1211,7 @@ void SckBase::updatePower()
 
 		// Reset emergencyLowBatt counter
 		battery.emergencyLowBatCounter = 0;
-	
+
 		// Update charge status
 		SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
 		charger.chargeStatus = charger.getChargeStatus();
@@ -1231,7 +1264,7 @@ void SckBase::updatePower()
 			} else led.chargeStatus = led.CHARGE_LOW;
 			// TODO replace this with proper led feeback and sleep mode
 			/* led.powerEmergency = true; */
-		
+
 		// Detect lowBatt
 		} else if (battery.lastPercent < battery.threshold_low) {
 			if (battery.lowBatCounter < 5) {
@@ -1242,7 +1275,7 @@ void SckBase::updatePower()
 		} else {
 			sckOut("Battery is not charging");
 			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
-		
+
 		}
 	}
 
@@ -1254,7 +1287,7 @@ void SckBase::updatePower()
 				if (battery.lastPercent > battery.threshold_emergency || charger.chargeStatus == charger.CHRG_FAST_CHARGING) {
 					if (urban.sck_pm.start()) sckOut("Started PM sensor...");
 				}
-			} 	
+			}
 		}
 	}
 }
@@ -1302,42 +1335,42 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		case BOARD_BASE:
 		{
 			switch (wichSensor) {
-				case SENSOR_BATT_PERCENT: 
+				case SENSOR_BATT_PERCENT:
 				 	// Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
-					result = true; 
+					result = true;
 					break;
 				case SENSOR_BATT_VOLTAGE:
 				case SENSOR_BATT_CHARGE_RATE:
-				case SENSOR_BATT_POWER: 
+				case SENSOR_BATT_POWER:
 					if (battery.isPresent(charger)) result = true;
 					break;
-				case SENSOR_SDCARD: 
+				case SENSOR_SDCARD:
 					result = true;
 					break;
 				default: break;
-			}			 
+			}
 		}
 		case BOARD_URBAN: if (urban.start(wichSensor)) result = true; break;
 		case BOARD_AUX:	{
-					if (auxBoards.start(wichSensor)) result = true; 
+					if (auxBoards.start(wichSensor)) result = true;
 					break;
 				}
 		default: break;
 	}
-	
+
 	if (result) {
 		sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
 		sensors[wichSensor].enabled = true;
-		
+
 		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_PM_1 || 
+		if ( 	wichSensor == SENSOR_PM_1 ||
 			wichSensor == SENSOR_PM_25 ||
 			wichSensor == SENSOR_PM_10) {
 			sensors[SENSOR_PM_1].enabled = true;
 			sensors[SENSOR_PM_25].enabled = true;
 			sensors[SENSOR_PM_10].enabled = true;
 			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_PM_25].title, sensors[SENSOR_PM_10].title);
-		} else if ( 	wichSensor == SENSOR_EXT_PM_1 || 
+		} else if ( 	wichSensor == SENSOR_EXT_PM_1 ||
 				wichSensor == SENSOR_EXT_PM_25 ||
 				wichSensor == SENSOR_EXT_PM_10) {
 			sensors[SENSOR_EXT_PM_1].enabled = true;
@@ -1347,7 +1380,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		}
 		sckOut();
 		return true;
-	} 
+	}
 
 	return false;
 }
@@ -1361,24 +1394,24 @@ bool SckBase::disableSensor(SensorType wichSensor)
 				case SENSOR_BATT_PERCENT:
 				case SENSOR_BATT_VOLTAGE:
 				case SENSOR_BATT_CHARGE_RATE:
-				case SENSOR_BATT_POWER: 
+				case SENSOR_BATT_POWER:
 				case SENSOR_SDCARD:
 					result = true;
 					break;
 				default: break;
-			}			 
+			}
 		}
 		case BOARD_URBAN: if (urban.stop(wichSensor)) result = true; break;
 		case BOARD_AUX: if (auxBoards.stop(wichSensor)) result = true; break;
 		default: break;
 	}
-	
+
 	if (result) {
 		sprintf(outBuff, "Disabling %s", sensors[wichSensor].title);
 		sensors[wichSensor].enabled = false;
 
 		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_PM_1 || 
+		if ( 	wichSensor == SENSOR_PM_1 ||
 			wichSensor == SENSOR_PM_25 ||
 			wichSensor == SENSOR_PM_10) {
 			sensors[SENSOR_PM_1].enabled = false;
@@ -1689,7 +1722,6 @@ void SckBase::epoch2iso(uint32_t toConvert, char* isoTime)
 
 void SckBase::getUniqueID()
 {
-
 	volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
 	uniqueID[0] = *ptr1;
 
@@ -1699,6 +1731,8 @@ void SckBase::getUniqueID()
 	uniqueID[2] = *ptr;
 	ptr++;
 	uniqueID[3] = *ptr;
+
+	sprintf(uniqueID_str,  "%lX%lX%lX%lX", uniqueID[0], uniqueID[1], uniqueID[2], uniqueID[3]);
 }
 bool I2Cdetect(TwoWire *_Wire, byte address)
 {

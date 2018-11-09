@@ -21,7 +21,7 @@ function SAM {
 	cd sam
 	pio run
 	cd ..
-	tools/uf2conv.py -o SAM_firmware.uf2 -d SCK-2.0 sam/.pioenvs/sck2/firmware.bin
+	tools/uf2conv.py -o bin/SAM_firmware.uf2 -d SCK-2.0 sam/.pioenvs/sck2/firmware.bin
 }
 
 function ESP {
@@ -50,6 +50,12 @@ function BOOT {
 
 case $1 in
 
+	update)
+		echo -e "${NC}Updating  binaries${NC}"
+		cd sam && pio run && cd .. && cp sam/.pioenvs/sck2/firmware.bin bin/SAM_firmware.bin && tools/uf2conv.py -o bin/SAM_firmware.uf2 bin/SAM_firmware.bin 
+		cd esp && pio run && cp .pioenvs/esp12e/firmware.bin ../bin/ESP_firmware.bin && pio run -t buildfs && cp .pioenvs/esp12e/spiffs.bin ../bin/ESP_filesystem.bin && cd ..
+		cd bootloader/uf2-samdx1 && make && cd ../.. && cp bootloader/uf2-samdx1/build/sck2.0/bootloader-sck2.0.bin bin/SAM_bootloader.bin
+		;;
 	sam)
 		echo -e "${NC}Flashing SAM${NC}"
 		SAM
@@ -76,6 +82,7 @@ case $1 in
 		;;
 	*)
 		echo "Options:"
+		echo "[update] Build all binary files and saves them to bin folder."
 		echo "[sam] Flashes the SAM firmware only."
 		echo "[esp] Flashes the ESP firmware only."
 		echo "[espfs] Flashes the ESP filesystem only."

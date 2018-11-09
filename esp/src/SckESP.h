@@ -34,7 +34,6 @@ struct ESP_Configuration {
 class SckESP
 {
 	private:
-
 		// Input/Output
 		bool serialDebug = false;		// Interfere with ESP <-> SAM comunnication (use with caution)
 		bool telnetDebug = false;
@@ -55,11 +54,13 @@ class SckESP
 		bool sendCredentials();
 		bool sendNetinfo();
 		bool sendTime();
+		bool sendStartInfo();
 
 		// **** MQTT
 		bool mqttConnect();
 		bool mqttHellow();
 		bool mqttPublish();
+		bool mqttInfo();
 		bool mqttInventory();
 		bool mqttCustom();
 
@@ -111,6 +112,9 @@ class SckESP
 
 
 	public:
+		const String ESPversion = "0.3.2-" + String(__GIT_HASH__);
+		const String ESPbuildDate = String(__ISO_DATE__);
+
 		void setup();
 		void update();
 		void webSet();

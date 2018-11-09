@@ -25,7 +25,6 @@
 #include "Sensors.h"
 #include "SckUrban.h"
 #include "SckAux.h"
-#include "ReadLight.h"
 
 
 // Output
@@ -70,6 +69,7 @@ struct SckState
 	Status wifiStat = Status(1, 60000);
 	Status timeStat = Status(2, 3000);
 	Status helloStat = Status(3, 5000);
+	Status infoStat = Status(3, 5000);
 	Status publishStat = Status(3, 5000);
 
 	inline bool operator==(SckState a) {
@@ -90,7 +90,6 @@ struct SckState
 class SckBase
 {
 	private:
-
 		// Input/Output
 		String serialBuff;
 		String previousCommand;
@@ -126,7 +125,9 @@ class SckBase
 
 		// Configuration
 		void loadConfig();
-		bool parseLightRead();
+		bool publishInfo();
+		bool espInfoUpdated = false;
+		bool infoPublished = false;
 
 		// Urban board
 		bool urbanPresent = false;
@@ -144,6 +145,8 @@ class SckBase
 		bool sdSelect();
 		volatile bool sdInitPending = false;
 		bool sdInit();
+		bool saveInfo();
+		bool infoSaved = false;
 		// Flash memory
 		SPIFlash flash = SPIFlash(pinCS_FLASH);
 		void flashSelect();
@@ -166,10 +169,11 @@ class SckBase
 		bool alarmRunning_TC3 = false;
 
 	public:
-
-		// LightRead
-		ReadLight readLight;
-		dataLight lightResults;
+		const String hardwareVer = "2.0";
+		const String SAMversion	= "0.3.0-" + String(__GIT_HASH__);
+		const String SAMbuildDate = String(__ISO_DATE__);
+		String ESPversion = "not synced";
+		String ESPbuildDate = "not synced";
 
 		void setup();
 		void update();
@@ -201,7 +205,6 @@ class SckBase
 		Configuration config;
 		Configuration getConfig();
 		void saveConfig(bool defaults=false);
-		void saveInfo();
 
 		// Input/Output
 		void inputUpdate();
@@ -249,6 +252,7 @@ class SckBase
 		// Misc
 		void getUniqueID();
 		uint32_t uniqueID[4];
+		char uniqueID_str[33];
 
 		const char *modeTitles[MODE_COUNT] PROGMEM = {
 			"not configured",		// modeTitles[MODE_NOT_CONFIGURED]

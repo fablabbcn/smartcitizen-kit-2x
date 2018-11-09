@@ -593,6 +593,8 @@ void SckBase::saveConfig(bool defaults)
 		if (macAddress.length() > 0) {
 			sprintf(config.mac.address, "%s", macAddress.c_str());
 			config.mac.valid = true;
+		} else {
+			config.mac.valid = false;
 		}
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -946,6 +948,14 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				sckOut();
 				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
 				sckOut();
+
+				// Udate mac address if we haven't yet
+				if (!config.mac.valid && macAddress.length() > 0) {
+					sprintf(config.mac.address, "%s", macAddress.c_str());
+					config.mac.valid = true;
+					saveInfo();
+					saveConfig();
+				}
 
 				break;
 		}

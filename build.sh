@@ -27,12 +27,14 @@ function SAM {
 function ESP {
 	cd esp
 	pio run -t upload
+	cp .pioenvs/esp12e/firmware.bin ../bin/ESP_firmware.bin
 	cd ..
 }
 
 function ESPFS {
 	cd esp
 	pio run -t uploadfs
+	cp .pioenvs/esp12e/spiffs.bin ../bin/ESP_filesystem.bin
 	cd ..
 }
 

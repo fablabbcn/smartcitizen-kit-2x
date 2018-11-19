@@ -6,7 +6,7 @@ FNULL = open(os.devnull, 'w')
 
 class sck:
 
-    repoPath = os.path.split(os.getcwd())[0]
+    repoPath = subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).rstrip()
     binPath = os.path.join(repoPath, 'bin')
     esptoolEXE = os.path.join(repoPath, 'tools', 'esptool.py')
 
@@ -22,6 +22,27 @@ class sck:
     token = ''
     wifi_ssid = ''
     wifi_pass = ''
+
+    def begin(self):
+        devList = list(serial.tools.list_ports.comports())
+        i = 0
+        kit_list = []
+        for d in devList:
+            if 'Smartcitizen' in d.description:
+                i+=1
+                print('['+str(i)+'] Smartcitizen Kit S/N: ' + d.serial_number)
+                kit_list.append(d)
+        if i == 0: print('No SKC found!!!')
+        elif i > 0:
+            if i == 1:
+                wich_kit = 0
+            else:
+                wich_kit = int(raw_input('Multiple Kits found, please select one: ')) - 1
+        
+        self.serial = kit_list[wich_kit].serial_number
+        self.port = kit_list[wich_kit].device
+
+
 
     def updateSerial(self):
         timeout = time.time() + 15
@@ -40,7 +61,7 @@ class sck:
         self.updateSerial()
         ser = serial.Serial(self.port, 1200)
         ser.setDTR(False)
-        time.sleep(2)
+        time.sleep(5)
         mps = uf2conv.getdrives()
         for p in mps:
             if 'INFO_UF2.TXT' in os.listdir(p):
@@ -74,8 +95,12 @@ class sck:
         os.chdir(self.repoPath)
         subprocess.call(['git', 'checkout', self.branch], stdout=FNULL, stderr=subprocess.STDOUT)
         mountpoint = self.bootloader()
-        shutil.copyfile(os.path.join(self.binPath, self.samUF2), os.path.join(mountpoint, self.samUF2))
+        try:
+            shutil.copyfile(os.path.join(self.binPath, self.samUF2), os.path.join(mountpoint, self.samUF2))
+        except:
+            return False
         time.sleep(2)
+        return True
 
 
     def buildESP(self):
@@ -95,8 +120,7 @@ class sck:
         ser = serial.Serial(self.port, 115200)
         ser.write('\r\n')
         ser.write('esp -flash\r\n')
-        flashedESP = subprocess.call([self.esptoolEXE, '--port', self.port, '--baud', '115200', 'write_flash', '0x000000', os.path.join(self.binPath, self.espBIN)], stderr=subprocess.STDOUT) 
-        # flashedESP = subprocess.call([self.esptoolEXE, '-cp', self.port, '-cb', '115200', '-ca', '0x000000', '-cf', os.path.join(self.binPath, self.espBIN)], stderr=subprocess.STDOUT) 
+        flashedESP = subprocess.call([self.esptoolEXE, '--port', self.port, '--baud', '115200', '--after', 'no_reset', 'write_flash', '0x000000', os.path.join(self.binPath, self.espBIN)], stderr=subprocess.STDOUT) 
         if flashedESP == 0: return True
         else: return False
 
@@ -117,8 +141,7 @@ class sck:
         ser = serial.Serial(self.port, 115200)
         ser.write('\r\n')
         ser.write('esp -flash\r\n')
-        flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port, 'baud', '115200', 'write_flash', '0x300000', os.path.join(self.binPath, self.espfsBIN)], stderr=subprocess.STDOUT)
-        # flashedESPFS = subprocess.call([self.esptoolEXE, '-cp', self.port, '-cb', '115200', '-ca', '0x300000', '-cf', os.path.join(self.binPath, self.espfsBIN)], stderr=subprocess.STDOUT)
+        flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port, '--baud', '115200', '--after', 'no_reset', 'write_flash', '0x300000', os.path.join(self.binPath, self.espfsBIN)], stderr=subprocess.STDOUT)
         if flashedESPFS == 0: return True
         else: return False
 

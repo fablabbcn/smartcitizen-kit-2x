@@ -777,7 +777,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 					if (SerialESP.available()) {
 						SerialUSB.write(SerialESP.read());
 					}
-					if (millis() - flashTimeout > 1000) {
+					if (millis() - flashTimeout > 3000) {
 						if (millis() - startTimeout > 8000) sck_reset();		// Giva an initial 5 seconds for the flashing to start
 					}
 				}

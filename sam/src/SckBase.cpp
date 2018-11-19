@@ -636,13 +636,14 @@ void SckBase::saveConfig(bool defaults)
 			pendingSyncConfig = true;
 			infoPublished = false;
 			st.onSetup = false;
+			led.update(led.BLUE, led.PULSE_SOFT);
 			sendMessage(ESPMES_STOP_AP, "");
 
 		} else {
 
 			if (!st.wifiSet) sckOut("ERROR Wifi not configured: can't set Network Mode!!!");
 			if (!st.tokenSet) sckOut("ERROR Token not configured: can't set Network Mode!!!");
-			st.mode = MODE_NOT_CONFIGURED;
+			led.update(led.BLUE, led.PULSE_HARD_FAST);
 		}
 
 	} else if (st.mode == MODE_SD) {
@@ -650,6 +651,7 @@ void SckBase::saveConfig(bool defaults)
 		st.helloPending = false;
 		if (st.wifiSet) pendingSyncConfig = true;
 		st.onSetup = false;
+		led.update(led.PINK, led.PULSE_SOFT);
 		sendMessage(ESPMES_STOP_AP, "");
 
 	}

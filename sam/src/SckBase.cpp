@@ -635,6 +635,7 @@ void SckBase::saveConfig(bool defaults)
 
 			pendingSyncConfig = true;
 			infoPublished = false;
+			st.helloPending = true;
 			st.onSetup = false;
 			led.update(led.BLUE, led.PULSE_SOFT);
 			sendMessage(ESPMES_STOP_AP, "");

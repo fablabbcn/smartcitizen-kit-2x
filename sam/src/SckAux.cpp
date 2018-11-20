@@ -15,6 +15,7 @@ PM_DallasTemp 		pmDallasTemp;
 Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 Sck_Range 		range;
+Sck_BME680 		bme680;
 
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
@@ -59,6 +60,10 @@ bool AuxBoards::start(SensorType wichSensor)
 			break;
 		case SENSOR_RANGE_DISTANCE: 		return range.start(); break;
 		case SENSOR_RANGE_LIGHT: 		return range.start(); break;
+		case SENSOR_BME680_TEMPERATURE:		return bme680.start(); break;
+		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
+		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
+		case SENSOR_BME680_VOCS:		return bme680.start(); break;
 		default: break;
 	}
 
@@ -101,6 +106,10 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_SHT31_HUM: 			return sht31.stop(); break;
 		case SENSOR_RANGE_DISTANCE: 		return range.stop(); break;
 		case SENSOR_RANGE_LIGHT: 		return range.stop(); break;
+		case SENSOR_BME680_TEMPERATURE:		return bme680.stop(); break;
+		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
+		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
+		case SENSOR_BME680_VOCS:		return bme680.stop(); break;
 		default: break;
 	}
 
@@ -142,6 +151,10 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_SHT31_HUM: 			if (sht31.update(true)) return sht31.humidity; break;
 		case SENSOR_RANGE_DISTANCE: 		if (range.getReading(SENSOR_RANGE_DISTANCE)) return range.readingDistance; break;
 		case SENSOR_RANGE_LIGHT: 		if (range.getReading(SENSOR_RANGE_LIGHT)) return range.readingLight; break;
+		case SENSOR_BME680_TEMPERATURE:		if (bme680.getReading()); return bme680.temperature;  break;
+		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()); return bme680.humidity;  break;
+		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()); return bme680.pressure;  break;
+		case SENSOR_BME680_VOCS:		if (bme680.getReading()); return bme680.VOCgas;  break;
 		default: break;
 	}
 
@@ -291,16 +304,16 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_EXT_PM_10: {
 
 			if (command.startsWith("stop")) {
-				
+
 				if (pmSensor.stop()) return ("Stoping PM sensors...");
 				else return ("Failed stoping PM sensor!!");
 
 			} else if (command.startsWith("start")) {
-			    
+
 				if (pmSensor.start()) return ("Starting PM sensors...");
 				else return ("Failed starting PM sensor!!");
-			    
-			} 
+
+			}
 			break;
 		} default: return "Unrecognized sensor!!!"; break;
 	}
@@ -742,7 +755,7 @@ bool Atlas::tempCompensation()
 	char data[10];
 	float temperature = 0;
 
-	if (waterTemp_DS18B20.detected) temperature = waterTemp_DS18B20.getReading();	
+	if (waterTemp_DS18B20.detected) temperature = waterTemp_DS18B20.getReading();
 	else if (atlasTEMP.detected) {
 
 		if (millis() - atlasTEMP.lastUpdate > 10000) {
@@ -804,7 +817,7 @@ uint8_t Atlas::getResponse()
     }
 }
 
-bool Moisture::start() 
+bool Moisture::start()
 {
 
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -824,7 +837,7 @@ bool Moisture::stop()
 	return true;
 }
 
-float Moisture::getReading(typeOfReading wichReading) 
+float Moisture::getReading(typeOfReading wichReading)
 {
 	uint32_t started = millis();
 	while (chirp.isBusy()) {
@@ -847,7 +860,7 @@ float Moisture::getReading(typeOfReading wichReading)
 
 			float thisReading = chirp.getLight(false); 	// We are sending the reading from previous request
 			chirp.startMeasureLight(); 			// Ask for next reading
-			
+
 			return thisReading;
 			break;
 
@@ -857,13 +870,13 @@ float Moisture::getReading(typeOfReading wichReading)
 	return 0;
 }
 
-uint8_t Moisture::getVersion() 
+uint8_t Moisture::getVersion()
 {
 
 	return chirp.getVersion();
 }
 
-void Moisture::sleep() 
+void Moisture::sleep()
 {
 
 	chirp.sleep();
@@ -983,7 +996,7 @@ bool Sck_DallasTemp::start()
 	DallasTemperature _dallasTemp = DallasTemperature(&oneWire);
 
 	_dallasTemp.begin();
-	
+
 	// If no device is found return false
 	_dallasTemp.getAddress(_oneWireAddress, 0);
 
@@ -1014,7 +1027,7 @@ bool Sck_DallasTemp::getReading()
 	if (reading <= DEVICE_DISCONNECTED_C) return false;
 
 	pinPeripheral(pinAUX_WIRE_SCL, PIO_SERCOM);
-	
+
 	return true;
 }
 
@@ -1023,9 +1036,9 @@ bool Sck_Range::start()
 	if (alreadyStarted) return true;
 
 	if(vl6180x.VL6180xInit() != 0) return false;
-	
+
 	vl6180x.VL6180xDefautSettings();
-	
+
 	alreadyStarted = true;
 
 	return true;
@@ -1039,7 +1052,7 @@ bool Sck_Range::stop()
 
 bool Sck_Range::getReading(SensorType wichSensor)
 {
-	switch(wichSensor) 
+	switch(wichSensor)
 {
 	case SENSOR_RANGE_DISTANCE:
 		readingDistance = vl6180x.getDistance();
@@ -1050,6 +1063,37 @@ bool Sck_Range::getReading(SensorType wichSensor)
 	default:
 		return false;
 }
+	return true;
+}
+
+bool Sck_BME680::start()
+{
+	if (alreadyStarted) return true;
+
+	if (!bme.begin(deviceAddress)) return false;
+
+	alreadyStarted = true;
+	return true;
+}
+
+bool Sck_BME680::stop()
+{
+	alreadyStarted = false;
+	return true;
+}
+
+bool Sck_BME680::getReading()
+{
+	if (millis() - lastTime > minTime) {
+		if (!bme.performReading()) return false;
+		lastTime = millis();
+	}
+
+	temperature = bme.temperature;
+	humidity = bme.humidity;
+	pressure = bme.pressure / 1000;  // Converted to kPa
+	VOCgas = bme.gas_resistance;
+
 	return true;
 }
 

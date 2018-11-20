@@ -31,6 +31,9 @@
 // Sparkfun VL6180x time of flight range finder
 #include <SparkFun_VL6180X.h>
 
+// Adafruit BME608 library
+#include <Adafruit_BME680.h>
+
 extern TwoWire auxWire;
 
 bool I2Cdetect(byte address);
@@ -448,6 +451,25 @@ class Sck_Range
 
 		bool alreadyStarted = false;
 		VL6180x vl6180x = VL6180x(deviceAddress);
+};
+
+class Sck_BME680
+{
+	public:
+		const byte deviceAddress = 0x77;
+		bool start();
+		bool stop();
+		bool getReading();
+
+		float temperature;
+		float humidity;
+		float pressure;
+		float VOCgas;
+	private:
+		uint32_t lastTime = 0;
+		uint32_t minTime = 1000; 	// Avoid taking readings more often than this value (ms)
+		bool alreadyStarted = false;
+		Adafruit_BME680 bme;
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

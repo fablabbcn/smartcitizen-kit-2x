@@ -86,6 +86,11 @@ enum SensorType
 	SENSOR_RANGE_LIGHT,
 	SENSOR_RANGE_DISTANCE,
 
+	SENSOR_BME680_TEMPERATURE,
+	SENSOR_BME680_HUMIDITY,
+	SENSOR_BME680_PRESSURE,
+	SENSOR_BME680_VOCS,
+
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
 
@@ -219,6 +224,11 @@ class AllSensors
 
 			OneSensor { BOARD_AUX,			SENSOR_RANGE_LIGHT,			"EXT_RANGE_LIGHT",	"External Range Light",				0,		false,		false,			"Lux"},
 			OneSensor { BOARD_AUX,			SENSOR_RANGE_DISTANCE,			"EXT_RANGE_DIST",	"External Range Distance",			98,		false,		false,			"mm"},
+
+			OneSensor { BOARD_AUX,			SENSOR_BME680_TEMPERATURE,		"BME680_TEMP",		"Temperature BME680",				0,		false,		false,			"C"},
+			OneSensor { BOARD_AUX,			SENSOR_BME680_HUMIDITY,			"BME680_HUM",		"Humidity BME680",				0,		false,		false,			"%"},
+			OneSensor { BOARD_AUX,			SENSOR_BME680_PRESSURE,			"BME680_PRESS",		"Barometric pressure BME680",			0,		false,		false,			"kPa"},
+			OneSensor { BOARD_AUX,			SENSOR_BME680_VOCS,			"BME680_VOCS",		"VOC Gas BME680",				0,		false,		false,			"Ohms"},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

@@ -4,20 +4,20 @@ var gfi  = require('gulp-file-insert');
 var rename = require('gulp-rename');
 var livereload = require('gulp-livereload');
 
-// Takes the original index.html.dev file and creates 2 files
-// index.html    for localhost:8000
-// index.html.gz for production
+// Takes the original build_data/build_index.html file and creates 2 files
+// build_data/index.html    for localhost:8000
+// data/index.html.gz for production
 gulp.task('compress', function(){
-  gulp.src('../esp/data/index.html')
+  gulp.src('../esp/build_data/index.html')
     .pipe(gfi({
-      "/* inject css.css */": "../esp/data/css.css",
-      "// inject vue.min.js": "../esp/data/vue.min.js",
-      "// inject main.js": "../esp/data/main.js"
+      "/* inject css.css */": "../esp/build_data/css.css",
+      "// inject vue.min.js": "../esp/build_data/vue.min.js",
+      "// inject main.js": "../esp/build_data/main.js"
     }))
-    .pipe(rename('./final.html'))
-    .pipe(gulp.dest('../esp/data/'))
+    .pipe(rename('./index.html'))
+    .pipe(gulp.dest('../esp/build_data/'))
     .pipe(gzip())
-    .pipe(rename('./index.gz'))
+    .pipe(rename('./index.html.gz'))
     .pipe(gulp.dest('../esp/data/'))
     .pipe(livereload());
 });
@@ -25,5 +25,5 @@ gulp.task('compress', function(){
 // Watch changes to index.html.dev, css.css, main.js'
 gulp.task('watch', function(){
   livereload.listen();
-  gulp.watch(['../esp/data/index.html', '../esp/data/css.css', '../esp/data/main.js'], ['compress']);
+  gulp.watch(['../esp/build_data/index.html', '../esp/build_data/css.css', '../esp/build_data/main.js'], ['compress']);
 })

@@ -668,7 +668,7 @@ bool SckESP::flashReadFile(String path)
 	debugOUT("Received file request: " + path);
 
 	// send index file in case no file is requested
-	if (path.endsWith("/")) path += "index.gz";
+	if (path.endsWith("/")) path += "index.html.gz";
 
 	// Manage content types
 	String contentType = "text/html";

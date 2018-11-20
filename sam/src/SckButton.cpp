@@ -14,6 +14,10 @@ void SckBase::buttonEvent()
 			st.sleeping = false;
 			wakingUp = true;
 
+			// Setting again the Sanity cyclic reset: it was cleared on sleeping
+			rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
+			rtc.enableAlarm(rtc.MATCH_HHMMSS);
+			rtc.attachInterrupt(NVIC_SystemReset);
 		}
 
 	} else {

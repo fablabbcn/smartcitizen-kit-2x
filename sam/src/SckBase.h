@@ -152,6 +152,9 @@ class SckBase
 		void flashSelect();
 
 		// Power
+		uint8_t wakeUP_H = 3; 	// 3AM UTC
+		uint8_t wakeUP_M = 0;
+		uint8_t wakeUP_S = 0;
 		uint32_t sleepTime;
 		void updatePower();
 		void goToSleep();

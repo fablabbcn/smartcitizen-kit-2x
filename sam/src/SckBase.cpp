@@ -68,7 +68,7 @@ void SckBase::setup()
 	}
 
 	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
-	rtc.setAlarmTime(3, 0, 0);
+	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
 	rtc.enableAlarm(rtc.MATCH_HHMMSS);
 	rtc.attachInterrupt(NVIC_SystemReset);
 
@@ -1150,11 +1150,6 @@ void SckBase::sck_reset()
 }
 void SckBase::goToSleep()
 {
-
-	if (sleepTime > 0) sprintf(outBuff, "Sleeping for %lu seconds", (sleepTime) / 1000);
-	else sprintf(outBuff, "Sleeping forever!!! (until a button click)");
-	sckOut();
-
 	digitalWrite(pinLED_USB, HIGH);
 	led.off();
 	ESPcontrol(ESP_SLEEP);
@@ -1176,11 +1171,21 @@ void SckBase::goToSleep()
 	// Stop PM sensor
 	if (urban.sck_pm.started) urban.sck_pm.stop();
 
+	if (sleepTime > 0) sprintf(outBuff, "Sleeping for %lu seconds", (sleepTime) / 1000);
+	else sprintf(outBuff, "Sleeping forever!!! (until a button click)");
+	sckOut();
+
 	uint32_t localSleepTime = sleepTime;
 	sleepTime = 0;
 
 	if (localSleepTime > 0) LowPower.deepSleep(localSleepTime);
-	else LowPower.deepSleep();
+	else {
+		// Disable the Sanity cyclic reset so it doesn't wake us up
+		rtc.disableAlarm();
+		rtc.detachInterrupt();
+
+		LowPower.deepSleep();
+	}
 }
 void SckBase::updatePower()
 {

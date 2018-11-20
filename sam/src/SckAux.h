@@ -28,6 +28,9 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+// Sparkfun VL6180x time of flight range finder
+#include <SparkFun_VL6180X.h>
+
 extern TwoWire auxWire;
 
 bool I2Cdetect(byte address);
@@ -429,6 +432,22 @@ class Sck_DallasTemp
 		float reading;
 	private:
 		uint8_t _oneWireAddress[8];
+};
+
+class Sck_Range
+{
+	public:
+		const byte deviceAddress = 0x29;
+		bool start();
+		bool stop();
+		bool getReading(SensorType wichSensor);
+
+		float readingLight;
+		float readingDistance;
+	private:
+
+		bool alreadyStarted = false;
+		VL6180x vl6180x = VL6180x(deviceAddress);
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

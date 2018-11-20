@@ -83,6 +83,9 @@ enum SensorType
 	SENSOR_SHT31_TEMP,
 	SENSOR_SHT31_HUM,
 
+	SENSOR_RANGE_LIGHT,
+	SENSOR_RANGE_DISTANCE,
+
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
 
@@ -140,7 +143,7 @@ class AllSensors
 			// Base Sensors
 			OneSensor { BOARD_BASE, 		SENSOR_BATT_PERCENT,			"BATT",			"Battery", 					10,		true,		false,			"%"},
 			OneSensor { BOARD_BASE, 		SENSOR_BATT_VOLTAGE,			"BATT_VOLT",		"Battery voltage",				0,		false,		false,			"V"},
-			OneSensor { BOARD_BASE, 		SENSOR_BATT_CHARGE_RATE,		"BATT_CHG_RATE",	"Battery charge rate",				0,		false,		false,			"mA"},
+			OneSensor { BOARD_BASE, 		SENSOR_BATT_CHARGE_RATE,		"BATT_CHG_RATE",	"Battery charge rate",				97,		false,		false,			"mA"},
 			OneSensor { BOARD_BASE, 		SENSOR_BATT_POWER,			"BATT_POWER",		"Battery power rate",				0,		false,		false,			"mW"},
 			OneSensor { BOARD_BASE, 		SENSOR_SDCARD,				"SDCARD",		"SDcard present", 				0,		false,		false,			"Present"},
 
@@ -213,6 +216,10 @@ class AllSensors
 
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_TEMP,			"EXT_TEMP",		"External Temperature",				79,		false,		false,			"C"},
 			OneSensor { BOARD_AUX,			SENSOR_SHT31_HUM,			"EXT_HUM",		"External Humidity",				80,		false,		false,			"%"},
+
+			OneSensor { BOARD_AUX,			SENSOR_RANGE_LIGHT,			"EXT_RANGE_LIGHT",	"External Range Light",				0,		false,		false,			"Lux"},
+			OneSensor { BOARD_AUX,			SENSOR_RANGE_DISTANCE,			"EXT_RANGE_DIST",	"External Range Distance",			98,		false,		false,			"mm"},
+
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96
 			OneSensor { BOARD_AUX,			SENSOR_GROOVE_OLED,			"GR_OLED",		"Groove OLED",					0,		false,		false,			},

@@ -14,6 +14,7 @@ PMsensor		pmSensor = PMsensor(SLOT_AVG);
 PM_DallasTemp 		pmDallasTemp;
 Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
+Sck_Range 		range;
 
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
@@ -56,6 +57,8 @@ bool AuxBoards::start(SensorType wichSensor)
 			if (sht31.start() && !gasBoard.start()) return true;
 			else return false;
 			break;
+		case SENSOR_RANGE_DISTANCE: 		return range.start(); break;
+		case SENSOR_RANGE_LIGHT: 		return range.start(); break;
 		default: break;
 	}
 
@@ -96,6 +99,8 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_DALLAS_TEMP: 		return dallasTemp.stop(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM: 			return sht31.stop(); break;
+		case SENSOR_RANGE_DISTANCE: 		return range.stop(); break;
+		case SENSOR_RANGE_LIGHT: 		return range.stop(); break;
 		default: break;
 	}
 
@@ -135,6 +140,8 @@ float AuxBoards::getReading(SensorType wichSensor)
 		case SENSOR_DALLAS_TEMP: 		if (dallasTemp.getReading()) return dallasTemp.reading; break;
 		case SENSOR_SHT31_TEMP: 		if (sht31.update(true)) return sht31.temperature; break;
 		case SENSOR_SHT31_HUM: 			if (sht31.update(true)) return sht31.humidity; break;
+		case SENSOR_RANGE_DISTANCE: 		if (range.getReading(SENSOR_RANGE_DISTANCE)) return range.readingDistance; break;
+		case SENSOR_RANGE_LIGHT: 		if (range.getReading(SENSOR_RANGE_LIGHT)) return range.readingLight; break;
 		default: break;
 	}
 
@@ -1008,6 +1015,41 @@ bool Sck_DallasTemp::getReading()
 
 	pinPeripheral(pinAUX_WIRE_SCL, PIO_SERCOM);
 	
+	return true;
+}
+
+bool Sck_Range::start()
+{
+	if (alreadyStarted) return true;
+
+	if(vl6180x.VL6180xInit() != 0) return false;
+	
+	vl6180x.VL6180xDefautSettings();
+	
+	alreadyStarted = true;
+
+	return true;
+}
+
+bool Sck_Range::stop()
+{
+	alreadyStarted = false;
+	return true;
+}
+
+bool Sck_Range::getReading(SensorType wichSensor)
+{
+	switch(wichSensor) 
+{
+	case SENSOR_RANGE_DISTANCE:
+		readingDistance = vl6180x.getDistance();
+		break;
+	case SENSOR_RANGE_LIGHT:
+		readingLight = vl6180x.getAmbientLight(GAIN_1);
+		break;
+	default:
+		return false;
+}
 	return true;
 }
 

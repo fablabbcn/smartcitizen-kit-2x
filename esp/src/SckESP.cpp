@@ -276,7 +276,7 @@ bool SckESP::mqttConnect()
 
 	debugOUT(F("Connecting to MQTT server..."));
 
-	MQTTclient.setServer(MQTT_SERVER_NAME, 1883);
+	MQTTclient.setServer(MQTT_SERVER_NAME, MQTT_SERVER_PORT);
 
 	if (MQTTclient.connect(config.token.token)) {
 		debugOUT(F("Established MQTT connection..."));

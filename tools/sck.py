@@ -120,7 +120,7 @@ class sck:
         ser = serial.Serial(self.port, 115200)
         ser.write('\r\n')
         ser.write('esp -flash\r\n')
-        flashedESP = subprocess.call([self.esptoolEXE, '--port', self.port, '--baud', '115200', '--after', 'no_reset', 'write_flash', '0x000000', os.path.join(self.binPath, self.espBIN)], stderr=subprocess.STDOUT) 
+        flashedESP = subprocess.call([self.esptoolEXE, '--port', self.port, '--baud', '115200', 'write_flash', '0x000000', os.path.join(self.binPath, self.espBIN)], stderr=subprocess.STDOUT) 
         if flashedESP == 0: return True
         else: return False
 
@@ -141,7 +141,7 @@ class sck:
         ser = serial.Serial(self.port, 115200)
         ser.write('\r\n')
         ser.write('esp -flash\r\n')
-        flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port, '--baud', '115200', '--after', 'no_reset', 'write_flash', '0x300000', os.path.join(self.binPath, self.espfsBIN)], stderr=subprocess.STDOUT)
+        flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port, '--baud', '115200', 'write_flash', '0x300000', os.path.join(self.binPath, self.espfsBIN)], stderr=subprocess.STDOUT)
         if flashedESPFS == 0: return True
         else: return False
 

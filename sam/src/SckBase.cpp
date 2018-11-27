@@ -1513,7 +1513,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 		}
 		case BOARD_AUX:
 		{
-				result = String(auxBoards.getReading(wichSensor), 2);	// TODO port auxBoards to String mode
+				result = String(auxBoards.getReading(wichSensor, this), 2);	// TODO port auxBoards to String mode
 				break;
 		}
 	}

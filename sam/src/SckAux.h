@@ -34,6 +34,9 @@
 // Adafruit BME608 library
 #include <Adafruit_BME680.h>
 
+// Sparkfun CCS811 library
+#include <SparkFunCCS811.h>
+
 extern TwoWire auxWire;
 
 bool I2Cdetect(byte address);
@@ -68,12 +71,18 @@ class AuxBoards
 				0x64,		// SENSOR_ATLAS_EC,
 				0x64,		// SENSOR_ATLAS_EC_SG,
 				0x61,		// SENSOR_ATLAS_DO,
-				0x61		// SENSOR_ATLAS_DO_SAT,
+				0x61,		// SENSOR_ATLAS_DO_SAT,
+				0x77, 		// SENSOR_BME680_TEMPERATURE,
+				0x77, 		// SENSOR_BME680_HUMIDITY,
+				0x77, 		// SENSOR_BME680_PRESSURE,
+				0x77, 		// SENSOR_BME680_VOCS,
+				0x5b, 		// SENSOR_CCS811_VOCS,
+				0x5b, 		// SENSOR_CCS811_ECO2,
 		};
 
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
-		float getReading(SensorType wichSensor);
+		float getReading(SensorType wichSensor, SckBase *base);
 		bool getBusyState(SensorType wichSensor);
 		String control(SensorType wichSensor, String command);
 		void print(SensorType wichSensor, String payload);
@@ -470,6 +479,25 @@ class Sck_BME680
 		uint32_t minTime = 1000; 	// Avoid taking readings more often than this value (ms)
 		bool alreadyStarted = false;
 		Adafruit_BME680 bme;
+};
+
+class Sck_CCS811
+{
+	// TODO review  the utility of baseline on datasheet and implement cotrol interface if needed
+	// TODO check consumption and quality in different drive modes: 1 sec [default], 10 sec, 60 sec or 0.25 sec (RAW mode)
+
+	public:
+		const byte deviceAddress = 0x5b;
+		bool start();
+		bool stop();
+		bool getReading(SckBase *base);
+
+		bool compensate = true; 	// Compensation is for both sensors or none
+		float VOCgas;
+		float ECO2gas;
+	private:
+		bool alreadyStarted = false;
+		CCS811 ccs = CCS811(deviceAddress);
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

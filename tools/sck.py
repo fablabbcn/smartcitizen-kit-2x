@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
-import serial.tools.list_ports, serial, os, time, subprocess, uf2conv, shutil
+import serial.tools.list_ports, serial, os, time, subprocess, uf2conv, shutil, sys
 FNULL = open(os.devnull, 'w')
 
 
 class sck:
 
     repoPath = subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).rstrip()
-    binPath = os.path.join(repoPath, 'bin')
-    esptoolEXE = os.path.join(repoPath, 'tools', 'esptool.py')
+    binPath = os.path.join(str(repoPath), 'bin')
+    esptoolEXE = os.path.join(str(repoPath), 'tools', 'esptool.py')
 
     samBIN = 'SAM_firmware.bin'
     samUF2 = 'SAM_firmware.uf2'
@@ -17,7 +17,9 @@ class sck:
 
     branch = 'master'
     serial = ''
-    port = ''
+    port_name = ''
+    port = None
+
 
     token = ''
     wifi_ssid = ''
@@ -40,27 +42,38 @@ class sck:
                 wich_kit = int(raw_input('Multiple Kits found, please select one: ')) - 1
         
         self.serial = kit_list[wich_kit].serial_number
-        self.port = kit_list[wich_kit].device
-
-
+        self.port_name = kit_list[wich_kit].device
 
     def updateSerial(self):
         timeout = time.time() + 15
         while True:
             devList = list(serial.tools.list_ports.comports())
+            found = False
             for d in devList:
                 if self.serial in d.serial_number:
-                    self.port = d.device
-                    return
+                    self.port_name = d.device
+                    found = True
                 if time.time() > timeout:
-                    print 'Timeout waiting for ' + branch + ' device'
-                    break
+                    print('Timeout waiting for device')
+                    sys.exit()
+            if found: break
+
+        timeout = time.time() + 15
+        while True:
+            try:
+                self.port = serial.Serial(self.port_name, 115200)
+            except:
+                if time.time() > timeout:
+                    print('Timeout waiting for serial port')
+                    sys.exit()
+                time.sleep(0.2)
+            if self.port.is_open: return
 
     def bootloader(self):
-        print 'Calling bootloader for ' + self.branch + ' branch kit...'
         self.updateSerial()
-        ser = serial.Serial(self.port, 1200)
-        ser.setDTR(False)
+        self.port.close()
+        self.port = serial.Serial(self.port_name, 1200)
+        self.port.setDTR(False)
         time.sleep(5)
         mps = uf2conv.getdrives()
         for p in mps:
@@ -68,33 +81,36 @@ class sck:
                 return p
         return False
 
-    def updateGIT(self):
+    def updateGIT(self, out=sys.__stdout__):
         os.chdir(self.repoPath)
-        subprocess.call(['git', 'checkout', self.branch], stdout=FNULL, stderr=subprocess.STDOUT)
-        subprocess.call(['git', 'remote', 'update', self.branch], stdout=FNULL, stderr=subprocess.STDOUT)
+        subprocess.call(['git', 'checkout', self.branch], stdout=out, stderr=subprocess.STDOUT)
+        subprocess.call(['git', 'remote', 'update', self.branch], stdout=out, stderr=subprocess.STDOUT)
         r = subprocess.check_output(['git', 'status'])
         if not 'up-to-date' in r:
-            print 'Updating branch ' + self.branch + ', kit needss update.'
+            print('Updating branch ' + self.branch + ', kit needss update.')
             subprocess.call(['git', 'pull', '--all'], stderr=subprocess.STDOUT)                                             
         else:
-            print 'Branch ' + self.branch + ' doesn\'t need update.' 
+            print('Branch ' + self.branch + ' doesn\'t need update.')
 
-    def buildSAM(self):
+    def buildSAM(self, out=sys.__stdout__):
         os.chdir(self.repoPath)
-        subprocess.call(['git', 'checkout', self.branch], stdout=FNULL, stderr=subprocess.STDOUT)
         os.chdir('sam')
-        piorun = subprocess.call(['pio', 'run'], stderr=subprocess.STDOUT)
-        shutil.copyfile(os.path.join(os.getcwd(), '.pioenvs', 'sck2', 'firmware.bin'), os.path.join(self.binPath, self.samBIN))
+        piorun = subprocess.call(['pio', 'run'], stdout=out, stderr=subprocess.STDOUT)
+        if piorun != 0: return False
+        try:
+            shutil.copyfile(os.path.join(os.getcwd(), '.pioenvs', 'sck2', 'firmware.bin'), os.path.join(self.binPath, self.samBIN))
+        except: error(self)
         with open(os.path.join(self.binPath, self.samBIN), mode='rb') as myfile:
             inpbuf = myfile.read()
         outbuf = uf2conv.convertToUF2(inpbuf)       
         uf2conv.writeFile(os.path.join(self.binPath, self.samUF2), outbuf)
         os.chdir(self.repoPath)
+        return True
 
-    def flashSAM(self):
+    def flashSAM(self, out=sys.__stdout__):
         os.chdir(self.repoPath)
-        subprocess.call(['git', 'checkout', self.branch], stdout=FNULL, stderr=subprocess.STDOUT)
         mountpoint = self.bootloader()
+        print(mountpoint)
         try:
             shutil.copyfile(os.path.join(self.binPath, self.samUF2), os.path.join(mountpoint, self.samUF2))
         except:
@@ -102,69 +118,92 @@ class sck:
         time.sleep(2)
         return True
 
+    def getBridge(self):
+        timeout = time.time() + 15
+        while True:
+            self.updateSerial()
+            time.sleep(0.5)
+            self.port.write('\r\n')
+            buff = self.port.read(self.port.in_waiting)
+            if 'SCK' in buff: break
+            if time.time() > timeout:
+                print('Timeout waiting for SAM bridge')
+                sys.exit()
+            time.sleep(0.2)
+        self.port.write('esp -flash\r\n')
+        return True
 
-    def buildESP(self):
+    def buildESP(self, out=sys.__stdout__):
         os.chdir(self.repoPath)
-        subprocess.call(['git', 'checkout', self.branch], stdout=FNULL, stderr=subprocess.STDOUT)
         os.chdir('esp')
-        piorun = subprocess.call(['pio', 'run'], stderr=subprocess.STDOUT)
+        piorun = subprocess.call(['pio', 'run'], stdout=out, stderr=subprocess.STDOUT)
         if piorun == 0:
             shutil.copyfile(os.path.join(os.getcwd() , '.pioenvs', 'esp12e', 'firmware.bin'), os.path.join(self.binPath, self.espBIN))
             return True
         return False
 
-    def flashESP(self):
+    def flashESP(self, out=sys.__stdout__):
         os.chdir(self.repoPath)
-        subprocess.call(['git', 'checkout', self.branch], stdout=FNULL, stderr=subprocess.STDOUT)
-        self.updateSerial()
-        ser = serial.Serial(self.port, 115200)
-        ser.write('\r\n')
-        ser.write('esp -flash\r\n')
-        flashedESP = subprocess.call([self.esptoolEXE, '--port', self.port, '--baud', '115200', 'write_flash', '0x000000', os.path.join(self.binPath, self.espBIN)], stderr=subprocess.STDOUT) 
-        if flashedESP == 0: return True
+        if not self.getBridge(): return False
+        flashedESP = subprocess.call([self.esptoolEXE, '--port', self.port_name, '--baud', '115200', 'write_flash', '0x000000', os.path.join(self.binPath, self.espBIN)], stdout=out, stderr=subprocess.STDOUT) 
+        self.port.write('byebyebye')
+        if flashedESP == 0:
+            time.sleep(1)
+            return True
         else: return False
 
-    def buildESPFS(self):
+    def buildESPFS(self, out=sys.__stdout__):
         os.chdir(self.repoPath)
-        subprocess.call(['git', 'checkout', self.branch], stdout=FNULL, stderr=subprocess.STDOUT)
         os.chdir('esp')
-        piorun = subprocess.call(['pio', 'run', '-t', 'buildfs'], stderr=subprocess.STDOUT)
+        piorun = subprocess.call(['pio', 'run', '-t', 'buildfs'], stdout=out, stderr=subprocess.STDOUT)
         if piorun == 0:
             shutil.copyfile(os.path.join(os.getcwd(), '.pioenvs', 'esp12e', 'spiffs.bin'), os.path.join(self.binPath, self.espfsBIN))
             return True
         return False
 
-    def flashESPFS(self):
+    def flashESPFS(self, out=sys.__stdout__):
         os.chdir(self.repoPath)
-        subprocess.call(['git', 'checkout', self.branch], stdout=FNULL, stderr=subprocess.STDOUT)
-        self.updateSerial()
-        ser = serial.Serial(self.port, 115200)
-        ser.write('\r\n')
-        ser.write('esp -flash\r\n')
-        flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port, '--baud', '115200', 'write_flash', '0x300000', os.path.join(self.binPath, self.espfsBIN)], stderr=subprocess.STDOUT)
-        if flashedESPFS == 0: return True
+        if not self.getBridge(): return False
+        flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port_name, '--baud', '115200', 'write_flash', '0x300000', os.path.join(self.binPath, self.espfsBIN)], stdout=out, stderr=subprocess.STDOUT)
+        self.port.write('byebyebye')
+        if flashedESPFS == 0:
+            time.sleep(1)
+            return True
         else: return False
+
+    def eraseESP(self):
+        if not self.getBridge(): return False
+        flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port_name, 'erase_flash'], stderr=subprocess.STDOUT)
+        self.port.write('byebyebye')
+        if flashedESPFS == 0:
+            time.sleep(1)
+            return True
+        else: return False
+
+    def reset(self):
+        self.updateSerial()
+        self.port.write('\r\n')
+        self.port.write('reset\r\n')
 
     def netConfig(self):
         if len(self.wifi_ssid) == 0 or len(self.wifi_pass) == 0 or len(self.token) != 6:
             print('WiFi and token MUST be set!!')
             return False
         self.updateSerial()
-        ser = serial.Serial(self.port, 115200)
-        ser.write('\r\n')
-        ser.write('config -mode net -wifi "' + self.wifi_ssid + '" "' + self.wifi_pass + '" -token ' + self.token + '\r\n')
+        self.port.write('\r\n')
+        self.port.write('config -mode net -wifi "' + self.wifi_ssid + '" "' + self.wifi_pass + '" -token ' + self.token + '\r\n')
 
     def sdConfig(self):
         self.updateSerial()
-        ser = serial.Serial(self.port, 115200)
-        ser.write('\r\n')
-        ser.write('time ' + str(int(time.time())) + '\r\n')
-        ser.write('config -mode sdcard\r\n')
+        self.port.write('\r\n')
+        self.port.write('time ' + str(int(time.time())) + '\r\n')
+        self.port.write('config -mode sdcard\r\n')
 
     def resetConfig(self):
         self.updateSerial()
-        ser = serial.Serial(self.port, 115200)
-        ser.write('\r\n')
-        ser.write('config -defaults\r\n')
+        self.port.write('\r\n')
+        self.port.write('config -defaults\r\n')
 
+    def end(self):
+        if self.port.is_open: self.port.close()
 

@@ -768,19 +768,22 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				while (SerialUSB.available()) SerialUSB.read();
 				while (SerialESP.available()) SerialESP.read();
 
-				uint32_t flashTimeout = millis();
-				uint32_t startTimeout = millis();
+				String bye;
 				while(1) {
 					if (SerialUSB.available()) {
-						SerialESP.write(SerialUSB.read());
-						flashTimeout = millis();	// If something is received restart timer
+						char b = SerialUSB.read();
+						bye = bye + b;
+						SerialESP.write(b);
 					}
 					if (SerialESP.available()) {
 						SerialUSB.write(SerialESP.read());
 					}
-					if (millis() - flashTimeout > 5000) {
-						if (millis() - startTimeout > 8000) sck_reset();		// Giva an initial 5 seconds for the flashing to start
+					if (bye.endsWith("bye")) {
+						led.update(led.GREEN, led.PULSE_STATIC);
+						ESPcontrol(ESP_REBOOT);
+						break;
 					}
+					if (bye.length() > 3) bye.remove(0);
 				}
 				break;
 

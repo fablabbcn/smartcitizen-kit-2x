@@ -22,12 +22,18 @@ function SAM {
 	pio run
 	cd ..
 	tools/uf2conv.py -o bin/SAM_firmware.uf2 -d SCK-2.0 sam/.pioenvs/sck2/firmware.bin
+	echo ""
+	echo -e "${RED}This script is deprecated, please use build.py${NC}"
+	echo -e "Now you need to reset yout kit manually!!${NC}"
 }
 
 function ESP {
 	cd esp
 	pio run -t upload
 	cp .pioenvs/esp12e/firmware.bin ../bin/ESP_firmware.bin
+	echo ""
+	echo -e "${RED}This script is deprecated, please use build.py"
+	echo -e "Now you need to reset yout kit manually!!${NC}"
 	cd ..
 }
 
@@ -35,6 +41,9 @@ function ESPFS {
 	cd esp
 	pio run -t uploadfs
 	cp .pioenvs/esp12e/spiffs.bin ../bin/ESP_filesystem.bin
+	echo ""
+	echo -e "${RED}This script is deprecated, please use build.py"
+	echo -e "Now you need to reset yout kit manually!!${NC}"
 	cd ..
 }
 

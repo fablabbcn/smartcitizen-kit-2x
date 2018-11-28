@@ -30,10 +30,13 @@ class sck:
         i = 0
         kit_list = []
         for d in devList:
-            if 'Smartcitizen' in d.description:
-                i+=1
-                print('['+str(i)+'] Smartcitizen Kit S/N: ' + d.serial_number)
-                kit_list.append(d)
+            try:
+                if 'Smartcitizen' in d.description:
+                    i+=1
+                    print('['+str(i)+'] Smartcitizen Kit S/N: ' + d.serial_number)
+                    kit_list.append(d)
+            except:
+                pass
         if i == 0: print('No SKC found!!!')
         elif i > 0:
             if i == 1:
@@ -50,12 +53,15 @@ class sck:
             devList = list(serial.tools.list_ports.comports())
             found = False
             for d in devList:
-                if self.serial in d.serial_number:
-                    self.port_name = d.device
-                    found = True
-                if time.time() > timeout:
-                    print('Timeout waiting for device')
-                    sys.exit()
+                try: 
+                    if self.serial in d.serial_number:
+                        self.port_name = d.device
+                        found = True
+                    if time.time() > timeout:
+                        print('Timeout waiting for device')
+                        sys.exit()
+                except:
+                    pass
             if found: break
 
         timeout = time.time() + 15

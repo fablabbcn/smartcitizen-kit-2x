@@ -67,16 +67,19 @@ if 'build' in sys.argv:
 
 if 'flash' in sys.argv:
     if 'sam' in sys.argv or 'all' in sys.argv:
+        time.sleep(1)
         oneLine('Flashing SAM firmware...')
         if kit.flashSAM(sys.stdout): OK()
         else: ERROR()
 
     if 'esp' in sys.argv or 'all' in sys.argv:
+        time.sleep(1)
         oneLine('Flashing ESP firmware...')
         if kit.flashESP(sys.stdout): OK()
         else: ERROR()
 
     if 'espfs' in sys.argv or 'all' in sys.argv:
+        time.sleep(1)
         oneLine('Flashing ESP filesystem...')
         if kit.flashESPFS(sys.stdout): OK()
         else: ERROR()

@@ -159,6 +159,7 @@ class sck:
         else: return False
 
     def buildESPFS(self, out=sys.__stdout__):
+        print("ESP filesystem is no longer used!")
         os.chdir(self.repoPath)
         os.chdir('esp')
         piorun = subprocess.call(['pio', 'run', '-t', 'buildfs'], stdout=out, stderr=subprocess.STDOUT)
@@ -168,6 +169,7 @@ class sck:
         return False
 
     def flashESPFS(self, out=sys.__stdout__):
+        print("ESP filesystem is no longer used!")
         os.chdir(self.repoPath)
         if not self.getBridge(): return False
         flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port_name, '--baud', '115200', 'write_flash', '0x300000', os.path.join(self.binPath, self.espfsBIN)], stdout=out, stderr=subprocess.STDOUT)

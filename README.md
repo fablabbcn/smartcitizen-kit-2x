@@ -68,7 +68,7 @@ The technology used here is:
 * (Vue.js)
 * ** Make sure it is using the old javascript, so older phones work. **
 
-And the files are under *esp/data*
+And the files are under *esp/build_data*
 
 
 #### Starting frontend development
@@ -83,9 +83,9 @@ Inside the ./mock-api folder do:
 
 1. `gulp watch` - Watches changes and creates 2 files automatically; `final.html` and `index.gz`
 
-Now you can start editing **esp/data/index.html**
+Now you can start editing **esp/build_data/build_index.html**
 
-If your mock-api is not responding, see */esp/data/main.js*, **theUrl** should be (your API url:port)
+If your mock-api is not responding, see */esp/build_data/main.js*, **theUrl** should be (your API url:port)
 
 #### Testing frontend
 

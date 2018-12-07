@@ -898,16 +898,15 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);
 
-				json.printTo(SerialUSB);
-
 				if (json.containsKey("mo")) {
 					String stringMode = json["mo"];
 					if (stringMode.startsWith("net")) config.mode = MODE_NET;
 					else if (stringMode.startsWith("sd")) config.mode = MODE_SD;
 				} else config.mode = MODE_NOT_CONFIGURED;
 
-				if (json.containsKey("pi")) config.publishInterval = json["pi"];
-				else config.publishInterval = default_publish_interval;
+				if (json.containsKey("pi")) {
+					if (json["pi"] > minimal_publish_interval && json["pi"] < max_publish_interval)	config.publishInterval = json["pi"];
+				} else config.publishInterval = default_publish_interval;
 
 				if (json.containsKey("ss")) {
 					config.credentials.set = true;

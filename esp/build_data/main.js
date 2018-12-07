@@ -1,3 +1,4 @@
+// TODO poner esto dentro de un onDocumentReady()
 var app = new Vue({
   el: '#app',
   data: {

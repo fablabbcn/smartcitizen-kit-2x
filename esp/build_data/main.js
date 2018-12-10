@@ -36,6 +36,7 @@ var app = new Vue({
     showSdCard: false,
     sdlog: false,
     usertoken: '',
+    updateNeeded: true,
     version: 'SCK 2.0 / SAM V0.0.2 / ESP V0.0.2',
     weHaveTriedConnecting: false,
     wifiname: '',

@@ -19,10 +19,6 @@
 
           <p class="text-center">SCK 2.0 Setup</p>
 
-          <div v-if="updateNeeded" class="text-center">
-            <a href="/upload" style="color:red;">UPDATE IS NEEDED - CLICK HERE</a>
-          </div>
-
           <div id="topbackbtn">
             <a v-show="page[currentPage].back" v-on:click="gotoPage(page[currentPage].backTo)" href="#">
               <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 125" style="enable-background:new 0 0 100 100;" xml:space="preserve"><g><polygon points="55.7,33.8 39.7,50.2 56.1,66.3 58.9,63.4 45.3,50.1 58.6,36.6  "/></g></svg>
@@ -62,10 +58,20 @@
 
         <div v-show='page[0].visible'>
           <h2 class="text-cyan text-center">WELCOME TO SMART CITIZEN KIT CONFIGURATION</h2>
-          <p>Is this your first time here?</p>
-          <p>Remember before you start you need to visit <span class="text-cyan">onboarding.smartcitizen.me</span> to obtain a Device Key</p>
-          <button class="btn bg-cyan" id="start" type="button" v-on:click='gotoPage()'>Start</button>
-          <p>or go to <span class='text-cyan'> <a v-on:click='gotoPage(5)'>SD Card mode</a></span> </p>
+
+          <div v-if="updateNeeded" class="text-center p10">
+            <h4 style="color:red;">UPDATE IS NEEDED</h4>
+            <form method='POST' action='/update' enctype='multipart/form-data'>
+              <input type='file' name='update' class="btn bg-yellow ">
+              <input type='submit' value='Update' class="btn bg-yellow">
+            </form>
+          </div>
+          <div v-else>
+            <p>Is this your first time here?</p>
+            <p>Remember before you start you need to visit <span class="text-cyan">onboarding.smartcitizen.me</span> to obtain a Device Key</p>
+            <button class="btn bg-yellow" id="start" type="button" v-on:click='gotoPage()'>Start</button>
+            <p>or go to <span class='text-cyan'> <a v-on:click='gotoPage(5)'>SD Card mode</a></span> </p>
+          </div>
         </div>
 
         <div v-show='page[1].visible'>
@@ -79,7 +85,7 @@
             {{ 6 - usertoken.length }} letters missing.
             </p>
           </div>
-          <button class="btn next" v-bind:class="{ 'bg-cyan': usertokenCheck }" type="button" :disabled=!usertokenCheck v-on:click='gotoPage()'>Next</button>
+          <button class="btn next" v-bind:class="{ 'bg-yellow': usertokenCheck }" type="button" :disabled=!usertokenCheck v-on:click='gotoPage()'>Next</button>
         </div>
 
         <div v-show='page[2].visible'>
@@ -96,7 +102,7 @@
             <label>Password</label>
             <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password" autocapitalize="none" >
           </div>
-          <button class="btn" v-bind:class="{ 'bg-cyan': selectedWifiCheck }" type="button" id="connect" :disabled=!selectedWifiCheck v-on:click="jsPost('set','connect')">Connect</button>
+          <button class="btn" v-bind:class="{ 'bg-yellow': selectedWifiCheck }" type="button" id="connect" :disabled=!selectedWifiCheck v-on:click="jsPost('set','connect')">Connect</button>
 
 
         </div>
@@ -135,7 +141,7 @@
           </table>
           <p>If you want to run a full setup again, press the button on your Kit for 15 seconds and reconnect, and refresh this page.</p>
 
-          <button class="btn bg-cyan" type="button" v-on:click='gotoPage(2)'>Edit Wifi</button>
+          <button class="btn bg-yellow" type="button" v-on:click='gotoPage(2)'>Edit Wifi</button>
         </div>
 
 
@@ -156,7 +162,7 @@
             </tr>
           </table>
           -->
-          <button class="btn bg-cyan" type="button" v-on:click="jsPost('set', 'synctime')">START LOGGING</button>
+          <button class="btn bg-yellow" type="button" v-on:click="jsPost('set', 'synctime')">START LOGGING</button>
           <p>You will be disconnected and the Kit will start recording data.</p>
         </div>
 
@@ -171,7 +177,7 @@
           <h4>Kit info:</h4>
 
 
-          <button id="copied-notification" class="btn bg-cyan" type="button" v-on:click="copyTextToClipboard()">Copy info to clipboard</button>
+          <button id="copied-notification" class="btn bg-yellow" type="button" v-on:click="copyTextToClipboard()">Copy info to clipboard</button>
 
           <div id="id-logging">
             <hr />
@@ -188,7 +194,7 @@
             Enable Debug buttons
           </label>
 
-          <p style="font-size:70%;">Vue.js version: {{Vue.version}}</p>
+          <p class="font70">Vue.js version: {{Vue.version}}</p>
           <!--
           <label for="label-experimental" class="font80">
             <input type="checkbox" name="" id="label-experimental" value="" v-model="showExperimental"/>

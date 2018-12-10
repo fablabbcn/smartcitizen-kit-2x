@@ -69,7 +69,7 @@ void SckESP::update()
 		if (sendTime()) {
 			if (sendConfig()) sendConfigPending = false;
 		}
-	} 
+	}
 
 	if (WiFi.getMode() == WIFI_AP) {
 		dnsServer.processNextRequest();
@@ -98,6 +98,8 @@ void SckESP::update()
 	}
 
 	SAMbusUpdate();
+
+	if(shouldReboot) ESP.restart();
 
 	if (telnetDebug) Debug.handle();
 }
@@ -451,7 +453,7 @@ bool SckESP::sendConfig()
 		debugOUT(F("Sent configuration to SAM!!"));
 		return true;
 	}
-	
+
 	debugOUT(F("ERROR Failed to send config to SAM!!!"));
 	return false;
 }
@@ -488,7 +490,7 @@ void SckESP::stopAP()
 	tryConnection();
 }
 void SckESP::startWebServer()
-{ 
+{
 	webServer.rewrite("/", "/index.html");
 
 	// Handle root
@@ -534,6 +536,36 @@ void SckESP::startWebServer()
 		json += "]}";
 		request->send(200, "text/json", json);
 		json = String();
+	});
+
+	webServer.on("/update", HTTP_GET, [&](AsyncWebServerRequest *request){
+			request->send(200, "text/html", "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>");
+		});
+	webServer.on("/update", HTTP_POST, [&](AsyncWebServerRequest *request){
+		shouldReboot = !Update.hasError();
+		AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", shouldReboot?"OK":"FAIL");
+		response->addHeader("Connection", "close");
+		request->send(response);
+	},[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
+		if(!index){
+			Serial.printf("Update Start: %s\n", filename.c_str());
+			Update.runAsync(true);
+			if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)){
+				Update.printError(Serial);
+			}
+		}
+		if(!Update.hasError()){
+			if(Update.write(data, len) != len){
+				Update.printError(Serial);
+			}
+		}
+		if(final){
+			if(Update.end(true)){
+				Serial.printf("Update Success: %uB\n", index+len);
+			} else {
+				Update.printError(Serial);
+			}
+		}
 	});
 
 	// Handle not found
@@ -618,20 +650,20 @@ void SckESP::webRoot(AsyncWebServerRequest *request)
     // Check if the client already has the same version and respond with a 304 (Not modified)
     if (request->header("If-Modified-Since").equals(last_modified)) {
         request->send(304);
- 
+
     } else {
- 
+
         // Dump the byte array in PROGMEM with a 200 HTTP code (OK)
         AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html_gz, index_html_gz_len);
- 
+
         // Tell the browswer the contemnt is Gzipped
         response->addHeader("Content-Encoding", "gzip");
- 
+
         // And set the last-modified datetime so we can check if we need to send it again next time or not
         response->addHeader("Last-Modified", last_modified);
- 
+
         request->send(response);
- 
+
     }
 }
 bool SckESP::isIp(String str)

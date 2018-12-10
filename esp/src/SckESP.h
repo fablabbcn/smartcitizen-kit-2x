@@ -105,6 +105,7 @@ class SckESP
 		String toStringIp(IPAddress ip);
 		const byte DNS_PORT = 53;
 		char last_modified[50];
+		bool shouldReboot = false; 	// After OTA update
 
 		// Time
 		void setNTPprovider();

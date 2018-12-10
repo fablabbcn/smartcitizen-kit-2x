@@ -19,30 +19,8 @@ All branches and pull requests on Github are auto tested with Travis
 
 ### The core firmware (C++)
 
-The technology used:
-
-* Platformio
-
-
-#### Uploading the firmware to the kit
-
-After clonning the repository:
-
-1. In folder ./sam/ do:
-
-  * `pio run`
-  
-  	This step will **take a while** and end with an error because a bug... **don't worry** go to next step)
-  
-  * `pio run -t upload`
-
-2. in folder ./esp/ do:
-
-  * `pio run -t upload`
-
-3. To upload the Frontend website code to the filesystem do:
-
-  * `pio run -t uploadfs`
+If you just want to upgrade your Smartcitizen kit please refer to the [Updating the Smartcitizen Kit 2.0](./upgrading.md) guide.
+But if you want to change something and build the firmware, use the [Developer guide: Building and flashing the Smartcitizen Kit firmware](./building.md) guide.
 
 ### SCK Shell
 

@@ -60,15 +60,15 @@
           <h2 class="text-cyan text-center">WELCOME TO SMART CITIZEN KIT CONFIGURATION</h2>
 
           <div v-if="kitstatus.updateNeeded == 'True'" class="text-center p10">
-            <h4 style="color:red;">UPDATE IS NEEDED</h4>
+            <h4 style="color:red;">FIRMWARE UPDATE IS NEEDED!</h4>
+            <h4>Upload your ESP firmware here:</h4>
             <form @change="checkUploadForm" action="/update" method="POST" enctype='multipart/form-data'>
-              <input id="firmware_filename" accept=".bin" type='file' name='update' ref="file" class="btn bg-yellow ">
+              <input id="firmware_filename" accept=".bin" type='file' name='update' ref="file" class="p10" style="border:1px solid #ccc">
               <input type='submit' value='Update' class="btn bg-yellow">
             </form>
             <div v-if="file" class="font70">
               <p>Filename: <b> {{file.name}}</b></p>
-              <p>Size: {{file.size}}</p>
-              <p>Type: {{file.type}}</p>
+              <p>Size: <b>{{file.size}}</b></p>
             </div>
           </div>
           <div v-else>

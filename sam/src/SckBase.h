@@ -26,6 +26,7 @@
 #include "SckUrban.h"
 #include "SckAux.h"
 
+#include "version.h"
 
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
@@ -173,10 +174,12 @@ class SckBase
 
 	public:
 		const String hardwareVer = "2.0";
-		const String SAMversion	= "0.3.0-" + String(__GIT_HASH__);
+		const String SAMversion	= SAMverNum + "-" + String(__GIT_HASH__); 		// mayor.minor.build-gitcommit
 		const String SAMbuildDate = String(__ISO_DATE__);
 		String ESPversion = "not synced";
 		String ESPbuildDate = "not synced";
+		// If mayor or minor version of ESP is different than SAM's we need to call a ESP update
+		bool ESPupdateNeeded = false;
 
 		void setup();
 		void update();

@@ -1,5 +1,7 @@
 # Updating the Smartcitizen Kit 2.0
 
+## This guide needs an update !!!
+
 When new features are developed or bugs are fixed we will release new versions of the SCK firmware. updating your kit is very simple:
 
 1. **Connect your kit** with a micro USB cable to your computer.
@@ -13,10 +15,7 @@ When new features are developed or bugs are fixed we will release new versions o
 
 ![](./images/upgrading_index.png)
 
-:::info
-You can backup your current firmware version just saving the file called _CURRENT.UF2_.
-:::
-
+> You can backup your current firmware version just saving the file called _CURRENT.UF2_.
 
 4. Simply **drag the firmware file you downloaded over the _SCK-20_ drive**, your kit led will blink in green and after some seconds it will reset and start with the new version.
 
@@ -26,4 +25,3 @@ You can backup your current firmware version just saving the file called _CURREN
 5. **WIP ESP FLASH**
 
 ###### tags: `guides` `docs`
-*[SCK]: Smartcitizen Kit

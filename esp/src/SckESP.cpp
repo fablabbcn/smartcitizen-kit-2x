@@ -191,18 +191,31 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 	switch(wichMessage)
 	{
 
+		case ESPMES_UPDATE_INFO:
+		{
+			// This message will only be received on setup mode so after parsing it we start AP mode
+
+			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+			JsonObject& json = jsonBuffer.parseObject(netBuff);
+			SAMversion = json["ver"].as<String>();
+			SAMbuildDate = json["bd"].as<String>();
+			updateNeeded = json["un"];
+
+			startAP();
+			break;
+		}
 		case ESPMES_SET_CONFIG:
 		{
-				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-				JsonObject& json = jsonBuffer.parseObject(netBuff);
-				config.credentials.set = json["cs"];
-				strcpy(config.credentials.ssid, json["ss"]);
-				strcpy(config.credentials.pass, json["pa"]);
-				config.token.set = json["ts"];
-				strcpy(config.token.token, json["to"]);
+			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+			JsonObject& json = jsonBuffer.parseObject(netBuff);
+			config.credentials.set = json["cs"];
+			strcpy(config.credentials.ssid, json["ss"]);
+			strcpy(config.credentials.pass, json["pa"]);
+			config.token.set = json["ts"];
+			strcpy(config.token.token, json["to"]);
 
-				saveConfig(config);
-				break;
+			saveConfig(config);
+			break;
 		}
 		case ESPMES_GET_NETINFO:
 
@@ -515,6 +528,13 @@ void SckESP::startWebServer()
 	// Handle status request
 	webServer.on("/status", HTTP_GET, extStatus);
 
+	// Handle token request
+	webServer.on("/token", HTTP_GET, [&] (AsyncWebServerRequest *request) {
+		// {"token":"123123"}
+		String json = "{\"token\":\"" + String(config.token.token) + "\"}";
+		request->send(200, "text/plain", json);
+	});
+
 	// Handle ping request
 	webServer.on("/ping", HTTP_GET, [] (AsyncWebServerRequest *request) {
 		request->send(200, "text/plain", "ping...");
@@ -546,24 +566,25 @@ void SckESP::startWebServer()
 		AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", shouldReboot?"OK":"FAIL");
 		response->addHeader("Connection", "close");
 		request->send(response);
-	},[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
+	},[&](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
 		if(!index){
-			Serial.printf("Update Start: %s\n", filename.c_str());
+			/* Serial.printf("Update Start: %s\n", filename.c_str()); */
 			Update.runAsync(true);
 			if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)){
-				Update.printError(Serial);
+				/* Update.printError(Serial); */
 			}
 		}
 		if(!Update.hasError()){
 			if(Update.write(data, len) != len){
-				Update.printError(Serial);
+				/* Update.printError(Serial); */
 			}
 		}
 		if(final){
 			if(Update.end(true)){
-				Serial.printf("Update Success: %uB\n", index+len);
+				/* Serial.printf("Update Success: %uB\n", index+len); */
+				OTAok = true;
 			} else {
-				Update.printError(Serial);
+				/* Update.printError(Serial); */
 			}
 		}
 	});
@@ -685,50 +706,14 @@ String SckESP::toStringIp(IPAddress ip)
 }
 void SckESP::webStatus(AsyncWebServerRequest *request)
 {
-	// Token
 	String json;
-	if (config.token.set) json = "{\"token\":\"" + String(config.token.token) + "\",";
-	else json = "{\"token\":\"null\",";
-
-	// Wifi config
-	if (config.credentials.set) {
-		json += "\"ssid\":\"" + String(config.credentials.ssid) + "\",";
-		json += "\"password\":\"" + String(config.credentials.pass) + "\",";
-	} else {
-		json += "\"ssid\":\"null\",";
-		json += "\"password\":\"null\",";
-	}
-
-	// mode
-	json +=  "\"mode\":\"wip\",";
 
 	// Hostname
-	json += "\"hostname\":\"" + String(hostname) + "\",";
-
-	// IP address
-	String tip = WiFi.localIP().toString();
-	json += "\"ip\":\"" + tip + "\",";
+	json += "{\"hostname\":\"" + String(hostname) + "\",";
 
 	// MAC address
 	String tmac = WiFi.softAPmacAddress();
 	json += "\"mac\":\"" + tmac + "\",";
-
-	// Time
-	String epochSTR = "0";
-	if (timeStatus() == timeSet) epochSTR = String(now());
-	json += "\"time\":" + epochSTR + ",";
-
-	// Battery
-	String battPresent = "wip";
-	json += "\"batt\":\"" + battPresent + "\",";
-	uint8_t battPercent = 0;
-	json += "\"battPercent\":" + String(battPercent) + ",";
-	String charging = "wip";
-	json += "\"charging\":\"" + charging + "\",";
-
-	// SDcard
-	String sdPresent = "wip";
-	json += "\"sdcard\":\"" + sdPresent + "\",";
 
 	// ESP firmware version
 	json += "\"ESPversion\":\"" + ESPversion + "\",";
@@ -736,24 +721,17 @@ void SckESP::webStatus(AsyncWebServerRequest *request)
 	// ESP build date
 	json += "\"ESPbuilddate\":\"" + ESPbuildDate + "\",";
 
-	String wip = "wip";
 	// SAM firmware version
-	json += "\"SAMversion\":\"" + wip + "\",";
+	json += "\"SAMversion\":\"" + SAMversion + "\",";
 
 	// SAM build date
-	json += "\"SAMbuilddate\":\"" + wip + "\",";
+	json += "\"SAMbuilddate\":\"" + SAMbuildDate + "\",";
 
-	// Acces Point status
-	json += "\"apstatus\":\"to be removed\",";
+	// ESP update needed
+	json += "\"updateNeeded\":\"" +  String(updateNeeded ? "true" : "false") + "\",";
 
-	// Wifi status
-	json += "\"wifi\":\"to be removed\",";
-
-	// MQTT status
-	json += "\"mqtt\":\"to be removed\",";
-
-	// Last publish time
-	json += "\"last_publish\":\"to be removed\"";
+	// OTA update status
+	json += "\"updatedOK\":\"" + String(OTAok ? "true" : "false") + "\"";
 
 	json += "}";
 	request->send(200, "text/json", json);

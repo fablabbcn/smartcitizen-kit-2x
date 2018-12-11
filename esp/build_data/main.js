@@ -76,7 +76,7 @@ var app = new Vue({
     this.jsGet('status');
     // This can only be run once. We don't want the usertoken to be updated every 9
     // seconds if the user is typing it in
-    this.jsGet('status', 'usertoken');
+    this.jsGet('token');
 
     // This checks if connection to the kit has been lost, every X sec
     this.periodic(9000);
@@ -132,21 +132,21 @@ var app = new Vue({
       xmlHttp.open( "GET", theUrl, true ); // false for synchronous request, true = async
       xmlHttp.send( null );
     },
-    jsGet: function(path, extra) {
+    jsGet: function(path) {
       var that = this;
 
       this.httpGet(this.theApi + path, function(res){
-        //console.log(JSON.parse(res));
         if (path === 'aplist') {
           that.wifis = JSON.parse(res);
         }
         if (path === 'status'){
           //that.notify('Getting status', 1000);
           that.kitstatus = JSON.parse(res);
-          if (extra === 'usertoken'){
-            if (that.kitstatus.token != "null") {
-              that.usertoken = that.kitstatus.token;
-            }
+        }
+        if (path === 'token'){
+          tmpToken = JSON.parse(res)['token'];
+          if (tmpToken !== "null") {
+            that.usertoken = tmpToken;
           }
         }
 
@@ -238,12 +238,11 @@ var app = new Vue({
       console.log('Notify:', msg);
     },
     checkUploadForm: function(e){
-      var str = document.getElementById('firmware_filename').value
-      var fileType = str.substr(str.indexOf('.'));
-      console.log('Uploading firmware with a filetype of: ', fileType)
+      //var str = document.getElementById('firmware_filename').value
+      //var fileType = str.substr(str.indexOf('.'));
+      //console.log('Uploading firmware with a filetype of: ', fileType)
 
       //console.log(e)
-      console.log(this.$refs.file.files[0]);
       this.file = this.$refs.file.files[0];
 
     }

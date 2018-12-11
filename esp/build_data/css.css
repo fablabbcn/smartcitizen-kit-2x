@@ -54,14 +54,6 @@ input[type=text]:focus {
   outline: 0;
 }
 
-input[type=checkbox] {
-  width: 30px;
-  height: 30px;
-  -webkit-border-radius: 22px; -moz-border-radius: 22px; border-radius: 22px;
-  border: 1px solid #bbb;
-  margin-top: -2px; /* move checkbox 2px down to match line, when float:right */
-}
-
 input[type=range] {
    width: 95%;
 }

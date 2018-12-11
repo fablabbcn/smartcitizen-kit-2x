@@ -4,8 +4,10 @@
     "test": "positive",
     "todo": "what will real api return here?"
   },
+  "token":{
+    "token":"null"
+  },
   "status": {
-    "token": "null",
     "ssid": "",
     "password": "",
     "hostname": "Smartcitizen7578",

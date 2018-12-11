@@ -530,7 +530,9 @@ void SckESP::startWebServer()
 
 	// Handle token request
 	webServer.on("/token", HTTP_GET, [&] (AsyncWebServerRequest *request) {
-		request->send(200, "text/plain", config.token.token);
+		// {"token":"123123"}
+		String json = "{\"token\":\"" + String(config.token.token) + "\"}";
+		request->send(200, "text/plain", json);
 	});
 
 	// Handle ping request
@@ -712,11 +714,6 @@ void SckESP::webStatus(AsyncWebServerRequest *request)
 	// MAC address
 	String tmac = WiFi.softAPmacAddress();
 	json += "\"mac\":\"" + tmac + "\",";
-
-	// Time
-	String epochSTR = "0";
-	if (timeStatus() == timeSet) epochSTR = String(now());
-	json += "\"time\":" + epochSTR + ",";
 
 	// ESP firmware version
 	json += "\"ESPversion\":\"" + ESPversion + "\",";

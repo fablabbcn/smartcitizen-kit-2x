@@ -22,6 +22,7 @@
     "SAMbuilddate": "wip",
     "apstatus": "started",
     "wifi": "not configured",
+    "updateNeeded": "True",
     "net": "null",
     "last_publish": "0",
     "mqtt": "null"

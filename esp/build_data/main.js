@@ -2,16 +2,16 @@
 var app = new Vue({
   el: '#app',
   data: {
-    theApi: window.location.protocol + '//' + window.location.host + '/',
-    development: false,
     browsertime: Math.floor(Date.now() / 1000),
-    kitstatus: [],
+    currentPage: 0,
+    development: false,
     devicetime: 0,
-    logging: [],
+    filename: null,
     intervals: false,
     kitinfo: false,
-    currentPage: 0,
+    kitstatus: [],
     lastPage: 0,
+    logging: [],
     page: [
        {'visible': true,  'footer': 'HOME',         'backTo': 0, 'back': false },
        {'visible': false, 'footer': 'REGISTER Key', 'backTo': 0, 'back': true  },
@@ -24,20 +24,21 @@ var app = new Vue({
     ],
     publishinterval: 2,
     readinginterval: 60,
+    sdlog: false,
     selectedWifi: '',
-    sensors: false,
     sensor1: false,
     sensor2: false,
     sensor3: false,
     sensor4: false,
+    sensors: false,
     showDebug: false,
     showExperimental: false,
     showInterval: false,
     showSdCard: false,
-    sdlog: false,
+    theApi: window.location.protocol + '//' + window.location.host + '/',
     usertoken: '',
-    updateNeeded: true,
     version: 'SCK 2.0 / SAM V0.0.2 / ESP V0.0.2',
+    vueVersion: Vue.version,
     weHaveTriedConnecting: false,
     wifiname: '',
     wifipass: '',
@@ -193,18 +194,16 @@ var app = new Vue({
       // Hide current page
       this.page[this.currentPage].visible = false;
 
-      // Find which page to show next
-      // Is it a specified page, or the next one?
-      if ( typeof num !== 'undefined') {
-        this.currentPage = parseInt(num);
-      }else{
-        // Find the last page so we wont go too far, when clicking 'Next'
+      // If no page specified, we go to the next page
+      if ( typeof num === 'undefined') {
+        // Don't go too far, when clicking 'Next'
         if ( this.currentPage === (this.page.length - 1)) {
           //console.log('Last page: ' + this.currentPage)
           return;
         }
-
         this.currentPage = parseInt(this.currentPage + 1);
+      }else{
+        this.currentPage = parseInt(num);
       }
 
       // Show it
@@ -238,6 +237,15 @@ var app = new Vue({
 
       console.log('Notify:', msg);
     },
+    checkUploadForm: function(e){
+      var str = document.getElementById('firmware_filename').value
+      var fileType = str.substr(str.indexOf('.'));
+      console.log('Uploading firmware with a filetype of: ', fileType)
+
+      //console.log(e)
+
+      //e.preventDefault();
+    }
   },
   computed: {
     checkIfDebugMode: function(){

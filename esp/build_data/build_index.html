@@ -59,10 +59,11 @@
         <div v-show='page[0].visible'>
           <h2 class="text-cyan text-center">WELCOME TO SMART CITIZEN KIT CONFIGURATION</h2>
 
-          <div v-if="updateNeeded" class="text-center p10">
+          <div v-if="kitstatus.updateNeeded == 'True'" class="text-center p10">
             <h4 style="color:red;">UPDATE IS NEEDED</h4>
-            <form method='POST' action='/update' enctype='multipart/form-data'>
-              <input type='file' name='update' class="btn bg-yellow ">
+            <form @submit="checkUploadForm" action="/update" method="POST" enctype='multipart/form-data'>
+              <!-- accept=".bin" -->
+              <input id="firmware_filename" type='file' name='update' class="btn bg-yellow ">
               <input type='submit' value='Update' class="btn bg-yellow">
             </form>
           </div>
@@ -194,7 +195,7 @@
             Enable Debug buttons
           </label>
 
-          <p class="font70">Vue.js version: {{Vue.version}}</p>
+          <p class="font70">Vue.js version: {{vueVersion}}</p>
           <!--
           <label for="label-experimental" class="font80">
             <input type="checkbox" name="" id="label-experimental" value="" v-model="showExperimental"/>

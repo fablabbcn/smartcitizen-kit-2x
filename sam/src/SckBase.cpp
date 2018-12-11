@@ -1058,7 +1058,9 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				// Do we need to update ESP firmware?
 				VersionInt ESPversionInt = parseVersionStr(ESPversion);
 				VersionInt SAMversionInt = parseVersionStr(SAMversion);
+
 				if ((SAMversionInt.mayor != ESPversionInt.mayor) || (SAMversionInt.minor != ESPversionInt.minor)) ESPupdateNeeded = true;
+				else ESPupdateNeeded= false;
 
 				// Send SAM version and updateNeeded flag
 				jsonBuffer.clear();

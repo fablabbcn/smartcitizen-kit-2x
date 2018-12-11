@@ -59,7 +59,7 @@
         <div v-show='page[0].visible'>
           <h2 class="text-cyan text-center">WELCOME TO SMART CITIZEN KIT CONFIGURATION</h2>
 
-          <div v-if="kitstatus.updateNeeded == 'True'" class="text-center p10">
+          <div v-if="kitstatus.updateNeeded == 'true'" class="text-center p10">
             <h4 style="color:red;">FIRMWARE UPDATE IS NEEDED!</h4>
             <h4>Upload your ESP firmware here:</h4>
             <form @change="checkUploadForm" action="/update" method="POST" enctype='multipart/form-data'>

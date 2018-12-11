@@ -4,7 +4,9 @@
     "test": "positive",
     "todo": "what will real api return here?"
   },
-  "token":"null",
+  "token":{
+    "token":"null"
+  },
   "status": {
     "hostname": "Smartcitizen7578",
     "mac": "5E:CF:7F:D1:75:78",

@@ -5,6 +5,7 @@ var rename = require('gulp-rename');
 var livereload = require('gulp-livereload');
 var favicon = require('gulp-base64-favicon');
 var fs = require('fs');
+var del = require('del');
 
 // Takes the original build_data/build_index.html file and creates 2 files
 // build_data/index.html    for localhost:8000
@@ -25,6 +26,12 @@ gulp.task('compress', function(){
     .pipe(livereload());
 });
 
+gulp.task('clean', function() {
+  return del([
+    '../esp/src/index.html.gz.h'
+  ], {force: true});
+});
+
 // Watch changes to index.html.dev, css.css, main.js'
 gulp.task('watch', function(){
   livereload.listen();
@@ -32,7 +39,7 @@ gulp.task('watch', function(){
 })
 
 // Generates header file for embeding the html page
-gulp.task('buildfs_embeded', ['compress'], function() {
+gulp.task('buildfs_embeded', ['clean', 'compress'], function() {
  
     var source = '../esp/build_data/index.html.gz';
     var destination = '../esp/src/index.html.gz.h';

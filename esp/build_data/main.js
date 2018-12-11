@@ -6,7 +6,7 @@ var app = new Vue({
     currentPage: 0,
     development: false,
     devicetime: 0,
-    filename: null,
+    file: '',
     intervals: false,
     kitinfo: false,
     kitstatus: [],
@@ -243,8 +243,9 @@ var app = new Vue({
       console.log('Uploading firmware with a filetype of: ', fileType)
 
       //console.log(e)
+      console.log(this.$refs.file.files[0]);
+      this.file = this.$refs.file.files[0];
 
-      //e.preventDefault();
     }
   },
   computed: {

@@ -61,11 +61,15 @@
 
           <div v-if="kitstatus.updateNeeded == 'True'" class="text-center p10">
             <h4 style="color:red;">UPDATE IS NEEDED</h4>
-            <form @submit="checkUploadForm" action="/update" method="POST" enctype='multipart/form-data'>
-              <!-- accept=".bin" -->
-              <input id="firmware_filename" type='file' name='update' class="btn bg-yellow ">
+            <form @change="checkUploadForm" action="/update" method="POST" enctype='multipart/form-data'>
+              <input id="firmware_filename" accept=".bin" type='file' name='update' ref="file" class="btn bg-yellow ">
               <input type='submit' value='Update' class="btn bg-yellow">
             </form>
+            <div v-if="file" class="font70">
+              <p>Filename: <b> {{file.name}}</b></p>
+              <p>Size: {{file.size}}</p>
+              <p>Type: {{file.type}}</p>
+            </div>
           </div>
           <div v-else>
             <p>Is this your first time here?</p>

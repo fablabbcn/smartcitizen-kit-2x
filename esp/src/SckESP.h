@@ -15,6 +15,7 @@
 
 #include <Arduino.h>
 #include "Shared.h"
+#include "version.h"
 
 #define NTP_SERVER_NAME "ntp.smartcitizen.me"
 #define NTP_SERVER_PORT 80
@@ -106,6 +107,7 @@ class SckESP
 		const byte DNS_PORT = 53;
 		char last_modified[50];
 		bool shouldReboot = false; 	// After OTA update
+		bool OTAok = false;
 
 		// Time
 		void setNTPprovider();
@@ -118,8 +120,12 @@ class SckESP
 
 
 	public:
-		const String ESPversion = "0.5.0-" + String(__GIT_HASH__);
+		const String ESPversion = ESPverNum + "-" + String(__GIT_HASH__); 	// mayor.minor.build-gitcommit
 		const String ESPbuildDate = String(__ISO_DATE__);
+		String SAMversion = "not synced";
+		String SAMbuildDate = "not synced";
+		// If mayor or minor version of ESP is different than SAM's we need to call a ESP update
+		bool updateNeeded = false;
 
 		void setup();
 		void update();

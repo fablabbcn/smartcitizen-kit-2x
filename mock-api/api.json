@@ -4,27 +4,16 @@
     "test": "positive",
     "todo": "what will real api return here?"
   },
+  "token":"null",
   "status": {
-    "token": "null",
-    "ssid": "",
-    "password": "",
     "hostname": "Smartcitizen7578",
-    "ip": "0.0.0.0",
     "mac": "5E:CF:7F:D1:75:78",
-    "time": 0,
-    "batt": "wip",
-    "battPercent": 0,
-    "charging": "wip",
-    "sdcard": "wip",
-    "ESPversion": "0.2.0",
-    "ESPbuilddate": "Sep 27 2017-14:05:31",
-    "SAMversion": "wip",
-    "SAMbuilddate": "wip",
-    "apstatus": "started",
-    "wifi": "not configured",
-    "net": "null",
-    "last_publish": "0",
-    "mqtt": "null"
+    "ESPversion": "0.5.0-eadf23",
+    "ESPbuilddate": "2018-12-11T12:21:38Z",
+    "SAMversion": "0.5.0-eadf34",
+    "SAMbuilddate": "2018-12-11T12:21:38Z",
+    "updateNeeded": "false",
+    "updatedOK": "false"
   },
   "aplist": {
     "nets": [

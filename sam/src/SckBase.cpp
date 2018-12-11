@@ -1053,8 +1053,26 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			if (pendingSyncConfig) sendConfig();
 
-			if (st.onSetup) sendMessage(ESPMES_START_AP);
-			else if (st.mode == MODE_NET) {
+			if (st.onSetup) {
+
+				// Do we need to update ESP firmware?
+				VersionInt ESPversionInt = parseVersionStr(ESPversion);
+				VersionInt SAMversionInt = parseVersionStr(SAMversion);
+				if ((SAMversionInt.mayor != ESPversionInt.mayor) || (SAMversionInt.minor != ESPversionInt.minor)) ESPupdateNeeded = true;
+
+				// Send SAM version and updateNeeded flag
+				jsonBuffer.clear();
+				JsonObject& jsonSend = jsonBuffer.createObject();
+				jsonSend["ver"] = SAMversion;
+				jsonSend["bd"] = SAMbuildDate;
+				jsonSend["un"] = ESPupdateNeeded;
+
+				sprintf(netBuff, "%c", ESPMES_UPDATE_INFO);
+				jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
+
+				if (!sendMessage()) sckOut("ERROR sending update info to ESP!!!");
+
+			} else if (st.mode == MODE_NET) {
 
 				if (st.wifiSet) sendMessage(ESPMES_CONNECT);
 

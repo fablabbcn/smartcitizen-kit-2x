@@ -1,11 +1,14 @@
 #pragma once
 
+#include <Arduino.h>
+
 const uint32_t serialBaudrate = 115200;
 
 enum ESPMessage {
 	
 	ESPMES_PLACEHOLDER,
 
+	ESPMES_UPDATE_INFO, 		// SAM->ESP, Send version and update info after receiving version info from ESP
 	ESPMES_SET_CONFIG,		// SAM->ESP, Sends new config
 	ESPMES_GET_NETINFO,		// SAM->ESP, ESP return network info
 	ESPMES_GET_TIME,		// SAM->ESP, ESP returns epoch time
@@ -54,4 +57,8 @@ enum SAMMessage {
 
 #define SAM_ADDRESS 1
 #define ESP_ADDRESS 2
+
+struct VersionInt { uint8_t mayor; uint8_t minor; uint8_t build; };
+
+VersionInt parseVersionStr(String versionStr);
 

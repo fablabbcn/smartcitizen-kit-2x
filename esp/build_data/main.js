@@ -271,6 +271,7 @@ var app = new Vue({
         if (req.readyState === 4) {
           console.log('request:', req)
           console.log('response:', req.response);
+          document.getElementById('firmware-update-status').append(' ' + req.response)
         }
       }
       req.onerror = function(e){

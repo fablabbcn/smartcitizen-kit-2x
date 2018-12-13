@@ -72,6 +72,7 @@
               <p>Size: <b>{{file.size}}</b></p>
             </div>
             <p>{{kitstatus.updatedStatus}}</p>
+            <p id="firmware-update-status"></p>
           </div>
           <div v-else>
             <p>Is this your first time here?</p>
@@ -837,6 +838,7 @@ var app = new Vue({
         if (req.readyState === 4) {
           console.log('request:', req)
           console.log('response:', req.response);
+          document.getElementById('firmware-update-status').append(' ' + req.response)
         }
       }
       req.onerror = function(e){

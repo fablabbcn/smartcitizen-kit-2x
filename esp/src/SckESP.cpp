@@ -563,26 +563,34 @@ void SckESP::startWebServer()
 		});
 	webServer.on("/update", HTTP_POST, [&](AsyncWebServerRequest *request){
 		shouldReboot = !Update.hasError();
-		AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", shouldReboot?"OK":"FAIL");
+		/* AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", shouldReboot?"OK":"FAIL"); */
+		if (shouldReboot) OTAstatus = "Succeeded!";
+		else OTAstatus = "ERROR...";
+
+		AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", OTAstatus);
 		response->addHeader("Connection", "close");
 		request->send(response);
 	},[&](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
 		if(!index){
 			/* Serial.printf("Update Start: %s\n", filename.c_str()); */
+			OTAstatus = "Running...";
 			Update.runAsync(true);
 			if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)){
+				OTAstatus = "ERROR...";
 				/* Update.printError(Serial); */
 			}
 		}
 		if(!Update.hasError()){
 			if(Update.write(data, len) != len){
+				OTAstatus = "ERROR...";
 				/* Update.printError(Serial); */
 			}
 		}
 		if(final){
 			if(Update.end(true)){
 				/* Serial.printf("Update Success: %uB\n", index+len); */
-				OTAok = true;
+				OTAstatus = "Succeeded!";
+				/* OTAok = true; */
 			} else {
 				/* Update.printError(Serial); */
 			}
@@ -731,7 +739,7 @@ void SckESP::webStatus(AsyncWebServerRequest *request)
 	json += "\"updateNeeded\":\"" +  String(updateNeeded ? "true" : "false") + "\",";
 
 	// OTA update status
-	json += "\"updatedOK\":\"" + String(OTAok ? "true" : "false") + "\"";
+	json += "\"updatedStatus\":\"" + OTAstatus + "\"";
 
 	json += "}";
 	request->send(200, "text/json", json);

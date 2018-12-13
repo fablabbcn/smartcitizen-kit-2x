@@ -64,7 +64,7 @@
             <h4>Upload your ESP firmware here:</h4>
             <form @submit.prevent="submitFirmware" @change="checkUploadForm" method="POST" enctype='multipart/form-data'>
               <input id="firmware_filename" accept=".bin" type='file' name='update' ref="file" class="p10" style="border:1px solid #ccc">
-              <input id="firmware_button" type='submit' value='Update' class="btn bg-yellow">
+              <input id="firmware_button" type='submit' value='Update' class="btn":disabled=!checkIfFileSelected v-bind:class="{ 'bg-yellow': checkIfFileSelected }">
             </form>
             <div v-if="file" class="font70">
               <p>Filename: <b> {{file.name}}</b></p>
@@ -803,18 +803,10 @@ var app = new Vue({
       console.log('Notify:', msg);
     },
     checkUploadForm: function(e){
-      //var str = document.getElementById('firmware_filename').value
-      //var fileType = str.substr(str.indexOf('.'));
-      //console.log('Uploading firmware with a filetype of: ', fileType)
-
-      //console.log(e)
       this.file = this.$refs.file.files[0];
-
     },
+    // POST the file to /action via AJAX
     submitFirmware: function(e){
-      // Should POST the file to /action via POST
-      console.log('posting file...')
-      console.log(e);
 
       let formData = new FormData();
       let req = new XMLHttpRequest();
@@ -824,6 +816,8 @@ var app = new Vue({
 
       btn = document.getElementById('firmware_button');
       btn.value = 'Updating..'
+      console.log(req);
+
     }
   },
   computed: {
@@ -844,6 +838,9 @@ var app = new Vue({
     },
     selectedWifiCheck: function(){
       return this.selectedWifi.length > 0;
+    },
+    checkIfFileSelected: function(){
+      return this.file.size > 0;
     }
   }
 });

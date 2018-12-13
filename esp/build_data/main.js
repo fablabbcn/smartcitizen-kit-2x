@@ -238,18 +238,10 @@ var app = new Vue({
       console.log('Notify:', msg);
     },
     checkUploadForm: function(e){
-      //var str = document.getElementById('firmware_filename').value
-      //var fileType = str.substr(str.indexOf('.'));
-      //console.log('Uploading firmware with a filetype of: ', fileType)
-
-      //console.log(e)
       this.file = this.$refs.file.files[0];
-
     },
+    // POST the file to /action via AJAX
     submitFirmware: function(e){
-      // Should POST the file to /action via POST
-      console.log('posting file...')
-      console.log(e);
 
       let formData = new FormData();
       let req = new XMLHttpRequest();
@@ -259,6 +251,8 @@ var app = new Vue({
 
       btn = document.getElementById('firmware_button');
       btn.value = 'Updating..'
+      console.log(req);
+
     }
   },
   computed: {
@@ -279,6 +273,9 @@ var app = new Vue({
     },
     selectedWifiCheck: function(){
       return this.selectedWifi.length > 0;
+    },
+    checkIfFileSelected: function(){
+      return this.file.size > 0;
     }
   }
 });

@@ -79,7 +79,7 @@ var app = new Vue({
     this.jsGet('token');
 
     // This checks if connection to the kit has been lost, every X sec
-    this.periodic(9000);
+    this.periodic(2000);
   },
   methods: {
     copyTextToClipboard: function(containerid){
@@ -245,6 +245,20 @@ var app = new Vue({
       //console.log(e)
       this.file = this.$refs.file.files[0];
 
+    },
+    submitFirmware: function(e){
+      // Should POST the file to /action via POST
+      console.log('posting file...')
+      console.log(e);
+
+      let formData = new FormData();
+      let req = new XMLHttpRequest();
+      formData.append('file', this.file);
+      req.open("POST", '/update');
+      req.send(formData);
+
+      btn = document.getElementById('firmware_button');
+      btn.value = 'Updating..'
     }
   },
   computed: {

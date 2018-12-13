@@ -106,6 +106,7 @@ var app = new Vue({
         return that.periodic(ms);
       }, ms);
     },
+
     selectApiUrl: function () {
       // If we are running this from the kit,
       // the API should be on the same IP and port
@@ -117,7 +118,8 @@ var app = new Vue({
         this.development = true;
       }
     },
-    httpGet: function(theUrl, callback) {
+
+    xmlWrapper: function(theUrl, callback) {
       //console.log('theurl: ' + theUrl);
       var xmlHttp = new XMLHttpRequest();
       var that = this;
@@ -136,10 +138,11 @@ var app = new Vue({
       xmlHttp.open( "GET", theUrl, true ); // false for synchronous request, true = async
       xmlHttp.send( null );
     },
+
     jsGet: function(path) {
       var that = this;
 
-      this.httpGet(this.theApi + path, function(res){
+      this.xmlWrapper(this.theApi + path, function(res){
         if (path === 'aplist') {
           that.wifis = JSON.parse(res);
         }
@@ -167,7 +170,7 @@ var app = new Vue({
       if (purpose == 'connect'){
         this.weHaveTriedConnecting = true;
         this.notify('Kit is trying to connect online...', 2000);
-        that.httpGet(that.theApi + path +
+        that.xmlWrapper(that.theApi + path +
             '?ssid=' + encodeURIComponent(that.selectedWifi) +
             '&password=' + encodeURIComponent(that.wifipass) +
             '&token=' + that.usertoken +
@@ -182,7 +185,7 @@ var app = new Vue({
 
       if (purpose == 'synctime'){
         this.notify('Starting to log on SD CARD..', 2000);
-        this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime + '&mode=sdcard', function(res){
+        this.xmlWrapper(this.theApi +  path + '?epoch=' + this.browsertime + '&mode=sdcard', function(res){
           // TODO: What is the correct response.key from the kit?
           that.notify(JSON.parse(res).todo, 5000);
         });
@@ -241,33 +244,44 @@ var app = new Vue({
 
       console.log('Notify:', msg);
     },
+
     checkUploadForm: function(e){
       this.file = this.$refs.file.files[0];
     },
+
     // POST the file to /action via AJAX
     submitFirmware: function(e){
+      console.log('Before calling ajax')
+      this.submitFirmwareAJAX(function(res){
+        console.log('Response:')
+        console.log(res);
+      });
+      console.log('After calling ajax, waiting for response..')
 
+      btn = document.getElementById('firmware_button');
+      btn.value = 'Updating..'
+    },
+
+    submitFirmwareAJAX: function(){
       let formData = new FormData();
       let req = new XMLHttpRequest();
       formData.append('file', this.file);
 
       req.onreadystatechange = function() {
         if (req.readyState === 4) {
-          console.log(req)
-          //callback(req.response);
+          console.log('request:', req)
+          console.log('response:', req.response);
         }
       }
-
-      //req.open("POST", this.theApi + 'ping');
-      req.open("GET", 'http://192.168.1.1/ping');
+      req.onerror = function(e){
+        console.log(error, e);
+      }
+      req.open("POST", this.theApi + 'update');
+      //req.open("GET", this.theApi + 'ping');
+      //req.open("GET", 'http://192.168.1.1/ping');
       req.send(formData);
-
-      console.log(req);
-      console.log(req.response);
-
-      btn = document.getElementById('firmware_button');
-      btn.value = 'Updating..'
-    }
+      console.log('formData sent via AJAX to: ' + this.theApi + 'update');
+    },
   },
   computed: {
     checkIfDebugMode: function(){

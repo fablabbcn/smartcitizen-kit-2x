@@ -15,7 +15,7 @@
     "SAMversion": "0.5.0-eadf34",
     "SAMbuilddate": "2018-12-11T12:21:38Z",
     "updateNeeded": "false",
-    "updateStatus": "Waiting"
+    "updatedStatus": "Waiting"
   },
   "aplist": {
     "nets": [

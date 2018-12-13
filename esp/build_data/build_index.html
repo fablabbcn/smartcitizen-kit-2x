@@ -62,14 +62,15 @@
           <div v-if="kitstatus.updateNeeded == 'true'" class="text-center p10">
             <h4 style="color:red;">FIRMWARE UPDATE IS NEEDED!</h4>
             <h4>Upload your ESP firmware here:</h4>
-            <form @change="checkUploadForm" action="/update" method="POST" enctype='multipart/form-data'>
+            <form @submit.prevent="submitFirmware" @change="checkUploadForm" method="POST" enctype='multipart/form-data'>
               <input id="firmware_filename" accept=".bin" type='file' name='update' ref="file" class="p10" style="border:1px solid #ccc">
-              <input type='submit' value='Update' class="btn bg-yellow">
+              <input id="firmware_button" type='submit' value='Update' class="btn bg-yellow">
             </form>
             <div v-if="file" class="font70">
               <p>Filename: <b> {{file.name}}</b></p>
               <p>Size: <b>{{file.size}}</b></p>
             </div>
+            <p>{{kitstatus.updateStatus}}</p>
           </div>
           <div v-else>
             <p>Is this your first time here?</p>

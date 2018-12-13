@@ -62,14 +62,15 @@
           <div v-if="kitstatus.updateNeeded == 'true'" class="text-center p10">
             <h4 style="color:red;">FIRMWARE UPDATE IS NEEDED!</h4>
             <h4>Upload your ESP firmware here:</h4>
-            <form @change="checkUploadForm" action="/update" method="POST" enctype='multipart/form-data'>
+            <form @submit.prevent="submitFirmware" @change="checkUploadForm" method="POST" enctype='multipart/form-data'>
               <input id="firmware_filename" accept=".bin" type='file' name='update' ref="file" class="p10" style="border:1px solid #ccc">
-              <input type='submit' value='Update' class="btn bg-yellow">
+              <input id="firmware_button" type='submit' value='Update' class="btn bg-yellow">
             </form>
             <div v-if="file" class="font70">
               <p>Filename: <b> {{file.name}}</b></p>
               <p>Size: <b>{{file.size}}</b></p>
             </div>
+            <p>{{kitstatus.updateStatus}}</p>
           </div>
           <div v-else>
             <p>Is this your first time here?</p>
@@ -643,7 +644,7 @@ var app = new Vue({
     this.jsGet('token');
 
     // This checks if connection to the kit has been lost, every X sec
-    this.periodic(9000);
+    this.periodic(2000);
   },
   methods: {
     copyTextToClipboard: function(containerid){
@@ -809,6 +810,20 @@ var app = new Vue({
       //console.log(e)
       this.file = this.$refs.file.files[0];
 
+    },
+    submitFirmware: function(e){
+      // Should POST the file to /action via POST
+      console.log('posting file...')
+      console.log(e);
+
+      let formData = new FormData();
+      let req = new XMLHttpRequest();
+      formData.append('file', this.file);
+      req.open("POST", '/update');
+      req.send(formData);
+
+      btn = document.getElementById('firmware_button');
+      btn.value = 'Updating..'
     }
   },
   computed: {

@@ -2,6 +2,7 @@
 var app = new Vue({
   el: '#app',
   data: {
+    allowForceUpdate: false,
     browsertime: Math.floor(Date.now() / 1000),
     currentPage: 0,
     development: false,
@@ -79,9 +80,12 @@ var app = new Vue({
     this.jsGet('token');
 
     // This checks if connection to the kit has been lost, every X sec
-    this.periodic(2000);
+    this.periodic(6000);
   },
   methods: {
+    allowFirmwareUpdate: function(){
+      this.allowForceUpdate = 'true';
+    },
     copyTextToClipboard: function(containerid){
       // We need to copy the text temporary into a textBox to be able to copy it to clipboard.
       var textToCopy = document.getElementById('kitinfo').innerText;

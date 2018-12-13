@@ -59,7 +59,7 @@
         <div v-show='page[0].visible'>
           <h2 class="text-cyan text-center">WELCOME TO SMART CITIZEN KIT CONFIGURATION</h2>
 
-          <div v-if="kitstatus.updateNeeded == 'true'" class="text-center p10">
+          <div v-if="kitstatus.updateNeeded == 'true' || allowForceUpdate " class="text-center p10">
             <h4 style="color:red;">FIRMWARE UPDATE IS NEEDED!</h4>
             <h4>Upload your ESP firmware here:</h4>
             <form @submit.prevent="submitFirmware" @change="checkUploadForm" method="POST" enctype='multipart/form-data'>
@@ -184,6 +184,7 @@
 
 
           <button id="copied-notification" class="btn bg-yellow" type="button" v-on:click="copyTextToClipboard()">Copy info to clipboard</button>
+          <button id="" class="btn bg-yellow" type="button" v-on:click="allowFirmwareUpdate()">Force Allow update</button>
 
           <div id="id-logging">
             <hr />
@@ -567,6 +568,7 @@ a{
 var app = new Vue({
   el: '#app',
   data: {
+    allowForceUpdate: false,
     browsertime: Math.floor(Date.now() / 1000),
     currentPage: 0,
     development: false,
@@ -644,9 +646,12 @@ var app = new Vue({
     this.jsGet('token');
 
     // This checks if connection to the kit has been lost, every X sec
-    this.periodic(2000);
+    this.periodic(6000);
   },
   methods: {
+    allowFirmwareUpdate: function(){
+      this.allowForceUpdate = 'true';
+    },
     copyTextToClipboard: function(containerid){
       // We need to copy the text temporary into a textBox to be able to copy it to clipboard.
       var textToCopy = document.getElementById('kitinfo').innerText;

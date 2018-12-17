@@ -717,13 +717,19 @@ void SckESP::webStatus(AsyncWebServerRequest *request)
 	json += "\"mac\":\"" + tmac + "\",";
 
 	// ESP firmware version
-	json += "\"ESPversion\":\"" + ESPversion + "\",";
+	json += "\"ESPversion\":\"" + ESPversion.substring(0, ESPversion.indexOf("-")) + "\",";
+
+	// ESP firmware commit
+	json += "\"ESPcommit\":\"" + ESPversion.substring(ESPversion.indexOf("-")+1, ESPversion.length()) + "\",";
 
 	// ESP build date
 	json += "\"ESPbuilddate\":\"" + ESPbuildDate + "\",";
 
 	// SAM firmware version
-	json += "\"SAMversion\":\"" + SAMversion + "\",";
+	json += "\"SAMversion\":\"" + SAMversion.substring(0, SAMversion.indexOf("-")) + "\",";
+
+	// SAM firmware commit
+	json += "\"SAMcommit\":\"" + SAMversion.substring(SAMversion.indexOf("-")+1, SAMversion.length()) + "\",";
 
 	// SAM build date
 	json += "\"SAMbuilddate\":\"" + SAMbuildDate + "\",";

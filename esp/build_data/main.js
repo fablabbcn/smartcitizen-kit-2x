@@ -251,28 +251,36 @@ var app = new Vue({
 
     // POST the file to /action via AJAX
     submitFirmware: function(e){
-      document.getElementById('firmware-update-status').innerHTML = 'Updating...'
-      this.submitFirmwareAJAX(function(res){
-        console.log('Response:')
-        console.log(res);
-      });
-      console.log('After calling ajax, waiting for response..')
-    },
+      firmStatus = document.getElementById('firmware-update-status');
+      firmStatus.innerHTML = 'Updating...'
 
-    submitFirmwareAJAX: function(){
       let formData = new FormData();
       let req = new XMLHttpRequest();
       formData.append('file', this.file);
 
       req.onreadystatechange = function() {
         if (req.readyState === 4) {
-          console.log('request:', req)
-          console.log('response:', req.response);
-          document.getElementById('firmware-update-status').innerHTML = ' ' + req.response
+          console.log('request:', req);
+          firmStatus.innerHTML = ' ' + req.response
+
+          // Color
+          if (req.response.startsWith("ERROR")) {
+            firmStatus.classList = '';
+            firmStatus.classList += 'text-red';
+          }else if (req.response.startsWith("Succeed")) {
+            firmStatus.classList = '';
+            firmStatus.classList += 'text-green';
+          }
         }
       }
       req.onerror = function(e){
-        console.log(error, e);
+        console.log('error:', e);
+      }
+      req.onprogress = function(e){
+        console.log('progress:', e)
+      }
+      req.onload = function(e){
+        console.log('onload:', e)
       }
       req.open("POST", this.theApi + 'update');
       //req.open("GET", this.theApi + 'ping');

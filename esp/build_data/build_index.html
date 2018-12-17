@@ -64,13 +64,12 @@
             <h4>Upload your ESP firmware here:</h4>
             <form @submit.prevent="submitFirmware" @change="checkUploadForm" method="POST" enctype='multipart/form-data'>
               <input id="firmware_filename" accept=".bin" type='file' name='update' ref="file" class="p10" style="border:1px solid #ccc">
+              <div v-if="file" class="font70">
+                <p>Size: <b>{{file.size}}</b></p>
+              </div>
               <input id="firmware_button" type='submit' value='Update' class="btn":disabled=!checkIfFileSelected v-bind:class="{ 'bg-yellow': checkIfFileSelected }">
             </form>
-            <div v-if="file" class="font70">
-              <p>Filename: <b> {{file.name}}</b></p>
-              <p>Size: <b>{{file.size}}</b></p>
-            </div>
-            <p id="firmware-update-status" class="text-orange"></p>
+           <p id="firmware-update-status" class="text-yellow"></p>
           </div>
           <div v-else>
             <p>Is this your first time here?</p>

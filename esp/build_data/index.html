@@ -64,13 +64,12 @@
             <h4>Upload your ESP firmware here:</h4>
             <form @submit.prevent="submitFirmware" @change="checkUploadForm" method="POST" enctype='multipart/form-data'>
               <input id="firmware_filename" accept=".bin" type='file' name='update' ref="file" class="p10" style="border:1px solid #ccc">
+              <div v-if="file" class="font70">
+                <p>Size: <b>{{file.size}}</b></p>
+              </div>
               <input id="firmware_button" type='submit' value='Update' class="btn":disabled=!checkIfFileSelected v-bind:class="{ 'bg-yellow': checkIfFileSelected }">
             </form>
-            <div v-if="file" class="font70">
-              <p>Filename: <b> {{file.name}}</b></p>
-              <p>Size: <b>{{file.size}}</b></p>
-            </div>
-            <p id="firmware-update-status" class="text-orange"></p>
+           <p id="firmware-update-status" class="text-yellow"></p>
           </div>
           <div v-else>
             <p>Is this your first time here?</p>
@@ -339,14 +338,26 @@
 <style>
 /*
  Colors:
- Blue:       #065063;
- LightBlue:  #38cef3;
+
+ --black: #262626;
+ --blue: #0019FF;
+ --blue_light: #55C4F5;
+ --dark_form: #221E1B;
+ --green: #00E597;
+ --grey: #BCBCBC;
+ --grey_bg: #E3E3E3;
+ --purple: #5B22B2;
+ --purple_dark: #4919A2;
+ --purple_light: #E4DDF0;
+ --red: #FF3A4B;
+ --yellow: #FFBA00;
+
 */
 
 body {
   margin:0px;
   color: #434343;
-  font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family: 'Roboto','Verdana',Helvetica,Arial,sans-serif;
   font-size: 22px;
   line-height: 1.1;
 }
@@ -435,30 +446,30 @@ a{
   background-color: #262626 !important;
 }
 .bg-yellow{
-  background-color: #FFC100 !important;
+  background-color: #FFBA00 !important;
   color:#262626;
 }
 .bg-red{
-  background-color: #FF3D4C !important;
+  background-color: #FF3A4B !important;
 }
 .bg-grey{
-  background: #C8E6ED;
+  background: #E3E3E3;
   color: #8db2ba;
 }
 .text-blue{
-  color: #0C2EFB !important;
+  color: #0019FF !important;
 }
 .text-green{
-  color: #8CC252 !important;
+  color: #00E597 !important;
 }
 .text-grey{
-  color: #ccc;
+  color: #BCBCBC;
 }
-.text-orange{
-  color: #d0a600 !important;
+.text-yellow{
+  color: #FFBA00 !important;
 }
 .text-red{
-  color: #FF3D4C;
+  color: #FF3A4B;
 }
 .text-right{
   text-align: right;
@@ -825,28 +836,36 @@ var app = new Vue({
 
     // POST the file to /action via AJAX
     submitFirmware: function(e){
-      document.getElementById('firmware-update-status').innerHTML = 'Updating...'
-      this.submitFirmwareAJAX(function(res){
-        console.log('Response:')
-        console.log(res);
-      });
-      console.log('After calling ajax, waiting for response..')
-    },
+      firmStatus = document.getElementById('firmware-update-status');
+      firmStatus.innerHTML = 'Updating...'
 
-    submitFirmwareAJAX: function(){
       let formData = new FormData();
       let req = new XMLHttpRequest();
       formData.append('file', this.file);
 
       req.onreadystatechange = function() {
         if (req.readyState === 4) {
-          console.log('request:', req)
-          console.log('response:', req.response);
-          document.getElementById('firmware-update-status').innerHTML = ' ' + req.response
+          console.log('request:', req);
+          firmStatus.innerHTML = ' ' + req.response
+
+          // Color
+          if (req.response.startsWith("ERROR")) {
+            firmStatus.classList = '';
+            firmStatus.classList += 'text-red';
+          }else if (req.response.startsWith("Succeed")) {
+            firmStatus.classList = '';
+            firmStatus.classList += 'text-green';
+          }
         }
       }
       req.onerror = function(e){
-        console.log(error, e);
+        console.log('error:', e);
+      }
+      req.onprogress = function(e){
+        console.log('progress:', e)
+      }
+      req.onload = function(e){
+        console.log('onload:', e)
       }
       req.open("POST", this.theApi + 'update');
       //req.open("GET", this.theApi + 'ping');

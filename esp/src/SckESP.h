@@ -107,7 +107,6 @@ class SckESP
 		const byte DNS_PORT = 53;
 		char last_modified[50];
 		bool shouldReboot = false; 	// After OTA update
-		/* bool OTAok = false; */
 		String OTAstatus = "";
 
 		// Time

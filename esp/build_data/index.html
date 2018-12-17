@@ -869,7 +869,6 @@ var app = new Vue({
       }
       req.open("POST", this.theApi + 'update');
       //req.open("GET", this.theApi + 'ping');
-      //req.open("GET", 'http://192.168.1.1/ping');
       req.send(formData);
       console.log('formData sent via AJAX to: ' + this.theApi + 'update');
     },

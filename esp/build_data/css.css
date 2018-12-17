@@ -106,17 +106,20 @@ a{
   background: #C8E6ED;
   color: #8db2ba;
 }
+.text-blue{
+  color: #0C2EFB !important;
+}
 .text-green{
   color: #8CC252 !important;
 }
-.text-cyan{
-  color: #0C2EFB !important;
+.text-grey{
+  color: #ccc;
+}
+.text-orange{
+  color: #d0a600 !important;
 }
 .text-red{
   color: #FF3D4C;
-}
-.text-grey{
-  color: #ccc;
 }
 .text-right{
   text-align: right;

@@ -251,15 +251,12 @@ var app = new Vue({
 
     // POST the file to /action via AJAX
     submitFirmware: function(e){
-      console.log('Before calling ajax')
+      document.getElementById('firmware-update-status').innerHTML = 'Updating...'
       this.submitFirmwareAJAX(function(res){
         console.log('Response:')
         console.log(res);
       });
       console.log('After calling ajax, waiting for response..')
-
-      btn = document.getElementById('firmware_button');
-      btn.value = 'Updating..'
     },
 
     submitFirmwareAJAX: function(){
@@ -271,7 +268,7 @@ var app = new Vue({
         if (req.readyState === 4) {
           console.log('request:', req)
           console.log('response:', req.response);
-          document.getElementById('firmware-update-status').append(' ' + req.response)
+          document.getElementById('firmware-update-status').innerHTML = ' ' + req.response
         }
       }
       req.onerror = function(e){

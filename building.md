@@ -1,6 +1,7 @@
 # Developer guide: Building and flashing the Smartcitizen Kit firmware.
 
 ## This guide needs an update !!!
+**TODO:** Explain how to use gulp to allow changing the ESP webserver
 
 The data board of your Smartcitizen Kit is runned by **two microcontrolers**:
 

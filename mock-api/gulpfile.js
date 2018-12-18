@@ -10,7 +10,7 @@ var del = require('del');
 // Takes the original build_data/build_index.html file and creates 2 files
 // build_data/index.html    for localhost:8000
 //  and build_data/index.html.gz for generating the embeded header file
-gulp.task('compress', function(){
+gulp.task('compress', ['clean'], function(){
   gulp.src('../esp/build_data/build_index.html')
     .pipe(favicon("../esp/build_data"))
     .pipe(gfi({
@@ -28,6 +28,7 @@ gulp.task('compress', function(){
 
 gulp.task('clean', function() {
   return del([
+    '../esp/build_data/index.html.gz',
     '../esp/src/index.html.gz.h'
   ], {force: true});
 });
@@ -35,12 +36,12 @@ gulp.task('clean', function() {
 // Watch changes to index.html.dev, css.css, main.js'
 gulp.task('watch', function(){
   livereload.listen();
-  gulp.watch(['../esp/build_data/build_index.html', '../esp/build_data/css.css', '../esp/build_data/main.js'], ['buildfs_embeded']);
+  gulp.watch(['../esp/build_data/build_index.html', '../esp/build_data/css.css', '../esp/build_data/main.js'], ['compress']);
 })
 
 // Generates header file for embeding the html page
-gulp.task('buildfs_embeded', ['clean', 'compress'], function() {
- 
+gulp.task('buildfs_embeded', function() {
+    
     var source = '../esp/build_data/index.html.gz';
     var destination = '../esp/src/index.html.gz.h';
  

@@ -251,8 +251,13 @@ var app = new Vue({
 
     // POST the file to /action via AJAX
     submitFirmware: function(e){
+      var that = this;
       firmStatus = document.getElementById('firmware-update-status');
-      firmStatus.innerHTML = 'Updating...'
+      firmStatusExtra = document.getElementById('firmware-status-extra');
+      firmStatus.classList = '';
+      firmStatus.classList += 'text-yellow';
+      firmStatus.innerHTML = 'Updating...';
+      firmStatusExtra.innerHTML = ' ';
 
       let formData = new FormData();
       let req = new XMLHttpRequest();
@@ -261,13 +266,19 @@ var app = new Vue({
       req.onreadystatechange = function() {
         if (req.readyState === 4) {
           console.log('request:', req);
-          firmStatus.innerHTML = ' ' + req.response
+          firmStatus.innerHTML = ' ' + req.response;
+          firmStatusExtra.innerHTML = ' ';
 
           // Color
           if (req.response.startsWith("ERROR")) {
+            that.notify('Update failed', 5000, 'bg-red');
+	    firmStatusExtra.innerHTML = 'Something went wrong :(<br/>Please be sure to select the right file and try again !!';
             firmStatus.classList = '';
             firmStatus.classList += 'text-red';
-          }else if (req.response.startsWith("Succeed")) {
+          } else if (req.response.startsWith("Succeed")) {
+            that.weHaveTriedConnecting = true;
+            that.notify('Kit Updated...', 5000);
+	    firmStatusExtra.innerHTML = 'Congratulations !!<br/>Your kit will restart so you can reconnect and complete the configuration process.<br/>If you need a Device key go to <span class="text-blue"><a href="https://onboarding.smartcitizen.me">onboarding.smartcitizen.me</a></span> to obtain a new one.';
             firmStatus.classList = '';
             firmStatus.classList += 'text-green';
           }

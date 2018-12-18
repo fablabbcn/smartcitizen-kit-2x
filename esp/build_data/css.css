@@ -120,6 +120,7 @@ a{
 }
 .text-blue{
   color: #0019FF !important;
+  text-decoration: none;
 }
 .text-green{
   color: #00E597 !important;

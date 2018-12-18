@@ -2,6 +2,7 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <!-- shortcut::favicon.ico -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SCK Setup</title>
   </head>
@@ -11,10 +12,10 @@
       <h1 style="color:#0C2EFB; font-family:Arial, sans-serif; padding:100px 10px;">Loading... please wait!</h1>
     </div>
 
-    <div class="container"id="app" style="display:none">
+    <div class="container" id="app" style="display:none;">
 
       <div class="topnav sticky ">
-        <div class="bg-blue">
+        <div class="bg-black">
 
           <p class="text-center">SCK 2.0 Setup</p>
 
@@ -27,7 +28,6 @@
           <div id="toplogo">
             <a v-show="!page[currentPage].back" href="/">
               <svg version="1.1" id="Capa_1"  width="36px" height="36px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 200 200" style="enable-background:new 0 0 200 200;" xml:space="preserve">
-                <style type="text/css"> .st0{fill:#FFFFFF;} </style>
                 <g>
                 <path class="st0" d="M97.6,124.8c0.1,4.5-1.1,8.3-3.5,11.5c-1.6,2.2-3.8,3.7-6.6,4.6c-1.6,0.5-3.3,0.7-5.4,0.7 c-3.8,0-6.9-0.9-9.4-2.8c-2.1-1.6-3.7-3.6-5-6.3c-1.2-2.6-1.9-5.7-2.1-9.1l9.2-0.7c0.4,3.7,1.4,6.5,3,8.1c1.2,1.3,2.5,1.9,4,1.8 c2.1-0.1,3.8-1.1,5.1-3.1c0.6-1,1-2.4,1-4.3c0-2.7-1.2-5.3-3.6-8c-1.9-1.8-4.8-4.5-8.6-8.1c-3.2-3.1-5.5-5.9-6.8-8.4 c-1.4-2.8-2.1-5.8-2.1-9c0-5.8,2-10.3,5.9-13.3c2.4-1.8,5.4-2.7,9-2.7c3.4,0,6.4,0.8,8.9,2.3c1.9,1.2,3.5,2.9,4.6,5 c1.2,2.2,1.9,4.6,2.1,7.4l-9.3,1.7c-0.3-2.6-1-4.7-2.3-6.1c-0.9-1.1-2.2-1.6-3.9-1.6c-1.8,0-3.1,0.8-4,2.4 c-0.8,1.3-1.1,2.8-1.1,4.7c0,2.9,1.3,5.9,3.8,9c1,1.2,2.4,2.5,4.3,4.1c2.2,1.9,3.7,3.2,4.5,3.9c2.4,2.4,4.2,4.7,5.5,7.1 c0.6,1.1,1.1,2.1,1.5,3C97.1,121,97.5,123,97.6,124.8"/>
                 <path class="st0" d="M119.3,141.6c-4.2,0-7.8-1.5-10.8-4.4c-3-2.9-4.4-6.5-4.4-10.7V91.8c0-4.2,1.5-7.8,4.5-10.8 c3-3,6.5-4.4,10.7-4.4c4.2,0,7.8,1.5,10.7,4.5c2.9,3,4.4,6.5,4.4,10.7v7.2h-9.9v-7.4c0-1.5-0.5-2.8-1.6-3.9 c-1.1-1.1-2.4-1.6-3.9-1.6c-1.5,0-2.8,0.5-3.9,1.6c-1.1,1.1-1.6,2.4-1.6,3.9v34.7c0,1.5,0.5,2.8,1.6,3.9c1,1.1,2.4,1.6,3.9,1.6 c1.5,0,2.8-0.5,3.9-1.6c1.1-1.1,1.6-2.4,1.6-3.9v-8.8h9.9v8.9c0,4.2-1.5,7.8-4.5,10.7C127,140.1,123.4,141.6,119.3,141.6"/>
@@ -57,30 +57,41 @@
         </div>
 
         <div v-show='page[0].visible'>
-          <h2 class="text-cyan text-center">WELCOME TO SMART CITIZEN KIT CONFIGURATION</h2>
-          <p>Is this your first time here?</p>
-          <p>Remember before you start you need to visit <span class="text-cyan">onboarding.smartcitizen.me</span> to obtain a Device Key</p>
+          <h2 class="text-blue text-center">WELCOME TO SMART CITIZEN KIT CONFIGURATION</h2>
 
-          <button class="btn bg-cyan" id="start" type="button" v-on:click='gotoPage()'>Start</button>
-          <p>or go to <span class='text-cyan'>
-            <a v-on:click='gotoPage(5)'>SD Card mode</a></span>
-          </p>
+          <div v-if="kitstatus.updateNeeded == 'true' || allowForceUpdate " class="text-center p10">
+            <h4 v-if="kitstatus.updateNeeded == 'true'" style="color:red;">FIRMWARE UPDATE IS NEEDED!</h4>
+            <h4>Upload your ESP firmware here:</h4>
+            <form @submit.prevent="submitFirmware" @change="checkUploadForm" method="POST" enctype='multipart/form-data'>
+              <input id="firmware_filename" accept=".bin" type='file' name='update' ref="file" class="p10" style="border:1px solid #ccc">
+              <div v-if="file" class="font70">
+                <p>Size: <b>{{file.size}}</b></p>
+              </div>
+              <input id="firmware_button" type='submit' value='Update' class="btn":disabled=!checkIfFileSelected v-bind:class="{ 'bg-yellow': checkIfFileSelected }">
+            </form>
+           <p id="firmware-update-status" class="text-yellow"></p>
+	   <p id="firmware-status-extra">If you need more information please visit <span class="text-blue"><a href="https://docs.smartcitizen.me">docs.smartcitizen.me</a></span></p>
+          </div>
+          <div v-else>
+            <p>Is this your first time here?</p>
+	    <p>Remember before you start you need to visit <span class="text-blue"><a href="https://onboarding.smartcitizen.me">onboarding.smartcitizen.me</a></span> to obtain a Device Key</p>
+            <button class="btn bg-yellow" id="start" type="button" v-on:click='gotoPage()'>Start</button>
+            <p>or go to <span class='text-blue'> <a v-on:click='gotoPage(5)'>SD Card mode</a></span> </p>
+          </div>
         </div>
 
         <div v-show='page[1].visible'>
           <h4>Device key</h4>
-
           <div class="field-token">
             <label>Token</label>
             <input name="token" autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false' type="text" maxlength="6" v-model='usertoken' minlength="6" placeholder="6 letters">
           </div>
-          <div style="height:20px; margin-top:10px">
+          <div style="height:20px; margin-top:10px;">
             <p v-show='!usertokenCheck' style="margin:0;">
             {{ 6 - usertoken.length }} letters missing.
             </p>
           </div>
-          <button class="btn next" v-bind:class="{ 'bg-cyan': usertokenCheck }" type="button" :disabled=!usertokenCheck v-on:click='gotoPage()'>Next</button>
-
+          <button class="btn next" v-bind:class="{ 'bg-yellow': usertokenCheck }" type="button" :disabled=!usertokenCheck v-on:click='gotoPage()'>Next</button>
         </div>
 
         <div v-show='page[2].visible'>
@@ -90,14 +101,14 @@
             <select v-model="selectedWifi" name="ssid" id="ssid" type="text" length=64>
               <!-- Here goes the Access point list -->
               <option disabled value="">Select your wifi ({{wifis["nets"].length}})</option>
-              <option v-for="x in sortedWifi" :key="x.rssi" :value="x.ssid">{{x.ssid}}</option>
+              <option v-for="x in sortedWifi" :key="x.id" :value="x.ssid">{{x.ssid}}</option>
             </select>
           </div>
           <div class="field-group">
             <label>Password</label>
             <input name="password" type="text" v-model='wifipass' length=64 placeholder="Your wifi password" autocapitalize="none" >
           </div>
-          <button class="btn" v-bind:class="{ 'bg-cyan': selectedWifiCheck }" type="button" id="connect" :disabled=!selectedWifiCheck v-on:click="jsPost('set','connect')">Connect</button>
+          <button class="btn" v-bind:class="{ 'bg-yellow': selectedWifiCheck }" type="button" id="connect" :disabled=!selectedWifiCheck v-on:click="jsPost('set','connect')">Connect</button>
 
 
         </div>
@@ -108,13 +119,13 @@
           <p>Your kit is now trying to connect to the online platform, and this website has no connection to the kit anymore.</p>
           <p>Check the light on your Kit:</p>
           <ul>
-            <li><span class="text-cyan" >BLUE</span>: Your kit received the configuration and is trying to connect. If the led starts blinking there was a problem with the wifi credentials.</li>
+            <li><span class="text-blue" >BLUE</span>: Your kit received the configuration and is trying to connect. If the led starts blinking there was a problem with the wifi credentials.</li>
             <li><span class="text-red" >RED</span>: Some problem happened, reset your Kit and try again.</li>
           </ul>
         </div>
 
         <div v-show='page[4].visible'>
-          <h4 style="text-cyan">Your kit status</h4>
+          <h4 class="text-blue">Your kit status</h4>
 
           <table>
             <tr>
@@ -136,7 +147,7 @@
           </table>
           <p>If you want to run a full setup again, press the button on your Kit for 15 seconds and reconnect, and refresh this page.</p>
 
-          <button class="btn bg-cyan" type="button" v-on:click='gotoPage(2)'>Edit Wifi</button>
+          <button class="btn bg-yellow" type="button" v-on:click='gotoPage(2)'>Edit Wifi</button>
         </div>
 
 
@@ -157,22 +168,24 @@
             </tr>
           </table>
           -->
-          <button class="btn bg-cyan" type="button" v-on:click="jsPost('set', 'synctime')">START LOGGING</button>
+          <button class="btn bg-yellow" type="button" v-on:click="jsPost('set', 'synctime')">START LOGGING</button>
           <p>You will be disconnected and the Kit will start recording data.</p>
         </div>
 
         <div v-show='page[6].visible'>
 
+          <label for="force-firmware-update">
+            <input type="checkbox" id="force-firmware-update" v-on:click="allowFirmwareUpdate()" />
+            Force allow firmware update
+          </label>
+
+          <h4>Kit info:</h4>
           <div id="kitinfo" class="font70">
             <ul>
               <li v-for="value, index in kitstatus"><b>{{index}}</b>: {{value}}</li>
             </ul>
           </div>
-
-          <h4>Kit info:</h4>
-
-
-          <button id="copied-notification" class="btn bg-cyan" type="button" v-on:click="copyTextToClipboard()">Copy info to clipboard</button>
+          <button id="copied-notification" class="btn bg-yellow" type="button" v-on:click="copyTextToClipboard()">Copy info to clipboard</button>
 
           <div id="id-logging">
             <hr />
@@ -189,6 +202,7 @@
             Enable Debug buttons
           </label>
 
+          <p class="font70">Vue.js version: {{vueVersion}}</p>
           <!--
           <label for="label-experimental" class="font80">
             <input type="checkbox" name="" id="label-experimental" value="" v-model="showExperimental"/>
@@ -205,10 +219,14 @@
         <br />
         <br />
 
-        <div v-show="showDebug" class="text-center text-grey font80">
-          {{ version }}
-          <hr />
-          {{ currentPage }} - {{ page[currentPage].footer }}
+        <div class="text-center text-grey font80">
+          SAM: {{ kitstatus.SAMversion }}
+          -
+          ESP: {{ kitstatus.ESPversion }}
+          <div v-show="showDebug" >
+            <hr />
+            {{ currentPage }} - {{ page[currentPage].footer }}
+          </div>
         </div>
 
         <!-- experimental -->

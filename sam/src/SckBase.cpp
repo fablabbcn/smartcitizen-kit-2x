@@ -898,16 +898,15 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);
 
-				json.printTo(SerialUSB);
-
 				if (json.containsKey("mo")) {
 					String stringMode = json["mo"];
 					if (stringMode.startsWith("net")) config.mode = MODE_NET;
 					else if (stringMode.startsWith("sd")) config.mode = MODE_SD;
 				} else config.mode = MODE_NOT_CONFIGURED;
 
-				if (json.containsKey("pi")) config.publishInterval = json["pi"];
-				else config.publishInterval = default_publish_interval;
+				if (json.containsKey("pi")) {
+					if (json["pi"] > minimal_publish_interval && json["pi"] < max_publish_interval)	config.publishInterval = json["pi"];
+				} else config.publishInterval = default_publish_interval;
 
 				if (json.containsKey("ss")) {
 					config.credentials.set = true;
@@ -1054,8 +1053,28 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			if (pendingSyncConfig) sendConfig();
 
-			if (st.onSetup) sendMessage(ESPMES_START_AP);
-			else if (st.mode == MODE_NET) {
+			if (st.onSetup) {
+
+				// Do we need to update ESP firmware?
+				VersionInt ESPversionInt = parseVersionStr(ESPversion);
+				VersionInt SAMversionInt = parseVersionStr(SAMversion);
+
+				if ((SAMversionInt.mayor != ESPversionInt.mayor) || (SAMversionInt.minor != ESPversionInt.minor)) ESPupdateNeeded = true;
+				else ESPupdateNeeded= false;
+
+				// Send SAM version and updateNeeded flag
+				jsonBuffer.clear();
+				JsonObject& jsonSend = jsonBuffer.createObject();
+				jsonSend["ver"] = SAMversion;
+				jsonSend["bd"] = SAMbuildDate;
+				jsonSend["un"] = ESPupdateNeeded;
+
+				sprintf(netBuff, "%c", ESPMES_UPDATE_INFO);
+				jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
+
+				if (!sendMessage()) sckOut("ERROR sending update info to ESP!!!");
+
+			} else if (st.mode == MODE_NET) {
 
 				if (st.wifiSet) sendMessage(ESPMES_CONNECT);
 

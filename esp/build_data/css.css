@@ -1,13 +1,25 @@
 /*
  Colors:
- Blue:       #065063;
- LightBlue:  #38cef3;
+
+ --black: #262626;
+ --blue: #0019FF;
+ --blue_light: #55C4F5;
+ --dark_form: #221E1B;
+ --green: #00E597;
+ --grey: #BCBCBC;
+ --grey_bg: #E3E3E3;
+ --purple: #5B22B2;
+ --purple_dark: #4919A2;
+ --purple_light: #E4DDF0;
+ --red: #FF3A4B;
+ --yellow: #FFBA00;
+
 */
 
 body {
   margin:0px;
   color: #434343;
-  font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family: 'Roboto','Verdana',Helvetica,Arial,sans-serif;
   font-size: 22px;
   line-height: 1.1;
 }
@@ -54,14 +66,6 @@ input[type=text]:focus {
   outline: 0;
 }
 
-input[type=checkbox] {
-  width: 30px;
-  height: 30px;
-  -webkit-border-radius: 22px; -moz-border-radius: 22px; border-radius: 22px;
-  border: 1px solid #bbb;
-  margin-top: -2px; /* move checkbox 2px down to match line, when float:right */
-}
-
 input[type=range] {
    width: 95%;
 }
@@ -100,31 +104,35 @@ a{
   text-decoration: none;
 }
 
-.bg-blue{
+.bg-black{
   background-color: #262626 !important;
 }
-.bg-cyan{
-  background-color: #FFC100 !important;
+.bg-yellow{
+  background-color: #FFBA00 !important;
   color:#262626;
 }
 .bg-red{
-  background-color: #FF3D4C !important;
+  background-color: #FF3A4B !important;
 }
 .bg-grey{
-  background: #C8E6ED;
+  background: #E3E3E3;
   color: #8db2ba;
 }
+.text-blue{
+  color: #0019FF !important;
+  text-decoration: none;
+}
 .text-green{
-  color: #8CC252 !important;
-}
-.text-cyan{
-  color: #0C2EFB !important;
-}
-.text-red{
-  color: #FF3D4C;
+  color: #00E597 !important;
 }
 .text-grey{
-  color: #ccc;
+  color: #BCBCBC;
+}
+.text-yellow{
+  color: #FFBA00 !important;
+}
+.text-red{
+  color: #FF3A4B;
 }
 .text-right{
   text-align: right;

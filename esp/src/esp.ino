@@ -20,11 +20,15 @@ time_t ntpProvider()
 {
 	return esp.getNtpTime();
 }
-void extSet()
+void extSet(AsyncWebServerRequest *request)
 {
-	esp.webSet();
+	esp.webSet(request);
 }
-void extStatus()
+void extStatus(AsyncWebServerRequest *request)
 {
-	esp.webStatus();
+	esp.webStatus(request);
+}
+void extRoot(AsyncWebServerRequest *request)
+{
+	esp.webRoot(request);
 }

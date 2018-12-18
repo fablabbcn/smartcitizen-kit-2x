@@ -1,16 +1,18 @@
+// TODO poner esto dentro de un onDocumentReady()
 var app = new Vue({
   el: '#app',
   data: {
-    theApi: window.location.protocol + '//' + window.location.host + '/',
-    development: false,
+    allowForceUpdate: false,
     browsertime: Math.floor(Date.now() / 1000),
-    kitstatus: [],
+    currentPage: 0,
+    development: false,
     devicetime: 0,
-    logging: [],
+    file: '',
     intervals: false,
     kitinfo: false,
-    currentPage: 0,
+    kitstatus: [],
     lastPage: 0,
+    logging: [],
     page: [
        {'visible': true,  'footer': 'HOME',         'backTo': 0, 'back': false },
        {'visible': false, 'footer': 'REGISTER Key', 'backTo': 0, 'back': true  },
@@ -23,19 +25,21 @@ var app = new Vue({
     ],
     publishinterval: 2,
     readinginterval: 60,
+    sdlog: false,
     selectedWifi: '',
-    sensors: false,
     sensor1: false,
     sensor2: false,
     sensor3: false,
     sensor4: false,
+    sensors: false,
     showDebug: false,
     showExperimental: false,
     showInterval: false,
     showSdCard: false,
-    sdlog: false,
+    theApi: window.location.protocol + '//' + window.location.host + '/',
     usertoken: '',
     version: 'SCK 2.0 / SAM V0.0.2 / ESP V0.0.2',
+    vueVersion: Vue.version,
     weHaveTriedConnecting: false,
     wifiname: '',
     wifipass: '',
@@ -73,12 +77,15 @@ var app = new Vue({
     this.jsGet('status');
     // This can only be run once. We don't want the usertoken to be updated every 9
     // seconds if the user is typing it in
-    this.jsGet('status', 'usertoken');
+    this.jsGet('token');
 
     // This checks if connection to the kit has been lost, every X sec
-    this.periodic(9000);
+    this.periodic(6000);
   },
   methods: {
+    allowFirmwareUpdate: function(){
+      this.allowForceUpdate = 'true';
+    },
     copyTextToClipboard: function(containerid){
       // We need to copy the text temporary into a textBox to be able to copy it to clipboard.
       var textToCopy = document.getElementById('kitinfo').innerText;
@@ -99,6 +106,7 @@ var app = new Vue({
         return that.periodic(ms);
       }, ms);
     },
+
     selectApiUrl: function () {
       // If we are running this from the kit,
       // the API should be on the same IP and port
@@ -110,7 +118,8 @@ var app = new Vue({
         this.development = true;
       }
     },
-    httpGet: function(theUrl, callback) {
+
+    xmlWrapper: function(theUrl, callback) {
       //console.log('theurl: ' + theUrl);
       var xmlHttp = new XMLHttpRequest();
       var that = this;
@@ -129,21 +138,22 @@ var app = new Vue({
       xmlHttp.open( "GET", theUrl, true ); // false for synchronous request, true = async
       xmlHttp.send( null );
     },
-    jsGet: function(path, extra) {
+
+    jsGet: function(path) {
       var that = this;
 
-      this.httpGet(this.theApi + path, function(res){
-        //console.log(JSON.parse(res));
+      this.xmlWrapper(this.theApi + path, function(res){
         if (path === 'aplist') {
           that.wifis = JSON.parse(res);
         }
         if (path === 'status'){
           //that.notify('Getting status', 1000);
           that.kitstatus = JSON.parse(res);
-          if (extra === 'usertoken'){
-            if (that.kitstatus.token != "null") {
-              that.usertoken = that.kitstatus.token;
-            }
+        }
+        if (path === 'token'){
+          tmpToken = JSON.parse(res)['token'];
+          if (tmpToken !== "null") {
+            that.usertoken = tmpToken;
           }
         }
 
@@ -160,7 +170,7 @@ var app = new Vue({
       if (purpose == 'connect'){
         this.weHaveTriedConnecting = true;
         this.notify('Kit is trying to connect online...', 2000);
-        that.httpGet(that.theApi + path +
+        that.xmlWrapper(that.theApi + path +
             '?ssid=' + encodeURIComponent(that.selectedWifi) +
             '&password=' + encodeURIComponent(that.wifipass) +
             '&token=' + that.usertoken +
@@ -175,7 +185,7 @@ var app = new Vue({
 
       if (purpose == 'synctime'){
         this.notify('Starting to log on SD CARD..', 2000);
-        this.httpGet(this.theApi +  path + '?epoch=' + this.browsertime + '&mode=sdcard', function(res){
+        this.xmlWrapper(this.theApi +  path + '?epoch=' + this.browsertime + '&mode=sdcard', function(res){
           // TODO: What is the correct response.key from the kit?
           that.notify(JSON.parse(res).todo, 5000);
         });
@@ -191,18 +201,16 @@ var app = new Vue({
       // Hide current page
       this.page[this.currentPage].visible = false;
 
-      // Find which page to show next
-      // Is it a specified page, or the next one?
-      if ( typeof num !== 'undefined') {
-        this.currentPage = parseInt(num);
-      }else{
-        // Find the last page so we wont go too far, when clicking 'Next'
+      // If no page specified, we go to the next page
+      if ( typeof num === 'undefined') {
+        // Don't go too far, when clicking 'Next'
         if ( this.currentPage === (this.page.length - 1)) {
           //console.log('Last page: ' + this.currentPage)
           return;
         }
-
         this.currentPage = parseInt(this.currentPage + 1);
+      }else{
+        this.currentPage = parseInt(num);
       }
 
       // Show it
@@ -236,6 +244,60 @@ var app = new Vue({
 
       console.log('Notify:', msg);
     },
+
+    checkUploadForm: function(e){
+      this.file = this.$refs.file.files[0];
+    },
+
+    // POST the file to /action via AJAX
+    submitFirmware: function(e){
+      var that = this;
+      firmStatus = document.getElementById('firmware-update-status');
+      firmStatusExtra = document.getElementById('firmware-status-extra');
+      firmStatus.classList = '';
+      firmStatus.classList += 'text-yellow';
+      firmStatus.innerHTML = 'Updating...';
+      firmStatusExtra.innerHTML = ' ';
+
+      let formData = new FormData();
+      let req = new XMLHttpRequest();
+      formData.append('file', this.file);
+
+      req.onreadystatechange = function() {
+        if (req.readyState === 4) {
+          console.log('request:', req);
+          firmStatus.innerHTML = ' ' + req.response;
+          firmStatusExtra.innerHTML = ' ';
+
+          // Color
+          if (req.response.startsWith("ERROR")) {
+            that.notify('Update failed', 5000, 'bg-red');
+	    firmStatusExtra.innerHTML = 'Something went wrong :(<br/>Please be sure to select the right file and try again !!';
+            firmStatus.classList = '';
+            firmStatus.classList += 'text-red';
+          } else if (req.response.startsWith("Succeed")) {
+            that.weHaveTriedConnecting = true;
+            that.notify('Kit Updated...', 5000);
+	    firmStatusExtra.innerHTML = 'Congratulations !!<br/>Your kit will restart so you can reconnect and complete the configuration process.<br/>If you need a Device key go to <span class="text-blue"><a href="https://onboarding.smartcitizen.me">onboarding.smartcitizen.me</a></span> to obtain a new one.';
+            firmStatus.classList = '';
+            firmStatus.classList += 'text-green';
+          }
+        }
+      }
+      req.onerror = function(e){
+        console.log('error:', e);
+      }
+      req.onprogress = function(e){
+        console.log('progress:', e)
+      }
+      req.onload = function(e){
+        console.log('onload:', e)
+      }
+      req.open("POST", this.theApi + 'update');
+      //req.open("GET", this.theApi + 'ping');
+      req.send(formData);
+      console.log('formData sent via AJAX to: ' + this.theApi + 'update');
+    },
   },
   computed: {
     checkIfDebugMode: function(){
@@ -255,6 +317,9 @@ var app = new Vue({
     },
     selectedWifiCheck: function(){
       return this.selectedWifi.length > 0;
+    },
+    checkIfFileSelected: function(){
+      return this.file.size > 0;
     }
   }
 });

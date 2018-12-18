@@ -5,24 +5,25 @@
 #include <Ticker.h>
 #include <TimeLib.h>
 #include "FS.h"
-#include <ESP8266mDNS.h>
 #include <DNSServer.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266SSDP.h>
 #include "RemoteDebug.h"
 #include <ArduinoJson.h>
 #include <RHReliableDatagram.h>
 #include <RH_Serial.h>
 #include <PubSubClient.h>
+#include <ESPAsyncWebServer.h>
 
 #include <Arduino.h>
 #include "Shared.h"
+#include "version.h"
 
 #define NTP_SERVER_NAME "ntp.smartcitizen.me"
 #define NTP_SERVER_PORT 80
 #define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
 #define MQTT_SERVER_PORT 80
 #define MQTT_QOS 1
+
+#include "index.html.gz.h"
 
 struct Credentials { bool set=false; char ssid[64]="null"; char pass[64]="null"; };
 struct Token { bool set=false; char token[7]="null"; };
@@ -88,6 +89,11 @@ class SckESP
 		bool saveConfig(ESP_Configuration newConfig);
 		bool saveConfig();
 		bool loadConfig();
+		bool sendConfig();
+		enum SamMode { SAM_MODE_SD, SAM_MODE_NET, SAM_MODE_COUNT };
+		SamMode sendMode = SAM_MODE_COUNT;
+		uint32_t sendPubInt = 0;
+		bool sendConfigPending = false;
 
 		// AP mode
 		void startAP();
@@ -95,11 +101,13 @@ class SckESP
 		void scanAP();
 		int netNumber;
 		void startWebServer();
-		bool flashReadFile(String path);
 		bool captivePortal();
 		bool isIp(String str);
 		String toStringIp(IPAddress ip);
 		const byte DNS_PORT = 53;
+		char last_modified[50];
+		bool shouldReboot = false; 	// After OTA update
+		String OTAstatus = "";
 
 		// Time
 		void setNTPprovider();
@@ -112,13 +120,18 @@ class SckESP
 
 
 	public:
-		const String ESPversion = "0.3.2-" + String(__GIT_HASH__);
+		const String ESPversion = ESPverNum + "-" + String(__GIT_HASH__); 	// mayor.minor.build-gitcommit
 		const String ESPbuildDate = String(__ISO_DATE__);
+		String SAMversion = "not synced";
+		String SAMbuildDate = "not synced";
+		// If mayor or minor version of ESP is different than SAM's we need to call a ESP update
+		bool updateNeeded = false;
 
 		void setup();
 		void update();
-		void webSet();
-		void webStatus();
+		void webSet(AsyncWebServerRequest *request);
+		void webStatus(AsyncWebServerRequest *request);
+		void webRoot(AsyncWebServerRequest *request);
 
 		// External calls
 		void _ledToggle();
@@ -129,8 +142,9 @@ class SckESP
 void ledToggle();
 
 // Static webserver handlers
-void extSet();
-void extStatus();
+void extSet(AsyncWebServerRequest *request);
+void extStatus(AsyncWebServerRequest *request);
+void extRoot(AsyncWebServerRequest *request);
 
 // Time
 time_t ntpProvider();

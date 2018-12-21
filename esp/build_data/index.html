@@ -74,7 +74,7 @@
           </div>
           <div v-else>
             <p>Is this your first time here?</p>
-	    <p>Remember before you start you need to visit <span class="text-blue"><a href="https://onboarding.smartcitizen.me">onboarding.smartcitizen.me</a></span> to obtain a Device Key</p>
+	    <p>Remember before you start you need to visit <span class="text-blue"><a href="https://start.smartcitizen.me">start.smartcitizen.me</a></span> to obtain a Device Key</p>
             <button class="btn bg-yellow" id="start" type="button" v-on:click='gotoPage()'>Start</button>
             <p>or go to <span class='text-blue'> <a v-on:click='gotoPage(5)'>SD Card mode</a></span> </p>
           </div>
@@ -865,7 +865,7 @@ var app = new Vue({
           } else if (req.response.startsWith("Succeed")) {
             that.weHaveTriedConnecting = true;
             that.notify('Kit Updated...', 5000);
-	    firmStatusExtra.innerHTML = 'Congratulations !!<br/>Your kit will restart so you can reconnect and complete the configuration process.<br/>If you need a Device key go to <span class="text-blue"><a href="https://onboarding.smartcitizen.me">onboarding.smartcitizen.me</a></span> to obtain a new one.';
+	    firmStatusExtra.innerHTML = 'Congratulations !!<br/>Your kit will restart so you can reconnect and complete the configuration process.<br/>If you need a Device key go to <span class="text-blue"><a href="https://start.smartcitizen.me">start.smartcitizen.me</a></span> to obtain a new one.';
             firmStatus.classList = '';
             firmStatus.classList += 'text-green';
           }

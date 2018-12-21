@@ -278,7 +278,7 @@ var app = new Vue({
           } else if (req.response.startsWith("Succeed")) {
             that.weHaveTriedConnecting = true;
             that.notify('Kit Updated...', 5000);
-	    firmStatusExtra.innerHTML = 'Congratulations !!<br/>Your kit will restart so you can reconnect and complete the configuration process.<br/>If you need a Device key go to <span class="text-blue"><a href="https://onboarding.smartcitizen.me">onboarding.smartcitizen.me</a></span> to obtain a new one.';
+	    firmStatusExtra.innerHTML = 'Congratulations !!<br/>Your kit will restart so you can reconnect and complete the configuration process.<br/>If you need a Device key go to <span class="text-blue"><a href="https://start.smartcitizen.me">start.smartcitizen.me</a></span> to obtain a new one.';
             firmStatus.classList = '';
             firmStatus.classList += 'text-green';
           }

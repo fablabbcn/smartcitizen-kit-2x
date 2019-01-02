@@ -38,7 +38,7 @@ class sck:
     # Serial port
     serialPort = None
     serialPort_name = None
-    espFlashSpeed = 921600
+    espFlashSpeed = 230400
 
     # chips and firmware info
     infoReady = False
@@ -167,6 +167,7 @@ class sck:
         while True:
             self.updateSerial(self.espFlashSpeed)
             self.serialPort.write('\r\n')
+            time.sleep(0.1)
             buff = self.serialPort.read(self.serialPort.in_waiting)
             if 'SCK' in buff: break
             if time.time() > timeout:

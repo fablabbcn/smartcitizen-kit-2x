@@ -218,6 +218,7 @@ class SckBase
 		// ESP control
 		enum ESPcontrols { ESP_OFF, ESP_FLASH, ESP_ON, ESP_REBOOT, ESP_SLEEP, ESP_WAKEUP };
 		void ESPcontrol(ESPcontrols myESPControl);
+		uint32_t espFlashSpeed = 115200;
 
 		// ESP communication
 		bool sendMessage(ESPMessage wichMessage, const char *content);

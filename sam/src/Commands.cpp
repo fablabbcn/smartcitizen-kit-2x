@@ -518,8 +518,12 @@ void esp_com(SckBase* base, String parameters)
 	if (parameters.equals("-on")) base->ESPcontrol(base->ESP_ON);
 	else if (parameters.equals("-off")) base->ESPcontrol(base->ESP_OFF);
 	else if (parameters.equals("-reboot")) base->ESPcontrol(base->ESP_REBOOT);
-	else if (parameters.equals("-flash")) base->ESPcontrol(base->ESP_FLASH);
-	else if (parameters.equals("-sleep")) base->ESPcontrol(base->ESP_SLEEP);
+	else if (parameters.startsWith("-flash")) {
+		parameters.replace("-flash ", "");
+		uint32_t speed = parameters.toInt();
+		if (speed >= 115200 && speed <= 921600) base->espFlashSpeed = speed;
+		base->ESPcontrol(base->ESP_FLASH);
+	} else if (parameters.equals("-sleep")) base->ESPcontrol(base->ESP_SLEEP);
 	else if (parameters.equals("-wake")) base->ESPcontrol(base->ESP_WAKEUP);
 	else base->sckOut("Unrecognized command , try help!!");
 }

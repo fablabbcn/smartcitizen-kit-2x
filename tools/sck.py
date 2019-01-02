@@ -1,29 +1,62 @@
 #!/usr/bin/python
 
-import serial.tools.list_ports, serial, os, time, subprocess, uf2conv, shutil, sys
-FNULL = open(os.devnull, 'w')
+import serial
+import serial.tools.list_ports
+import os
+import time
+import subprocess
+import uf2conv
+import shutil
+import sys
+import binascii
+import json
+import requests
 
+'''
+Smartcitizen Kit python library.
+This library is meant to be run inside the firmware repository folder.
+'''
 
 class sck:
 
-    repoPath = subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).rstrip()
-    binPath = os.path.join(str(repoPath), 'bin')
-    esptoolEXE = os.path.join(str(repoPath), 'tools', 'esptool.py')
+    # paths
+    paths = {}
+    paths['base'] = subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).rstrip()
+    paths['binFolder'] = os.path.join(str(paths['base']), 'bin')
+    paths['esptoolPy'] = os.path.join(str(paths['base']), 'tools', 'esptool.py')
+    os.chdir('esp')
+    paths['pioHome'] = [s.split()[1].strip(',').strip("'") for s in subprocess.check_output(['pio', 'run', '-t', 'envdump']).split('\n') if "'PIOHOME_DIR'" in s][0]
+    os.chdir(paths['base'])
+    paths['esptool'] = os.path.join(str(paths['pioHome']), 'packages', 'tool-esptool', 'esptool')
 
-    samBIN = 'SAM_firmware.bin'
-    samUF2 = 'SAM_firmware.uf2'
-    espBIN = 'ESP_firmware.bin'
-    espfsBIN = 'ESP_filesystem.bin'
+    # filenames
+    files = {}
+    files['samBin'] = 'SAM_firmware.bin'
+    files['samUf2'] = 'SAM_firmware.uf2'
+    files['espBin'] = 'ESP_firmware.bin'
 
-    branch = 'master'
-    serial = ''
-    port_name = ''
-    port = None
+    # Serial port
+    serialPort = None
+    serialPort_name = None
+    espFlashSpeed = 921600
 
+    # chips and firmware info
+    infoReady = False
+    sam_serialNum = ''
+    sam_firmVer = ''
+    sam_firmCommit = ''
+    sam_firmBuildDate = ''
+    esp_macAddress = ''
+    esp_firmVer = ''
+    esp_firmCommit = ''
+    esp_firmBuildDate = ''
 
+    # WiFi and platform info
     token = ''
     wifi_ssid = ''
     wifi_pass = ''
+
+    verbose = 2     # 0 -> never print anything, 1 -> print only errors, 2 -> print everything
 
     def begin(self):
         devList = list(serial.tools.list_ports.comports())
@@ -37,28 +70,28 @@ class sck:
                     kit_list.append(d)
             except:
                 pass
-        if i == 0: print('No SKC found!!!')
+        if i == 0: self.err_out('No SKC found!!!'); return False
         elif i > 0:
             if i == 1:
                 wich_kit = 0
             else:
                 wich_kit = int(raw_input('Multiple Kits found, please select one: ')) - 1
-        
-        self.serial = kit_list[wich_kit].serial_number
-        self.port_name = kit_list[wich_kit].device
 
-    def updateSerial(self):
+        self.sam_serialNum = kit_list[wich_kit].serial_number
+        self.serialPort_name = kit_list[wich_kit].device
+
+    def updateSerial(self, speed=115200):
         timeout = time.time() + 15
         while True:
             devList = list(serial.tools.list_ports.comports())
             found = False
             for d in devList:
-                try: 
-                    if self.serial in d.serial_number:
-                        self.port_name = d.device
+                try:
+                    if self.sam_serialNum in d.serial_number:
+                        self.serialPort_name = d.device
                         found = True
                     if time.time() > timeout:
-                        print('Timeout waiting for device')
+                        self.err_out('Timeout waiting for device')
                         sys.exit()
                 except:
                     pass
@@ -67,59 +100,64 @@ class sck:
         timeout = time.time() + 15
         while True:
             try:
-                self.port = serial.Serial(self.port_name, 115200)
+                self.serialPort = serial.Serial(self.serialPort_name, speed)
             except:
                 if time.time() > timeout:
-                    print('Timeout waiting for serial port')
+                    self.err_out('Timeout waiting for serial port')
                     sys.exit()
                 time.sleep(0.2)
-            if self.port.is_open: return
+            if self.serialPort.is_open: return
 
-    def bootloader(self):
+    def getInfo(self):
+        if self.infoReady: return
         self.updateSerial()
-        self.port.close()
-        self.port = serial.Serial(self.port_name, 1200)
-        self.port.setDTR(False)
+        self.serialPort.write('\r\nversion\r\n')
+        time.sleep(0.5)
+        m = self.serialPort.read(self.serialPort.in_waiting).split()
+        self.esp_macAddress = m[m.index('address:')+1]
+        m.remove('SAM')
+        self.sam_firmVer = m[m.index('SAM')+2]
+        m.remove('ESP')
+        self.esp_firmVer = m[m.index('ESP')+2]
+        self.infoReady = True
+
+    def setBootLoaderMode(self):
+        self.updateSerial()
+        self.serialPort.close()
+        self.serialPort = serial.Serial(self.serialPort_name, 1200)
+        self.serialPort.setDTR(False)
         time.sleep(5)
         mps = uf2conv.getdrives()
         for p in mps:
             if 'INFO_UF2.TXT' in os.listdir(p):
                 return p
+        self.err_out('Cant find the mount point fo the SCK')
         return False
 
-    def updateGIT(self, out=sys.__stdout__):
-        os.chdir(self.repoPath)
-        subprocess.call(['git', 'checkout', self.branch], stdout=out, stderr=subprocess.STDOUT)
-        subprocess.call(['git', 'remote', 'update', self.branch], stdout=out, stderr=subprocess.STDOUT)
-        r = subprocess.check_output(['git', 'status'])
-        if not 'up-to-date' in r:
-            print('Updating branch ' + self.branch + ', kit needss update.')
-            subprocess.call(['git', 'pull', '--all'], stderr=subprocess.STDOUT)                                             
-        else:
-            print('Branch ' + self.branch + ' doesn\'t need update.')
-
     def buildSAM(self, out=sys.__stdout__):
-        os.chdir(self.repoPath)
+        os.chdir(self.paths['base'])
         os.chdir('sam')
         piorun = subprocess.call(['pio', 'run'], stdout=out, stderr=subprocess.STDOUT)
-        if piorun != 0: return False
-        try:
-            shutil.copyfile(os.path.join(os.getcwd(), '.pioenvs', 'sck2', 'firmware.bin'), os.path.join(self.binPath, self.samBIN))
-        except: error(self)
-        with open(os.path.join(self.binPath, self.samBIN), mode='rb') as myfile:
+        if piorun == 0:
+            try:
+                shutil.copyfile(os.path.join(os.getcwd(), '.pioenvs', 'sck2', 'firmware.bin'), os.path.join(self.paths['binFolder'], self.files['samBin']))
+            except:
+                self.err_out('Failed building SAM firmware')
+                return False
+        with open(os.path.join(self.paths['binFolder'], self.files['samBin']), mode='rb') as myfile:
             inpbuf = myfile.read()
-        outbuf = uf2conv.convertToUF2(inpbuf)       
-        uf2conv.writeFile(os.path.join(self.binPath, self.samUF2), outbuf)
-        os.chdir(self.repoPath)
+        outbuf = uf2conv.convertToUF2(inpbuf)
+        uf2conv.writeFile(os.path.join(self.paths['binFolder'], self.files['samUf2']), outbuf)
+        os.chdir(self.paths['base'])
         return True
 
     def flashSAM(self, out=sys.__stdout__):
-        os.chdir(self.repoPath)
-        mountpoint = self.bootloader()
-        print(mountpoint)
+        os.chdir(self.paths['base'])
+        mountpoint = self.setBootLoaderMode()
         try:
-            shutil.copyfile(os.path.join(self.binPath, self.samUF2), os.path.join(mountpoint, self.samUF2))
+            shutil.copyfile(os.path.join(self.paths['binFolder'], self.files['samUf2']), os.path.join(mountpoint, self.files['samUf2']))
         except:
+            self.err_out('Failed transferring firmware to SAM')
             return False
         time.sleep(2)
         return True
@@ -127,62 +165,44 @@ class sck:
     def getBridge(self):
         timeout = time.time() + 15
         while True:
-            self.updateSerial()
-            time.sleep(0.5)
-            self.port.write('\r\n')
-            buff = self.port.read(self.port.in_waiting)
+            self.updateSerial(self.espFlashSpeed)
+            self.serialPort.write('\r\n')
+            buff = self.serialPort.read(self.serialPort.in_waiting)
             if 'SCK' in buff: break
             if time.time() > timeout:
-                print('Timeout waiting for SAM bridge')
-                sys.exit()
-            time.sleep(0.2)
-        self.port.write('esp -flash\r\n')
+                self.err_out('Timeout waiting for SAM bridge')
+                return False
+            time.sleep(2.5)
+        buff = self.serialPort.read(self.serialPort.in_waiting)
+        self.serialPort.write('esp -flash ' + str(self.espFlashSpeed) + '\r\n')
+        time.sleep(0.2)
+        buff = self.serialPort.read(self.serialPort.in_waiting)
         return True
 
     def buildESP(self, out=sys.__stdout__):
-        os.chdir(self.repoPath)
+        os.chdir(self.paths['base'])
         os.chdir('esp')
         piorun = subprocess.call(['pio', 'run'], stdout=out, stderr=subprocess.STDOUT)
         if piorun == 0:
-            shutil.copyfile(os.path.join(os.getcwd() , '.pioenvs', 'esp12e', 'firmware.bin'), os.path.join(self.binPath, self.espBIN))
+            shutil.copyfile(os.path.join(os.getcwd() , '.pioenvs', 'esp12e', 'firmware.bin'), os.path.join(self.paths['binFolder'], self.files['espBin']))
             return True
+        self.err_out('Failed building ESP firmware')
         return False
 
     def flashESP(self, out=sys.__stdout__):
-        os.chdir(self.repoPath)
+        os.chdir(self.paths['base'])
         if not self.getBridge(): return False
-        flashedESP = subprocess.call([self.esptoolEXE, '--port', self.port_name, '--baud', '115200', 'write_flash', '0x000000', os.path.join(self.binPath, self.espBIN)], stdout=out, stderr=subprocess.STDOUT) 
-        self.port.write('byebyebye')
+        flashedESP = subprocess.call([self.paths['esptool'], '-cp', self.serialPort_name, '-cb', str(self.espFlashSpeed), '-ca', '0x000000', '-cf', os.path.join(self.paths['binFolder'], self.files['espBin'])], stdout=out, stderr=subprocess.STDOUT)
         if flashedESP == 0:
             time.sleep(1)
             return True
-        else: return False
-
-    def buildESPFS(self, out=sys.__stdout__):
-        print("ESP filesystem is no longer used!")
-        os.chdir(self.repoPath)
-        os.chdir('esp')
-        piorun = subprocess.call(['pio', 'run', '-t', 'buildfs'], stdout=out, stderr=subprocess.STDOUT)
-        if piorun == 0:
-            shutil.copyfile(os.path.join(os.getcwd(), '.pioenvs', 'esp12e', 'spiffs.bin'), os.path.join(self.binPath, self.espfsBIN))
-            return True
-        return False
-
-    def flashESPFS(self, out=sys.__stdout__):
-        print("ESP filesystem is no longer used!")
-        os.chdir(self.repoPath)
-        if not self.getBridge(): return False
-        flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port_name, '--baud', '115200', 'write_flash', '0x300000', os.path.join(self.binPath, self.espfsBIN)], stdout=out, stderr=subprocess.STDOUT)
-        self.port.write('byebyebye')
-        if flashedESPFS == 0:
-            time.sleep(1)
-            return True
-        else: return False
+        else:
+            self.err_out('Failed transferring ESP firmware')
+            return False
 
     def eraseESP(self):
         if not self.getBridge(): return False
-        flashedESPFS = subprocess.call([self.esptoolEXE, '--port', self.port_name, 'erase_flash'], stderr=subprocess.STDOUT)
-        self.port.write('byebyebye')
+        flashedESPFS = subprocess.call([self.paths['esptoolPy'], '--port', self.serialPort_name, 'erase_flash'], stderr=subprocess.STDOUT)
         if flashedESPFS == 0:
             time.sleep(1)
             return True
@@ -190,28 +210,102 @@ class sck:
 
     def reset(self):
         self.updateSerial()
-        self.port.write('\r\n')
-        self.port.write('reset\r\n')
+        self.serialPort.write('\r\n')
+        self.serialPort.write('reset\r\n')
 
     def netConfig(self):
         if len(self.wifi_ssid) == 0 or len(self.wifi_pass) == 0 or len(self.token) != 6:
             print('WiFi and token MUST be set!!')
             return False
         self.updateSerial()
-        self.port.write('\r\n')
-        self.port.write('config -mode net -wifi "' + self.wifi_ssid + '" "' + self.wifi_pass + '" -token ' + self.token + '\r\n')
+        self.serialPort.write('\r\n')
+        self.serialPort.write('config -mode net -wifi "' + self.wifi_ssid + '" "' + self.wifi_pass + '" -token ' + self.token + '\r\n')
 
     def sdConfig(self):
         self.updateSerial()
-        self.port.write('\r\n')
-        self.port.write('time ' + str(int(time.time())) + '\r\n')
-        self.port.write('config -mode sdcard\r\n')
+        self.serialPort.write('\r\n')
+        self.serialPort.write('time ' + str(int(time.time())) + '\r\n')
+        self.serialPort.write('config -mode sdcard\r\n')
 
     def resetConfig(self):
         self.updateSerial()
-        self.port.write('\r\n')
-        self.port.write('config -defaults\r\n')
+        self.serialPort.write('\r\n')
+        self.serialPort.write('config -defaults\r\n')
 
     def end(self):
-        if self.port.is_open: self.port.close()
+        if self.serialPort.is_open: self.serialPort.close()
 
+    def register(self):
+        try:
+            import secret
+            print("Founded secrets.py:")
+            print("bearer: " + secret.bearer)
+            print("Wifi ssid: " + secret.wifi_ssid)
+            print("Wifi pass: " + secret.wifi_pass)
+            bearer = secret.bearer
+            wifi_ssid = secret.wifi_ssid
+            wifi_pass = secret.wifi_pass
+        except:
+            bearer = raw_input("Platform bearer: ")
+            wifi_ssid = raw_input("WiFi ssid: ")
+            wifi_pass = raw_input("WiFi password: ")
+
+        headers = {'Authorization':'Bearer ' + bearer, 'Content-type': 'application/json',}
+        device = {}
+        try:
+            device['name'] = self.platform_name
+        except:
+            print('Your device needs a name!')
+            # TODO ask for a name
+            sys.exit()
+        device['device_token'] = binascii.b2a_hex(os.urandom(3))
+        self.token = device['device_token']
+        device['description'] = ''
+        device['kit_id'] = 20
+        device['latitude'] = 41.396867
+        device['longitude'] = 2.194351
+        device['exposure'] = 'indoor'
+        device['user_tags'] = 'Lab, Research, Experimental'
+
+        device_json = json.dumps(device)
+        backed_device = requests.post('https://api.smartcitizen.me/v0/devices', data=device_json, headers=headers)
+        self.id = str(backed_device.json()['id'])
+        self.platform_url = "https://smartcitizen.me/kits/" + self.id
+
+        self.serialPort.write('\r\nconfig -mode net -wifi "' + wifi_ssid + '" "' + wifi_pass + '" -token ' + self.token + '\r\n')
+        time.sleep(1)
+
+    def inventory_add(self):
+
+        self.getInfo()
+
+        if not hasattr(self, 'token'):
+            self.token = ''
+        if not hasattr(self, 'platform_name'):
+            self.platform_name = ''
+        if not hasattr(self, 'platform_url'):
+            self.platform_url = ''
+
+        inv_path = "inventory.csv"
+
+        if os.path.exists(inv_path):
+            shutil.copyfile(inv_path, inv_path+".BAK")
+            csvFile = open("inventory.csv", "a")
+        else:
+            csvFile = open(inv_path, "w")
+            # time,serial,mac,sam_firmVer,esp_firmVer,description,token,platform_name,platform_url
+            csvFile.write("time,serial,mac,sam_firmVer,esp_firmVer,description,token,platform_name,platform_url\n")
+
+        csvFile.write(time.strftime("%Y-%m-%dT%H:%M:%SZ,", time.gmtime()))
+        csvFile.write(self.sam_serialNum + ',' + self.esp_macAddress + ',' + self.sam_firmVer + ',' + self.esp_firmVer + ',' + self.description + ',' + self.token + ',' + self.platform_name + ',' + self.platform_url + '\n')
+        csvFile.close()
+
+    def std_out(self, msg):
+        if self.verbose >= 2: print(msg)
+
+    def err_out(self, msg):
+        if self.verbose >= 1:
+            sys.stdout.write("\033[1;31m")
+            print('ERROR ' + msg)
+            sys.stdout.write("\033[0;0m")
+            

@@ -42,7 +42,7 @@ if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv:
 import sck
 kit = sck.sck()
 
-if 'flash' or 'register' in sys.argv:
+if 'flash' in sys.argv or 'register' in sys.argv:
     kit.begin() 
 
 verbose = False

@@ -33,7 +33,7 @@ def enablePrint():
 
 if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv:
     print('USAGE:\n\nbuild.py [options] action[s] target[s]')
-    print('\noptions: -v: verbose')
+    print('\noptions: -v: verbose -k: keep configuration')
     print('actions: build, flash, register, inventory')
     print('targets: sam, esp')
     print('\nFor bootloader flashing you still need to use the old script build.sh')
@@ -44,6 +44,17 @@ kit = sck.sck()
 
 if 'flash' in sys.argv or 'register' in sys.argv:
     kit.begin() 
+    if '-k' in sys.argv: 
+        kit.getConfig()
+        if kit.mode == 'network':
+            print('Current mode: ' + kit.mode + ', Wifi: ' + kit.wifi_ssid + ' - ' + kit.wifi_pass + ', Token: ' + kit.token)
+        elif kit.mode == 'sdcard':
+            ww = ""
+            if len(kit.wifi_ssid) > 0: ww = ', Wifi: ' + kit.wifi_ssid + ' - ' + kit.wifi_pass
+            print('Current mode: ' + kit.mode + ww)
+        else:
+            print('Kit is not configured')
+
 
 verbose = False
 blockPrint()
@@ -83,6 +94,14 @@ if 'flash' in sys.argv:
                     oneLine(str(i+1) + '... ')
                     time.sleep(3)
 
+    if '-k' in sys.argv and len(kit.mode) > 0:
+        oneLine("Reconfiguring kit...")
+        if 'network' in kit.mode: 
+            if kit.netConfig(): OK()
+            else: ERROR()
+        elif 'sdcard' in kit.mode: 
+            if kit.sdConfig(): OK()
+            else: ERROR()
 
 if 'erase' in sys.argv:
     print('Erasing ESP flash...')

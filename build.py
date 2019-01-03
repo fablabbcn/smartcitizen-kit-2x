@@ -82,17 +82,19 @@ if 'flash' in sys.argv:
         else: ERROR()
 
     if 'esp' in sys.argv or 'all' in sys.argv:
-        oneLine('Flashing ESP firmware...')
+        oneLine('Flashing ESP firmware')
         for i in range(4):
-            if kit.flashESP(sys.stdout): 
+            mySpeed = 921600 / pow(2, i)
+            oneLine(' at ' + str(mySpeed) + '...')
+            if kit.flashESP(mySpeed, sys.stdout): 
                 OK()
                 break;
             else: 
                 if i == 3: ERROR()
                 else:
-                    if i == 0: oneLine('   Retry: ')
-                    oneLine(str(i+1) + '... ')
                     time.sleep(3)
+                    if i == 0: oneLine('   Retry')
+                    oneLine(' ' + str(i+1))
 
     if '-k' in sys.argv and len(kit.mode) > 0:
         oneLine("Reconfiguring kit...")

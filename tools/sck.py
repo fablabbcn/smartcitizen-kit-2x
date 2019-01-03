@@ -81,7 +81,7 @@ class sck:
         self.sam_serialNum = kit_list[wich_kit].serial_number
         self.serialPort_name = kit_list[wich_kit].device
 
-    def updateSerial(self, speed=115200, check_console=False):
+    def updateSerial(self, speed=115200):
         timeout = time.time() + 15
         while True:
             devList = list(serial.tools.list_ports.comports())
@@ -107,11 +107,7 @@ class sck:
                     self.err_out('Timeout waiting for serial port')
                     sys.exit()
                 time.sleep(0.2)
-            if self.serialPort.is_open: 
-                if check_console: 
-                    if self.checkConsole(): return True
-                else: return True
-            sys.exit()
+            if self.serialPort.is_open: return
 
     def checkConsole(self):
         timeout = time.time() + 15
@@ -127,7 +123,7 @@ class sck:
 
     def getInfo(self):
         if self.infoReady: return
-        self.updateSerial(check_console=True)
+        self.updateSerial()
         self.serialPort.write('\r\nversion\r\n')
         time.sleep(0.5)
         m = self.serialPort.read(self.serialPort.in_waiting).split()
@@ -139,7 +135,8 @@ class sck:
         self.infoReady = True
 
     def getConfig(self):
-        self.updateSerial(check_console=True)
+        self.updateSerial()
+        self.checkConsole()
         self.serialPort.write('\r\nconfig\r\n')
         time.sleep(0.5)
         m = self.serialPort.read(self.serialPort.in_waiting).split('\r\n')
@@ -245,7 +242,8 @@ class sck:
         else: return False
 
     def reset(self):
-        self.updateSerial(check_console=True)
+        self.updateSerial()
+        self.checkConsole();
         self.serialPort.write('\r\n')
         self.serialPort.write('reset\r\n')
 
@@ -253,13 +251,15 @@ class sck:
         if len(self.wifi_ssid) == 0 or len(self.token) != 6:
             print('WiFi and token MUST be set!!')
             return False
-        self.updateSerial(check_console=True)
+        self.updateSerial()
+        self.checkConsole();
         self.serialPort.write('\r\nconfig -mode net -wifi "' + self.wifi_ssid + '" "' + self.wifi_pass + '" -token ' + self.token + '\r\n')
         # TODO verify config success
         return True
 
     def sdConfig(self):
-        self.updateSerial(check_console=True)
+        self.updateSerial()
+        self.checkConsole();
         self.serialPort.write('\r\ntime ' + str(int(time.time())) + '\r\n')
         if len(self.wifi_ssid) == 0:
             self.serialPort.write('config -mode sdcard\r\n')
@@ -269,7 +269,8 @@ class sck:
         return True
 
     def resetConfig(self):
-        self.updateSerial(check_console=True)
+        self.updateSerial()
+        self.checkConsole();
         self.serialPort.write('\r\nconfig -defaults\r\n')
         # TODO verify config success
         return True
@@ -350,4 +351,4 @@ class sck:
             sys.stdout.write("\033[1;31m")
             print('ERROR ' + msg)
             sys.stdout.write("\033[0;0m")
-            
+

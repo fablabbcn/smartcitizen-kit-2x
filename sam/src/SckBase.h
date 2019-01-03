@@ -105,6 +105,7 @@ class SckBase
 
 		// **** Mode Control
 		void reviewState();
+		uint32_t reviewStateMillis = 0;
 		void enterSetup();
 
 		// ESP communication
@@ -158,6 +159,7 @@ class SckBase
 		uint8_t wakeUP_S = 0;
 		uint32_t sleepTime;
 		void updatePower();
+		uint32_t updatePowerMillis = 0;
 		void goToSleep();
 
 

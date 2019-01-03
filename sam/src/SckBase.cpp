@@ -152,9 +152,15 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
-	if (millis() % 500 == 0) reviewState();
+	if (millis() - reviewStateMillis > 500) {
+		reviewStateMillis = millis();
+		reviewState();
+	}
 
-	if (millis() % 1000 == 0) updatePower();
+	if (millis() - updatePowerMillis > 1000) {
+		updatePowerMillis = millis();
+		updatePower();
+	}
 
 	if (butState != butOldState) {
 		buttonEvent();

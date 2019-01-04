@@ -932,7 +932,10 @@ bool SckBase::sendMessage()
 	for (uint8_t i=0; i<totalParts; i++) {
 		netPack[0] = totalParts;
 		memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
-		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) return false;
+		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) {
+			sckOut("ERROR sending mesg to ESP!!!");
+			return false;
+		}
 		if (debugESPcom) {
 			sprintf(outBuff, "Sent part num %i", i);
 			sckOut();

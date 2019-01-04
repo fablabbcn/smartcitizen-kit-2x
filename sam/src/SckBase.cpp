@@ -394,7 +394,7 @@ void SckBase::reviewState()
 
 						sckOut("ERROR time is not synced!!!");
 
-						ESPcontrol(ESP_OFF);
+						ESPcontrol(ESP_SLEEP);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
 						st.wifiStat.reset();
 					}
@@ -410,7 +410,7 @@ void SckBase::reviewState()
 
 						sckOut("ERROR time sync failed!!!");
 						st.timeStat.reset();
-						ESPcontrol(ESP_OFF);
+						ESPcontrol(ESP_SLEEP);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
 					}
 				}
@@ -418,7 +418,7 @@ void SckBase::reviewState()
 
 		} else {
 			led.update(led.PINK, led.PULSE_SOFT);
-			if (st.espON) ESPcontrol(ESP_OFF);
+			if (st.espON) ESPcontrol(ESP_SLEEP);
 
 			updateSensors();
 
@@ -830,6 +830,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_ON:
 		{
+				if (st.espBooting) return;
 				sckOut("ESP on...", PRIO_LOW);
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode

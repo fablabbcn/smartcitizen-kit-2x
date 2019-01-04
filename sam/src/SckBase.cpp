@@ -172,12 +172,6 @@ void SckBase::update()
 // **** Mode Control
 void SckBase::reviewState()
 {
-	if (st.espBooting) {
-		if (rtc.getEpoch() - espStarted > 2) {
-			sckOut("ESP is taking too long to boot, restarting it...");
-			ESPcontrol(ESP_REBOOT);
-		}
-	} 
 
 	if (pendingSyncConfig) {
 		sendConfig();

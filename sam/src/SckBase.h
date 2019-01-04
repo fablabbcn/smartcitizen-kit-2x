@@ -63,9 +63,11 @@ struct SckState
 	bool espBooting = false;
 	bool wifiSet = false;
 	bool tokenSet = false;
+	bool tokenError = false;
 	bool helloPending = false;
 	SCKmodes mode = MODE_NET;
 	bool cardPresent = false;
+	bool cardPresentError = false;
 	bool sleeping = false;
 	bool publishPending = false;
 	Status wifiStat = Status(1, 60000);

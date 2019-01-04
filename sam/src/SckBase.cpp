@@ -199,7 +199,10 @@ void SckBase::reviewState()
 					if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
 					debugFile.file.close();
 
-				} else st.cardPresent = false;
+				} else {
+					st.cardPresent = false;
+					st.cardPresentError = false;
+				}
 
 			}
 		}
@@ -237,6 +240,26 @@ void SckBase::reviewState()
 		if (!st.onSetup) enterSetup();
 
 	} else if (st.mode == MODE_NET) {
+
+		if (!st.wifiSet) {
+			if (!st.wifiStat.error) {
+				sckOut("ERROR wifi is not configured!!!");
+				ESPcontrol(ESP_SLEEP);
+				led.update(led.BLUE, led.PULSE_HARD_FAST);
+				st.wifiStat.error = true;
+			}
+			return;
+		}
+
+		if (!st.tokenSet) {
+			if (!st.tokenError) {
+				sckOut("ERROR token is not configured!!!");
+				ESPcontrol(ESP_SLEEP);
+				led.update(led.BLUE, led.PULSE_HARD_FAST);
+				st.tokenError = true;
+			}
+			return;
+		}
 
 		if (!st.helloPending) updateSensors();
 
@@ -343,18 +366,23 @@ void SckBase::reviewState()
 	} else if  (st.mode == MODE_SD) {
 
 		if (!st.cardPresent) {
-
-			sckOut("ERROR can't find SD card!!!");
-			if (st.espON) ESPcontrol(ESP_OFF);
-			led.update(led.PINK, led.PULSE_HARD_FAST);
+			if (!st.cardPresentError) {
+				sckOut("ERROR can't find SD card!!!");
+				if (st.espON) ESPcontrol(ESP_SLEEP);
+				led.update(led.PINK, led.PULSE_HARD_FAST);
+				st.cardPresentError = true;
+			}
+			return;
 
 		} else if (!st.timeStat.ok) {
 
 			if (!st.wifiSet)  {
-
-				sckOut("ERROR time is not synced and no wifi set!!!");
-				led.update(led.PINK, led.PULSE_HARD_FAST);
-
+				if (!st.wifiStat.error) {
+					sckOut("ERROR time is not synced and no wifi set!!!");
+					ESPcontrol(ESP_SLEEP);
+					led.update(led.PINK, led.PULSE_HARD_FAST);
+					st.wifiStat.error = true;
+				}
 			} else {
 
 				if (!st.wifiStat.ok) {
@@ -412,6 +440,10 @@ void SckBase::enterSetup()
 
 	// Update led
 	led.update(led.RED, led.PULSE_SOFT);
+
+	// Clear errors from other modes
+	st.tokenError = false;
+	st.cardPresentError = false;
 
 	// Start wifi APmode
 	if (!st.espON) ESPcontrol(ESP_ON);
@@ -590,6 +622,7 @@ void SckBase::loadConfig()
 
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;
+	st.tokenError = false;
 	st.mode = config.mode;
 }
 void SckBase::saveConfig(bool defaults)
@@ -635,17 +668,18 @@ void SckBase::saveConfig(bool defaults)
 	st.mode = config.mode;
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;
+	st.tokenError = false;
 	st.wifiStat.reset();
 	lastPublishTime = rtc.getEpoch() - config.publishInterval;
 	lastSensorUpdate = rtc.getEpoch() - config.readInterval;
 
+	if (st.wifiSet || st.tokenSet) pendingSyncConfig = true;
 
 	// Decide if new mode its valid
 	if (st.mode == MODE_NET) {
 
 		if (st.wifiSet && st.tokenSet) {
 
-			pendingSyncConfig = true;
 			infoPublished = false;
 			st.helloPending = true;
 			st.onSetup = false;
@@ -656,13 +690,13 @@ void SckBase::saveConfig(bool defaults)
 
 			if (!st.wifiSet) sckOut("ERROR Wifi not configured: can't set Network Mode!!!");
 			if (!st.tokenSet) sckOut("ERROR Token not configured: can't set Network Mode!!!");
+			ESPcontrol(ESP_SLEEP);
 			led.update(led.BLUE, led.PULSE_HARD_FAST);
 		}
 
 	} else if (st.mode == MODE_SD) {
 
 		st.helloPending = false;
-		if (st.wifiSet) pendingSyncConfig = true;
 		st.onSetup = false;
 		led.update(led.PINK, led.PULSE_SOFT);
 		sendMessage(ESPMES_STOP_AP, "");
@@ -909,7 +943,6 @@ bool SckBase::sendMessage()
 			sckOut();
 		}
 	}
-
 	return true;
 }
 void SckBase::receiveMessage(SAMMessage wichMessage)
@@ -1142,15 +1175,18 @@ bool SckBase::sdInit()
 	if (sd.begin(pinCS_SDCARD, SPI_HALF_SPEED)) {
 		sckOut("Sd card ready to use");
 		st.cardPresent = true;
+		st.cardPresentError = false;
 		return true;
 	}
 	sckOut("ERROR on Sd card Init!!!");
 	st.cardPresent = false; 	// If we cant initialize sdcard, don't use it!
+	st.cardPresentError = false;
 	return false;
 }
 bool SckBase::sdDetect()
 {
 	st.cardPresent = !digitalRead(pinCARD_DETECT);
+	st.cardPresentError = false;
 
 	if (!digitalRead(pinCARD_DETECT)) {
 		sckOut("Sdcard inserted");
@@ -1735,7 +1771,10 @@ bool SckBase::sdPublish()
 		postFile.file.close();
 		sckOut("Sd card publish OK!!", PRIO_MED);
 		return true;
-	} else st.cardPresent = false;
+	} else  {
+		st.cardPresent = false;
+		st.cardPresentError = false;
+	}
 	return false;
 }
 void SckBase::publish()

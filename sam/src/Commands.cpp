@@ -566,7 +566,7 @@ void state_com(SckBase* base, String parameters)
 void hello_com(SckBase* base, String parameters)
 {
 
-	base->st.helloPending = true;
+	if (base->sendMessage(ESPMES_MQTT_HELLO, "")) base->sckOut("Hello sent!");
 	base->sckOut("Waiting for MQTT hello response...");
 }
 void debug_com(SckBase* base, String parameters)

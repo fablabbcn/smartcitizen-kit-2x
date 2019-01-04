@@ -35,6 +35,8 @@ void SckBase::setup()
 	pinMode(pinESP_GPIO0, OUTPUT);
 	SerialESP.begin(serialBaudrate);
 	manager.init();
+	manager.setTimeout(30);
+	manager.setRetries(16);
 	ESPcontrol(ESP_ON);
 
 	// Internal I2C bus setup
@@ -1089,11 +1091,6 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			st.espBooting = false;
 
-			if (pendingSyncConfig) {
-				sendConfig();
-				break;
-			}
-
 			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 			JsonObject& json = jsonBuffer.parseObject(netBuff);
 			macAddress = json["mac"].as<String>();
@@ -1146,6 +1143,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 					if (!sendMessage(ESPMES_CONNECT)) sckOut("ERROR asking ESP to connect!!!");
 				}
 			}
+
+			if (pendingSyncConfig) sendConfig();
 			break;
 		}
 		default: break;

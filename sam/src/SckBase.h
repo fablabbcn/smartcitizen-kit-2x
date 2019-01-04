@@ -230,6 +230,7 @@ class SckBase
 		String macAddress;
 		String hostname;
 		void mqttCustom(const char *topic, const char *payload);
+		bool debugESPcom = false;
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};

@@ -573,15 +573,23 @@ void debug_com(SckBase* base, String parameters)
 {
 	// Set
 	if (parameters.length() > 0) {
-		if (parameters.equals("-sdcard")) {
+		if (parameters.indexOf("-sdcard") >= 0) {
 			base->config.sdDebug = !base->config.sdDebug;
 			sprintf(base->outBuff, "SD card debug: %s", base->config.sdDebug ? "true" : "false");
 			base->sckOut();
 			base->saveConfig();
 		}
+		if (parameters.indexOf("-espcom") >= 0) {
+			base->debugESPcom = ! base->debugESPcom;
+			sprintf(base->outBuff, "ESP comm debug: %s", base->debugESPcom ? "true" : "false");
+			base->sckOut();
+		}
+
 	// Get	
 	} else {
 		sprintf(base->outBuff, "%s\r\nSD card debug: %s", base->outBuff, base->config.sdDebug ? "true" : "false");
+		base->sckOut();
+		sprintf(base->outBuff, "%s\r\nESP comm debug: %s", base->outBuff, base->debugESPcom ? "true" : "false");
 		base->sckOut();
 	}
 }

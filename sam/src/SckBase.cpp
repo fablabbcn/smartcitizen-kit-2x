@@ -837,6 +837,11 @@ void SckBase::ESPbusUpdate()
 
 		if (manager.recvfromAck(netPack, &len)) {
 
+			if (debugESPcom) {
+				sprintf(outBuff, "Receiving msg from ESP in %i parts", netPack[0]);
+				sckOut();
+			}
+
 			// Identify received command
 			uint8_t pre = netPack[1];
 			SAMMessage wichMessage = static_cast<SAMMessage>(pre);
@@ -851,6 +856,8 @@ void SckBase::ESPbusUpdate()
 				}
 				else return;
 			}
+
+			if (debugESPcom) sckOut(netBuff);
 
 			// Process message
 			receiveMessage(wichMessage);
@@ -873,17 +880,27 @@ bool SckBase::sendMessage()
 	// This function is used when netbuff is already filled with command and content
 
 	if (!st.espON) {
-		sckOut("ESP is off please turn it ON !!!");
+		if (debugESPcom) sckOut("Can't send message, ESP is off or still booting...");
 		return false;
 	}
 
 	uint16_t totalSize = strlen(netBuff);
 	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
 
+	if (debugESPcom) {
+		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bits", totalParts, totalSize);
+		sckOut();
+		sckOut(netBuff);
+	}
+
 	for (uint8_t i=0; i<totalParts; i++) {
 		netPack[0] = totalParts;
 		memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
 		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) return false;
+		if (debugESPcom) {
+			sprintf(outBuff, "Sent part num %i", i);
+			sckOut();
+		}
 	}
 
 	return true;

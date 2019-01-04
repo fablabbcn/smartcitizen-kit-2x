@@ -60,6 +60,7 @@ struct SckState
 	bool onShell = false;
 	bool onSetup = false;
 	bool espON = false;
+	bool espBooting = false;
 	bool wifiSet = false;
 	bool tokenSet = false;
 	bool helloPending = false;

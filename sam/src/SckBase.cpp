@@ -172,9 +172,15 @@ void SckBase::update()
 // **** Mode Control
 void SckBase::reviewState()
 {
+	if (st.espBooting) {
+		if (rtc.getEpoch() - espStarted > 2) {
+			sckOut("ESP is taking too long to boot, restarting it...");
+			ESPcontrol(ESP_REBOOT);
+		}
+	} 
+
 	if (pendingSyncConfig) {
-		if (espInfoUpdated) sendConfig();
-		return;
+		sendConfig();
 	}
 
 	if (sdInitPending) sdInit();
@@ -336,7 +342,6 @@ void SckBase::reviewState()
 
 	} else if  (st.mode == MODE_SD) {
 
-
 		if (!st.cardPresent) {
 
 			sckOut("ERROR can't find SD card!!!");
@@ -425,6 +430,7 @@ void SckBase::printState()
 	sprintf(outBuff, "%ssleeping: %s\r\n", outBuff, st.sleeping  ? t : f);
 
 	sprintf(outBuff, "%s\r\nespON: %s\r\n", outBuff, st.espON  ? t : f);
+	sprintf(outBuff, "%s\r\nespBooting: %s\r\n", outBuff, st.espBooting  ? t : f);
 	sprintf(outBuff, "%swifiSet: %s\r\n", outBuff, st.wifiSet  ? t : f);
 	sprintf(outBuff, "%swifiOK: %s\r\n", outBuff, st.wifiStat.ok ? t : f);
 	sprintf(outBuff, "%swifiError: %s\r\n", outBuff, st.wifiStat.error ? t : f);
@@ -662,6 +668,8 @@ void SckBase::saveConfig(bool defaults)
 		sendMessage(ESPMES_STOP_AP, "");
 
 	}
+
+	if (pendingSyncConfig && !st.espON) ESPcontrol(ESP_ON);
 }
 Configuration SckBase::getConfig()
 {
@@ -674,6 +682,7 @@ bool SckBase::sendConfig()
 		ESPcontrol(ESP_ON);
 		return false;
 	}
+	if (st.espBooting) return false;
 
 	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 	JsonObject& json = jsonBuffer.createObject();
@@ -687,12 +696,11 @@ bool SckBase::sendConfig()
 	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
 
-	for (uint8_t i=0; i<3; i++) {
-		if (sendMessage()) {
-			pendingSyncConfig = false;
-			sckOut("Synced config with ESP!!", PRIO_LOW);
-			return true;
-		}
+	if (sendMessage()) {
+		pendingSyncConfig = false;
+		sckOut("Synced config with ESP!!", PRIO_LOW);
+		ESPcontrol(ESP_REBOOT); // After sending config we reset ESP to start from a good state
+		return true;
 	}
 
 	return false;
@@ -753,7 +761,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				digitalWrite(pinPOWER_ESP, HIGH);
 				digitalWrite(pinESP_GPIO0, LOW);
 				sprintf(outBuff, "Esp was on for %lu seconds", (rtc.getEpoch() - espStarted));
-				st.wifiStat.reset();
 				espStarted = 0;
 				break;
 		}
@@ -794,7 +801,9 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 				digitalWrite(pinPOWER_ESP, LOW);
+				st.wifiStat.reset();
 				st.espON = true;
+				st.espBooting = true;
 				espStarted = rtc.getEpoch();
 				break;
 
@@ -823,7 +832,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				digitalWrite(pinESP_CH_PD, LOW);
 				sprintf(outBuff, "Esp was awake for %lu seconds", (rtc.getEpoch() - espStarted));
 				sckOut(PRIO_LOW);
-				st.wifiStat.reset();
 				espStarted = 0;
 				break;
 		}
@@ -879,7 +887,7 @@ bool SckBase::sendMessage()
 
 	// This function is used when netbuff is already filled with command and content
 
-	if (!st.espON) {
+	if (!st.espON || st.espBooting) {
 		if (debugESPcom) sckOut("Can't send message, ESP is off or still booting...");
 		return false;
 	}
@@ -1049,6 +1057,13 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		{
 			sckOut("ESP finished booting");
 
+			st.espBooting = false;
+
+			if (pendingSyncConfig) {
+				sendConfig();
+				break;
+			}
+
 			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 			JsonObject& json = jsonBuffer.parseObject(netBuff);
 			macAddress = json["mac"].as<String>();
@@ -1068,8 +1083,6 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				saveInfo();
 			}
 
-			if (pendingSyncConfig) sendConfig();
-
 			if (st.onSetup) {
 
 				// Do we need to update ESP firmware?
@@ -1084,7 +1097,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				JsonObject& jsonSend = jsonBuffer.createObject();
 				jsonSend["ver"] = SAMversion;
 				jsonSend["bd"] = SAMbuildDate;
-				jsonSend["un"] = ESPupdateNeeded;
+				jsonSend["un"] = (uint8_t)ESPupdateNeeded;
 
 				sprintf(netBuff, "%c", ESPMES_UPDATE_INFO);
 				jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
@@ -1093,12 +1106,15 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			} else if (st.mode == MODE_NET) {
 
-				if (st.wifiSet) sendMessage(ESPMES_CONNECT);
+				if (st.wifiSet) {
+					if (!sendMessage(ESPMES_CONNECT)) sckOut("ERROR asking ESP to connect!!!");
+				}
 
 			} else if (st.mode == MODE_SD) {
 
-				if (st.wifiSet && !st.wifiStat.error) sendMessage(ESPMES_CONNECT);
-				else sendMessage(ESPMES_START_AP);
+				if (st.wifiSet && !st.wifiStat.error) {
+					if (!sendMessage(ESPMES_CONNECT)) sckOut("ERROR asking ESP to connect!!!");
+				}
 			}
 			break;
 		}

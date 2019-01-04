@@ -699,7 +699,6 @@ bool SckBase::sendConfig()
 	if (sendMessage()) {
 		pendingSyncConfig = false;
 		sckOut("Synced config with ESP!!", PRIO_LOW);
-		ESPcontrol(ESP_REBOOT); // After sending config we reset ESP to start from a good state
 		return true;
 	}
 

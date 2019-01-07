@@ -52,8 +52,6 @@ void getVersion_com(SckBase* base, String parameters)
 	base->sckOut();
 	sprintf(base->outBuff, "ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s", base->config.mac.address, base->ESPversion.c_str(), base->ESPbuildDate.c_str());
 	base->sckOut();
-	sprintf(base->outBuff, "ESP update needed: %s\r\n", base->ESPupdateNeeded ? "true" : "false");
-	base->sckOut();
 }
 void resetCause_com(SckBase* base, String parameters)
 {

@@ -8,7 +8,6 @@ enum ESPMessage {
 	
 	ESPMES_PLACEHOLDER,
 
-	ESPMES_UPDATE_INFO, 		// SAM->ESP, Send version and update info after receiving version info from ESP
 	ESPMES_SET_CONFIG,		// SAM->ESP, Sends new config
 	ESPMES_GET_NETINFO,		// SAM->ESP, ESP return network info
 	ESPMES_GET_TIME,		// SAM->ESP, ESP returns epoch time

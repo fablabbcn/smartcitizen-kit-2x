@@ -722,6 +722,11 @@ bool SckBase::sendConfig()
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
+	json["ver"] = SAMversion;
+	json["bd"] = SAMbuildDate;
+
+	if ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet && !st.wifiStat.error)) json["ac"] = (uint8_t)ESPMES_CONNECT;
+	else json["ac"] = (uint8_t)ESPMES_START_AP;
 
 	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
@@ -995,29 +1000,12 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);
 				ipAddress = json["ip"].as<String>();
-				macAddress = json["mac"].as<String>();
 				hostname = json["hn"].as<String>();
-				ESPversion = json["ver"].as<String>();
-				ESPbuildDate = json["bd"].as<String>();
-
-				if (macAddress.length() <= 0 ) {
-					sckOut("No ESP info received!! retrying...");
-					sendMessage(ESPMES_GET_NETINFO);
-					break;
-				}
 
 				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname.c_str(), ipAddress.c_str(), macAddress.c_str());
 				sckOut();
 				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
 				sckOut();
-
-				// Udate mac address if we haven't yet
-				if (!config.mac.valid && macAddress.length() > 0) {
-					sprintf(config.mac.address, "%s", macAddress.c_str());
-					config.mac.valid = true;
-					saveInfo();
-					saveConfig();
-				}
 
 				break;
 		}
@@ -1110,41 +1098,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				saveInfo();
 			}
 
-			if (st.onSetup) {
-
-				// Do we need to update ESP firmware?
-				VersionInt ESPversionInt = parseVersionStr(ESPversion);
-				VersionInt SAMversionInt = parseVersionStr(SAMversion);
-
-				if ((SAMversionInt.mayor != ESPversionInt.mayor) || (SAMversionInt.minor != ESPversionInt.minor)) ESPupdateNeeded = true;
-				else ESPupdateNeeded= false;
-
-				// Send SAM version and updateNeeded flag
-				jsonBuffer.clear();
-				JsonObject& jsonSend = jsonBuffer.createObject();
-				jsonSend["ver"] = SAMversion;
-				jsonSend["bd"] = SAMbuildDate;
-				jsonSend["un"] = (uint8_t)ESPupdateNeeded;
-
-				sprintf(netBuff, "%c", ESPMES_UPDATE_INFO);
-				jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
-
-				if (!sendMessage()) sckOut("ERROR sending update info to ESP!!!");
-
-			} else if (st.mode == MODE_NET) {
-
-				if (st.wifiSet) {
-					if (!sendMessage(ESPMES_CONNECT)) sckOut("ERROR asking ESP to connect!!!");
-				}
-
-			} else if (st.mode == MODE_SD) {
-
-				if (st.wifiSet && !st.wifiStat.error) {
-					if (!sendMessage(ESPMES_CONNECT)) sckOut("ERROR asking ESP to connect!!!");
-				}
-			}
-
-			if (pendingSyncConfig) sendConfig();
+			sendConfig();
 			break;
 		}
 		default: break;

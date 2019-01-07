@@ -68,6 +68,7 @@ void SckBase::setup()
 		rtc.setTime(0, 0, 0);
 		rtc.setDate(1, 1, 15);
 	}
+	espStarted = rtc.getEpoch();
 
 	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
 	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
@@ -1705,6 +1706,7 @@ void SckBase::publish()
 // **** Time
 bool SckBase::setTime(String epoch)
 {
+	uint32_t wasOn = rtc.getEpoch() - espStarted;
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		st.timeStat.setOk();
@@ -1713,6 +1715,7 @@ bool SckBase::setTime(String epoch)
 			getReading(SENSOR_CO_HEAT_TIME);
 			getReading(SENSOR_NO2_HEAT_TIME);
 		}
+		espStarted = rtc.getEpoch() - wasOn;
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
 		sckOut();

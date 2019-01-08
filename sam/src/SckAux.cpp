@@ -10,7 +10,7 @@ Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
 Atlas			atlasDO = Atlas(SENSOR_ATLAS_DO);
 Atlas 			atlasTEMP = Atlas(SENSOR_ATLAS_TEMPERATURE);
 Moisture 		moistureChirp;
-PMsensor		pmSensor = PMsensor(SLOT_AVG);
+PMsensor		pmSensor = PMsensor();
 PM_DallasTemp 		pmDallasTemp;
 Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
@@ -49,6 +49,12 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.start(); break;
 		case SENSOR_CHIRP_TEMPERATURE:
 		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.start(); break;
+		case SENSOR_EXT_A_PM_1:
+		case SENSOR_EXT_A_PM_25:
+		case SENSOR_EXT_A_PM_10:
+		case SENSOR_EXT_B_PM_1:
+		case SENSOR_EXT_B_PM_25:
+		case SENSOR_EXT_B_PM_10:
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10:			return pmSensor.start(); break;
@@ -100,6 +106,12 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.stop(); break;
 		case SENSOR_CHIRP_TEMPERATURE:
 		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.stop(); break;
+		case SENSOR_EXT_A_PM_1:
+		case SENSOR_EXT_A_PM_25:
+		case SENSOR_EXT_A_PM_10:
+		case SENSOR_EXT_B_PM_1:
+		case SENSOR_EXT_B_PM_25:
+		case SENSOR_EXT_B_PM_10:
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10:			return pmSensor.stop(); break;
@@ -147,9 +159,15 @@ float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
 		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) return atlasDO.newReadingB; break;
 		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.getReading(moistureChirp.CHIRP_MOISTURE); break;
 		case SENSOR_CHIRP_TEMPERATURE:		return moistureChirp.getReading(moistureChirp.CHIRP_TEMPERATURE); break;
-		case SENSOR_EXT_PM_1:			return pmSensor.getReading(1); break;
-		case SENSOR_EXT_PM_25:			return pmSensor.getReading(25); break;
-		case SENSOR_EXT_PM_10:			return pmSensor.getReading(10); break;
+		case SENSOR_EXT_A_PM_1:			return pmSensor.getReading(SLOT_A, 1); break;
+		case SENSOR_EXT_A_PM_25:		return pmSensor.getReading(SLOT_A, 25); break;
+		case SENSOR_EXT_A_PM_10:		return pmSensor.getReading(SLOT_A, 10); break;
+		case SENSOR_EXT_B_PM_1:			return pmSensor.getReading(SLOT_B, 1); break;
+		case SENSOR_EXT_B_PM_25:		return pmSensor.getReading(SLOT_B, 25); break;
+		case SENSOR_EXT_B_PM_10:		return pmSensor.getReading(SLOT_B, 10); break;
+		case SENSOR_EXT_PM_1:			return pmSensor.getReading(SLOT_AVG, 1); break;
+		case SENSOR_EXT_PM_25:			return pmSensor.getReading(SLOT_AVG, 25); break;
+		case SENSOR_EXT_PM_10:			return pmSensor.getReading(SLOT_AVG, 10); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.getReading(); break;
 		case SENSOR_DALLAS_TEMP: 		if (dallasTemp.getReading()) return dallasTemp.reading; break;
 		case SENSOR_SHT31_TEMP: 		if (sht31.update(true)) return sht31.temperature; break;
@@ -929,7 +947,7 @@ bool PMsensor::stop()
 	return true;
 }
 
-float PMsensor::getReading(uint8_t wichReading)
+float PMsensor::getReading(PMslot slot, uint8_t wichReading)
 {
 	// Ask for reading
 	auxWire.beginTransmission(deviceAddress);

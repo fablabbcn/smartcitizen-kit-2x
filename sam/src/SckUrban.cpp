@@ -7,6 +7,19 @@ void SERCOM5_Handler() {
 	SerialPM.IrqHandler();
 }
 
+bool SckUrban::present()
+{
+	SerialUSB.println("detecting urban");
+
+	if ( 	!I2Cdetect(&Wire, sck_bh1721fvc.address) ||
+		!I2Cdetect(&Wire, sck_sht31.address) ||
+		!I2Cdetect(&Wire, sck_mpl3115A2.address) ||
+		!I2Cdetect(&Wire, sck_max30105.address)) {
+		return false;
+	}
+	return true;
+}
+
 bool SckUrban::setup(SckBase *base)
 {
 	uint32_t currentTime = 0;
@@ -15,7 +28,6 @@ bool SckUrban::setup(SckBase *base)
 	// To protect MICS turn off heaters
 	sck_mics4514.startPWM(); 	// Workaround Noise not working without mics init
 	sck_mics4514.stop(currentTime);
-
 
 	for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 		SensorType thisType = SENSOR_COUNT;
@@ -171,7 +183,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 		case SENSOR_CO_RESISTANCE:
 		case SENSOR_NO2_RESISTANCE: {
 			if (command.startsWith("help")) {
-				base->sckOut("Available commands for this sensor:\r\nNothing yet!!"); 
+				base->sckOut("Available commands for this sensor:\r\nNothing yet!!");
 				return true;
 			} else base->sckOut("Unrecognized command!! please try again..."); return false;
 			break;
@@ -185,7 +197,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 				sprintf(base->outBuff, "Noise debug: %s", sck_noise.debugFlag  ? "true" : "false");
 				base->sckOut();
 				return true;
-			}		       
+			}
 		}
 		default: break;
         }
@@ -197,6 +209,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 // Light
 bool Sck_BH1721FVC::start()
 {
+	if (!I2Cdetect(&Wire, address)) return false;
 	return true;
 }
 bool Sck_BH1721FVC::stop()
@@ -430,6 +443,9 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 // Gases
 bool Sck_MICS4514::start(uint32_t startTime)
 {
+	if (!I2Cdetect(&Wire, POT_NO2_LOAD_ADDRESS)) return false;
+	if (!I2Cdetect(&Wire, ADC_DIR)) return false;
+
 	if (heaterRunning) return true;
 
 	startHeater();
@@ -525,7 +541,7 @@ float Sck_MICS4514::getCOheatResistance()
 	digitalWrite(pinPWM_HEATER_CO, LOW);
 
 	float heater_voltage = getCOheatVoltage();
-	float heater_resistance = heater_voltage / (heater_VCC - heater_voltage) * heater_seriesResistor; 
+	float heater_resistance = heater_voltage / (heater_VCC - heater_voltage) * heater_seriesResistor;
 
 	// Turn off heater
 	digitalWrite(pinPWM_HEATER_CO, HIGH);
@@ -576,7 +592,7 @@ float Sck_MICS4514::getNO2heatResistance()
 	digitalWrite(pinPWM_HEATER_NO2, LOW);
 
 	float heater_voltage = getNO2heatVoltage();
-	float heater_resistance = heater_voltage / (heater_VCC - heater_voltage) * heater_seriesResistor; 
+	float heater_resistance = heater_voltage / (heater_VCC - heater_voltage) * heater_seriesResistor;
 
 	// Turn off heater
 	digitalWrite(pinPWM_HEATER_NO2, HIGH);
@@ -810,7 +826,7 @@ bool Sck_Noise::getReading(SensorType wichSensor)
 	FFT(source);
 
 	switch(wichSensor) {
-	
+
 		case SENSOR_NOISE_DBA:
 			// Equalization and A weighting
 			for (uint16_t i=0; i<FFT_NUM; i++) readingFFT[i] *= (double)(equalWeight_A[i] / 65536.0);
@@ -897,11 +913,11 @@ double Sck_Noise::dynamicScale(int32_t *source, int16_t *scaledSource)
 	return divider;
 }
 void Sck_Noise::applyWindow(int16_t *src, const uint16_t *window, uint16_t len)
-{ 
+{
 	/* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
 		-------
 		This is an FFT library for ARM cortex M0+ CPUs
-		Adafruit invests time and resources providing this open source code, 
+		Adafruit invests time and resources providing this open source code,
 		please support Adafruit and open-source hardware by purchasing products from Adafruit!
 		Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
 		------
@@ -918,7 +934,7 @@ void Sck_Noise::arm_radix2_butterfly(int16_t * pSrc, int16_t fftLen, int16_t * p
 	/* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
 		-------
 		This is an FFT library for ARM cortex M0+ CPUs
-		Adafruit invests time and resources providing this open source code, 
+		Adafruit invests time and resources providing this open source code,
 		please support Adafruit and open-source hardware by purchasing products from Adafruit!
 		Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
 		------
@@ -1025,7 +1041,7 @@ void Sck_Noise::arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pB
 	/* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
 		-------
 		This is an FFT library for ARM cortex M0+ CPUs
-		Adafruit invests time and resources providing this open source code, 
+		Adafruit invests time and resources providing this open source code,
 		please support Adafruit and open-source hardware by purchasing products from Adafruit!
 		Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
 		------
@@ -1075,7 +1091,7 @@ void Sck_Noise::fft2db()
 // Barometric pressure and Altitude
 bool Sck_MPL3115A2::start()
 {
-
+	if (!I2Cdetect(&Wire, address)) return false;
 	if (Adafruit_mpl3115A2.begin()) return true;
 	return false;
 }
@@ -1123,7 +1139,7 @@ bool Sck_MPL3115A2::getTemperature(bool wait)
 // Dust Particles
 bool Sck_MAX30105::start()
 {
-
+	if (!I2Cdetect(&Wire, address)) return false;
 	if (sparkfun_max30105.begin()) return true;
 	return false;
 }
@@ -1167,7 +1183,7 @@ bool Sck_MAX30105::getIR(bool wait)
 	return true;
 }
 bool Sck_MAX30105::getTemperature(bool wait)
-{	
+{
 	// NOT WORKING!!! (sparkfun lib)
 
 	sparkfun_max30105.wakeUp();
@@ -1212,16 +1228,14 @@ bool Sck_PM::stop()
 }
 bool Sck_PM::update()
 {
-	// TODO test correlation between this readings and turning of the fan between readings 
-
 	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
 
 	// Empty serial buffer
 	while(SerialPM.available()) SerialPM.read();
-	
+
 	// Wait for new readings
 	uint32_t startPoint = millis();
-	while(SerialPM.available() < 25) if (millis() - startPoint > 1000) break; 
+	while(SerialPM.available() < 25) if (millis() - startPoint > 1000) break;
 
 	while(SerialPM.available()) {
 

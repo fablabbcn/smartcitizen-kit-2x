@@ -260,6 +260,7 @@ class SckUrban
 			byte resistorAddress;
 		};
 	public:
+		bool present();
 		bool setup(SckBase *base);
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);

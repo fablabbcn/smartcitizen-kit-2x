@@ -117,22 +117,49 @@ void SckBase::setup()
 	loadConfig();
 	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
 
+	bool saveNeeded = false;
+
 	// Urban board
 	analogReadResolution(12);
-	if (urban.setup(this)) {
+	if (urban.present()) {
 		sckOut("Urban board detected");
+
+		// Check which urban board sensors are enabled
+		uint8_t urbanSensorCount = 0;
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) urbanSensorCount++;
+		}
+
+		// If there is none enabled, we enable default sensors
+		if (urbanSensorCount == 0) {
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+				if (wichSensor->location == BOARD_URBAN && wichSensor->defaultEnabled && !wichSensor->enabled) {
+					enableSensor(wichSensor->type);
+					saveNeeded = true;
+				}
+			}
+		}
+
+		if (!sensors[SENSOR_PM_10].enabled) enableSensor(SENSOR_PM_1); 	// Allow hotplug of PM sensor
+		urban.setup(this);
 		urban.stop(SENSOR_PM_1); 	// Make sure PM is off until battery is ready for it
 		urbanPresent = true;
 	} else {
 		sckOut("No urban board detected!!");
+		// Disable all sensors
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
+			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled)  {
+				disableSensor(wichSensor->type);
+				saveNeeded = true;
+			}
 		}
+		urbanPresent = false;
 	}
 
 	// Detect and enable auxiliary boards
-	bool saveNeeded = false;
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
@@ -661,7 +688,6 @@ void SckBase::saveConfig(bool defaults)
 	}
 
 	// Update state
-	if (urbanPresent) urban.setup(this);
 	st.mode = config.mode;
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;

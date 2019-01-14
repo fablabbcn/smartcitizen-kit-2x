@@ -3,14 +3,10 @@
 
 ![Smart Citizen kit 2.0](https://c1.staticflickr.com/5/4795/39073624650_69ae90efae_b.jpg "Smart Citizen kit 2.0")
 
-You can see this repos current (master branch) state of the mobile UI setup here:
-
-https://fablabbcn.github.io/smartcitizen-kit-20/esp/data/
 
 ## Development
 
-The app consists of 3 things
-
+The repo consists of 3 things
 * The core firmware (C++)
 * Frontend, a mobile web UI for setting up the kit. `localhost:8000`
 * mock-api - for mocking the API of the kit `localhost:3000`
@@ -22,7 +18,7 @@ All branches and pull requests on Github are auto tested with Travis
 If you just want to upgrade your Smartcitizen kit please refer to the [Updating the Smartcitizen Kit 2.0](./upgrading.md) guide.
 But if you want to change something and build the firmware, use the [Developer guide: Building and flashing the Smartcitizen Kit firmware](./building.md) guide.
 
-### SCK Shell
+#### SCK Shell
 
 The SCK provides a comprehensive command shell over USB to manage all the kits functionalities for advanced users. 
 
@@ -40,14 +36,14 @@ SCK> config -wifi "myWifiName" "myPassword" -token myToken -mode network
 
 
 ### Frontend + api setup
+You can see the (master branch) mobile UI setup [here](https://fablabbcn.github.io/smartcitizen-kit-20/esp/build_data/)
 
 The technology used here is:
 * HTML, CSS, JavaScript
-* (Vue.js)
+* Vue.js
 * ** Make sure it is using the old javascript, so older phones work. **
 
 And the files are under *esp/build_data*
-
 
 #### Starting frontend development
 
@@ -79,7 +75,8 @@ Edit tests under `mock-api/casperjs/test`
 
 ####  TODO / ideas:
 
-* Should we move the frontend to /mock-api, and create a process which compiles it + concatinates and puts the 'dist' in esp/data?
+- [ ] Should we move the frontend to /mock-api, and create a process which compiles it + concatinates and puts the 'dist' in esp/data?
+- [ ] Instead of using a node.js mock-api, can we use the embedded C++ API of the kit somehow?
 
 ## Documentation
 

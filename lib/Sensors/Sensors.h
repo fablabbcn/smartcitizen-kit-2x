@@ -76,6 +76,12 @@ enum SensorType
 	SENSOR_EXT_PM_1,
 	SENSOR_EXT_PM_25,
 	SENSOR_EXT_PM_10,
+	SENSOR_EXT_A_PM_1,
+	SENSOR_EXT_A_PM_25,
+	SENSOR_EXT_A_PM_10,
+	SENSOR_EXT_B_PM_1,
+	SENSOR_EXT_B_PM_25,
+	SENSOR_EXT_B_PM_10,
 
 	SENSOR_PM_DALLAS_TEMP,
 	SENSOR_DALLAS_TEMP,
@@ -218,6 +224,14 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_1,			"EXT_PM_1",		"External PM 1.0",				89,		false,		false,			"ug/m3"},
 			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_25,			"EXT_PM_25",		"External PM 2.5",				87,		false,		false,			"ug/m3"},
 			OneSensor { BOARD_AUX,			SENSOR_EXT_PM_10,			"EXT_PM_10",		"External PM 10.0",				88,		false,		false,			"ug/m3"},
+
+			OneSensor { BOARD_AUX,			SENSOR_EXT_A_PM_1,			"EXT_PM_A_1",		"External PM_A 1.0",				0,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_A_PM_25,			"EXT_PM_A_25",		"External PM_A 2.5",				0,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_A_PM_10,			"EXT_PM_A_10",		"External PM_A 10.0",				0,		false,		false,			"ug/m3"},
+
+			OneSensor { BOARD_AUX,			SENSOR_EXT_B_PM_1,			"EXT_PM_B_1",		"External PM_B 1.0",				0,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_B_PM_25,			"EXT_PM_B_25",		"External PM_B 2.5",				0,		false,		false,			"ug/m3"},
+			OneSensor { BOARD_AUX,			SENSOR_EXT_B_PM_10,			"EXT_PM_B_10",		"External PM_B 10.0",				0,		false,		false,			"ug/m3"},
 
 			OneSensor { BOARD_AUX,			SENSOR_PM_DALLAS_TEMP,			"PM_DALLAS_TEMP",	"PM board Dallas Temperature",			96,		false,		false,			"C"},
 			OneSensor { BOARD_AUX,			SENSOR_DALLAS_TEMP,			"DALLAS_TEMP",		"Direct Dallas Temperature",			96,		false,		false,			"C"},

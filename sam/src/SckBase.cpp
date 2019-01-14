@@ -1447,23 +1447,6 @@ bool SckBase::enableSensor(SensorType wichSensor)
 	if (result) {
 		sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
 		sensors[wichSensor].enabled = true;
-
-		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_PM_1 ||
-			wichSensor == SENSOR_PM_25 ||
-			wichSensor == SENSOR_PM_10) {
-			sensors[SENSOR_PM_1].enabled = true;
-			sensors[SENSOR_PM_25].enabled = true;
-			sensors[SENSOR_PM_10].enabled = true;
-			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_PM_25].title, sensors[SENSOR_PM_10].title);
-		} else if ( 	wichSensor == SENSOR_EXT_PM_1 ||
-				wichSensor == SENSOR_EXT_PM_25 ||
-				wichSensor == SENSOR_EXT_PM_10) {
-			sensors[SENSOR_EXT_PM_1].enabled = true;
-			sensors[SENSOR_EXT_PM_25].enabled = true;
-			sensors[SENSOR_EXT_PM_10].enabled = true;
-			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_EXT_PM_25].title, sensors[SENSOR_EXT_PM_10].title);
-		}
 		sckOut();
 		return true;
 	}
@@ -1495,23 +1478,6 @@ bool SckBase::disableSensor(SensorType wichSensor)
 	if (result) {
 		sprintf(outBuff, "Disabling %s", sensors[wichSensor].title);
 		sensors[wichSensor].enabled = false;
-
-		// Exceptions to disable multiple interdepending sensors
-		if ( 	wichSensor == SENSOR_PM_1 ||
-			wichSensor == SENSOR_PM_25 ||
-			wichSensor == SENSOR_PM_10) {
-			sensors[SENSOR_PM_1].enabled = false;
-			sensors[SENSOR_PM_25].enabled = false;
-			sensors[SENSOR_PM_10].enabled = false;
-			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_PM_25].title, sensors[SENSOR_PM_10].title);
-		} else if ( 	wichSensor == SENSOR_EXT_PM_1 ||
-				wichSensor == SENSOR_EXT_PM_25 ||
-				wichSensor == SENSOR_EXT_PM_10) {
-			sensors[SENSOR_EXT_PM_1].enabled = false;
-			sensors[SENSOR_EXT_PM_25].enabled = false;
-			sensors[SENSOR_EXT_PM_10].enabled = false;
-			sprintf(outBuff, "%s, %s and %s", outBuff, sensors[SENSOR_EXT_PM_25].title, sensors[SENSOR_EXT_PM_10].title);
-		}
 		sckOut();
 		return true;
 	}

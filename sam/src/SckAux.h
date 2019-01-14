@@ -396,10 +396,6 @@ class PMsensor
 {
 	public:
 
-		PMsensor(PMslot wichSlot) {
-			slot = wichSlot;
-		}
-
 		const byte deviceAddress = 0x02;
 
 		uint16_t readingPM1;
@@ -408,12 +404,11 @@ class PMsensor
 
 		bool start();
 		bool stop();
-		float getReading(uint8_t wichReading);
+		float getReading(PMslot slot, uint8_t wichReading);
 	private:
 		bool started = false;
 		bool failed = false;
 
-		PMslot slot;
 		uint8_t values[6];		// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
 };
 

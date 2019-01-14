@@ -303,7 +303,7 @@ bool SckBatt::isPresent(SckCharger charger)
 	ADC->CTRLA.bit.ENABLE = 0x00;             	// Disable ADC
 	while (ADC->STATUS.bit.SYNCBUSY == 1);
 
-	if (valueRead < 400) {
+	if (valueRead < 400 and millis() > 7000) {  // Give time to the charger setup after booting boot
 		Wire.beginTransmission(address);
 		uint8_t error = Wire.endTransmission();
 

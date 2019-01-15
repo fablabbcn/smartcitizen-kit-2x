@@ -201,7 +201,7 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			strcpy(config.token.token, json["to"]);
 			SAMversion = json["ver"].as<String>();
 			SAMbuildDate = json["bd"].as<String>();
-			uint8_t action = json["mo"];
+			uint8_t action = json["ac"];
 			ESPMessage wichAction = static_cast<ESPMessage>(action);
 
 			// Do we need to update ESP firmware?

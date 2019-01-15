@@ -151,7 +151,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			thisType = static_cast<SensorType>(i);
 
-			if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].interval) + " sec)");
+			if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].everyNint * base->config.readInterval) + " sec)");
 		}
 
 	} else {
@@ -231,9 +231,13 @@ void sensorConfig_com(SckBase* base, String parameters)
 			uint16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
 			String strInterval = parameters.substring(intervalIndex);
 			uint32_t intervalInt = strInterval.toInt();
-			if (intervalInt > minimal_sensor_reading_interval && intervalInt < max_sensor_reading_interval)	base->sensors[sensorToChange].interval = strInterval.toInt();
-			base->sckOut(msg + String(base->sensors[sensorToChange].title));
-			saveNeeded = true;
+			uint8_t everyNint_pre = intervalInt / base->config.readInterval;
+			if (everyNint_pre > 0 && everyNint_pre < 255) {
+				base->sensors[sensorToChange].everyNint = everyNint_pre;
+				base->sckOut(msg + String(base->sensors[sensorToChange].title));
+			} else {
+				base->sckOut("Wrong new interval!!!");
+			}
 		}
 		if (saveNeeded) {
 			base->saveConfig();
@@ -515,7 +519,7 @@ void config_com(SckBase* base, String parameters)
 			if (readIntI >= 0) {
 				String readIntC = parameters.substring(readIntI+8);
 				uint32_t readIntV = readIntC.toInt();
-				if (readIntV > minimal_publish_interval && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
+				if (readIntV >= minimal_publish_interval && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
 			}
 			uint16_t credI = parameters.indexOf("-wifi");
 			if (credI >= 0) {

@@ -635,7 +635,7 @@ void SckBase::loadConfig()
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 		wichSensor->enabled = config.sensors[i].enabled;
-		wichSensor->interval = config.sensors[i].interval;
+		wichSensor->everyNint = config.sensors[i].everyNint;
 	}
 
 	// If battery capacity is not set, update it
@@ -668,14 +668,14 @@ void SckBase::saveConfig(bool defaults)
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
-			config.sensors[i].interval = default_sensor_reading_interval;
+			config.sensors[i].everyNint = 1;
 		}
 		pendingSyncConfig = true;
 	} else {
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 			config.sensors[i].enabled = wichSensor->enabled;
-			config.sensors[i].interval = wichSensor->interval;
+			config.sensors[i].everyNint = wichSensor->everyNint;
 		}
 	}
 	eepromConfig.write(config);
@@ -1397,7 +1397,7 @@ void SckBase::updateSensors()
 		sckOut(ISOtimeBuff, PRIO_LOW);
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			SensorType wichSensor = static_cast<SensorType>(i);
-			if (sensors[wichSensor].enabled && (rtc.getEpoch() - sensors[wichSensor].lastReadingTime >= sensors[wichSensor].interval)) {
+			if (sensors[wichSensor].enabled && (rtc.getEpoch() - sensors[wichSensor].lastReadingTime >= (sensors[wichSensor].everyNint * config.readInterval))) {
 				if (getReading(wichSensor, true)) {
 					sensors[wichSensor].lastReadingTime = lastSensorUpdate;
 					sprintf(outBuff, "%s: %s %s", sensors[wichSensor].title, sensors[wichSensor].reading.c_str(), sensors[wichSensor].unit);
@@ -1407,8 +1407,6 @@ void SckBase::updateSensors()
 		}
 		sckOut("-----------\r\n", PRIO_LOW);
 	}
-
-
 
 	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
 		timeToPublish = true;
@@ -1604,8 +1602,7 @@ bool SckBase::netPublish()
 
 		SensorType wichSensor = static_cast<SensorType>(sensorIndex);
 
-		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
-
+		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0 && (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2))) {
 			if (!timeSet) {
 				char thisTime[20];
 				epoch2iso(sensors[wichSensor].lastReadingTime, thisTime);
@@ -1702,14 +1699,19 @@ bool SckBase::sdPublish()
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			SensorType wichSensor = static_cast<SensorType>(i);
 			if (sensors[wichSensor].enabled) {
-				if (!timeSet) {
-					epoch2iso(sensors[wichSensor].lastReadingTime, ISOtimeBuff);
-					postFile.file.print(ISOtimeBuff);
-					timeSet = true;
+				if (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2) && !sensors[wichSensor].reading.startsWith("null")) {
+					if (!timeSet) {
+						epoch2iso(sensors[wichSensor].lastReadingTime, ISOtimeBuff);
+						postFile.file.print(ISOtimeBuff);
+						postFile.file.print(",");
+						timeSet = true;
+					}
+					postFile.file.print(sensors[wichSensor].reading);
+				} else {
+					postFile.file.print("NaN");
 				}
 				postFile.file.print(",");
-				if (!sensors[wichSensor].reading.startsWith("null")) postFile.file.print(sensors[wichSensor].reading);
-			}
+			} 
 		}
 		postFile.file.println("");
 		postFile.file.close();

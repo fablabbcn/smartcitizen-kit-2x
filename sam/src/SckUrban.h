@@ -229,11 +229,21 @@ class Sck_PM
 {
 	private:
 		bool detectionFailed = false;
-
+		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
-		uint8_t values[6] = {0,0,0,0,0,0};	// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
+		
+							// 12 bytes:
+							// 0:1->pm1, 2:3->pm25, 4:5->pm10, 
+							// 6:7->pm1, 8:9->pm2.5, 10:11->pm10   (under atmosferic enviroment)
+							// Number of particles with diameter beyond X um in 0.1 L of air.
+							// 12:13 -> 0.3 um
+							// 14:15 -> 0.5 um
+							// 16:17 -> 1.0 um
+							// 18:19 -> 2.5 um
+							// 20:21 -> 5.0 um
+							// 22:23 -> 10.0 um
 
-		static const uint8_t buffLong = 23;
+		static const uint8_t buffLong = 27;
 		unsigned char buff[buffLong];
 
 	public:
@@ -241,6 +251,15 @@ class Sck_PM
 		uint16_t pm1;
 		uint16_t pm25;
 		uint16_t pm10;
+		uint16_t pm1_uae;
+		uint16_t pm25_uae;
+		uint16_t pm10_uae;
+		uint16_t pn03;
+		uint16_t pn05;
+		uint16_t pn1;
+		uint16_t pn25;
+		uint16_t pn5;
+		uint16_t pn10;
 
 		bool started = false;
 

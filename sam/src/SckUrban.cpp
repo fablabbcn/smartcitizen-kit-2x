@@ -85,7 +85,16 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_PARTICLE_TEMPERATURE: 		if (sck_max30105.start()) return true; break;
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
-		case SENSOR_PM_10: 				if (sck_pm.start()) return true; break;
+		case SENSOR_PM_10:
+		case SENSOR_PM_1UAE:
+		case SENSOR_PM_25UAE:
+		case SENSOR_PM_10UAE:
+		case SENSOR_PN_03:
+		case SENSOR_PN_05:
+		case SENSOR_PN_1:
+		case SENSOR_PN_25:
+		case SENSOR_PN_5:
+		case SENSOR_PN_10: 				if (sck_pm.start()) return true; break;
 		default: break;
 	}
 
@@ -119,8 +128,16 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_PARTICLE_TEMPERATURE: 		if (sck_max30105.stop()) return true; break;
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
-		case SENSOR_PM_10: 				if (sck_pm.stop()) return true; break;
-
+		case SENSOR_PM_10:
+		case SENSOR_PM_1UAE:
+		case SENSOR_PM_25UAE:
+		case SENSOR_PM_10UAE:
+		case SENSOR_PN_03:
+		case SENSOR_PN_05:
+		case SENSOR_PN_1:
+		case SENSOR_PN_25:
+		case SENSOR_PN_5:
+		case SENSOR_PN_10: 				if (sck_pm.stop()) return true; break;
 		default: break;
 	}
 
@@ -171,6 +188,15 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 		case SENSOR_PM_1: 			if (sck_pm.update()) return String(sck_pm.pm1); break;
 		case SENSOR_PM_25: 			if (sck_pm.update()) return String(sck_pm.pm25); break;
 		case SENSOR_PM_10: 			if (sck_pm.update()) return String(sck_pm.pm10); break;
+		case SENSOR_PM_1UAE: 			if (sck_pm.update()) return String(sck_pm.pm1_uae); break;
+		case SENSOR_PM_25UAE: 			if (sck_pm.update()) return String(sck_pm.pm25_uae); break;
+		case SENSOR_PM_10UAE: 			if (sck_pm.update()) return String(sck_pm.pm10_uae); break;
+		case SENSOR_PN_03: 			if (sck_pm.update()) return String(sck_pm.pn03); break;
+		case SENSOR_PN_05: 			if (sck_pm.update()) return String(sck_pm.pn05); break;
+		case SENSOR_PN_1: 			if (sck_pm.update()) return String(sck_pm.pn1); break;
+		case SENSOR_PN_25: 			if (sck_pm.update()) return String(sck_pm.pn25); break;
+		case SENSOR_PN_5: 			if (sck_pm.update()) return String(sck_pm.pn5); break;
+		case SENSOR_PN_10: 			if (sck_pm.update()) return String(sck_pm.pn10); break;
 		default: break;
 	}
 
@@ -1229,13 +1255,20 @@ bool Sck_PM::stop()
 bool Sck_PM::update()
 {
 	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
+	if (millis() - lastFail < 1000) return false;
 
 	// Empty serial buffer
 	while(SerialPM.available()) SerialPM.read();
 
 	// Wait for new readings
 	uint32_t startPoint = millis();
-	while(SerialPM.available() < 25) if (millis() - startPoint > 1000) break;
+	while(SerialPM.available() < 25) {
+		if (millis() - startPoint > 1000) {
+			// Timeout
+			lastFail = millis();
+			return false;
+		}
+	}
 
 	while(SerialPM.available()) {
 
@@ -1246,18 +1279,21 @@ bool Sck_PM::update()
 			SerialPM.readBytes(buff, buffLong);
 			if (buff[0] == 0x4d) {
 
-				values[0] = buff[3];
-				values[1] = buff[4];
-				values[2] = buff[5];
-				values[3] = buff[6];
-				values[4] = buff[7];
-				values[5] = buff[8];
-
 				pm1 = (buff[3]<<8) + buff[4];
 				pm25 = (buff[5]<<8) + buff[6];
 				pm10 = (buff[7]<<8) + buff[8];
+				pm1_uae = (buff[9]<<8) + buff[10];
+				pm25_uae = (buff[11]<<8) + buff[12];
+				pm10_uae = (buff[13]<<8) + buff[14];
+				pn03 = (buff[15]<<8) + buff[16];
+				pn05 = (buff[17]<<8) + buff[18];
+				pn1 = (buff[19]<<8) + buff[20];
+				pn25 = (buff[21]<<8) + buff[22];
+				pn5 = (buff[23]<<8) + buff[24];
+				pn10 = (buff[25]<<8) + buff[26];
 
 				lastReading = millis();
+				lastFail = 0;
 
 				return true;
 			}

@@ -173,24 +173,60 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_PM_1].enabled = true; 
 					base->sensors[SENSOR_PM_25].enabled = true; 
 					base->sensors[SENSOR_PM_10].enabled = true;
+					base->sensors[SENSOR_PM_1UAE].enabled = true;
+					base->sensors[SENSOR_PM_25UAE].enabled = true;
+					base->sensors[SENSOR_PM_10UAE].enabled = true;
+					base->sensors[SENSOR_PN_03].enabled = true;
+					base->sensors[SENSOR_PN_05].enabled = true;
+					base->sensors[SENSOR_PN_1].enabled = true;
+					base->sensors[SENSOR_PN_25].enabled = true;
+					base->sensors[SENSOR_PN_5].enabled = true;
+					base->sensors[SENSOR_PN_10].enabled = true;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_PM_1 || sensorToChange == SENSOR_EXT_PM_25 || sensorToChange == SENSOR_EXT_PM_10) {
 					base->sensors[SENSOR_EXT_PM_1].enabled = true; 
 					base->sensors[SENSOR_EXT_PM_25].enabled = true; 
 					base->sensors[SENSOR_EXT_PM_10].enabled = true;
+					base->sensors[SENSOR_EXT_PM_1UAE].enabled = true; 
+					base->sensors[SENSOR_EXT_PM_25UAE].enabled = true; 
+					base->sensors[SENSOR_EXT_PM_10UAE].enabled = true;
+					base->sensors[SENSOR_EXT_PN_03].enabled = true;
+					base->sensors[SENSOR_EXT_PN_05].enabled = true;
+					base->sensors[SENSOR_EXT_PN_1].enabled = true;
+					base->sensors[SENSOR_EXT_PN_25].enabled = true;
+					base->sensors[SENSOR_EXT_PN_5].enabled = true;
+					base->sensors[SENSOR_EXT_PN_10].enabled = true;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_A_PM_1 || sensorToChange == SENSOR_EXT_A_PM_25 || sensorToChange == SENSOR_EXT_A_PM_10) {
 					base->sensors[SENSOR_EXT_A_PM_1].enabled = true; 
 					base->sensors[SENSOR_EXT_A_PM_25].enabled = true; 
 					base->sensors[SENSOR_EXT_A_PM_10].enabled = true;
+					base->sensors[SENSOR_EXT_A_PM_1UAE].enabled = true; 
+					base->sensors[SENSOR_EXT_A_PM_25UAE].enabled = true; 
+					base->sensors[SENSOR_EXT_A_PM_10UAE].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_03].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_05].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_1].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_25].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_5].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_10].enabled = true;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_B_PM_1 || sensorToChange == SENSOR_EXT_B_PM_25 || sensorToChange == SENSOR_EXT_B_PM_10) {
 					base->sensors[SENSOR_EXT_B_PM_1].enabled = true; 
 					base->sensors[SENSOR_EXT_B_PM_25].enabled = true; 
 					base->sensors[SENSOR_EXT_B_PM_10].enabled = true;
+					base->sensors[SENSOR_EXT_B_PM_1UAE].enabled = true; 
+					base->sensors[SENSOR_EXT_B_PM_25UAE].enabled = true; 
+					base->sensors[SENSOR_EXT_B_PM_10UAE].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_03].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_05].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_1].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_25].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_5].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_10].enabled = true;
 					extraPrint = true;
 				}
-				if (extraPrint) base->sckOut("Also disabled the other two PM sizes");
+				if (extraPrint) base->sckOut("Also disabled the rest of PM metrics");
 				saveNeeded = true;
 			}
 		} else if (parameters.indexOf("-disable") >=0) {
@@ -204,24 +240,60 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_PM_1].enabled = false; 
 					base->sensors[SENSOR_PM_25].enabled = false; 
 					base->sensors[SENSOR_PM_10].enabled = false;
+					base->sensors[SENSOR_PM_1UAE].enabled = false;
+					base->sensors[SENSOR_PM_25UAE].enabled = false;
+					base->sensors[SENSOR_PM_10UAE].enabled = false;
+					base->sensors[SENSOR_PN_03].enabled = false;
+					base->sensors[SENSOR_PN_05].enabled = false;
+					base->sensors[SENSOR_PN_1].enabled = false;
+					base->sensors[SENSOR_PN_25].enabled = false;
+					base->sensors[SENSOR_PN_5].enabled = false;
+					base->sensors[SENSOR_PN_10].enabled = false;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_PM_1 || sensorToChange == SENSOR_EXT_PM_25 || sensorToChange == SENSOR_EXT_PM_10) {
 					base->sensors[SENSOR_EXT_PM_1].enabled = false; 
 					base->sensors[SENSOR_EXT_PM_25].enabled = false; 
 					base->sensors[SENSOR_EXT_PM_10].enabled = false;
+					base->sensors[SENSOR_EXT_PM_1UAE].enabled = false; 
+					base->sensors[SENSOR_EXT_PM_25UAE].enabled = false; 
+					base->sensors[SENSOR_EXT_PM_10UAE].enabled = false;
+					base->sensors[SENSOR_EXT_PN_03].enabled = false;
+					base->sensors[SENSOR_EXT_PN_05].enabled = false;
+					base->sensors[SENSOR_EXT_PN_1].enabled = false;
+					base->sensors[SENSOR_EXT_PN_25].enabled = false;
+					base->sensors[SENSOR_EXT_PN_5].enabled = false;
+					base->sensors[SENSOR_EXT_PN_10].enabled = false;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_A_PM_1 || sensorToChange == SENSOR_EXT_A_PM_25 || sensorToChange == SENSOR_EXT_A_PM_10) {
 					base->sensors[SENSOR_EXT_A_PM_1].enabled = false; 
 					base->sensors[SENSOR_EXT_A_PM_25].enabled = false; 
 					base->sensors[SENSOR_EXT_A_PM_10].enabled = false;
+					base->sensors[SENSOR_EXT_A_PM_1UAE].enabled = false; 
+					base->sensors[SENSOR_EXT_A_PM_25UAE].enabled = false; 
+					base->sensors[SENSOR_EXT_A_PM_10UAE].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_03].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_05].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_1].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_25].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_5].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_10].enabled = false;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_B_PM_1 || sensorToChange == SENSOR_EXT_B_PM_25 || sensorToChange == SENSOR_EXT_B_PM_10) {
 					base->sensors[SENSOR_EXT_B_PM_1].enabled = false; 
 					base->sensors[SENSOR_EXT_B_PM_25].enabled = false; 
 					base->sensors[SENSOR_EXT_B_PM_10].enabled = false;
+					base->sensors[SENSOR_EXT_B_PM_1UAE].enabled = false; 
+					base->sensors[SENSOR_EXT_B_PM_25UAE].enabled = false; 
+					base->sensors[SENSOR_EXT_B_PM_10UAE].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_03].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_05].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_1].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_25].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_5].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_10].enabled = false;
 					extraPrint = true;
 				}
-				if (extraPrint) base->sckOut("Also disabled the other two PM sizes");
+				if (extraPrint) base->sckOut("Also disabled the the rest of PM metrics");
 				saveNeeded = true;
 			}
 		} else if (parameters.indexOf("-interval") >=0) {

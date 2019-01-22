@@ -1703,14 +1703,14 @@ bool SckBase::sdPublish()
 					if (!timeSet) {
 						epoch2iso(sensors[wichSensor].lastReadingTime, ISOtimeBuff);
 						postFile.file.print(ISOtimeBuff);
-						postFile.file.print(",");
 						timeSet = true;
 					}
+					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].reading);
 				} else {
+					postFile.file.print(",");
 					postFile.file.print("NaN");
 				}
-				postFile.file.print(",");
 			} 
 		}
 		postFile.file.println("");

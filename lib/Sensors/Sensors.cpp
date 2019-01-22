@@ -69,3 +69,20 @@ String AllSensors::removeSensorName(String strIn)
 
 	return strIn;
 }
+SensorType AllSensors::sensorsPriorized(uint8_t index)
+{
+	if (!sorted) {
+		uint8_t sensorCount = 0;
+		for (uint8_t i=0; i<251; i++) {
+			for (uint8_t ii=0; ii<SENSOR_COUNT; ii++) {
+				SensorType thisSensorType = static_cast<SensorType>(ii);
+				if (list[thisSensorType].priority == i) {
+					prioSortedList[sensorCount] = thisSensorType;
+					sensorCount++;
+				}
+			}
+		}
+		sorted = true;
+	}
+	return prioSortedList[index];
+}

@@ -127,14 +127,14 @@ void SckBase::setup()
 		// Check which urban board sensors are enabled
 		uint8_t urbanSensorCount = 0;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) urbanSensorCount++;
 		}
 
 		// If there is none enabled, we enable default sensors
 		if (urbanSensorCount == 0) {
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+				OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 				if (wichSensor->location == BOARD_URBAN && wichSensor->defaultEnabled && !wichSensor->enabled) {
 					enableSensor(wichSensor->type);
 					saveNeeded = true;
@@ -150,7 +150,7 @@ void SckBase::setup()
 		sckOut("No urban board detected!!");
 		// Disable all sensors
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled)  {
 				disableSensor(wichSensor->type);
 				saveNeeded = true;
@@ -162,7 +162,7 @@ void SckBase::setup()
 	// Detect and enable auxiliary boards
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
-		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+		OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 
 		if (wichSensor->location == BOARD_AUX) {
 			if (enableSensor(wichSensor->type)) {
@@ -1396,7 +1396,7 @@ void SckBase::updateSensors()
 		ISOtime();
 		sckOut(ISOtimeBuff, PRIO_LOW);
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
+			SensorType wichSensor = sensors.sensorsPriorized(i);
 			if (sensors[wichSensor].enabled && (rtc.getEpoch() - sensors[wichSensor].lastReadingTime >= (sensors[wichSensor].everyNint * config.readInterval))) {
 				if (getReading(wichSensor, true)) {
 					sensors[wichSensor].lastReadingTime = lastSensorUpdate;
@@ -1600,7 +1600,7 @@ bool SckBase::netPublish()
 
 	for (uint16_t sensorIndex=0; sensorIndex<SENSOR_COUNT; sensorIndex++) {
 
-		SensorType wichSensor = static_cast<SensorType>(sensorIndex);
+		SensorType wichSensor = sensors.sensorsPriorized(sensorIndex);
 
 		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0 && (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2))) {
 			if (!timeSet) {
@@ -1656,7 +1656,7 @@ bool SckBase::sdPublish()
 		if (writeHeader) {
 			postFile.file.print("TIME");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				SensorType wichSensor = static_cast<SensorType>(i);
+				SensorType wichSensor = sensors.sensorsPriorized(i);
 				if (sensors[wichSensor].enabled) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].shortTitle);
@@ -1665,7 +1665,7 @@ bool SckBase::sdPublish()
 			postFile.file.println("");
 			postFile.file.print("ISO 8601");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				SensorType wichSensor = static_cast<SensorType>(i);
+				SensorType wichSensor = sensors.sensorsPriorized(i);
 				if (sensors[wichSensor].enabled) {
 					postFile.file.print(",");
 					if (String(sensors[wichSensor].unit).length() > 0) {
@@ -1676,7 +1676,7 @@ bool SckBase::sdPublish()
 			postFile.file.println("");
 			postFile.file.print("Time");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				SensorType wichSensor = static_cast<SensorType>(i);
+				SensorType wichSensor = sensors.sensorsPriorized(i);
 				if (sensors[wichSensor].enabled) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].title);
@@ -1684,7 +1684,7 @@ bool SckBase::sdPublish()
 			}
 			postFile.file.println("");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				SensorType wichSensor = static_cast<SensorType>(i);
+				SensorType wichSensor = sensors.sensorsPriorized(i);
 				if (sensors[wichSensor].enabled) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].id);
@@ -1697,7 +1697,7 @@ bool SckBase::sdPublish()
 		// Write readings
 		bool timeSet = false;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
+			SensorType wichSensor = sensors.sensorsPriorized(i);
 			if (sensors[wichSensor].enabled) {
 				if (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2) && !sensors[wichSensor].reading.startsWith("null")) {
 					if (!timeSet) {

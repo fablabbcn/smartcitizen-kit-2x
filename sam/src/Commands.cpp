@@ -174,9 +174,6 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_PM_1].enabled = true; 
 					base->sensors[SENSOR_PM_25].enabled = true; 
 					base->sensors[SENSOR_PM_10].enabled = true;
-					base->sensors[SENSOR_PM_1UAE].enabled = true;
-					base->sensors[SENSOR_PM_25UAE].enabled = true;
-					base->sensors[SENSOR_PM_10UAE].enabled = true;
 					base->sensors[SENSOR_PN_03].enabled = true;
 					base->sensors[SENSOR_PN_05].enabled = true;
 					base->sensors[SENSOR_PN_1].enabled = true;
@@ -188,9 +185,6 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_PM_1].enabled = true; 
 					base->sensors[SENSOR_EXT_PM_25].enabled = true; 
 					base->sensors[SENSOR_EXT_PM_10].enabled = true;
-					base->sensors[SENSOR_EXT_PM_1UAE].enabled = true; 
-					base->sensors[SENSOR_EXT_PM_25UAE].enabled = true; 
-					base->sensors[SENSOR_EXT_PM_10UAE].enabled = true;
 					base->sensors[SENSOR_EXT_PN_03].enabled = true;
 					base->sensors[SENSOR_EXT_PN_05].enabled = true;
 					base->sensors[SENSOR_EXT_PN_1].enabled = true;
@@ -202,9 +196,6 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_A_PM_1].enabled = true; 
 					base->sensors[SENSOR_EXT_A_PM_25].enabled = true; 
 					base->sensors[SENSOR_EXT_A_PM_10].enabled = true;
-					base->sensors[SENSOR_EXT_A_PM_1UAE].enabled = true; 
-					base->sensors[SENSOR_EXT_A_PM_25UAE].enabled = true; 
-					base->sensors[SENSOR_EXT_A_PM_10UAE].enabled = true;
 					base->sensors[SENSOR_EXT_A_PN_03].enabled = true;
 					base->sensors[SENSOR_EXT_A_PN_05].enabled = true;
 					base->sensors[SENSOR_EXT_A_PN_1].enabled = true;
@@ -216,9 +207,6 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_B_PM_1].enabled = true; 
 					base->sensors[SENSOR_EXT_B_PM_25].enabled = true; 
 					base->sensors[SENSOR_EXT_B_PM_10].enabled = true;
-					base->sensors[SENSOR_EXT_B_PM_1UAE].enabled = true; 
-					base->sensors[SENSOR_EXT_B_PM_25UAE].enabled = true; 
-					base->sensors[SENSOR_EXT_B_PM_10UAE].enabled = true;
 					base->sensors[SENSOR_EXT_B_PN_03].enabled = true;
 					base->sensors[SENSOR_EXT_B_PN_05].enabled = true;
 					base->sensors[SENSOR_EXT_B_PN_1].enabled = true;
@@ -241,9 +229,6 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_PM_1].enabled = false; 
 					base->sensors[SENSOR_PM_25].enabled = false; 
 					base->sensors[SENSOR_PM_10].enabled = false;
-					base->sensors[SENSOR_PM_1UAE].enabled = false;
-					base->sensors[SENSOR_PM_25UAE].enabled = false;
-					base->sensors[SENSOR_PM_10UAE].enabled = false;
 					base->sensors[SENSOR_PN_03].enabled = false;
 					base->sensors[SENSOR_PN_05].enabled = false;
 					base->sensors[SENSOR_PN_1].enabled = false;
@@ -255,9 +240,6 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_PM_1].enabled = false; 
 					base->sensors[SENSOR_EXT_PM_25].enabled = false; 
 					base->sensors[SENSOR_EXT_PM_10].enabled = false;
-					base->sensors[SENSOR_EXT_PM_1UAE].enabled = false; 
-					base->sensors[SENSOR_EXT_PM_25UAE].enabled = false; 
-					base->sensors[SENSOR_EXT_PM_10UAE].enabled = false;
 					base->sensors[SENSOR_EXT_PN_03].enabled = false;
 					base->sensors[SENSOR_EXT_PN_05].enabled = false;
 					base->sensors[SENSOR_EXT_PN_1].enabled = false;
@@ -269,9 +251,6 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_A_PM_1].enabled = false; 
 					base->sensors[SENSOR_EXT_A_PM_25].enabled = false; 
 					base->sensors[SENSOR_EXT_A_PM_10].enabled = false;
-					base->sensors[SENSOR_EXT_A_PM_1UAE].enabled = false; 
-					base->sensors[SENSOR_EXT_A_PM_25UAE].enabled = false; 
-					base->sensors[SENSOR_EXT_A_PM_10UAE].enabled = false;
 					base->sensors[SENSOR_EXT_A_PN_03].enabled = false;
 					base->sensors[SENSOR_EXT_A_PN_05].enabled = false;
 					base->sensors[SENSOR_EXT_A_PN_1].enabled = false;
@@ -283,9 +262,6 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_B_PM_1].enabled = false; 
 					base->sensors[SENSOR_EXT_B_PM_25].enabled = false; 
 					base->sensors[SENSOR_EXT_B_PM_10].enabled = false;
-					base->sensors[SENSOR_EXT_B_PM_1UAE].enabled = false; 
-					base->sensors[SENSOR_EXT_B_PM_25UAE].enabled = false; 
-					base->sensors[SENSOR_EXT_B_PM_10UAE].enabled = false;
 					base->sensors[SENSOR_EXT_B_PN_03].enabled = false;
 					base->sensors[SENSOR_EXT_B_PN_05].enabled = false;
 					base->sensors[SENSOR_EXT_B_PN_1].enabled = false;

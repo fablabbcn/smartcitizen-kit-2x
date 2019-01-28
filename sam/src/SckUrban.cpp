@@ -86,9 +86,6 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
 		case SENSOR_PM_10:
-		case SENSOR_PM_1UAE:
-		case SENSOR_PM_25UAE:
-		case SENSOR_PM_10UAE:
 		case SENSOR_PN_03:
 		case SENSOR_PN_05:
 		case SENSOR_PN_1:
@@ -129,9 +126,6 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
 		case SENSOR_PM_10:
-		case SENSOR_PM_1UAE:
-		case SENSOR_PM_25UAE:
-		case SENSOR_PM_10UAE:
 		case SENSOR_PN_03:
 		case SENSOR_PN_05:
 		case SENSOR_PN_1:
@@ -188,9 +182,6 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 		case SENSOR_PM_1: 			if (sck_pm.update()) return String(sck_pm.pm1); break;
 		case SENSOR_PM_25: 			if (sck_pm.update()) return String(sck_pm.pm25); break;
 		case SENSOR_PM_10: 			if (sck_pm.update()) return String(sck_pm.pm10); break;
-		case SENSOR_PM_1UAE: 			if (sck_pm.update()) return String(sck_pm.pm1_uae); break;
-		case SENSOR_PM_25UAE: 			if (sck_pm.update()) return String(sck_pm.pm25_uae); break;
-		case SENSOR_PM_10UAE: 			if (sck_pm.update()) return String(sck_pm.pm10_uae); break;
 		case SENSOR_PN_03: 			if (sck_pm.update()) return String(sck_pm.pn03); break;
 		case SENSOR_PN_05: 			if (sck_pm.update()) return String(sck_pm.pn05); break;
 		case SENSOR_PN_1: 			if (sck_pm.update()) return String(sck_pm.pn1); break;
@@ -1282,9 +1273,6 @@ bool Sck_PM::update()
 				pm1 = (buff[3]<<8) + buff[4];
 				pm25 = (buff[5]<<8) + buff[6];
 				pm10 = (buff[7]<<8) + buff[8];
-				pm1_uae = (buff[9]<<8) + buff[10];
-				pm25_uae = (buff[11]<<8) + buff[12];
-				pm10_uae = (buff[13]<<8) + buff[14];
 				pn03 = (buff[15]<<8) + buff[16];
 				pn05 = (buff[17]<<8) + buff[18];
 				pn1 = (buff[19]<<8) + buff[20];

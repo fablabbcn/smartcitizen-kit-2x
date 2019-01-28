@@ -52,9 +52,6 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_EXT_A_PM_1:
 		case SENSOR_EXT_A_PM_25:
 		case SENSOR_EXT_A_PM_10:
-		case SENSOR_EXT_A_PM_1UAE:
-		case SENSOR_EXT_A_PM_25UAE:
-		case SENSOR_EXT_A_PM_10UAE:
 		case SENSOR_EXT_A_PN_03:
 		case SENSOR_EXT_A_PN_05:
 		case SENSOR_EXT_A_PN_1:
@@ -64,9 +61,6 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_EXT_B_PM_1:
 		case SENSOR_EXT_B_PM_25:
 		case SENSOR_EXT_B_PM_10:
-		case SENSOR_EXT_B_PM_1UAE:
-		case SENSOR_EXT_B_PM_25UAE:
-		case SENSOR_EXT_B_PM_10UAE:
 		case SENSOR_EXT_B_PN_03:
 		case SENSOR_EXT_B_PN_05:
 		case SENSOR_EXT_B_PN_1:
@@ -76,9 +70,6 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10:
-		case SENSOR_EXT_PM_1UAE:
-		case SENSOR_EXT_PM_25UAE:
-		case SENSOR_EXT_PM_10UAE:
 		case SENSOR_EXT_PN_03:
 		case SENSOR_EXT_PN_05:
 		case SENSOR_EXT_PN_1:
@@ -136,9 +127,6 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_EXT_A_PM_1:
 		case SENSOR_EXT_A_PM_25:
 		case SENSOR_EXT_A_PM_10:
-		case SENSOR_EXT_A_PM_1UAE:
-		case SENSOR_EXT_A_PM_25UAE:
-		case SENSOR_EXT_A_PM_10UAE:
 		case SENSOR_EXT_A_PN_03:
 		case SENSOR_EXT_A_PN_05:
 		case SENSOR_EXT_A_PN_1:
@@ -148,9 +136,6 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_EXT_B_PM_1:
 		case SENSOR_EXT_B_PM_25:
 		case SENSOR_EXT_B_PM_10:
-		case SENSOR_EXT_B_PM_1UAE:
-		case SENSOR_EXT_B_PM_25UAE:
-		case SENSOR_EXT_B_PM_10UAE:
 		case SENSOR_EXT_B_PN_03:
 		case SENSOR_EXT_B_PN_05:
 		case SENSOR_EXT_B_PN_1:
@@ -160,9 +145,6 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10:
-		case SENSOR_EXT_PM_1UAE:
-		case SENSOR_EXT_PM_25UAE:
-		case SENSOR_EXT_PM_10UAE:
 		case SENSOR_EXT_PN_03:
 		case SENSOR_EXT_PN_05:
 		case SENSOR_EXT_PN_1:
@@ -215,9 +197,6 @@ float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
 		case SENSOR_EXT_A_PM_1:
 		case SENSOR_EXT_A_PM_25:
 		case SENSOR_EXT_A_PM_10:
-		case SENSOR_EXT_A_PM_1UAE:
-		case SENSOR_EXT_A_PM_25UAE:
-		case SENSOR_EXT_A_PM_10UAE:
 		case SENSOR_EXT_A_PN_03:
 		case SENSOR_EXT_A_PN_05:
 		case SENSOR_EXT_A_PN_1:
@@ -227,9 +206,6 @@ float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
 		case SENSOR_EXT_B_PM_1:
 		case SENSOR_EXT_B_PM_25:
 		case SENSOR_EXT_B_PM_10:
-		case SENSOR_EXT_B_PM_1UAE:
-		case SENSOR_EXT_B_PM_25UAE:
-		case SENSOR_EXT_B_PM_10UAE:
 		case SENSOR_EXT_B_PN_03:
 		case SENSOR_EXT_B_PN_05:
 		case SENSOR_EXT_B_PN_1:
@@ -239,9 +215,6 @@ float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10:
-		case SENSOR_EXT_PM_1UAE:
-		case SENSOR_EXT_PM_25UAE:
-		case SENSOR_EXT_PM_10UAE:
 		case SENSOR_EXT_PN_03:
 		case SENSOR_EXT_PN_05:
 		case SENSOR_EXT_PN_1:
@@ -1056,15 +1029,12 @@ float PMsensor::getReading(PMslot slot, SensorType wichSensor)
 		pm1 = (values[0]<<8) + values[1];
 		pm25 = (values[2]<<8) + values[3];
 		pm10 = (values[4]<<8) + values[5];
-		pm1_uae = (values[6]<<8) + values[7];
-		pm25_uae = (values[8]<<8) + values[9];
-		pm10_uae = (values[10]<<8) + values[11];
-		pn03 = (values[12]<<8) + values[13];
-		pn05 = (values[14]<<8) + values[15];
-		pn1 = (values[16]<<8) + values[17];
-		pn25 = (values[18]<<8) + values[19];
-		pn5 = (values[20]<<8) + values[21];
-		pn10 = (values[22]<<8) + values[23];
+		pn03 = (values[6]<<8) + values[7];
+		pn05 = (values[8]<<8) + values[9];
+		pn1 = (values[10]<<8) + values[11];
+		pn25 = (values[12]<<8) + values[13];
+		pn5 = (values[14]<<8) + values[15];
+		pn10 = (values[16]<<8) + values[17];
 
 		lastReading = millis();
 		lastSlot = slot;
@@ -1081,15 +1051,6 @@ float PMsensor::getReading(PMslot slot, SensorType wichSensor)
 		case SENSOR_EXT_PM_10:
 		case SENSOR_EXT_A_PM_10:
 		case SENSOR_EXT_B_PM_10: return pm10; break;
-		case SENSOR_EXT_PM_1UAE:
-		case SENSOR_EXT_A_PM_1UAE:
-		case SENSOR_EXT_B_PM_1UAE: return pm1_uae; break;
-		case SENSOR_EXT_PM_25UAE:
-		case SENSOR_EXT_A_PM_25UAE:
-		case SENSOR_EXT_B_PM_25UAE: return pm25_uae; break;
-		case SENSOR_EXT_PM_10UAE:
-		case SENSOR_EXT_A_PM_10UAE:
-		case SENSOR_EXT_B_PM_10UAE: return pm10_uae; break;
 		case SENSOR_EXT_PN_03:
 		case SENSOR_EXT_A_PN_03:
 		case SENSOR_EXT_B_PN_03: return pn03; break;

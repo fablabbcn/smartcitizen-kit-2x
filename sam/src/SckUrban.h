@@ -251,9 +251,6 @@ class Sck_PM
 		uint16_t pm1;
 		uint16_t pm25;
 		uint16_t pm10;
-		uint16_t pm1_uae;
-		uint16_t pm25_uae;
-		uint16_t pm10_uae;
 		uint16_t pn03;
 		uint16_t pn05;
 		uint16_t pn1;

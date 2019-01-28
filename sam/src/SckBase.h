@@ -137,7 +137,7 @@ class SckBase
 		// Urban board
 		bool urbanPresent = false;
 		friend class urban;
-		SckUrban urban;
+		SckUrban urban = SckUrban();
 
 		// STORAGE
 		// files
@@ -205,7 +205,7 @@ class SckBase
 
 		// **** Sensors
 		AllSensors sensors;
-		bool getReading(SensorType wichSensor, bool wait=true);
+		int16_t getReading(SensorType wichSensor);
 		bool controlSensor(SensorType wichSensorType, String wichCommand);
 		void publish();
 		bool enableSensor(SensorType wichSensor);

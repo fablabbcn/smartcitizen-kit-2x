@@ -126,13 +126,13 @@ bool SckUrban::stop(SensorType wichSensor)
 	return false;
 }
 
-String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
+String SckUrban::getReading(SckBase *base, SensorType wichSensor)
 {
 
 	switch(wichSensor) {
-		case SENSOR_LIGHT:			if (sck_bh1721fvc.get(wait)) return String(sck_bh1721fvc.reading); break;
-		case SENSOR_TEMPERATURE: 		if (sck_sht31.update(wait)) return String(sck_sht31.temperature); break;
-		case SENSOR_HUMIDITY: 			if (sck_sht31.update(wait)) return String(sck_sht31.humidity); break;
+		case SENSOR_LIGHT:			if (sck_bh1721fvc.get()) return String(sck_bh1721fvc.reading); break;
+		case SENSOR_TEMPERATURE: 		if (sck_sht31.update()) return String(sck_sht31.temperature); break;
+		case SENSOR_HUMIDITY: 			if (sck_sht31.update()) return String(sck_sht31.humidity); break;
 		case SENSOR_CO_RESISTANCE: 		if (sck_mics4514.getCOresistance()) return String(sck_mics4514.coResistance); break;
 		case SENSOR_CO_HEAT_VOLT: 		return String(sck_mics4514.getCOheatVoltage()); break;
 		case SENSOR_CO_HEAT_TIME:
@@ -160,13 +160,13 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 								return "Look above!";
 								break;
 							}
-		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude(wait)) return String(sck_mpl3115A2.altitude); break;
-		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure(wait)) return String(sck_mpl3115A2.pressure); break;
-		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature(wait)) return String(sck_mpl3115A2.temperature); break;
-		case SENSOR_PARTICLE_RED:		if (sck_max30105.getRed(wait)) return String(sck_max30105.redChann); break;
-		case SENSOR_PARTICLE_GREEN:		if (sck_max30105.getGreen(wait)) return String(sck_max30105.greenChann); break;
-		case SENSOR_PARTICLE_IR:		if (sck_max30105.getIR(wait)) return String(sck_max30105.IRchann); break;
-		case SENSOR_PARTICLE_TEMPERATURE:	if (sck_max30105.getTemperature(wait)) return String(sck_max30105.temperature); break;
+		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude()) return String(sck_mpl3115A2.altitude); break;
+		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure()) return String(sck_mpl3115A2.pressure); break;
+		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature()) return String(sck_mpl3115A2.temperature); break;
+		case SENSOR_PARTICLE_RED:		if (sck_max30105.getRed()) return String(sck_max30105.redChann); break;
+		case SENSOR_PARTICLE_GREEN:		if (sck_max30105.getGreen()) return String(sck_max30105.greenChann); break;
+		case SENSOR_PARTICLE_IR:		if (sck_max30105.getIR()) return String(sck_max30105.IRchann); break;
+		case SENSOR_PARTICLE_TEMPERATURE:	if (sck_max30105.getTemperature()) return String(sck_max30105.temperature); break;
 		case SENSOR_PM_1: 			if (sck_pm.update()) return String(sck_pm.pm1); break;
 		case SENSOR_PM_25: 			if (sck_pm.update()) return String(sck_pm.pm25); break;
 		case SENSOR_PM_10: 			if (sck_pm.update()) return String(sck_pm.pm10); break;
@@ -221,7 +221,7 @@ bool Sck_BH1721FVC::stop()
 {
 	return true;
 }
-bool Sck_BH1721FVC::get(bool wait)
+bool Sck_BH1721FVC::get()
 {
 
 	// Datasheet http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1730fvc-e.pdf
@@ -357,7 +357,7 @@ bool Sck_SHT31::start()
 	delay(1); 		// In case the device was off
 	sendComm(SOFT_RESET); 	// Send reset command
 	delay(50); 		// Give time to finish reset
-	update(true);
+	update();
 
 	return true;
 }
@@ -367,7 +367,7 @@ bool Sck_SHT31::stop()
 	// It will go to idle state by itself after 1ms
 	return true;
 }
-bool Sck_SHT31::update(bool wait)
+bool Sck_SHT31::update()
 {
 	uint32_t elapsed = millis() - lastTime;
 	if (elapsed < timeout) delay(timeout - elapsed);
@@ -1111,7 +1111,7 @@ bool Sck_MPL3115A2::stop()
 
 	return true;
 }
-bool Sck_MPL3115A2::getAltitude(bool wait)
+bool Sck_MPL3115A2::getAltitude()
 {
 
 	Adafruit_mpl3115A2.begin();
@@ -1125,7 +1125,7 @@ bool Sck_MPL3115A2::getAltitude(bool wait)
 
 	return true;
 }
-bool Sck_MPL3115A2::getPressure(bool wait)
+bool Sck_MPL3115A2::getPressure()
 {
 
 	Adafruit_mpl3115A2.begin();
@@ -1135,7 +1135,7 @@ bool Sck_MPL3115A2::getPressure(bool wait)
 
 	return true;
 }
-bool Sck_MPL3115A2::getTemperature(bool wait)
+bool Sck_MPL3115A2::getTemperature()
 {
 
 	Adafruit_mpl3115A2.begin();

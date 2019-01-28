@@ -2,6 +2,7 @@
 
 #include <Wire.h>
 #include <Arduino.h>
+#include <RTCZero.h>
 
 #include <Sensors.h>
 #include "Pins.h"
@@ -48,7 +49,7 @@ class Sck_BH1721FVC
 		float reading;
 		bool start();
 		bool stop();
-		bool get(bool wait=true);
+		bool get();
 };
 
 // Temperature and Humidity
@@ -78,7 +79,7 @@ class Sck_SHT31
 		float humidity;
 		bool start();
 		bool stop();
-		bool update(bool wait=true);
+		bool update();
 };
 
 // Noise
@@ -126,9 +127,9 @@ class Sck_MPL3115A2
 		float temperature;
 		bool start();
 		bool stop();
-		bool getAltitude(bool wait=true);
-		bool getPressure(bool wait=true);
-		bool getTemperature(bool wait=true);
+		bool getAltitude();
+		bool getPressure();
+		bool getTemperature();
 };
 
 //PM sensors
@@ -231,7 +232,7 @@ class SckUrban
 		bool stop(SensorType wichSensor);
 
 		// String getReading(); https://stackoverflow.com/questions/14840173/c-same-function-parameters-with-different-return-type
-		String getReading(SckBase *base, SensorType wichSensor, bool wait=true);
+		String getReading(SckBase *base, SensorType wichSensor);
 		bool control(SckBase *base, SensorType wichSensor, String command);
 
 		// Light

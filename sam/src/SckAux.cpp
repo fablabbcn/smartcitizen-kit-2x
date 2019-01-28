@@ -219,8 +219,8 @@ float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
 		case SENSOR_EXT_PN_10: 			return pmSensor.getReading(SLOT_AVG, wichSensor); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.getReading(); break;
 		case SENSOR_DALLAS_TEMP: 		if (dallasTemp.getReading()) return dallasTemp.reading; break;
-		case SENSOR_SHT31_TEMP: 		if (sht31.update(true)) return sht31.temperature; break;
-		case SENSOR_SHT31_HUM: 			if (sht31.update(true)) return sht31.humidity; break;
+		case SENSOR_SHT31_TEMP: 		if (sht31.update()) return sht31.temperature; break;
+		case SENSOR_SHT31_HUM: 			if (sht31.update()) return sht31.humidity; break;
 		case SENSOR_RANGE_DISTANCE: 		if (range.getReading(SENSOR_RANGE_DISTANCE)) return range.readingDistance; break;
 		case SENSOR_RANGE_LIGHT: 		if (range.getReading(SENSOR_RANGE_LIGHT)) return range.readingLight; break;
 		case SENSOR_BME680_TEMPERATURE:		if (bme680.getReading()); return bme680.temperature;  break;

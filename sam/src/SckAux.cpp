@@ -16,7 +16,6 @@ Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 Sck_Range 		range;
 Sck_BME680 		bme680;
-Sck_CCS811 		ccs811;
 
 // Eeprom flash emulation to store I2C address
 // FlashStorage(eepromAuxI2Caddress, Configuration);
@@ -165,31 +164,32 @@ bool AuxBoards::stop(SensorType wichSensor)
 	return false;
 }
 
-float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
+void AuxBoards::getReading(OneSensor *wichSensor, SckBase *base)
 {
-	switch (wichSensor) {
-		case SENSOR_GASESBOARD_SLOT_1A:	 	return gasBoard.getElectrode(gasBoard.Slot1.electrode_A); break;
-		case SENSOR_GASESBOARD_SLOT_1W: 	return gasBoard.getElectrode(gasBoard.Slot1.electrode_W); break;
-		case SENSOR_GASESBOARD_SLOT_2A: 	return gasBoard.getElectrode(gasBoard.Slot2.electrode_A); break;
-		case SENSOR_GASESBOARD_SLOT_2W: 	return gasBoard.getElectrode(gasBoard.Slot2.electrode_W); break;
-		case SENSOR_GASESBOARD_SLOT_3A: 	return gasBoard.getElectrode(gasBoard.Slot3.electrode_A); break;
-		case SENSOR_GASESBOARD_SLOT_3W: 	return gasBoard.getElectrode(gasBoard.Slot3.electrode_W); break;
-		case SENSOR_GASESBOARD_HUMIDITY: 	return gasBoard.getHumidity(); break;
-		case SENSOR_GASESBOARD_TEMPERATURE: return gasBoard.getTemperature(); break;
-		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.getReading(); break;
-		case SENSOR_INA219_BUSVOLT: 		return ina219.getReading(ina219.BUS_VOLT); break;
-		case SENSOR_INA219_SHUNT: 			return ina219.getReading(ina219.SHUNT_VOLT); break;
-		case SENSOR_INA219_CURRENT: 		return ina219.getReading(ina219.CURRENT); break;
-		case SENSOR_INA219_LOADVOLT: 		return ina219.getReading(ina219.LOAD_VOLT); break;
-		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.getReading(); break;
-		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()); return atlasTEMP.newReading; break;
-		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) return atlasPH.newReading; break;
-		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) return atlasEC.newReading; break;
-		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) return atlasEC.newReadingB; break;
-		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) return atlasDO.newReading; break;
-		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) return atlasDO.newReadingB; break;
-		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.getReading(moistureChirp.CHIRP_MOISTURE); break;
-		case SENSOR_CHIRP_TEMPERATURE:		return moistureChirp.getReading(moistureChirp.CHIRP_TEMPERATURE); break;
+	wichSensor->state = 0;
+	switch (wichSensor->type) {
+		case SENSOR_GASESBOARD_SLOT_1A:	 	wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_A)); return;
+		case SENSOR_GASESBOARD_SLOT_1W: 	wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_W)); return;
+		case SENSOR_GASESBOARD_SLOT_2A: 	wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot2.electrode_A)); return;
+		case SENSOR_GASESBOARD_SLOT_2W: 	wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot2.electrode_W)); return;
+		case SENSOR_GASESBOARD_SLOT_3A: 	wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot3.electrode_A)); return;
+		case SENSOR_GASESBOARD_SLOT_3W: 	wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot3.electrode_W)); return;
+		case SENSOR_GASESBOARD_HUMIDITY: 	wichSensor->reading = String(gasBoard.getHumidity()); return;
+		case SENSOR_GASESBOARD_TEMPERATURE: 	wichSensor->reading = String(gasBoard.getTemperature()); return;
+		case SENSOR_GROOVE_I2C_ADC: 		wichSensor->reading = String(grooveI2C_ADC.getReading()); return;
+		case SENSOR_INA219_BUSVOLT: 		wichSensor->reading = String(ina219.getReading(ina219.BUS_VOLT)); return;
+		case SENSOR_INA219_SHUNT: 		wichSensor->reading = String(ina219.getReading(ina219.SHUNT_VOLT)); return;
+		case SENSOR_INA219_CURRENT: 		wichSensor->reading = String(ina219.getReading(ina219.CURRENT)); return;
+		case SENSOR_INA219_LOADVOLT: 		wichSensor->reading = String(ina219.getReading(ina219.LOAD_VOLT)); return;
+		case SENSOR_WATER_TEMP_DS18B20:		wichSensor->reading = String(waterTemp_DS18B20.getReading()); return;
+		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()) 	{ wichSensor->reading = String(atlasTEMP.newReading); return; } break;
+		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) 	{ wichSensor->reading = String(atlasPH.newReading); return; } break;
+		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading); return; } break;
+		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReadingB); return; } break;
+		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading); return; } break;
+		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReadingB); return; } break;
+		case SENSOR_CHIRP_MOISTURE:		wichSensor->reading = String(moistureChirp.getReading(moistureChirp.CHIRP_MOISTURE)); return;
+		case SENSOR_CHIRP_TEMPERATURE:		wichSensor->reading = String(moistureChirp.getReading(moistureChirp.CHIRP_TEMPERATURE)); return;
 		case SENSOR_EXT_A_PM_1:
 		case SENSOR_EXT_A_PM_25:
 		case SENSOR_EXT_A_PM_10:
@@ -198,7 +198,7 @@ float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
 		case SENSOR_EXT_A_PN_1:
 		case SENSOR_EXT_A_PN_25:
 		case SENSOR_EXT_A_PN_5:
-		case SENSOR_EXT_A_PN_10:		return pmSensor.getReading(SLOT_A, wichSensor); break;
+		case SENSOR_EXT_A_PN_10:		wichSensor->reading = String(pmSensor.getReading(SLOT_A, wichSensor->type)); return;
 		case SENSOR_EXT_B_PM_1:
 		case SENSOR_EXT_B_PM_25:
 		case SENSOR_EXT_B_PM_10:
@@ -207,7 +207,7 @@ float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
 		case SENSOR_EXT_B_PN_1:
 		case SENSOR_EXT_B_PN_25:
 		case SENSOR_EXT_B_PN_5:
-		case SENSOR_EXT_B_PN_10: 		return pmSensor.getReading(SLOT_B, wichSensor); break;
+		case SENSOR_EXT_B_PN_10: 		wichSensor->reading = String(pmSensor.getReading(SLOT_B, wichSensor->type)); return;
 		case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10:
@@ -216,21 +216,22 @@ float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
 		case SENSOR_EXT_PN_1:
 		case SENSOR_EXT_PN_25:
 		case SENSOR_EXT_PN_5:
-		case SENSOR_EXT_PN_10: 			return pmSensor.getReading(SLOT_AVG, wichSensor); break;
-		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.getReading(); break;
-		case SENSOR_DALLAS_TEMP: 		if (dallasTemp.getReading()) return dallasTemp.reading; break;
-		case SENSOR_SHT31_TEMP: 		if (sht31.update()) return sht31.temperature; break;
-		case SENSOR_SHT31_HUM: 			if (sht31.update()) return sht31.humidity; break;
-		case SENSOR_RANGE_DISTANCE: 		if (range.getReading(SENSOR_RANGE_DISTANCE)) return range.readingDistance; break;
-		case SENSOR_RANGE_LIGHT: 		if (range.getReading(SENSOR_RANGE_LIGHT)) return range.readingLight; break;
-		case SENSOR_BME680_TEMPERATURE:		if (bme680.getReading()); return bme680.temperature;  break;
-		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()); return bme680.humidity;  break;
-		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()); return bme680.pressure;  break;
-		case SENSOR_BME680_VOCS:		if (bme680.getReading()); return bme680.VOCgas;  break;
+		case SENSOR_EXT_PN_10: 			wichSensor->reading = String(pmSensor.getReading(SLOT_AVG, wichSensor->type)); return;
+		case SENSOR_PM_DALLAS_TEMP: 		wichSensor->reading = String(pmDallasTemp.getReading()); return;
+		case SENSOR_DALLAS_TEMP: 		if (dallasTemp.getReading()) 			{ wichSensor->reading = String(dallasTemp.reading); return; } break;
+		case SENSOR_SHT31_TEMP: 		if (sht31.update()) 				{ wichSensor->reading = String(sht31.temperature); return; } break;
+		case SENSOR_SHT31_HUM: 			if (sht31.update()) 				{ wichSensor->reading = String(sht31.humidity); return; } break;
+		case SENSOR_RANGE_DISTANCE: 		if (range.getReading(SENSOR_RANGE_DISTANCE)) 	{ wichSensor->reading = String(range.readingDistance); return; } break;
+		case SENSOR_RANGE_LIGHT: 		if (range.getReading(SENSOR_RANGE_LIGHT)) 	{ wichSensor->reading = String(range.readingLight); return; } break;
+		case SENSOR_BME680_TEMPERATURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.temperature); return; } break;
+		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
+		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
+		case SENSOR_BME680_VOCS:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.VOCgas); return; } break;
 		default: break;
 	}
 
-	return -9999;
+	wichSensor->reading = "null";
+	wichSensor->state = -1;
 }
 
 bool AuxBoards::getBusyState(SensorType wichSensor)

@@ -77,41 +77,44 @@ bool SckUrban::stop(SensorType wichSensor)
 	return false;
 }
 
-String SckUrban::getReading(SckBase *base, SensorType wichSensor)
+void SckUrban::getReading(OneSensor *wichSensor)
 {
-
-	switch(wichSensor) {
-		case SENSOR_LIGHT:			if (sck_bh1721fvc.get()) return String(sck_bh1721fvc.reading); break;
-		case SENSOR_TEMPERATURE: 		if (sck_sht31.update()) return String(sck_sht31.temperature); break;
-		case SENSOR_HUMIDITY: 			if (sck_sht31.update()) return String(sck_sht31.humidity); break;
-		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading(SENSOR_NOISE_DBA)) return String(sck_noise.readingDB); break;
-		case SENSOR_NOISE_DBC: 			if (sck_noise.getReading(SENSOR_NOISE_DBC)) return String(sck_noise.readingDB); break;
-		case SENSOR_NOISE_DBZ: 			if (sck_noise.getReading(SENSOR_NOISE_DBZ)) return String(sck_noise.readingDB); break;
-		case SENSOR_NOISE_FFT: 			if (sck_noise.getReading(SENSOR_NOISE_FFT)) {
+	wichSensor->state = 0;
+	switch(wichSensor->type) {
+		case SENSOR_LIGHT:			if (sck_bh1721fvc.get()) 			{ wichSensor->reading = String(sck_bh1721fvc.reading); return; } break;
+		case SENSOR_TEMPERATURE: 		if (sck_sht31.update()) 			{ wichSensor->reading = String(sck_sht31.temperature); return; } break;
+		case SENSOR_HUMIDITY: 			if (sck_sht31.update()) 			{ wichSensor->reading = String(sck_sht31.humidity); return; } break;
+		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading(SENSOR_NOISE_DBA)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
+		case SENSOR_NOISE_DBC: 			if (sck_noise.getReading(SENSOR_NOISE_DBC)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
+		case SENSOR_NOISE_DBZ: 			if (sck_noise.getReading(SENSOR_NOISE_DBZ)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
+		case SENSOR_NOISE_FFT: 			if (sck_noise.getReading(SENSOR_NOISE_FFT)) 	{
 								// TODO find a way to give access to readingsFFT instead of storing them on a String (too much RAM)
 								// For now it just prints the values to console
 								for (uint16_t i=1; i<sck_noise.FFT_NUM; i++) SerialUSB.println(sck_noise.readingFFT[i]);
-								return "Look above!";
-								break;
+								return;
 							}
-		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude()) return String(sck_mpl3115A2.altitude); break;
-		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure()) return String(sck_mpl3115A2.pressure); break;
-		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature()) return String(sck_mpl3115A2.temperature); break;
-		case SENSOR_CCS811_VOCS:		if (sck_ccs811.getReading(base)) return String(sck_ccs811.VOCgas); break;
-		case SENSOR_CCS811_ECO2:		if (sck_ccs811.getReading(base)) return String(sck_ccs811.ECO2gas); break;
-		case SENSOR_PM_1: 			if (sck_pm.update()) return String(sck_pm.pm1); break;
-		case SENSOR_PM_25: 			if (sck_pm.update()) return String(sck_pm.pm25); break;
-		case SENSOR_PM_10: 			if (sck_pm.update()) return String(sck_pm.pm10); break;
-		case SENSOR_PN_03: 			if (sck_pm.update()) return String(sck_pm.pn03); break;
-		case SENSOR_PN_05: 			if (sck_pm.update()) return String(sck_pm.pn05); break;
-		case SENSOR_PN_1: 			if (sck_pm.update()) return String(sck_pm.pn1); break;
-		case SENSOR_PN_25: 			if (sck_pm.update()) return String(sck_pm.pn25); break;
-		case SENSOR_PN_5: 			if (sck_pm.update()) return String(sck_pm.pn5); break;
-		case SENSOR_PN_10: 			if (sck_pm.update()) return String(sck_pm.pn10); break;
+		case SENSOR_CCS811_VOCS:		if (sck_ccs811.getReading(base)) 		{ wichSensor->reading = String(sck_ccs811.VOCgas); return; } break;
+		case SENSOR_CCS811_ECO2:		if (sck_ccs811.getReading(base)) 		{ wichSensor->reading = String(sck_ccs811.ECO2gas); return; } break;
+		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude()) 		{ wichSensor->reading = String(sck_mpl3115A2.altitude); return; } break;
+		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure()) 		{ wichSensor->reading = String(sck_mpl3115A2.pressure); return; } break;
+		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature()) 		{ wichSensor->reading = String(sck_mpl3115A2.temperature); return; } break;
+		case SENSOR_PARTICLE_RED:		if (sck_max30105.getRed()) 			{ wichSensor->reading = String(sck_max30105.redChann); return; } break;
+		case SENSOR_PARTICLE_GREEN:		if (sck_max30105.getGreen()) 			{ wichSensor->reading = String(sck_max30105.greenChann); return; } break;
+		case SENSOR_PARTICLE_IR:		if (sck_max30105.getIR()) 			{ wichSensor->reading = String(sck_max30105.IRchann); return; } break;
+		case SENSOR_PARTICLE_TEMPERATURE:	if (sck_max30105.getTemperature()) 		{ wichSensor->reading = String(sck_max30105.temperature); return; } break;
+		case SENSOR_PM_1: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pm1); return; } break;
+		case SENSOR_PM_25: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pm25); return; } break;
+		case SENSOR_PM_10: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pm10); return; } break;
+		case SENSOR_PN_03: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn03); return; } break;
+		case SENSOR_PN_05: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn05); return; } break;
+		case SENSOR_PN_1: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn1); return; } break;
+		case SENSOR_PN_25: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn25); return; } break;
+		case SENSOR_PN_5: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn5); return; } break;
+		case SENSOR_PN_10: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn10); return; } break;
 		default: break;
 	}
-
-	return "null";
+	wichSensor->reading = "null";
+	wichSensor->state = -1;
 }
 bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 {

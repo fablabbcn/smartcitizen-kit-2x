@@ -79,7 +79,7 @@ class AuxBoards
 
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
-		float getReading(SensorType wichSensor, SckBase *base);
+		void getReading(OneSensor *wichSensor, SckBase *base);
 		bool getBusyState(SensorType wichSensor);
 		String control(SensorType wichSensor, String command);
 		void print(SensorType wichSensor, String payload);

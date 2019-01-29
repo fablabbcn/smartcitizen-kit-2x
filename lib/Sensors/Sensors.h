@@ -120,20 +120,19 @@ class OneSensor
 {
 	public:
 		SensorLocation location;
+		uint8_t priority;
 		SensorType type;
 		const char *shortTitle;
 		const char *title;
 		const char *unit;
 		String reading;
 		uint32_t lastReadingTime;
-		bool valid;
 		bool controllable;
 		uint8_t id;
 		uint8_t everyNint; 	 	// Read this sensor every N intervals (default 1)
 		bool enabled;
 		bool defaultEnabled;
-		bool busy;
-		uint8_t priority;
+		int16_t state; 		// -1:error on reading, 0:reading OK, >0:number of seconds until the reading is OK
 
 		OneSensor(SensorLocation nLocation, uint8_t nPriority, SensorType nType, const char *nShortTitle, const char *nTitle, uint8_t nId=0, bool nEnabled=false, bool nControllable=false, uint8_t nEveryNint=1, const char *nUnit="") {
 			location = nLocation;
@@ -144,13 +143,12 @@ class OneSensor
 			unit = nUnit;
 			reading = "null";
 			lastReadingTime = 0;
-			valid = false;
 			controllable = nControllable;
 			id = nId;
 			everyNint = nEveryNint;
-			enabled = nEnabled; 
+			enabled = nEnabled;
 			defaultEnabled = nEnabled;
-			busy = false;
+			state = -1;
 		}
 };
 

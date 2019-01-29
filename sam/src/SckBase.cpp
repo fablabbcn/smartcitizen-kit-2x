@@ -1420,58 +1420,40 @@ bool SckBase::disableSensor(SensorType wichSensor)
 
 	return false;
 }
-int16_t SckBase::getReading(SensorType wichSensor)
+void SckBase::getReading(OneSensor *wichSensor)
 {
-
-	sensors[wichSensor].valid = false;
-	String result = "null";
-
-	switch (sensors[wichSensor].location) {
+	switch (wichSensor->location) {
 		case BOARD_BASE:
 		{
-				switch (wichSensor) {
+				switch (wichSensor->type) {
 					case SENSOR_BATT_PERCENT:
-					{
-						if (!battery.present) {
-							result = String("-1");
-							break;
-						}
-						result = String(battery.percent());
+						if (!battery.present) wichSensor->reading = String("-1");
+						else wichSensor->reading = String(battery.percent());						
 						break;
-					}
 					case SENSOR_BATT_VOLTAGE:
-						if (!battery.present) {
-							result = String("-1");
-							break;
-						}
-						result = String(battery.voltage());
+						if (!battery.present) wichSensor->reading = String("-1");
+						else wichSensor->reading = String(battery.voltage());
 						break;
 					case SENSOR_SDCARD:
-						if (st.cardPresent) result = String("1");
-						else result = String("0");
+						if (st.cardPresent) wichSensor->reading = String("1");
+						else wichSensor->reading = String("0");
+						break;
 					default: break;
 				}
+				wichSensor->state = 0;
 				break;
 		}
 		case BOARD_URBAN:
 		{
-				result = urban.getReading(this, wichSensor);
-				sensors[wichSensor].reading = result;
-				if (result.startsWith("null")) return false;
+				urban.getReading(wichSensor);
 				break;
 		}
 		case BOARD_AUX:
 		{
-				float preResult = auxBoards.getReading(wichSensor, this);
-				if (preResult == -9999) result = "null";
-				else result = String(preResult, 2);	// TODO port auxBoards to String mode
+				auxBoards.getReading(wichSensor, this);
 				break;
 		}
 	}
-
-	sensors[wichSensor].reading = result;
-	sensors[wichSensor].valid = true;
-	return true;;
 }
 bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 {
@@ -1661,6 +1643,7 @@ bool SckBase::setTime(String epoch)
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		st.timeStat.setOk();
+		espStarted = rtc.getEpoch() - wasOn;
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
 		sckOut();

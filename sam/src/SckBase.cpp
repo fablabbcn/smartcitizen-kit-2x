@@ -1425,11 +1425,12 @@ void SckBase::updateSensors()
 		ISOtime();
 		sckOut(ISOtimeBuff, PRIO_LOW);
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = sensors.sensorsPriorized(i);
-			if (sensors[wichSensor].enabled && (rtc.getEpoch() - sensors[wichSensor].lastReadingTime >= (sensors[wichSensor].everyNint * config.readInterval))) {
-					sensors[wichSensor].lastReadingTime = lastSensorUpdate;
-				if (getReading(wichSensor)) {
-					sprintf(outBuff, "%s: %s %s", sensors[wichSensor].title, sensors[wichSensor].reading.c_str(), sensors[wichSensor].unit);
+			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
+			if (wichSensor->enabled && (rtc.getEpoch() - wichSensor->lastReadingTime >= (wichSensor->everyNint * config.readInterval))) {
+				wichSensor->lastReadingTime = lastSensorUpdate;
+				getReading(wichSensor);
+				if (wichSensor->state == 0) {
+					sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
 					sckOut(PRIO_LOW);
 				}
 			}
@@ -1511,77 +1512,67 @@ bool SckBase::disableSensor(SensorType wichSensor)
 
 	return false;
 }
-int16_t SckBase::getReading(SensorType wichSensor)
+void SckBase::getReading(OneSensor *wichSensor)
 {
-
-	sensors[wichSensor].valid = false;
-	String result = "null";
-
-	switch (sensors[wichSensor].location) {
+	switch (wichSensor->location) {
 		case BOARD_BASE:
 		{
-				switch (wichSensor) {
+				switch (wichSensor->type) {
 					case SENSOR_BATT_PERCENT:
 					{
 						if (!battery.isPresent(charger)) {
-							result = String("-1");
+							wichSensor->reading = String("-1");
 							break;
 						}
 						uint32_t thisPercent = battery.percent();
 						if (thisPercent > 100) thisPercent = 100;
 						else if (thisPercent < 0) thisPercent = 0;
-						result = String(thisPercent);
+						wichSensor->reading = String(thisPercent);
 						break;
 					}
 					case SENSOR_BATT_VOLTAGE:
 						if (!battery.isPresent(charger)) {
-							result = String("-1");
+							wichSensor->reading = String("-1");
 							break;
 						}
-						result = String(battery.voltage());
+						wichSensor->reading = String(battery.voltage());
 						break;
 
 					case SENSOR_BATT_CHARGE_RATE:
 						if (!battery.isPresent(charger)) {
-							result = String("-1");
+							wichSensor->reading = String("-1");
 							break;
 						}
-						result = String(battery.current());
+						wichSensor->reading = String(battery.current());
 						break;
 					case SENSOR_BATT_POWER:
 
 						if (!battery.isPresent(charger)) {
-							result = String("-1");
+							wichSensor->reading = String("-1");
 							break;
 						}
-						result = String(battery.power());
+						wichSensor->reading = String(battery.power());
 						break;
 					case SENSOR_SDCARD:
-						if (st.cardPresent) result = String("1");
-						else result = String("0");
+						if (st.cardPresent) wichSensor->reading = String("1");
+						else wichSensor->reading = String("0");
+						break;
 					default: break;
 				}
+				wichSensor->state = 0;
 				break;
 		}
 		case BOARD_URBAN:
 		{
-				result = urban.getReading(this, wichSensor);
-				sensors[wichSensor].reading = result;
-				if (result.startsWith("null")) return false;
+				urban.getReading(wichSensor);
 				break;
 		}
 		case BOARD_AUX:
 		{
-				float preResult = auxBoards.getReading(wichSensor, this);
-				if (preResult == -9999) result = "null";
-				else result = String(preResult, 2);	// TODO port auxBoards to String mode
+				auxBoards.getReading(wichSensor, this);
 				break;
 		}
 	}
-
-	sensors[wichSensor].reading = result;
-	sensors[wichSensor].valid = true;
-	return true;;
 }
 bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 {
@@ -1773,8 +1764,8 @@ bool SckBase::setTime(String epoch)
 		st.timeStat.setOk();
 		if (urbanPresent) {
 			// Update MICS clock
-			getReading(SENSOR_CO_HEAT_TIME);
-			getReading(SENSOR_NO2_HEAT_TIME);
+			getReading(&sensors[SENSOR_CO_HEAT_TIME]);
+			getReading(&sensors[SENSOR_NO2_HEAT_TIME]);
 		}
 		espStarted = rtc.getEpoch() - wasOn;
 		ISOtime();

@@ -297,7 +297,7 @@ class SckUrban
 		bool stop(SensorType wichSensor);
 
 		// String getReading(); https://stackoverflow.com/questions/14840173/c-same-function-parameters-with-different-return-type
-		String getReading(SckBase *base, SensorType wichSensor);
+		void getReading(OneSensor *wichSensor);
 		bool control(SckBase *base, SensorType wichSensor, String command);
 
 		// Light

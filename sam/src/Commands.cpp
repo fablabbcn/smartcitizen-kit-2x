@@ -296,10 +296,18 @@ void sensorConfig_com(SckBase* base, String parameters)
 }
 void readSensor_com(SckBase* base, String parameters)
 {
-	SensorType sensorToRead = base->sensors.getTypeFromString(parameters);
-	if (!base->sensors[sensorToRead].enabled) sprintf(base->outBuff, "%s sensor is disabled!!!", base->sensors[sensorToRead].title);
-	base->getReading(sensorToRead);
-	sprintf(base->outBuff, "%s: %s %s", base->sensors[sensorToRead].title, base->sensors[sensorToRead].reading.c_str(), base->sensors[sensorToRead].unit);
+	SensorType wichType = base->sensors.getTypeFromString(parameters);
+	OneSensor sensorToRead = base->sensors[wichType];
+
+	if (!sensorToRead.enabled) {
+		sprintf(base->outBuff, "%s sensor is disabled!!!", sensorToRead.title);
+		base->sckOut();
+		return;
+	} else base->getReading(&sensorToRead);
+
+	if (sensorToRead.state == 0) sprintf(base->outBuff, "%s: %s %s", sensorToRead.title, sensorToRead.reading.c_str(), sensorToRead.unit);
+	else if (sensorToRead.state == -1) sprintf(base->outBuff, "ERROR reading %s sensor!!!", sensorToRead.title);
+	else sprintf(base->outBuff, "Your reading will be ready in %i seconds try again!!", sensorToRead.state);
 	base->sckOut();
 }
 void controlSensor_com(SckBase* base, String parameters)
@@ -391,8 +399,11 @@ void monitorSensor_com(SckBase* base, String parameters)
 		if (printMs) sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
 		lastMillis = millis();
 		for (uint8_t i=0; i<index; i++) {
-			base->getReading(sensorsToMonitor[i]);
-			sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].reading.c_str());
+			// TODO check what will happen here when one shot PM is implemented
+			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
+			base->getReading(&wichSensor);
+			if (wichSensor.state == 0) sprintf(base->outBuff, "%s%s", base->outBuff, wichSensor.reading.c_str());
+			else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
 			if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
 		}
 		if (sdSave) base->monitorFile.file.println(base->outBuff);

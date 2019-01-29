@@ -205,7 +205,7 @@ class SckBase
 
 		// **** Sensors
 		AllSensors sensors;
-		int16_t getReading(SensorType wichSensor);
+		void getReading(OneSensor *wichSensor);
 		bool controlSensor(SensorType wichSensorType, String wichCommand);
 		void publish();
 		bool enableSensor(SensorType wichSensor);

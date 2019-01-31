@@ -1395,6 +1395,7 @@ void SckBase::updatePower()
 	}
 
 
+	// TODO rmove this when oneShot mode is integrated
 	// PM sensor only works if battery is available
 	if (sensors[SENSOR_PM_1].enabled && !st.sleeping) {
 		if (!urban.sck_pm.started) {
@@ -1419,24 +1420,93 @@ void SckBase::updateSensors()
 	if (st.mode == MODE_SD && !st.cardPresent) return;
 	else if (st.mode == MODE_NET && st.wifiStat.error) return;
 
+	// Main reading loop
 	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {
+		
 		lastSensorUpdate = rtc.getEpoch();
+
+		// TODO  create new RAM group with this timestamp
+
 		sckOut("\r\n-----------", PRIO_LOW);
 		ISOtime();
 		sckOut(ISOtimeBuff, PRIO_LOW);
+
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
-			if (wichSensor->enabled && (rtc.getEpoch() - wichSensor->lastReadingTime >= (wichSensor->everyNint * config.readInterval))) {
-				wichSensor->lastReadingTime = lastSensorUpdate;
-				getReading(wichSensor);
-				if (wichSensor->state == 0) {
-					sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
-					sckOut(PRIO_LOW);
+
+			// Get next sensor based on priority
+			OneSensor wichSensor = sensors[sensors.sensorsPriorized(i)];
+
+			// Check if it is enabled
+			if (wichSensor.enabled) {
+
+				// Is time to read it?
+				if ((lastSensorUpdate - wichSensor.lastReadingTime) >= (wichSensor.everyNint * config.readInterval)) {
+
+					getReading(&wichSensor);
+
+					if (wichSensor.state == 0) {
+
+						wichSensor.lastReadingTime = lastSensorUpdate;
+
+						// TODO Save reading on RAM/Flash
+
+						sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
+						sckOut(PRIO_LOW);
+
+					} else if (wichSensor.state > 0) {
+					
+						// Append pending sensors to pending list
+						pendingSensors ++;
+						pendingSensorsList[pendingSensors - 1] = wichSensor.type;
+
+					} else if (wichSensor.state == -1) {
+					
+						// Sensor reading ERROR
+						// TODO save null value
+					}
 				}
 			}
 		}
-		sckOut("-----------\r\n", PRIO_LOW);
+
+	// If some sensor is pendig to be reapending d
+	} else if (pendingSensors > 0) {
+
+		SensorType tmpPendingSensorList[pendingSensors];
+		uint8_t tmpPendingSensors = 0;
+		
+		for (uint8_t i=0; i<pendingSensors; i++) {
+
+			OneSensor wichSensor = sensors[pendingSensorsList[i]];
+			getReading(&wichSensor);
+
+			if (wichSensor.state == 0) {
+			
+				wichSensor.lastReadingTime = lastSensorUpdate;
+
+				// TODO Save reading on RAM/Flash
+				
+				sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
+				sckOut(PRIO_LOW);
+				
+
+			} else if (wichSensor.state > 0) {
+
+				// Reappend the sensor to the pending list
+				tmpPendingSensorList[i] = wichSensor.type;
+				tmpPendingSensors ++;
+
+			} else if (wichSensor.state == -1) {
+			
+				// ERROR on getting reading
+				// TODO save a null value
+				
+			}
+		}
+
+		pendingSensors = tmpPendingSensors;
+		for (uint8_t i=0; i<pendingSensors; i++) pendingSensorsList[i] = tmpPendingSensorList[i];
 	}
+
 
 	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
 		timeToPublish = true;
@@ -1749,7 +1819,6 @@ bool SckBase::sdPublish()
 }
 void SckBase::publish()
 {
-	updateSensors();
 	if (st.mode == MODE_NET) netPublish();
 	else if (st.mode == MODE_SD) sdPublish();
 	else sckOut("Can't publish without been configured!!");

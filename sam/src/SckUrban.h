@@ -233,7 +233,7 @@ class Sck_PM
 		bool detectionFailed = false;
 		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
-		
+
 		static const uint8_t buffLong = 30; 	// Excluding both start chars
 
 		// Serial transmission from PMS
@@ -261,7 +261,16 @@ class Sck_PM
 
 		// 30-31: Sum of each byte from start_1 ... error_code 
 
+		unsigned char buff[buffLong];
+		uint32_t rtcStarted = 0;
+		uint32_t rtcStopped = 0;
+		uint32_t rtcReading = 0;
+		RTCZero* rtc;
+
 	public:
+		Sck_PM(RTCZero* myrtc) {
+			rtc = myrtc;
+		}
 		// Readings
 		uint16_t pm1;
 		uint16_t pm25;
@@ -275,10 +284,12 @@ class Sck_PM
 
 		bool started = false;
 		bool active = false;
+		uint16_t oneShotPeriod = 15;
 
 		bool start();
 		bool stop();
 		bool update();
+		int16_t oneShot(uint16_t period);
 		bool reset();
 };
 
@@ -291,13 +302,18 @@ class SckUrban
 			byte deviceAddress;
 			byte resistorAddress;
 		};
+		RTCZero* rtc;
 	public:
+		SckUrban(RTCZero* myrtc) {
+			rtc = myrtc;
+		}
+
 		bool setup();
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
 
 		// String getReading(); https://stackoverflow.com/questions/14840173/c-same-function-parameters-with-different-return-type
-		void getReading(OneSensor *wichSensor);
+		void getReading(SckBase *base, OneSensor *wichSensor);
 		bool control(SckBase *base, SensorType wichSensor, String command);
 
 		// Light
@@ -319,6 +335,6 @@ class SckUrban
 		Sck_MAX30105 sck_max30105;
 
 		// PM sensor
-		Sck_PM sck_pm;
+		Sck_PM sck_pm = Sck_PM(rtc);
 };
 

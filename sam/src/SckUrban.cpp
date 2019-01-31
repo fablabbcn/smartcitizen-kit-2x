@@ -98,7 +98,7 @@ bool SckUrban::stop(SensorType wichSensor)
 	return false;
 }
 
-void SckUrban::getReading(OneSensor *wichSensor)
+void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 {
 	wichSensor->state = 0;
 	switch(wichSensor->type) {
@@ -107,22 +107,10 @@ void SckUrban::getReading(OneSensor *wichSensor)
 		case SENSOR_HUMIDITY: 			if (sck_sht31.update()) 			{ wichSensor->reading = String(sck_sht31.humidity); return; } break;
 		case SENSOR_CO_RESISTANCE: 		if (sck_mics4514.getCOresistance())		{ wichSensor->reading = String(sck_mics4514.coResistance); return; } break;
 		case SENSOR_CO_HEAT_VOLT: 								wichSensor->reading = String(sck_mics4514.getCOheatVoltage()); return; break;
-		// TODO change this to urban.rtc whe it is integrated and update to use sensor.state
-		/* case SENSOR_CO_HEAT_TIME: */
-		/* 	{ */
-		/* 		uint32_t currentTime = 0; */
-		/* 		if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch(); */
-		/* 		return String(sck_mics4514.getHeatTime(currentTime)); break; */
-		/* 	} */
+		case SENSOR_CO_HEAT_TIME: 								wichSensor->reading = String(sck_mics4514.getHeatTime(rtc->getEpoch())); return; break; 
 		case SENSOR_NO2_RESISTANCE: 		if (sck_mics4514.getNO2resistance()) 		{ wichSensor->reading = String(sck_mics4514.no2Resistance); return; } break;
 		case SENSOR_NO2_HEAT_VOLT: 								wichSensor->reading = String(sck_mics4514.getNO2heatVoltage()); return; break;
-		// TODO change this to urban.rtc whe it is integrated and update to use sensor.state
-		/* case SENSOR_NO2_HEAT_TIME: */
-		/* 	{ */
-		/* 		uint32_t currentTime = 0; */
-		/* 		if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch(); */
-		/* 		return String(sck_mics4514.getHeatTime(currentTime)); break; */
-		/* 	} */
+		case SENSOR_NO2_HEAT_TIME: 								wichSensor->reading = String(sck_mics4514.getHeatTime(rtc->getEpoch())); return; break; 
 		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load()) 			{ wichSensor->reading = String(sck_mics4514.no2LoadResistor); return; } break;
 		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading(SENSOR_NOISE_DBA)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
 		case SENSOR_NOISE_DBC: 			if (sck_noise.getReading(SENSOR_NOISE_DBC)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
@@ -139,16 +127,16 @@ void SckUrban::getReading(OneSensor *wichSensor)
 		case SENSOR_PARTICLE_RED:		if (sck_max30105.getRed()) 			{ wichSensor->reading = String(sck_max30105.redChann); return; } break;
 		case SENSOR_PARTICLE_GREEN:		if (sck_max30105.getGreen()) 			{ wichSensor->reading = String(sck_max30105.greenChann); return; } break;
 		case SENSOR_PARTICLE_IR:		if (sck_max30105.getIR()) 			{ wichSensor->reading = String(sck_max30105.IRchann); return; } break;
-		case SENSOR_PARTICLE_TEMPERATURE:	if (sck_max30105.getTemperature()) 		{ wichSensor->reading = String(sck_max30105.temperature); return; } break;
-		case SENSOR_PM_1: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pm1); return; } break;
-		case SENSOR_PM_25: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pm25); return; } break;
-		case SENSOR_PM_10: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pm10); return; } break;
-		case SENSOR_PN_03: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn03); return; } break;
-		case SENSOR_PN_05: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn05); return; } break;
-		case SENSOR_PN_1: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn1); return; } break;
-		case SENSOR_PN_25: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn25); return; } break;
-		case SENSOR_PN_5: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn5); return; } break;
-		case SENSOR_PN_10: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn10); return; } break;
+		case SENSOR_PARTICLE_TEMPERATURE: 	if (sck_max30105.getTemperature()) 		{ wichSensor->reading = String(sck_max30105.temperature); return; } break;
+		case SENSOR_PM_1: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pm1); return;
+		case SENSOR_PM_25: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pm25); return;
+		case SENSOR_PM_10: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pm10); return;
+		case SENSOR_PN_03: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn03); return;
+		case SENSOR_PN_05: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn05); return;
+		case SENSOR_PN_1: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn1); return;
+		case SENSOR_PN_25: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn25); return;
+		case SENSOR_PN_5: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn5); return;
+		case SENSOR_PN_10: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn10); return;
 		default: break;
 	}
 	wichSensor->reading = "null";
@@ -1195,6 +1183,7 @@ bool Sck_PM::start()
 		delay(50);
 		if (SerialPM.available()) {
 			started = true;
+			rtcStarted = rtc->getEpoch();
 			return true;
 		}
 	}
@@ -1207,6 +1196,7 @@ bool Sck_PM::stop()
 	digitalWrite(pinPM_ENABLE, LOW);
 	SerialPM.end();
 	started = false;
+	rtcStopped = rtc->getEpoch();
 	detectionFailed = false;
 
 	return true;
@@ -1252,6 +1242,8 @@ bool Sck_PM::update()
 
 	if (sc2 == 0x4d) {
 
+		rtcReading = rtc->getEpoch();
+
 		sum += sc2;
 
 		unsigned char buff[buffLong];
@@ -1287,6 +1279,44 @@ bool Sck_PM::update()
 		return true;
 	}
 	return false;
+}
+int16_t Sck_PM::oneShot(uint16_t period)
+{
+	int16_t pendingSeconds = period;
+
+	if (detectionFailed) return -1;
+	if (!started) {
+
+		// If last PM reading is older than some time, start PM
+		if (rtc->getEpoch() - rtcReading >= (minimal_reading_interval - period)) {
+			start();
+		}
+		// Or... reading is ready
+		else pendingSeconds = 0;
+
+	} else {
+
+		pendingSeconds = period - (rtc->getEpoch() - rtcStarted);
+
+		// If PM is on and requested period has passed
+		if (pendingSeconds <= 0) {
+
+			// Get reading
+			if (update()) {
+
+				// Stop PM, reading is ready
+				stop();
+				pendingSeconds = 0;
+
+			} else {
+
+				// return Error
+				return -1;
+			}
+		}
+	}
+
+	return (int16_t)pendingSeconds;
 }
 bool Sck_PM::reset()
 {

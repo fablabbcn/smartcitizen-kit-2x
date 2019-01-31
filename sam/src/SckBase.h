@@ -173,6 +173,8 @@ class SckBase
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish();
+		uint8_t pendingSensors = 0;
+		SensorType pendingSensorsList[SENSOR_COUNT];
 
 		// Timers
 		bool alarmRunning_TC3 = false;

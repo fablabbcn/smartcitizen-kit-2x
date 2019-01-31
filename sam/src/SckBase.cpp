@@ -1514,7 +1514,7 @@ void SckBase::getReading(OneSensor *wichSensor)
 		}
 		case BOARD_URBAN:
 		{
-				urban.getReading(wichSensor);
+				urban.getReading(this, wichSensor);
 				break;
 		}
 		case BOARD_AUX:

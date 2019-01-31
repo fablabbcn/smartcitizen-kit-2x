@@ -77,7 +77,7 @@ bool SckUrban::stop(SensorType wichSensor)
 	return false;
 }
 
-void SckUrban::getReading(OneSensor *wichSensor)
+void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 {
 	wichSensor->state = 0;
 	switch(wichSensor->type) {
@@ -98,19 +98,15 @@ void SckUrban::getReading(OneSensor *wichSensor)
 		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude()) 		{ wichSensor->reading = String(sck_mpl3115A2.altitude); return; } break;
 		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure()) 		{ wichSensor->reading = String(sck_mpl3115A2.pressure); return; } break;
 		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature()) 		{ wichSensor->reading = String(sck_mpl3115A2.temperature); return; } break;
-		case SENSOR_PARTICLE_RED:		if (sck_max30105.getRed()) 			{ wichSensor->reading = String(sck_max30105.redChann); return; } break;
-		case SENSOR_PARTICLE_GREEN:		if (sck_max30105.getGreen()) 			{ wichSensor->reading = String(sck_max30105.greenChann); return; } break;
-		case SENSOR_PARTICLE_IR:		if (sck_max30105.getIR()) 			{ wichSensor->reading = String(sck_max30105.IRchann); return; } break;
-		case SENSOR_PARTICLE_TEMPERATURE:	if (sck_max30105.getTemperature()) 		{ wichSensor->reading = String(sck_max30105.temperature); return; } break;
-		case SENSOR_PM_1: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pm1); return; } break;
-		case SENSOR_PM_25: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pm25); return; } break;
-		case SENSOR_PM_10: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pm10); return; } break;
-		case SENSOR_PN_03: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn03); return; } break;
-		case SENSOR_PN_05: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn05); return; } break;
-		case SENSOR_PN_1: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn1); return; } break;
-		case SENSOR_PN_25: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn25); return; } break;
-		case SENSOR_PN_5: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn5); return; } break;
-		case SENSOR_PN_10: 			if (sck_pm.update()) 				{ wichSensor->reading = String(sck_pm.pn10); return; } break;
+		case SENSOR_PM_1: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pm1); return;
+		case SENSOR_PM_25: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pm25); return;
+		case SENSOR_PM_10: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pm10); return;
+		case SENSOR_PN_03: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn03); return;
+		case SENSOR_PN_05: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn05); return;
+		case SENSOR_PN_1: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn1); return;
+		case SENSOR_PN_25: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn25); return;
+		case SENSOR_PN_5: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn5); return;
+		case SENSOR_PN_10: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); wichSensor->reading = String(sck_pm.pn10); return;
 		default: break;
 	}
 	wichSensor->reading = "null";
@@ -759,6 +755,7 @@ bool Sck_PM::start()
 		delay(50);
 		if (SerialPM.available()) {
 			started = true;
+			rtcStarted = rtc->getEpoch();
 			return true;
 		}
 	}
@@ -771,6 +768,7 @@ bool Sck_PM::stop()
 	digitalWrite(pinPM_ENABLE, LOW);
 	SerialPM.end();
 	started = false;
+	rtcStopped = rtc->getEpoch();
 	detectionFailed = false;
 
 	return true;
@@ -816,6 +814,8 @@ bool Sck_PM::update()
 
 	if (sc2 == 0x4d) {
 
+		rtcReading = rtc->getEpoch();
+
 		sum += sc2;
 
 		unsigned char buff[buffLong];
@@ -851,6 +851,44 @@ bool Sck_PM::update()
 		return true;
 	}
 	return false;
+}
+int16_t Sck_PM::oneShot(uint16_t period)
+{
+	int16_t pendingSeconds = period;
+
+	if (detectionFailed) return -1;
+	if (!started) {
+
+		// If last PM reading is older than some time, start PM
+		if (rtc->getEpoch() - rtcReading >= (minimal_reading_interval - period)) {
+			start();
+		}
+		// Or... reading is ready
+		else pendingSeconds = 0;
+
+	} else {
+
+		pendingSeconds = period - (rtc->getEpoch() - rtcStarted);
+
+		// If PM is on and requested period has passed
+		if (pendingSeconds <= 0) {
+
+			// Get reading
+			if (update()) {
+
+				// Stop PM, reading is ready
+				stop();
+				pendingSeconds = 0;
+
+			} else {
+
+				// return Error
+				return -1;
+			}
+		}
+	}
+
+	return (int16_t)pendingSeconds;
 }
 bool Sck_PM::reset()
 {
@@ -895,7 +933,9 @@ bool Sck_CCS811::getReading(SckBase *base)
 
 	if (compensate) {
 		if (base->sensors[SENSOR_TEMPERATURE].enabled && base->sensors[SENSOR_HUMIDITY].enabled) {
-			if (base->getReading(SENSOR_HUMIDITY) && base->getReading(SENSOR_TEMPERATURE)) {
+			base->getReading(&base->sensors[SENSOR_HUMIDITY]);
+			base->getReading(&base->sensors[SENSOR_TEMPERATURE]);
+			if (base->sensors[SENSOR_HUMIDITY].state == 0 && base->sensors[SENSOR_TEMPERATURE].state == 0) {
 				ccs.setEnvironmentalData(base->sensors[SENSOR_HUMIDITY].reading.toFloat(), base->sensors[SENSOR_TEMPERATURE].reading.toFloat());
 			} 
 		}

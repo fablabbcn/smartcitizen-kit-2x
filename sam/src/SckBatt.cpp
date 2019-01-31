@@ -126,7 +126,6 @@ bool SckCharger::OTG(int8_t enable)
 			writeREG(POWER_ON_CONF_REG, conf);
 			
 		} else {
-			SerialUSB.println("disabling OTG!");
 			conf &= ~(1 << OTG_CONFIG);		// OTG off
 			writeREG(POWER_ON_CONF_REG, conf);
 			chargeState(true);				// Charge on

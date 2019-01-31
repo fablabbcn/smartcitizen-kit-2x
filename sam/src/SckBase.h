@@ -137,7 +137,7 @@ class SckBase
 		// Urban board
 		bool urbanPresent = false;
 		friend class urban;
-		SckUrban urban = SckUrban();
+		SckUrban urban = SckUrban(&rtc);
 
 		// STORAGE
 		// files

@@ -3,6 +3,7 @@
 
 ![Smart Citizen kit 2.0](https://c1.staticflickr.com/5/4795/39073624650_69ae90efae_b.jpg "Smart Citizen kit 2.0")
 
+See the documentation at: http://docs.smartcitizen.me/
 
 ## Development
 

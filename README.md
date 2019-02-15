@@ -1,5 +1,7 @@
-# Smart Citizen Kit 2.1 [![Travis](https://travis-ci.org/fablabbcn/smartcitizen-kit-20.svg?branch=master)](https://travis-ci.org/fablabbcn/smartcitizen-kit-20)
+# Smart Citizen Kit 2.1 
+[![Travis](https://travis-ci.org/fablabbcn/smartcitizen-kit-20.svg?branch=master)](https://travis-ci.org/fablabbcn/smartcitizen-kit-20)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
+[![DOI](https://zenodo.org/badge/109865611.svg)](https://zenodo.org/badge/latestdoi/109865611)
 
 [Click here for version 2.0](https://github.com/fablabbcn/smartcitizen-kit-20/tree/2.0)
 

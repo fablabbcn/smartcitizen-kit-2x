@@ -1608,9 +1608,9 @@ bool SckBase::netPublish()
 				epoch2iso(sensors[wichSensor].lastReadingTime, thisTime);
 				sprintf(netBuff, "%st:%s", netBuff, thisTime);
 				timeSet = true;
-				sprintf(netBuff, "%s,%u:%.2f", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
+				sprintf(netBuff, "%s,%u:%g", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			} else {
-				sprintf(netBuff, "%s,%u:%.2f", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
+				sprintf(netBuff, "%s,%u:%g", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			}
 			count ++;
 		}

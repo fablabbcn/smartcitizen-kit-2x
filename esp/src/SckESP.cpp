@@ -345,7 +345,41 @@ bool SckESP::mqttPublish()
 		debugOUT(String(pubTopic));
 		debugOUT(String(netBuff));
 
-		if (MQTTclient.publish(pubTopic, netBuff)) {
+		char pubPayload[1024];
+		
+
+		// /* Example
+		// {	"data":[
+		// 		{"recorded_at":"2017-03-24T13:35:14Z",
+		// 			"sensors":[
+		// 				{"id":29,"value":48.45},
+		// 				{"id":13,"value":66},
+		// 				{"id":12,"value":28},
+		// 				{"id":10,"value":4.45}
+		// 			]
+		// 		}
+		// 	]
+		// }
+		// 	*/
+
+		char thisTime[21];
+		snprintf(thisTime, 21, &netBuff[3]);
+		sprintf(pubPayload, "%s%s%s", "{\"data\":[{\"recorded_at\":\"", thisTime, "\",\"sensors\":[{\"id\":");
+
+		for (uint16_t i=24; i<NETBUFF_SIZE; i++) {
+			
+			char thisChar[2];
+			snprintf(thisChar, 2, &netBuff[i]);
+
+			if (netBuff[i] == ':') sprintf(pubPayload, "%s%s", pubPayload, ",\"value\":");
+			else if (netBuff[i] == ',') sprintf(pubPayload, "%s%s", pubPayload, "},{\"id\":");
+			else sprintf(pubPayload, "%s%s", pubPayload, thisChar);
+		}
+
+		sprintf(pubPayload, "%s%s", pubPayload, "]}]}");
+
+
+		if (MQTTclient.publish(pubTopic, pubPayload)) {
 			debugOUT(F("MQTT readings published OK !!!"));
 			return true;
 		}

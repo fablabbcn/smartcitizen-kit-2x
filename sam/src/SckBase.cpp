@@ -1596,7 +1596,7 @@ bool SckBase::netPublish()
 	bool timeSet = false;
 	uint8_t count = 0;
 
-	sprintf(netBuff, "%s%s", netBuff, "{\"data\":[{\"recorded_at\":\"");
+	sprintf(netBuff, "%s%s", netBuff, "{");
 
 	for (uint16_t sensorIndex=0; sensorIndex<SENSOR_COUNT; sensorIndex++) {
 
@@ -1606,17 +1606,17 @@ bool SckBase::netPublish()
 			if (!timeSet) {
 				char thisTime[20];
 				epoch2iso(sensors[wichSensor].lastReadingTime, thisTime);
-				sprintf(netBuff, "%s%s\",\"sensors\":[", netBuff, thisTime);
+				sprintf(netBuff, "%st:%s", netBuff, thisTime);
 				timeSet = true;
-				sprintf(netBuff, "%s{\"id\":%u, \"value\":%.02f}", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
+				sprintf(netBuff, "%s,%u:%.2f", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			} else {
-				sprintf(netBuff, "%s,{\"id\":%u, \"value\":%.02f}", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
+				sprintf(netBuff, "%s,%u:%.2f", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			}
 			count ++;
 		}
 	}
 
-	sprintf(netBuff, "%s%s", netBuff, "]}]}");
+	sprintf(netBuff, "%s%s", netBuff, "}");
 
 	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
 	sckOut(PRIO_MED);

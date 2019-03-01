@@ -1542,7 +1542,9 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 		}
 		case BOARD_AUX:
 		{
-				result = String(auxBoards.getReading(wichSensor, this), 2);	// TODO port auxBoards to String mode
+				float preResult = auxBoards.getReading(wichSensor, this);
+				if (preResult == -9999) result = "null";
+				else result = String(preResult, 2);	// TODO port auxBoards to String mode
 				break;
 		}
 	}

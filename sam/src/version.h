@@ -1,1 +1,1 @@
-const String SAMverNum	= "0.6.2";
+const String SAMverNum	= "0.7.0";

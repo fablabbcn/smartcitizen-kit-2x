@@ -232,18 +232,32 @@ class Sck_PM
 		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
 		
-							// 0:1->pm1, 2:3->pm25, 4:5->pm10, 
-							// 6:7->pm1, 8:9->pm2.5, 10:11->pm10   (under atmosferic enviroment)
-							// Number of particles with diameter beyond X um in 0.1 L of air.
-							// 12:13 -> 0.3 um
-							// 14:15 -> 0.5 um
-							// 16:17 -> 1.0 um
-							// 18:19 -> 2.5 um
-							// 20:21 -> 5.0 um
-							// 22:23 -> 10.0 um
+		static const uint8_t buffLong = 30; 	// Excluding both start chars
 
-		static const uint8_t buffLong = 27;
-		unsigned char buff[buffLong];
+		// Serial transmission from PMS
+		// 0: Start char 1 0x42 (fixed)
+		// 1: Start char 2 0x4d (fixed)
+		// 2-3 : Frame length = 2x13 + 2 (data + parity)
+
+		// 4-5: PM1.0 concentration (CF = 1, standard particles) Unit ug/m^3
+		// 6-7: PM2.5 concentration (CF = 1, standard particulates) Unit ug/m^3
+		// 8-9: PM10 concentration (CF = 1, standard particulate matter) Unit ug/m^3
+
+		// 10-11: PM1.0 concentration (in the atmosphere) Unit ug/m^3
+		// 12-13: PM2.5 concentration (in the atmosphere) Unit ug/m^3
+		// 14-15: PM10 concentration (in the atmosphere) Unit ug/m^3
+
+		// 16-17: Particles in 0.1 liter of air > 0.3um 
+		// 18-19: Particles in 0.1 liter of air > 0.5um 
+		// 20-21: Particles in 0.1 liter of air > 1.0um 
+		// 22-23: Particles in 0.1 liter of air > 2.5um 
+		// 24-25: Particles in 0.1 liter of air > 5.0um 
+		// 26-27: Particles in 0.1 liter of air > 10um 
+
+		// 28: Version number
+		// 29: Error code
+
+		// 30-31: Sum of each byte from start_1 ... error_code 
 
 	public:
 		// Readings
@@ -258,6 +272,7 @@ class Sck_PM
 		uint16_t pn10;
 
 		bool started = false;
+		bool active = false;
 
 		bool start();
 		bool stop();

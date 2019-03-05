@@ -1246,46 +1246,77 @@ bool Sck_PM::stop()
 bool Sck_PM::update()
 {
 	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
-	if (millis() - lastFail < 1000) return false;
+	if (millis() - lastFail < 1000) return false; 		// We need at least one second after las fail
 
 	// Empty serial buffer
 	while(SerialPM.available()) SerialPM.read();
 
 	// Wait for new readings
 	uint32_t startPoint = millis();
-	while(SerialPM.available() < 25) {
-		if (millis() - startPoint > 1000) {
+	while(SerialPM.available() < (buffLong + 2)) {
+		if (millis() - startPoint > 1500) {
 			// Timeout
 			lastFail = millis();
+
+			// After 10 seconds declare the PM innactive
+			if (millis() - lastReading < 10000) {
+				active = false;
+			}
 			return false;
 		}
 	}
 
-	while(SerialPM.available()) {
 
-		byte sb = 0;
-		sb = SerialPM.read();
+	uint16_t sum = 0;
 
-		if (sb == 0x42) {
-			SerialPM.readBytes(buff, buffLong);
-			if (buff[0] == 0x4d) {
+	// Search for start char 1
+	byte sc1 = 0;
+	startPoint = millis();
+	while (sc1 != 0x42) {
+		sc1 = SerialPM.read();
+		if (millis() - startPoint > 1500) return false;
+	}
+	sum += sc1;
 
-				pm1 = (buff[3]<<8) + buff[4];
-				pm25 = (buff[5]<<8) + buff[6];
-				pm10 = (buff[7]<<8) + buff[8];
-				pn03 = (buff[15]<<8) + buff[16];
-				pn05 = (buff[17]<<8) + buff[18];
-				pn1 = (buff[19]<<8) + buff[20];
-				pn25 = (buff[21]<<8) + buff[22];
-				pn5 = (buff[23]<<8) + buff[24];
-				pn10 = (buff[25]<<8) + buff[26];
+	// Confirm we receive start char 2
+	byte sc2 = 0;
+	sc2 = SerialPM.read();
 
-				lastReading = millis();
-				lastFail = 0;
+	if (sc2 == 0x4d) {
 
-				return true;
-			}
+		sum += sc2;
+
+		unsigned char buff[buffLong];
+		byte howMany =  SerialPM.readBytes(buff, buffLong);
+
+		// Is buffer complete?
+		if (howMany < 30) {
+			return false;
 		}
+
+		// Checksum
+		uint16_t checkSum = (buff[28]<<8) + buff[29];
+		for(int i=0; i<(buffLong - 2); i++) sum += buff[i];
+		if(sum != checkSum) {
+			return false;
+		}
+
+		// Get the values
+		pm1 = (buff[2]<<8) + buff[3];
+		pm25 = (buff[4]<<8) + buff[5];
+		pm10 = (buff[6]<<8) + buff[7];
+		pn03 = (buff[14]<<8) + buff[15];
+		pn05 = (buff[16]<<8) + buff[17];
+		pn1 = (buff[18]<<8) + buff[19];
+		pn25 = (buff[20]<<8) + buff[21];
+		pn5 = (buff[22]<<8) + buff[23];
+		pn10 = (buff[24]<<8) + buff[25];
+
+		lastReading = millis();
+		lastFail = 0;
+		active = true;
+
+		return true;
 	}
 	return false;
 }

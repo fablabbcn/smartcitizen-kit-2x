@@ -209,12 +209,12 @@ class AllSensors
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		false,		1,			"ug/m3"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		false,		1,			"ug/m3"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		false,		1,			"ug/m3"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_03,				"PN_03",		"PN 0.3",					0,		true,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_05,				"PN_05",		"PN 0.5",					0,		true,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_1,				"PN_1",			"PN 1.0",					0,		true,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_25,				"PN_25",		"PN 2.5",					0,		true,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_5,				"PN_5",			"PN 5.0",					0,		true,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_10,				"PN_10",		"PN 10.0",					0,		true,		false,		1,			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_03,				"PN_03",		"PN 0.3",					0,		false,		false,		1,			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_05,				"PN_05",		"PN 0.5",					0,		false,		false,		1,			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_1,				"PN_1",			"PN 1.0",					0,		false,		false,		1,			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_25,				"PN_25",		"PN 2.5",					0,		false,		false,		1,			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_5,				"PN_5",			"PN 5.0",					0,		false,		false,		1,			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_10,				"PN_10",		"PN 10.0",					0,		false,		false,		1,			"#/0.1l"},
 
 
 			// I2C Auxiliary Sensors

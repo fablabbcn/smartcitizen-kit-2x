@@ -232,7 +232,6 @@ class Sck_PM
 		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
 		
-							// 12 bytes:
 							// 0:1->pm1, 2:3->pm25, 4:5->pm10, 
 							// 6:7->pm1, 8:9->pm2.5, 10:11->pm10   (under atmosferic enviroment)
 							// Number of particles with diameter beyond X um in 0.1 L of air.

@@ -958,9 +958,9 @@ bool SckBase::sendMessage()
 	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
 
 	if (debugESPcom) {
-		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bits", totalParts, totalSize);
+		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bytes", totalParts, totalSize);
 		sckOut();
-		sckOut(netBuff);
+		SerialUSB.println(netBuff);
 	}
 
 	for (uint8_t i=0; i<totalParts; i++) {
@@ -1594,6 +1594,7 @@ bool SckBase::netPublish()
 		// 	*/
 
 
+	memset(netBuff, 0, sizeof(netBuff));
 	sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
 	bool timeSet = false;
 	uint8_t count = 0;

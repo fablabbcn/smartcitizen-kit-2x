@@ -148,6 +148,9 @@ void SckESP::SAMbusUpdate()
 			uint8_t pre = netPack[1];
 			ESPMessage wichMessage = static_cast<ESPMessage>(pre);
 
+			// Empty netBuff before starting to store the new message
+			memset(netBuff, 0, sizeof(netBuff));
+
 			// Get content from first package (1 byte less than the rest)
 			memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
 

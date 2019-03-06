@@ -1605,7 +1605,7 @@ bool SckBase::netPublish()
 
 		SensorType wichSensor = sensors.sensorsPriorized(sensorIndex);
 
-		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0 && (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2))) {
+		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0 && (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2)) && !sensors[wichSensor].reading.startsWith("null")) {
 			if (!timeSet) {
 				char thisTime[20];
 				epoch2iso(sensors[wichSensor].lastReadingTime, thisTime);
@@ -1712,7 +1712,7 @@ bool SckBase::sdPublish()
 					postFile.file.print(sensors[wichSensor].reading);
 				} else {
 					postFile.file.print(",");
-					postFile.file.print("NaN");
+					postFile.file.print("null");
 				}
 			} 
 		}

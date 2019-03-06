@@ -215,7 +215,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_B_PN_10].enabled = true;
 					extraPrint = true;
 				}
-				if (extraPrint) base->sckOut("Also disabled the rest of PM metrics");
+				if (extraPrint) base->sckOut("Also enabled the rest of PM metrics");
 				saveNeeded = true;
 			}
 		} else if (parameters.indexOf("-disable") >=0) {

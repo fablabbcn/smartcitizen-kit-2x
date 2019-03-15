@@ -25,6 +25,9 @@ bool SckUrban::setup(SckBase *base)
 					case SENSOR_ALTITUDE:
 					case SENSOR_PRESSURE:
 					case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.start()) return false; break;
+					case SENSOR_PM_1:
+					case SENSOR_PM_25:
+					case SENSOR_PM_10: 				sck_pm.start(); break;
 					default: break;
 				}
 			}

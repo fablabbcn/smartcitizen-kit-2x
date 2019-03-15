@@ -20,11 +20,7 @@ FlashStorage(eepromConfig, Configuration);
 
 void SckBase::setup()
 {
-	/* delay(3000); */
 	SerialUSB.println("Starting...");
-	// TEMP turn off PMSpower
-	pinMode(pinBOARD_CONN_7, OUTPUT);
-	digitalWrite(pinBOARD_CONN_7, HIGH);
 
 	// Led
 	led.setup();
@@ -119,7 +115,6 @@ void SckBase::setup()
 	analogReadResolution(12);
 	if (urban.setup(this)) {
 		sckOut("Urban board detected");
-		urban.stop(SENSOR_PM_1); 	// Make sure PM is off until battery is ready for it
 		urbanPresent = true;
 	} else {
 		sckOut("No urban board detected!!");
@@ -1283,7 +1278,6 @@ void SckBase::updatePower()
 			if (!charger.chargeState()) charger.chargeState(true); 	// Enable charging
 		} else {
 			sckOut("Battery removed!!");
-			sckOut("Stoping PM sensor...");
 			charger.chargeState(false); 	// Disable charging
 			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 		}

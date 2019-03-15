@@ -34,22 +34,21 @@ class SckTest
 		volatile ButtonLed_sate butLedState = TEST_BLUE;
 
 		enum Test_type {
-			TEST_BATT_GAUGE, 		// 0 percent
-			TEST_BATT_CHG_RATE, 		// 1 mA
-			TEST_BATT_CHG, 			// 2 bool
-			TEST_SD, 			// 3 bool
-			TEST_FLASH, 			// 4 bool
-			TEST_USER, 			// 5 (button) bool
-			TEST_TEMP, 			// 6 C
-			TEST_HUM, 			// 7 percent
-			TEST_LIGHT, 			// 8 Lux
-			TEST_PRESS, 			// 9 kPa
-			TEST_NOISE, 			// 13 dbA
-			TEST_PM_1, 			// 14 ug/m3
-			TEST_PM_25, 			// 15 ug/m3
-			TEST_PM_10, 			// 16 ug/m3
-			TEST_AUXWIRE, 			// 17 bool
-			TEST_WIFI_TIME, 		// 18 seconds
+			TEST_BATT_VOLT,			// 0 bool
+			TEST_BATT_CHG, 			// 1 bool
+			TEST_SD, 			// 2 bool
+			TEST_FLASH, 			// 3 bool
+			TEST_USER, 			// 4 (button) bool
+			TEST_TEMP, 			// 5 C
+			TEST_HUM, 			// 6 percent
+			TEST_LIGHT, 			// 7 Lux
+			TEST_PRESS, 			// 8 kPa
+			TEST_NOISE, 			// 9 dbA
+			TEST_PM_1, 			// 10 ug/m3
+			TEST_PM_25, 			// 11 ug/m3
+			TEST_PM_10, 			// 12 ug/m3
+			TEST_AUXWIRE, 			// 13 bool
+			TEST_WIFI_TIME, 		// 14 seconds
 
 			TEST_COUNT
 		};

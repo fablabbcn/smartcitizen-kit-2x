@@ -22,7 +22,6 @@ enum CommandType {
 	COM_MONITOR_SENSOR,
 	COM_PUBLISH,
 	COM_GET_FREERAM,
-	COM_BATT,
 	COM_I2C_DETECT,
 	COM_CHARGER,
 	COM_CONFIG,
@@ -51,7 +50,6 @@ void controlSensor_com(SckBase* base, String parameters);
 void monitorSensor_com(SckBase* base, String parameters);
 void publish_com(SckBase* base, String parameters);
 void freeRAM_com(SckBase* base, String parameters);
-void batt_com(SckBase* base, String parameters);
 void i2cDetect_com(SckBase* base, String parameters);
 void charger_com(SckBase* base, String parameters);
 void config_com(SckBase* base, String parameters);
@@ -101,7 +99,6 @@ class AllCommands {
 			OneCom {90,	COM_MONITOR_SENSOR,	"monitor",	"Continously read sensor [-sd] [-notime] [-noms] [sensorName[,sensorNameN]]",								monitorSensor_com},
 			OneCom {90,	COM_PUBLISH,		"publish",	"Publish sensor readings",														publish_com},
 			OneCom {90,	COM_GET_FREERAM,	"free",		"Shows the amount of free RAM memory",													freeRAM_com},
-			OneCom {90,	COM_BATT, 		"batt",		"Shows/set the battery state [-cap mAh]",														batt_com},
 			OneCom {90,	COM_I2C_DETECT,		"i2c",		"Search the I2C bus for devices",													i2cDetect_com},
 			OneCom {90,	COM_CHARGER,		"charger",	"Controls or shows charger configuration [-otg on/off] [-charge on/off]",								charger_com},
 			OneCom {90,	COM_CONFIG,		"config",	"Shows/sets configuration [-defaults] [-mode sdcard/network] [-pubint seconds] [-readint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token]", config_com},

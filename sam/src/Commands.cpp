@@ -362,51 +362,6 @@ void freeRAM_com(SckBase* base, String parameters)
 	sprintf(base->outBuff, "Free RAM: %lu bytes", free);
 	base->sckOut();
 }
-void batt_com(SckBase* base, String parameters)
-{
-	if(!base->battery.isPresent(base->charger)) {
-			base->sckOut("No battery present");
-			return;
-	}
-
-	// get
-	if (parameters.length() <= 0) {
-
-			sprintf(base->outBuff, "Charge: %u %%\r\nVoltage: %0.2f V\r\nCharge current: %i mA\r\nPower: %i mW\r\nCapacity: %u/%u mAh\r\nState of health: %u %%",
-			base->battery.percent(),
-			base->battery.voltage(),
-			base->battery.current(),
-			base->battery.power(),
-			base->battery.remainCapacity(),
-			base->battery.designCapacity,
-			base->battery.health()
-			);
-	
-			base->sckOut();
-	// set
-	} else {
-	
-		uint16_t capI = parameters.indexOf("-cap");
-		if (capI >=0) {
-			String capC = parameters.substring(capI+5);
-			capC.trim();
-			uint16_t capU = capC.toInt();
-
-			if (capU > 100 && capU <= 8000) {
-				base->sckOut("Reconfiguring battery...");
-			
-				if (base->config.battDesignCapacity != capU) {
-					base->config.battDesignCapacity = capU;
-					base->saveConfig();
-				}
-				batt_com(base, "");
-			} else {
-				base->sckOut("Wrong or unsuported battery capacity!!");
-			}
-		}
-	
-	}
-}
 void i2cDetect_com(SckBase* base, String parameters)
 {
 

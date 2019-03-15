@@ -259,7 +259,6 @@ class SckBase
 		// Power
 		void sck_reset();
 		SckBatt battery;
-		volatile bool battPendingEvent = false;
 		SckCharger charger;
 
 		// Misc

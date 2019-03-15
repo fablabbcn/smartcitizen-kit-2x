@@ -24,10 +24,6 @@ void ISR_button() {
 	base.butFeedback();
 #endif
 }
-// Battery events interrupt
-void ISR_battery() {
-	base.battPendingEvent = true;
-}
 // Card detect interrupt
 void ISR_sdDetect() {
 	base.sdDetect();

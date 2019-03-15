@@ -40,7 +40,7 @@ void SckTest::test_full()
 
 	testBase->outputLevel = OUT_SILENT;
 
-	// Test battery gauge
+	// Test battery
 	test_battery();
 
 	// Test SDcard
@@ -128,22 +128,20 @@ void SckTest::test_button()
 
 bool SckTest::test_battery()
 {
-	SerialUSB.println("\r\nTesting battery level");
+	SerialUSB.println("\r\nTesting battery voltage");
 
 	uint8_t battErrors = errors;
 
-	if (!testBase->getReading(SENSOR_BATT_PERCENT) || testBase->sensors[SENSOR_BATT_PERCENT].reading.toFloat() < 0) {
+	if (!testBase->battery.isPresent(testBase->charger)) {
 		SerialUSB.println("ERROR no battery detected!!");
 		errors ++;
-	} else {
-		test_report.tests[TEST_BATT_GAUGE] = testBase->sensors[SENSOR_BATT_PERCENT].reading.toFloat();
 	}
 
-	if (!testBase->getReading(SENSOR_BATT_CHARGE_RATE) || testBase->sensors[SENSOR_BATT_CHARGE_RATE].reading.toFloat() <= 0) {
-		SerialUSB.println("ERROR no battery charge rate detected!!");
+	if (!testBase->getReading(SENSOR_BATT_VOLTAGE) || testBase->sensors[SENSOR_BATT_VOLTAGE].reading.toFloat() <= 0) {
+		SerialUSB.println("ERROR reading battery voltage!");
 		errors ++;
 	} else {
-		test_report.tests[TEST_BATT_CHG_RATE] = testBase->sensors[SENSOR_BATT_CHARGE_RATE].reading.toFloat();
+		test_report.tests[TEST_BATT_VOLT] = testBase->sensors[SENSOR_BATT_VOLTAGE].reading.toFloat();
 	}
 
 	if (testBase->charger.getChargeStatus() != testBase->charger.CHRG_FAST_CHARGING) {
@@ -155,14 +153,11 @@ bool SckTest::test_battery()
 
 	if (battErrors < errors) return false;
 
-	SerialUSB.print(test_report.tests[TEST_BATT_GAUGE]);
-	SerialUSB.println(" %");
-	SerialUSB.print("charging at: ");
-	SerialUSB.print(test_report.tests[TEST_BATT_CHG_RATE]);
-	SerialUSB.println(" mA");
+	SerialUSB.print(test_report.tests[TEST_BATT_VOLT]);
+	SerialUSB.println(" V");
 	SerialUSB.print("Charger status: ");
 	SerialUSB.println(testBase->charger.chargeStatusTitles[testBase->charger.getChargeStatus()]);
-	SerialUSB.println("Battery gauge test finished OK");
+	SerialUSB.println("Battery test finished OK");
 	return true;
 }
 
@@ -381,28 +376,21 @@ bool SckTest::publishResult()
 		/* "errors":3,                                  // Number of errors */
 		/* "tests": */
 		/* 			[ */
-		/* 		{"00":78.5},     // battery gauge - percent */
-		/* 		{"01":2},        // battery charge rate - mA */
-		/* 		{"02":1},        // battery charging - bool */
-		/* 		{"03":1},        // SD card - bool */
-		/* 		{"04":1},        // flash memory - bool */
-		/* 		{"05":1},        // user (button) - bool */
-		/* 		{"06":1},        // MICS POT - bool */
-		/* 		{"07":58.4},     // MICS carbon - kOhm */
-		/* 		{"08":23.5},     // MICS nitro - kOhm */
-		/* 		{"09":25.5},     // SHT31 temperature - C */
-		/* 		{"10":56.6},     // SHT31 humidity - percent */
-		/* 		{"11":228.7},    // Light - Lux */
-		/* 		{"12":28.7},     // Barometric pressure - kPa */
-		/* 		{"13":33.5},     // MAX red - units */
-		/* 		{"14":33.5},     // MAX green - units */
-		/* 		{"15":33.5},     // MAX ir -units */
-		/* 		{"16":48.7},     // Noise - dbA */
-		/* 		{"17":18.7},     // PM-1 - ug/m3 */
-		/* 		{"18":18.7},     // PM-2.5 - ug/m3 */
-		/* 		{"19":18.7},     // PM-10 - ug/m3 */
-		/* 		{"20":1},        // Auxiliary I2C bus - bool */
-		/* 		{"21":8}         // Wifi connection time - seconds */
+		/* 		{"00":78.5},     // battery - percent */
+		/* 		{"01":1},        // battery charging - bool */
+		/* 		{"02":1},        // SD card - bool */
+		/* 		{"03":1},        // flash memory - bool */
+		/* 		{"04":1},        // user (button) - bool */
+		/* 		{"05":25.5},     // SHT31 temperature - C */
+		/* 		{"06":56.6},     // SHT31 humidity - percent */
+		/* 		{"07":228.7},    // Light - Lux */
+		/* 		{"08":28.7},     // Barometric pressure - kPa */
+		/* 		{"09":48.7},     // Noise - dbA */
+		/* 		{"10":18.7},     // PM-1 - ug/m3 */
+		/* 		{"11":18.7},     // PM-2.5 - ug/m3 */
+		/* 		{"12":18.7},     // PM-10 - ug/m3 */
+		/* 		{"13":1},        // Auxiliary I2C bus - bool */
+		/* 		{"14":8}         // Wifi connection time - seconds */
 		/* 			] */
 		/* } */
 

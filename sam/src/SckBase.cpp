@@ -1754,11 +1754,6 @@ bool SckBase::setTime(String epoch)
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		st.timeStat.setOk();
-		if (urbanPresent) {
-			// Update MICS clock
-			getReading(SENSOR_CO_HEAT_TIME);
-			getReading(SENSOR_NO2_HEAT_TIME);
-		}
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
 		sckOut();

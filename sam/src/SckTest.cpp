@@ -6,8 +6,6 @@
 void SckTest::test_full()
 {
 	// Enable sensors for test
-	testBase->enableSensor(SENSOR_CO_RESISTANCE);
-	testBase->enableSensor(SENSOR_NO2_RESISTANCE);
 	testBase->enableSensor(SENSOR_TEMPERATURE);
 	testBase->enableSensor(SENSOR_HUMIDITY);
 	testBase->enableSensor(SENSOR_LIGHT);
@@ -53,12 +51,6 @@ void SckTest::test_full()
 
 	// Test Flash memory
 	if (!test_flash()) errors++;
-
-	// Test MICS POT
-	if (!test_micsPot()) errors++;
-
-	// Test MICS ADC
-	test_micsAdc();
 
 	// Test SHT temp and hum
 	test_SHT();
@@ -258,52 +250,6 @@ bool SckTest::test_flash()
 
 	test_report.tests[TEST_FLASH] = 1;
 	SerialUSB.println("Flash memory test finished OK");
-	return true;
-}
-
-bool SckTest::test_micsPot()
-{
-	const float ohmsPerStep	= 10000.0/127; // Ohms for each potenciometer step
-
-	SerialUSB.println("\r\nTesting MICS digital POT...");
-
-	uint32_t writePoint = 5000;
-
-	testBase->urban.sck_mics4514.getNO2load();
-	uint32_t startPoint = testBase->urban.sck_mics4514.no2LoadResistor;
-	if (abs(startPoint - writePoint) < 1000) writePoint = 2000;
-
-	testBase->urban.sck_mics4514.setNO2load(writePoint);
-	testBase->urban.sck_mics4514.getNO2load();
-	uint32_t readPoint = testBase->urban.sck_mics4514.no2LoadResistor; 
-
-	if (writePoint - readPoint > ohmsPerStep) {
-		SerialUSB.println("ERROR MICS digital POT test failed!!!");
-		return false;
-	}
-
-	test_report.tests[TEST_MICS_POT] = 1;
-	SerialUSB.println("MICS digital POT test finished OK");
-	return true;
-}
-
-bool SckTest::test_micsAdc()
-{
-	SerialUSB.println("\r\nTesting MICS sensor...");
-
-	uint8_t adcErrors = errors;
-	if (!testBase->getReading(SENSOR_CO_RESISTANCE)) {
-		SerialUSB.println("ERROR reading CO sensor");
-		errors ++;
-	} else test_report.tests[TEST_CARBON] = testBase->sensors[SENSOR_CO_RESISTANCE].reading.toFloat();
-	
-	if (!testBase->getReading(SENSOR_NO2_RESISTANCE)) {
-		SerialUSB.println("ERROR reading NO2 sensor");
-		errors ++;
-	} else test_report.tests[TEST_NITRO] = testBase->sensors[SENSOR_NO2_RESISTANCE].reading.toFloat();
-
-	if (adcErrors < errors) return false;
-	SerialUSB.println("MICS readings test finished OK");
 	return true;
 }
 

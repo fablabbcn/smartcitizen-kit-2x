@@ -15,16 +15,11 @@
 //
 // * Light - BH1721 -> (0x29)
 // * Temperature and Humidity - SHT31 -> (0x44)
-// * CO and NO2 - MICS4515	
-//      digital POT -> 0x2F
-// 	ADS7924 MICSADC -> 0x48
 // * Noise  - Invensense ICS43432 I2S microphone;microphone:
 // * Barometric pressure - MPL3115 -> (0x60)
 // * Dust Particles - MAX30105 -> (0x57)
 
 // Pins
-const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_3;
-const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_5;
 const uint8_t pinPM_SERIAL_RX = pinBOARD_CONN_11;
 const uint8_t pinPM_SERIAL_TX = pinBOARD_CONN_13;
 
@@ -81,74 +76,6 @@ class Sck_SHT31
 		bool start();
 		bool stop();
 		bool update(bool wait=true);
-};
-
-// Gases CO and NO2
-class Sck_MICS4514
-{
-	// Datasheet
-	// http://files.manylabs.org/datasheets/MICS-4514.pdf
-	// TODO create a generic class and instantiate CO, NO2
-	private:
-
-		const float heater_VCC = 3.235; 		// (volts) Measured on Hex inverter IC1
-		const float heater_seriesResistor = 10.0;
-
-		// Carbon Monoxide
-		float heaterResistance_CO = 74.0; 		// Nominal value from datasheet (will be recalculated on boot)
-		float dutyCycle_CO = 50.0;  			// Start with low power until we can get the Heater resistance value.
-		const uint8_t CO_HEATER_ADC_CHANN = 3;
-		const uint8_t CO_ADC_CHANN = 2;
-		const float CO_HEATING_POWER = 0.076; 		// (watts) Typical heating power from datasheet
-		
-		// Nitrogen Dioxide
-		float heaterResistance_NO2 = 66.0; 		// Nominal value from datasheet (will be recalculated on boot)
-		float dutyCycle_NO2 = 50.0;  			// Start with low power until we can get the Heater resistance value.
-		const uint8_t NO2_HEATER_ADC_CHANN = 1;
-		const uint8_t NO2_ADC_CHANN = 0;
-		const float NO2_HEATING_POWER = 0.043;  		// (watts) Typical heating power from datasheet
-
-		const uint32_t ANALOG_RESOLUTION = 4095;
-		const uint32_t VCC = 3278; 			// (mV) Measured manually on MICS input
-		byte ADC_DIR = 0x48;
-
-		bool heaterRunning = false;
-		uint32_t startHeaterTime = 0;
-		uint32_t stopHeaterTime = 0;
-
-		// CO Fixed resistor
-		uint32_t coLoadResistor = 750000;
-
-		// NO2 adjustable load resistor
-		const byte POT_NO2_LOAD_ADDRESS = 0x2F;
-		const float ohmsPerStep	= 10000.0/127; // Ohms for each potenciometer step
-
-		void writeI2C(byte deviceaddress, byte address, byte data );
-		byte readI2C(int deviceaddress, byte address);
-
-	public:
-		float coResistance;
-		float no2Resistance;
-		uint16_t no2LoadResistor;
-		bool start(uint32_t startTime);
-		bool stop(uint32_t stopTime);
-		bool startHeater();
-		bool startPWM();
-		bool getCOresistance();
-		float getCOheatVoltage();
-		float getCOpwm();
-		float getTunnedCOpwm();
-		float getCOheatResistance();
-		bool getNO2resistance();
-		float getNO2heatVoltage();
-		float getNO2pwm();
-		float getTunnedNO2pwm();
-		float getNO2heatResistance();
-		bool setNO2load(uint32_t value);
-		bool getNO2load();
-		uint32_t getHeatTime(uint32_t currentTime);
-		float average(uint8_t wichPin);
-		float getADC(uint8_t wichChannel);
 };
 
 // Noise
@@ -272,9 +199,6 @@ class SckUrban
 
 		// Temperature and Humidity
 		Sck_SHT31 sck_sht31 = Sck_SHT31(&Wire);
-
-		// Gases CO and NO2
-		Sck_MICS4514 sck_mics4514;
 
 		// Noise
 		Sck_Noise sck_noise;

@@ -20,8 +20,6 @@ class SckTest
 		bool test_flash();
 
 		// sensors
-		bool test_micsPot();
-		bool test_micsAdc();
 		bool test_SHT();
 		bool test_Light();
 		bool test_Pressure();
@@ -43,22 +41,19 @@ class SckTest
 			TEST_SD, 			// 3 bool
 			TEST_FLASH, 			// 4 bool
 			TEST_USER, 			// 5 (button) bool
-			TEST_MICS_POT, 			// 6 bool
-			TEST_CARBON, 			// 7 kOhm
-			TEST_NITRO, 			// 8 kOhm
-			TEST_TEMP, 			// 9 C
-			TEST_HUM, 			// 10 percent
-			TEST_LIGHT, 			// 11 Lux
-			TEST_PRESS, 			// 12 kPa
-			TEST_MAX_RED, 			// 13 units
-			TEST_MAX_GREEN, 		// 14 units
-			TEST_MAX_IR, 			// 15 units
-			TEST_NOISE, 			// 16 dbA
-			TEST_PM_1, 			// 17 ug/m3
-			TEST_PM_25, 			// 18 ug/m3
-			TEST_PM_10, 			// 19 ug/m3
-			TEST_AUXWIRE, 			// 20 bool
-			TEST_WIFI_TIME, 		// 21 seconds
+			TEST_TEMP, 			// 6 C
+			TEST_HUM, 			// 7 percent
+			TEST_LIGHT, 			// 8 Lux
+			TEST_PRESS, 			// 9 kPa
+			TEST_MAX_RED, 			// 10 units
+			TEST_MAX_GREEN, 		// 11 units
+			TEST_MAX_IR, 			// 12 units
+			TEST_NOISE, 			// 13 dbA
+			TEST_PM_1, 			// 14 ug/m3
+			TEST_PM_25, 			// 15 ug/m3
+			TEST_PM_10, 			// 16 ug/m3
+			TEST_AUXWIRE, 			// 17 bool
+			TEST_WIFI_TIME, 		// 18 seconds
 
 			TEST_COUNT
 		};
@@ -86,4 +81,3 @@ class SckTest
 
 // TODO
 // SAM firmware upload error reporting
-// remember to uncomment MICS sensor enabling 

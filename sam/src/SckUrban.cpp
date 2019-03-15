@@ -12,11 +12,6 @@ bool SckUrban::setup(SckBase *base)
 	uint32_t currentTime = 0;
 	if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
 
-	// To protect MICS turn off heaters
-	sck_mics4514.startPWM(); 	// Workaround Noise not working without mics init
-	sck_mics4514.stop(currentTime);
-
-
 	for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 		SensorType thisType = SENSOR_COUNT;
 		thisType = static_cast<SensorType>(i);
@@ -26,8 +21,6 @@ bool SckUrban::setup(SckBase *base)
 					case SENSOR_LIGHT: 				if (!sck_bh1721fvc.start()) return false; break;
 					case SENSOR_TEMPERATURE:
 					case SENSOR_HUMIDITY: 				if (!sck_sht31.start()) return false; break;
-					case SENSOR_CO_RESISTANCE:
-					case SENSOR_NO2_RESISTANCE:			if (!sck_mics4514.start(currentTime))	return false; break;
 					case SENSOR_NOISE_DBA:
 					case SENSOR_NOISE_DBC:
 					case SENSOR_NOISE_DBZ:
@@ -53,13 +46,6 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_LIGHT: 				if (sck_bh1721fvc.start()) return true; break;
 		case SENSOR_TEMPERATURE:
 		case SENSOR_HUMIDITY: 				if (sck_sht31.start()) return true; break;
-		case SENSOR_CO_RESISTANCE:
-		case SENSOR_CO_HEAT_VOLT:
-		case SENSOR_CO_HEAT_TIME:
-		case SENSOR_NO2_RESISTANCE:
-		case SENSOR_NO2_HEAT_VOLT:
-		case SENSOR_NO2_HEAT_TIME:
-		case SENSOR_NO2_LOAD_RESISTANCE:		if (sck_mics4514.start(0)) return true; break;
 		case SENSOR_NOISE_DBA:
 		case SENSOR_NOISE_DBC:
 		case SENSOR_NOISE_DBZ:
@@ -87,13 +73,6 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_LIGHT: 				if (sck_bh1721fvc.stop()) return true; break;
 		case SENSOR_TEMPERATURE:
 		case SENSOR_HUMIDITY: 				if (sck_sht31.stop()) return true; break;
-		case SENSOR_CO_RESISTANCE:
-		case SENSOR_CO_HEAT_VOLT:
-		case SENSOR_CO_HEAT_TIME:
-		case SENSOR_NO2_RESISTANCE:
-		case SENSOR_NO2_HEAT_VOLT:
-		case SENSOR_NO2_HEAT_TIME:
-		case SENSOR_NO2_LOAD_RESISTANCE:		if (sck_mics4514.stop(0)) return true; break;
 		case SENSOR_NOISE_DBA:
 		case SENSOR_NOISE_DBC:
 		case SENSOR_NOISE_DBZ:
@@ -122,23 +101,6 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 		case SENSOR_LIGHT:			if (sck_bh1721fvc.get(wait)) return String(sck_bh1721fvc.reading); break;
 		case SENSOR_TEMPERATURE: 		if (sck_sht31.update(wait)) return String(sck_sht31.temperature); break;
 		case SENSOR_HUMIDITY: 			if (sck_sht31.update(wait)) return String(sck_sht31.humidity); break;
-		case SENSOR_CO_RESISTANCE: 		if (sck_mics4514.getCOresistance()) return String(sck_mics4514.coResistance); break;
-		case SENSOR_CO_HEAT_VOLT: 		return String(sck_mics4514.getCOheatVoltage()); break;
-		case SENSOR_CO_HEAT_TIME:
-			{
-				uint32_t currentTime = 0;
-				if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
-				return String(sck_mics4514.getHeatTime(currentTime)); break;
-			}
-		case SENSOR_NO2_RESISTANCE: 		if (sck_mics4514.getNO2resistance()) return String(sck_mics4514.no2Resistance); break;
-		case SENSOR_NO2_HEAT_VOLT: 		return String(sck_mics4514.getNO2heatVoltage()); break;
-		case SENSOR_NO2_HEAT_TIME:
-			{
-				uint32_t currentTime = 0;
-				if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
-				return String(sck_mics4514.getHeatTime(currentTime)); break;
-			}
-		case SENSOR_NO2_LOAD_RESISTANCE:	if (sck_mics4514.getNO2load()) return String(sck_mics4514.no2LoadResistor); break;
 		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading(SENSOR_NOISE_DBA)) return String(sck_noise.readingDB); break;
 		case SENSOR_NOISE_DBC: 			if (sck_noise.getReading(SENSOR_NOISE_DBC)) return String(sck_noise.readingDB); break;
 		case SENSOR_NOISE_DBZ: 			if (sck_noise.getReading(SENSOR_NOISE_DBZ)) return String(sck_noise.readingDB); break;
@@ -168,14 +130,6 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 {
 
          switch (wichSensor) {
-		case SENSOR_CO_RESISTANCE:
-		case SENSOR_NO2_RESISTANCE: {
-			if (command.startsWith("help")) {
-				base->sckOut("Available commands for this sensor:\r\nNothing yet!!"); 
-				return true;
-			} else base->sckOut("Unrecognized command!! please try again..."); return false;
-			break;
-		}
 		case SENSOR_NOISE_DBA:
 		case SENSOR_NOISE_DBC:
 		case SENSOR_NOISE_DBZ:
@@ -426,340 +380,6 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 	}
 	return crc;
 }
-
-// Gases
-bool Sck_MICS4514::start(uint32_t startTime)
-{
-	if (heaterRunning) return true;
-
-	startHeater();
-
-	// Put the load resistor in middle position
-	setNO2load(8000);
-
-	startHeaterTime = startTime;
-	return true;
-}
-bool Sck_MICS4514::stop(uint32_t stopTime)
-{
-	pinMode(pinPWM_HEATER_CO, OUTPUT);
-	pinMode(pinPWM_HEATER_NO2, OUTPUT);
-	digitalWrite(pinPWM_HEATER_CO, HIGH);
-	digitalWrite(pinPWM_HEATER_NO2, HIGH);
-
-	if (!heaterRunning) return true;
-	heaterRunning = false;
-	stopHeaterTime = stopTime;
-	startHeaterTime = 0;
-
-	TCC1->CTRLA.reg &= ~TCC_CTRLA_ENABLE;
-	while (TCC1->SYNCBUSY.reg & TCC_SYNCBUSY_MASK);
-
-	return true;
-}
-bool Sck_MICS4514::startHeater()
-{
-	// TODO esto parece ejecutarse dos veces cuando habilitas por primera vez el sensor
-	heaterRunning = true;
-
-	// Recalculate heater resistors
-	heaterResistance_CO = getCOheatResistance();
-	heaterResistance_NO2 = getNO2heatResistance();
-
-	// Recalculate PWM dutyCycles
-	dutyCycle_CO = getCOpwm();
-	dutyCycle_NO2 = getNO2pwm();
-
-	// Start heaters
-	startPWM();
-
-	// Tunne heater voltage
-	for (uint8_t i=0; i<3; i++) {
-		dutyCycle_CO = getTunnedCOpwm();
-		dutyCycle_NO2 = getTunnedNO2pwm();
-		startPWM();
-	}
-
-	return true;
-}
-bool Sck_MICS4514::getCOresistance()
-{
-	float sensorVoltage = getADC(CO_ADC_CHANN);
-
-	if (sensorVoltage == 0) return false;
-	if (sensorVoltage > VCC) sensorVoltage = VCC;
-	coResistance = (((VCC - sensorVoltage) / sensorVoltage) * coLoadResistor) / 1000.0;
-	return true;
-}
-float Sck_MICS4514::getCOheatVoltage()
-{
-
-	return getADC(CO_HEATER_ADC_CHANN)/1000.0;
-}
-float Sck_MICS4514::getCOpwm()
-{
-	float desired_voltage = sqrt(CO_HEATING_POWER * heaterResistance_CO);
-
-	// Take in account the series resistor
-	float voltageOut = desired_voltage / (heaterResistance_CO / (heaterResistance_CO + heater_seriesResistor));
-
-	// Calculate PWM dutyCycle
-	float desiredPWM = voltageOut / heater_VCC * 100;
-
-	return desiredPWM;
-}
-float Sck_MICS4514::getTunnedCOpwm()
-{
-	float desiredVoltage = sqrt(CO_HEATING_POWER * heaterResistance_CO);
-	float currentVoltage = getCOheatVoltage();
-
-	float diff = (desiredVoltage - currentVoltage) / desiredVoltage;
-	float tunnedPWM = (dutyCycle_CO * diff) + dutyCycle_CO;
-
-	return tunnedPWM;
-}
-float Sck_MICS4514::getCOheatResistance()
-{
-	// Turn on Heater
-	pinMode(pinPWM_HEATER_CO, OUTPUT);
-	digitalWrite(pinPWM_HEATER_CO, LOW);
-
-	float heater_voltage = getCOheatVoltage();
-	float heater_resistance = heater_voltage / (heater_VCC - heater_voltage) * heater_seriesResistor; 
-
-	// Turn off heater
-	digitalWrite(pinPWM_HEATER_CO, HIGH);
-
-	return heater_resistance;
-}
-bool Sck_MICS4514::getNO2resistance()
-{
-	float sensorVoltage = getADC(NO2_ADC_CHANN);
-
-	if (sensorVoltage == 0) return false;
-	if (sensorVoltage > VCC) sensorVoltage = VCC;
-	getNO2load();
-	no2Resistance = (((VCC - sensorVoltage) / sensorVoltage) * no2LoadResistor) / 1000.0;
-	return true;
-}
-float Sck_MICS4514::getNO2heatVoltage()
-{
-
-	return getADC(NO2_HEATER_ADC_CHANN)/1000.0;
-}
-float Sck_MICS4514::getNO2pwm()
-{
-	float desired_voltage = sqrt(NO2_HEATING_POWER * heaterResistance_NO2);
-
-	// Take in account the series resistor
-	float voltageOut = desired_voltage / (heaterResistance_NO2 / (heaterResistance_NO2 + heater_seriesResistor));
-
-	// Calculate PWM dutyCycle
-	float desiredPWM = voltageOut / heater_VCC * 100;
-
-	return desiredPWM;
-}
-float Sck_MICS4514::getTunnedNO2pwm()
-{
-	float desiredVoltage = sqrt(NO2_HEATING_POWER * heaterResistance_NO2);
-	float currentVoltage = getNO2heatVoltage();
-
-	float diff = (desiredVoltage - currentVoltage) / desiredVoltage;
-	float tunnedPWM = (dutyCycle_NO2 * diff) + dutyCycle_NO2;
-
-	return tunnedPWM;
-}
-float Sck_MICS4514::getNO2heatResistance()
-{
-	// Turn on Heater
-	pinMode(pinPWM_HEATER_NO2, OUTPUT);
-	digitalWrite(pinPWM_HEATER_NO2, LOW);
-
-	float heater_voltage = getNO2heatVoltage();
-	float heater_resistance = heater_voltage / (heater_VCC - heater_voltage) * heater_seriesResistor; 
-
-	// Turn off heater
-	digitalWrite(pinPWM_HEATER_NO2, HIGH);
-
-	return heater_resistance;
-}
-bool Sck_MICS4514::setNO2load(uint32_t value)
-{
-	// Check minimal/maximal safe value for Gas sensor (Datasheet says 820 Ohms minimal) ~ 870 because of the rounding of POT discrete steps
-	if (value < 870) value = 870;
-	else if (value > 10000) value = 10000;
-
-	// Data to be writen (based on datasheet page 59) (http://ww1.microchip.com/downloads/en/DeviceDoc/22107B.pdf)
-	// Sending data in MSB 7 bits (with a zero at the end)
-	byte data = (int)(value / ohmsPerStep);
-	data <<= 1;
-
-	const byte MCP4551_CMD_WRITE = 0b00000000;
-
-	Wire.beginTransmission(POT_NO2_LOAD_ADDRESS);
-	Wire.write(MCP4551_CMD_WRITE);
-	Wire.write(data);
-	return (Wire.endTransmission() == 0);
-}
-bool Sck_MICS4514::getNO2load()
-{
-	const byte MCP4551_CMD_READ	= 0b00001100;
-
-	Wire.beginTransmission(POT_NO2_LOAD_ADDRESS);
-	Wire.write(MCP4551_CMD_READ);
-	Wire.endTransmission();
-	Wire.requestFrom(POT_NO2_LOAD_ADDRESS, 2);
-
-	// Wait for answer with a timeout
-	uint16_t waitTimeout = 500;
-	uint32_t time = millis();
-	while (!Wire.available()) if ((millis() - time) > waitTimeout) return false;
-
-	// (Based on datasheet page 61) (http://ww1.microchip.com/downloads/en/DeviceDoc/22107B.pdf)
-	// using only MSB 7 bits from second byte
-	Wire.read();
-	byte buffer = Wire.read();
-	buffer >>= 1;
-
-	no2LoadResistor = (uint16_t)(buffer * ohmsPerStep);
-
-	return true;
-}
-bool Sck_MICS4514::startPWM()
-{
-	// TODO check results at different freq
-	// Frequency = GCLK frequency / (2 * N * PER)       where N = prescaler value (CTRLA register)
-
-	// Posible values for N:
-	// TCC_CTRLA_PRESCALER_DIV1
-	// TCC_CTRLA_PRESCALER_DIV2
-	// TCC_CTRLA_PRESCALER_DIV4
-	// TCC_CTRLA_PRESCALER_DIV8
-	// TCC_CTRLA_PRESCALER_DIV16
-	// TCC_CTRLA_PRESCALER_DIV64
-	// TCC_CTRLA_PRESCALER_DIV256
-	// TCC_CTRLA_PRESCALER_DIV1024
-	/* #define MY_DIVIDER TCC_CTRLA_PRESCALER_DIV1 */
-	#define MY_DIVIDER TCC_CTRLA_PRESCALER_DIV1024
-
- 	// With N = 1
-	// FOR 12 bits
-	// Frequency = 48MHz / (2 * 1 * 4096) = 5,859.375 ~ 5.9 * 2 = 11.8 khz
-	// Resolution at 5.9kHz = log(4096 + 1) / log(2) = 12 bits
-	//
-	// FOR 10 bits
-	// Frequency = 48MHz / (2 * 1 * 1024) = 23,437.5 ~ 23.4 * 2 = 46.8 khz
-	// Resolution at 23.4kHz = log(1024 + 1) / log(2) = 10 bits
-	//
-	// FOR 8 bits
-	// Frequency = 48MHz / (2 * 1 * 256) = 93,750 ~ 93.7 kHz * 2 = 187.4 khz
-	// Resolution at 93.7kHz = log(256 + 1) / log(2) = 8 bits
-	//
-	// FOR 6 bits
-	// Frequency = 48MHz / (2 * 1 * 96) = 250 kHz * 2 = 500 khz
-	// Resolution at 250kHz = log(96 + 1) / log(2) = 6.6 bits
-
-	uint8_t resolution = 10;					// Resolution in bits
-	uint16_t maxValue = pow(2, resolution);
-
-	REG_GCLK_GENDIV = GCLK_GENDIV_DIV(1) |          // Divide the 48MHz clock source by divisor 1: 48MHz/1=48MHz
-					  GCLK_GENDIV_ID(4);            // Select Generic Clock (GCLK) 4
-	while (GCLK->STATUS.bit.SYNCBUSY);
-
-	REG_GCLK_GENCTRL = GCLK_GENCTRL_IDC |           // Set the duty cycle to 50/50 HIGH/LOW
-					   GCLK_GENCTRL_GENEN |         // Enable GCLK4
-					   GCLK_GENCTRL_SRC_DFLL48M |   // Set the 48MHz clock source
-					   GCLK_GENCTRL_ID(4);          // Select GCLK4
-	while (GCLK->STATUS.bit.SYNCBUSY);
-
-	// Enable the port multiplexer for the digital pin
-	PORT->Group[PORTA].PINCFG[8].bit.PMUXEN = 1;
-	PORT->Group[PORTA].PINCFG[9].bit.PMUXEN = 1;
-
-	// Connect the TCC0 timer to pin PA09 - port pins are paired odd PMUO and even PMUXE
-	// F & E specify the timers: TCC0, TCC1 and TCC2
-	PORT->Group[PORTA].PMUX[8 >> 1].reg |= PORT_PMUX_PMUXE_F;
-	PORT->Group[PORTA].PMUX[9 >> 1].reg |= PORT_PMUX_PMUXO_F;
-
-	// Feed GCLK4 to TCC0 and TCC1
-	REG_GCLK_CLKCTRL = GCLK_CLKCTRL_CLKEN |         // Enable GCLK4 to TCC0 and TCC1
-					   GCLK_CLKCTRL_GEN_GCLK4 |     // Select GCLK4
-					   GCLK_CLKCTRL_ID_TCC0_TCC1;   // Feed GCLK4 to TCC0 and TCC1
-	while (GCLK->STATUS.bit.SYNCBUSY);
-
-	//Set for Single slope PWM operation: timers or counters count up to TOP value and then repeat
-	REG_TCC1_WAVE |=  TCC_WAVE_WAVEGEN_NPWM;
-	while (TCC1->SYNCBUSY.bit.WAVE);
-
-	// Each timer counts up to a maximum or TOP value set by the PER register,
-	// this determines the frequency of the PWM operation:
-	REG_TCC1_PER = maxValue;         		// Set the frequency of the PWM on TCC0
-	while (TCC1->SYNCBUSY.bit.PER);
-
-	REG_TCC1_CC1 = (uint16_t)(maxValue * ((100 - dutyCycle_CO) / 100.0)); 	// CO
-	REG_TCC1_CC0 = (uint16_t)(maxValue * ((100 - dutyCycle_NO2) / 100.0)); 	// NO2
-
-	while (TCC1->SYNCBUSY.bit.CC1);
-
-	// Divide the 48MHz signal by 1 giving 48MHz (20.83ns) TCC0 timer tick and enable the outputs
-	REG_TCC1_CTRLA |= MY_DIVIDER |    // Divide GCLK4 (posibles values: 1,2,4,8,16,64,256,1024)
-					  TCC_CTRLA_ENABLE;             // Enable the TCC0 output
-	while (TCC1->SYNCBUSY.bit.ENABLE);
-	return true;
-}
-uint32_t Sck_MICS4514::getHeatTime(uint32_t currentTime)
-{
-	if (!heaterRunning) return 0;
-	if (startHeaterTime == 0) startHeaterTime = currentTime;
-	return currentTime - startHeaterTime;
-}
-float Sck_MICS4514::average(uint8_t wichPin)
-{
-
-	uint16_t numReadings = 500;
-	long total = 0;
-	for(uint16_t i=0; i<numReadings; i++) {
-		total = total + analogRead(wichPin);
-	}
-	float average = (float)total / numReadings;
-	return average;
-}
-float Sck_MICS4514::getADC(uint8_t wichChannel)
-{
-	byte dir[4] = {2,4,6,8};
-	byte ask = B11000000 + wichChannel;
-
-	uint32_t result = 0;
-	uint8_t numberOfSamples = 20;
-
-	// Average 5 samples
-	for (uint8_t i=0; i<numberOfSamples; i++) {
-		writeI2C(ADC_DIR, 0, ask);
-		writeI2C(ADC_DIR, 0, ask);
-		result += (readI2C(ADC_DIR, dir[wichChannel])<<4) + (readI2C(ADC_DIR, dir[wichChannel] + 1)>>4);
-	}
-	float resultInVoltage = (float)(result / numberOfSamples) * VCC / ANALOG_RESOLUTION;
-	return resultInVoltage;
-}
-void Sck_MICS4514::writeI2C(byte deviceaddress, byte address, byte data )
-{
-	Wire.beginTransmission(deviceaddress);
-	Wire.write(address);
-	Wire.write(data);
-	Wire.endTransmission();
-	delay(4);
-}
-byte Sck_MICS4514::readI2C(int deviceaddress, byte address)
-{
-	Wire.beginTransmission(deviceaddress);
-	Wire.write(address);
-	Wire.endTransmission();
-	Wire.requestFrom(deviceaddress,1);
-	if (Wire.available() != 1) return 0x00;
-	byte data = Wire.read();
-	return data;
-}
-
 
 // Noise
 bool Sck_Noise::start()

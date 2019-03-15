@@ -23,7 +23,6 @@ class SckTest
 		bool test_SHT();
 		bool test_Light();
 		bool test_Pressure();
-		bool test_MAX();
 		bool test_Noise();
 		bool test_PM();
 		bool test_auxWire();
@@ -45,9 +44,6 @@ class SckTest
 			TEST_HUM, 			// 7 percent
 			TEST_LIGHT, 			// 8 Lux
 			TEST_PRESS, 			// 9 kPa
-			TEST_MAX_RED, 			// 10 units
-			TEST_MAX_GREEN, 		// 11 units
-			TEST_MAX_IR, 			// 12 units
 			TEST_NOISE, 			// 13 dbA
 			TEST_PM_1, 			// 14 ug/m3
 			TEST_PM_25, 			// 15 ug/m3

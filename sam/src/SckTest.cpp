@@ -10,9 +10,6 @@ void SckTest::test_full()
 	testBase->enableSensor(SENSOR_HUMIDITY);
 	testBase->enableSensor(SENSOR_LIGHT);
 	testBase->enableSensor(SENSOR_PRESSURE);
-	testBase->enableSensor(SENSOR_PARTICLE_RED);
-	testBase->enableSensor(SENSOR_PARTICLE_GREEN);
-	testBase->enableSensor(SENSOR_PARTICLE_IR);
 	testBase->enableSensor(SENSOR_PM_1);
 	testBase->enableSensor(SENSOR_PM_25);
 	testBase->enableSensor(SENSOR_PM_10);
@@ -60,9 +57,6 @@ void SckTest::test_full()
 
 	// Test Pressure 
 	if (!test_Pressure()) errors++;
-
-	// Test MAX dust sensor
-	test_MAX();
 
 	// Test PM sensor
 	test_PM();
@@ -296,31 +290,6 @@ bool SckTest::test_Pressure()
 	} else test_report.tests[TEST_PRESS] = testBase->sensors[SENSOR_PRESSURE].reading.toFloat();
 
 	SerialUSB.println("Pressure reading test finished OK");
-	return true;
-}
-
-bool SckTest::test_MAX()
-{
-	SerialUSB.println("\r\nTesting Dust sensor...");
-	
-	uint8_t maxErrors = errors;
-	if (!testBase->getReading(SENSOR_PARTICLE_RED)) { 
-		SerialUSB.println("ERROR reading Dust Red channel sensor");
-		errors ++;
-	} else test_report.tests[TEST_MAX_RED] = testBase->sensors[SENSOR_PARTICLE_RED].reading.toFloat();
-
-	if (!testBase->getReading(SENSOR_PARTICLE_GREEN)) { 
-		SerialUSB.println("ERROR reading Dust Green channel sensor");
-		errors ++;
-	} else test_report.tests[TEST_MAX_GREEN] = testBase->sensors[SENSOR_PARTICLE_GREEN].reading.toFloat();
-
-	if (!testBase->getReading(SENSOR_PARTICLE_IR)) { 
-		SerialUSB.println("ERROR reading Dust InfraRed channel sensor");
-		errors ++;
-	} else test_report.tests[TEST_MAX_IR] = testBase->sensors[SENSOR_PARTICLE_IR].reading.toFloat();
-
-	if (maxErrors < errors) return false;
-	SerialUSB.println("MAX dust sensor reading test finished OK");
 	return true;
 }
 

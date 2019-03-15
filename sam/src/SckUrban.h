@@ -25,9 +25,8 @@
 // Pins
 const uint8_t pinPWM_HEATER_CO = pinBOARD_CONN_3;
 const uint8_t pinPWM_HEATER_NO2 = pinBOARD_CONN_5;
-const uint8_t pinPM_SERIAL_RX = pinBOARD_CONN_9;
-const uint8_t pinPM_SERIAL_TX = pinBOARD_CONN_11;
-const uint8_t pinPM_ENABLE = pinBOARD_CONN_7; 		// HIGH Enable PMS power
+const uint8_t pinPM_SERIAL_RX = pinBOARD_CONN_11;
+const uint8_t pinPM_SERIAL_TX = pinBOARD_CONN_13;
 
 enum SensorState
 {

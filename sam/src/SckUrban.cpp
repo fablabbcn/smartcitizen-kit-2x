@@ -9,9 +9,6 @@ void SERCOM5_Handler() {
 
 bool SckUrban::setup(SckBase *base)
 {
-	uint32_t currentTime = 0;
-	if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
-
 	for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 		SensorType thisType = SENSOR_COUNT;
 		thisType = static_cast<SensorType>(i);
@@ -28,10 +25,6 @@ bool SckUrban::setup(SckBase *base)
 					case SENSOR_ALTITUDE:
 					case SENSOR_PRESSURE:
 					case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.start()) return false; break;
-					case SENSOR_PARTICLE_RED:
-					case SENSOR_PARTICLE_GREEN:
-					case SENSOR_PARTICLE_IR:
-					case SENSOR_PARTICLE_TEMPERATURE: 		if (!sck_max30105.start()) return false; break;
 					default: break;
 				}
 			}
@@ -41,7 +34,6 @@ bool SckUrban::setup(SckBase *base)
 };
 bool SckUrban::start(SensorType wichSensor)
 {
-	// TODO find a way to manage MICS start and stop time without pasing time as a parameter
 	switch(wichSensor) {
 		case SENSOR_LIGHT: 				if (sck_bh1721fvc.start()) return true; break;
 		case SENSOR_TEMPERATURE:
@@ -53,10 +45,6 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_ALTITUDE:
 		case SENSOR_PRESSURE:
 		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.start()) return true; break;
-		case SENSOR_PARTICLE_RED:
-		case SENSOR_PARTICLE_GREEN:
-		case SENSOR_PARTICLE_IR:
-		case SENSOR_PARTICLE_TEMPERATURE: 		if (sck_max30105.start()) return true; break;
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
 		case SENSOR_PM_10: 				if (sck_pm.start()) return true; break;
@@ -67,8 +55,6 @@ bool SckUrban::start(SensorType wichSensor)
 }
 bool SckUrban::stop(SensorType wichSensor)
 {
-
-	// TODO find a way to manage MICS start and stop time without pasing time as a parameter
 	switch(wichSensor) {
 		case SENSOR_LIGHT: 				if (sck_bh1721fvc.stop()) return true; break;
 		case SENSOR_TEMPERATURE:
@@ -80,10 +66,6 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_ALTITUDE:
 		case SENSOR_PRESSURE:
 		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.stop()) return true; break;
-		case SENSOR_PARTICLE_RED:
-		case SENSOR_PARTICLE_GREEN:
-		case SENSOR_PARTICLE_IR:
-		case SENSOR_PARTICLE_TEMPERATURE: 		if (sck_max30105.stop()) return true; break;
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
 		case SENSOR_PM_10: 				if (sck_pm.stop()) return true; break;
@@ -114,10 +96,6 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude(wait)) return String(sck_mpl3115A2.altitude); break;
 		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure(wait)) return String(sck_mpl3115A2.pressure); break;
 		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature(wait)) return String(sck_mpl3115A2.temperature); break;
-		case SENSOR_PARTICLE_RED:		if (sck_max30105.getRed(wait)) return String(sck_max30105.redChann); break;
-		case SENSOR_PARTICLE_GREEN:		if (sck_max30105.getGreen(wait)) return String(sck_max30105.greenChann); break;
-		case SENSOR_PARTICLE_IR:		if (sck_max30105.getIR(wait)) return String(sck_max30105.IRchann); break;
-		case SENSOR_PARTICLE_TEMPERATURE:	if (sck_max30105.getTemperature(wait)) return String(sck_max30105.temperature); break;
 		case SENSOR_PM_1: 			if (sck_pm.update()) return String(sck_pm.pm1); break;
 		case SENSOR_PM_25: 			if (sck_pm.update()) return String(sck_pm.pm25); break;
 		case SENSOR_PM_10: 			if (sck_pm.update()) return String(sck_pm.pm10); break;
@@ -737,65 +715,6 @@ bool Sck_MPL3115A2::getTemperature(bool wait)
 	altitude = Adafruit_mpl3115A2.getAltitude();
 	temperature =  Adafruit_mpl3115A2.getTemperature();	// Only works after a getAltitude! don't call this allone
 
-	return true;
-}
-
-// Dust Particles
-bool Sck_MAX30105::start()
-{
-
-	if (sparkfun_max30105.begin()) return true;
-	return false;
-}
-bool Sck_MAX30105::stop()
-{
-
-	sparkfun_max30105.shutDown();
-	return true;
-}
-bool Sck_MAX30105::getRed(bool wait)
-{
-
-	sparkfun_max30105.wakeUp();
-
-	// TODO Dig more into setup parameters
-	sparkfun_max30105.setup();
-	redChann = (float)sparkfun_max30105.getRed();
-	sparkfun_max30105.shutDown();
-	return true;
-}
-bool Sck_MAX30105::getGreen(bool wait)
-{
-
-	sparkfun_max30105.wakeUp();
-
-	// TODO Dig more into setup parameters
-	sparkfun_max30105.setup();
-	greenChann = (float)sparkfun_max30105.getGreen();
-	sparkfun_max30105.shutDown();
-	return true;
-}
-bool Sck_MAX30105::getIR(bool wait)
-{
-
-	sparkfun_max30105.wakeUp();
-
-	// TODO Dig more into setup parameters
-	sparkfun_max30105.setup();
-	IRchann = (float)sparkfun_max30105.getIR();
-	sparkfun_max30105.shutDown();
-	return true;
-}
-bool Sck_MAX30105::getTemperature(bool wait)
-{	
-	// NOT WORKING!!! (sparkfun lib)
-
-	sparkfun_max30105.wakeUp();
-
-	// TODO Dig more into setup parameters
-	sparkfun_max30105.setup(0);
-	temperature = (float)sparkfun_max30105.readTemperature();
-	sparkfun_max30105.shutDown();
 	return true;
 }
 

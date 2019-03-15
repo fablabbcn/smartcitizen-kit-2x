@@ -5,7 +5,6 @@
 
 #include <Sensors.h>
 #include "Pins.h"
-#include "MAX30105.h"
 #include <Adafruit_MPL3115A2.h>
 #include "SckSoundTables.h"
 #include <I2S.h>
@@ -17,7 +16,6 @@
 // * Temperature and Humidity - SHT31 -> (0x44)
 // * Noise  - Invensense ICS43432 I2S microphone;microphone:
 // * Barometric pressure - MPL3115 -> (0x60)
-// * Dust Particles - MAX30105 -> (0x57)
 
 // Pins
 const uint8_t pinPM_SERIAL_RX = pinBOARD_CONN_11;
@@ -127,29 +125,6 @@ class Sck_MPL3115A2
 		bool getTemperature(bool wait=true);
 };
 
-// Dust Particles
-class Sck_MAX30105
-{
-	// Datasheet
-	// https://datasheets.maximintegrated.com/en/ds/MAX30105.pdf
-
-	private:
-		MAX30105 sparkfun_max30105;
-
-	public:
-		uint8_t address = 0x57;
-		float redChann;
-		float greenChann;
-		float IRchann;
-		float temperature;
-		bool start();
-		bool stop();
-		bool getRed(bool wait=true);
-		bool getGreen(bool wait=true);
-		bool getIR(bool wait=true);
-		bool getTemperature(bool wait=true);	// NOT WORKING!!! (sparkfun lib)
-};
-
 //PM sensors
 class Sck_PM
 {
@@ -205,9 +180,6 @@ class SckUrban
 
 		// Barometric pressure and Altitude
 		Sck_MPL3115A2 sck_mpl3115A2;
-
-		// Dust Particles
-		Sck_MAX30105 sck_max30105;
 
 		// PM sensor
 		Sck_PM sck_pm;

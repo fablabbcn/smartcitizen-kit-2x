@@ -276,11 +276,32 @@ void SckCharger::detectUSB()
 	if (vbusStatus == VBUS_ADAPTER_PORT) {
 		if (!onUSB) {
 			onUSB = true;
+			// TODO avoid reset if kit was on off state
 			NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
 		}
 	} else onUSB = false;
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
+}
+float SckCharger::getSysMinVolt()
+{
+	float minVolt = 3.0;
+
+	byte powOnReg = readREG(POWER_ON_CONF_REG);
+
+	powOnReg = (powOnReg>>VSYS_MIN) & 0b111;
+
+	minVolt += (0.1 * (powOnReg & 1));
+	minVolt += (0.2 * ((powOnReg>>1) & 1));
+	minVolt += (0.4 * ((powOnReg>>2) & 1));
+
+	return minVolt;
+}
+bool SckCharger::getBatLowerSysMin()
+{
+	byte ssr = readREG(SYS_STATUS_REG);
+	
+	return (ssr & 1);
 }
 
 // Battery
@@ -291,15 +312,12 @@ bool SckBatt::setup(SckCharger charger)
 
 	return true;
 }
-bool SckBatt::isPresent(SckCharger charger)
-{
-	return false;
-}
 float SckBatt::voltage()
 {
-	return 0;
+	float thisVoltage = analogRead(pinMEASURE_BATT) * 2.0 / 4096.0 * workingVoltage;
+	return thisVoltage;
 }
 uint8_t SckBatt::percent()
 {
-	return 0;
+	return 75;
 }

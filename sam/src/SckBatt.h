@@ -5,6 +5,8 @@
 #include <Pins.h>
 #include "wiring_private.h"
 
+const float workingVoltage = 3.3;
+
 class SckCharger
 {
 private:
@@ -17,6 +19,7 @@ private:
 	
 	byte POWER_ON_CONF_REG = 1;
 	byte BOOST_LIM = 0;			// Limit for boost mode. 0 – 1 A, 1 – 1.5 A
+	byte VSYS_MIN = 1; 			// (Three bits 1:3 -- bit 1 - 0.1v, bit 2 - 0.2v, bit 3 - 0.4v) Minimum System Voltage Limit -> Offset:3.0 V, Range3.0 V – 3.7 VDefault:3.5 V (101)
 	byte CHG_CONFIG = 4;			// Charger Configuration. 0 - Charge Disable; 1- Charge Enable
 	byte OTG_CONFIG = 5;			// Charger Configuration. 0 – OTG Disable; 1 – OTG Enable. OTG_CONFIG would over-ride Charge Enable Function in CHG_CONFIG
 	byte I2C_WATCHDOG_TIMER_RESET = 6;	// I2C Watchdog Timer Reset. 0 – Normal; 1 – Reset
@@ -24,6 +27,9 @@ private:
 
 	byte CHARGE_CURRENT_CONTROL = 2;
 	byte CHARGE_CURRENT_LIMIT = 2;		// Limit charge current.(bits 2:6) Range: 512 – 2048mA (00000–11000), bit6 - 1024mA, bit5 - 512mA, bit4 - 256mA, bit3 - 128mA, bit2 - 64mA, (ej. 00000 -> 512mA, 00100 -> 768mA)
+
+	byte CHARGE_VOLT_CONTROL = 4;
+	byte BATLOWV = 1; 			// 0 – 2.8V, 1 – 3V Default:3.0 V
 
 	byte CHG_TERM_TIMER_CTRL = 5;
 	byte CHG_TIMER = 1;			// Fast Charge Timer Setting. (Two bits 1:2) 00 – 5 hrs, 01 – 8 hrs, 10 – 12 hrs, 11 – 20 hrs
@@ -38,6 +44,7 @@ private:
 	byte DPDM_EN = 7;			// Force DPDM detection. 0 – Not in Force detection; 1 – Force detection when VBUS power is present
 
 	byte SYS_STATUS_REG = 8;		// System Status Register
+	byte VSYS_STAT = 0; 			// 0 – Not in VSYSMIN regulation (BAT > VSYSMIN), 1 – In VSYSMIN regulation (BAT < VSYSMIN)
 	byte PG_STAT = 2;			// Power Good status. 0 – Not Power Good, 1 – Power Good
 	byte DPM_STAT = 3;			// DPM (detection) 0 - Not in DPM, 1 - On DPM
 	byte CHRG_STAT = 4;			// (Two bits 4:5) 00 – Not Charging, 01 – Pre-charge (<VBATLOWV), 10 – Fast Charging, 11 – Charge Termination Done
@@ -49,6 +56,7 @@ private:
 	byte OTG_FAULT = 6;			// 0 – Normal, 1 – VBUS overloaded in OTG, or VBUS OVP, or battery is too low (any conditions that cannot start boost function)
 	byte WATCHDOG_FAULT = 7;		// 0 – Normal, 1- Watchdog timer expiration	
 
+	float batLow = 3.0; 			// If batt < batLow the charger will start with precharging cycle.
 	byte readREG(byte wichRegister);
 	bool writeREG(byte wichRegister, byte data);
 
@@ -104,6 +112,8 @@ public:
 	bool getDPMstatus();
 	void forceInputCurrentLimitDetection();
 	void detectUSB();
+	float getSysMinVolt();
+	bool getBatLowerSysMin();
 	ChargeStatus getChargeStatus();
 	VBUSstatus getVBUSstatus();
 	byte getNewFault();		// TODO
@@ -121,7 +131,8 @@ class SckBatt
 
 	public:
 		bool present = false;
-		uint8_t lastPercent = 0;
+
+		float maxVolt = 4.1; 	// This should be updated when dynamic lookup table is implemented
 
 		const uint8_t threshold_low = 10;
 		const uint8_t threshold_emergency = 2;
@@ -130,7 +141,6 @@ class SckBatt
 		uint8_t emergencyLowBatCounter = 0;
 
 		bool setup(SckCharger charger);
-		bool isPresent(SckCharger charger);
 		float voltage();
 		uint8_t percent();
 };

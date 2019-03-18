@@ -52,8 +52,6 @@ void SckBase::setup()
 
 	// Power management configuration
 	charger.setup();
-	pinMode(pinGAUGE_INT, INPUT_PULLUP);
-	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
 	battery.setup(charger);
 
 	// RTC setup
@@ -1258,100 +1256,61 @@ void SckBase::goToSleep()
 }
 void SckBase::updatePower()
 {
-
-	// Update battery present status
-	bool prevBattPresent = battery.present;
-	battery.isPresent(charger);
-	bool battChanged = false;
-
-	// Update USB connection status
 	charger.detectUSB();
-
-	// If battery status changed enable/disable charging
-	if (prevBattPresent != battery.present) {
-
-		battChanged = true;
-
-		// TODO review this with the new hardware
-		if (battery.present) {
-			sckOut("Battery inserted!!");
-			if (!charger.chargeState()) charger.chargeState(true); 	// Enable charging
-		} else {
-			sckOut("Battery removed!!");
-			charger.chargeState(false); 	// Disable charging
-			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
-		}
-	}
 
 	if (charger.onUSB) {
 
-		// Reset lowBatt counter
+		// Reset lowBatt counters
 		battery.lowBatCounter = 0;
-
-		// Reset emergencyLowBatt counter
 		battery.emergencyLowBatCounter = 0;
 
-		// Update charge status
-		SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
-		charger.chargeStatus = charger.getChargeStatus();
-
-		bool justStoppedCharging = false;
-		// If charger status changed
-		if (prevChargeStatus != charger.chargeStatus || battChanged) {
-
-			if (battery.present) {
-
-				switch(charger.chargeStatus) {
-					case charger.CHRG_PRE_CHARGE:
-					case charger.CHRG_FAST_CHARGING:
-
-						sckOut("Charging battery...");
-						led.chargeStatus = led.CHARGE_CHARGING;
-						break;
-
-					case charger.CHRG_NOT_CHARGING:
-					case charger.CHRG_CHARGE_TERM_DONE:
-						if (charger.chargeState()) charger.chargeState(false);
-						// Verify again that battery is present
-						if (battery.isPresent(charger)) {
-							sckOut("Battery fully charged");
-							led.chargeStatus = led.CHARGE_FINISHED;
-							justStoppedCharging = true;
-						}
-						break;
-
-					default: break;
+		switch(charger.getChargeStatus()) {
+		
+			case charger.CHRG_NOT_CHARGING:
+				// If voltage is too low we asume we don't have battery.
+				if (charger.getBatLowerSysMin()) {
+					if (battery.present) sckOut("Battery removed!!");
+					battery.present = false;
+					led.chargeStatus = led.CHARGE_NULL;
+				} else {
+					if (!battery.present) sckOut("Battery connected!!");
+					battery.present = true;
+					if (battery.voltage() < battery.maxVolt) charger.chargeState(true);
+					else led.chargeStatus = led.CHARGE_FINISHED;
 				}
+				break;
+			case charger.CHRG_CHARGE_TERM_DONE:
 
-			} else {
+				// To be sure the batt is present, turn off charging and check voltages on next cycle
 				if (charger.chargeState()) charger.chargeState(false);
-				sckOut("Battery is not charging");
-				led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
-			}
+				break;
+			default:
+				battery.present = true;
+				led.chargeStatus = led.CHARGE_CHARGING;	
+				break;
 		}
-
 	} else {
 
+		battery.present = true;
+		uint8_t battNow = battery.percent();
+
 		// Emergency lowBatt
-		if (battery.lastPercent < battery.threshold_emergency) {
-			if (battery.emergencyLowBatCounter < 5) {
-				battery.emergencyLowBatCounter++;
-				led.chargeStatus = led.CHARGE_NULL;
-			} else led.chargeStatus = led.CHARGE_LOW;
-			// TODO replace this with proper led feeback and sleep mode
-			/* led.powerEmergency = true; */
+		if (battNow < battery.threshold_emergency) {
+			if (battery.emergencyLowBatCounter < 5) battery.emergencyLowBatCounter++;
+			else {
+				// TODO replace this with sleep mode
+				led.chargeStatus = led.CHARGE_LOW;
+			}
 
-		// Detect lowBatt
-		} else if (battery.lastPercent < battery.threshold_low) {
-			if (battery.lowBatCounter < 5) {
-				battery.lowBatCounter++;
-				led.chargeStatus = led.CHARGE_NULL;
-			} else led.chargeStatus = led.CHARGE_LOW;
-
+		// Low Batt
+		} else if (battNow < battery.threshold_low) {
+			if (battery.lowBatCounter < 5) battery.lowBatCounter++;
+			else led.chargeStatus = led.CHARGE_LOW;
+		
+		
 		} else {
-			sckOut("Battery is not charging");
-			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
-
+		
+			led.chargeStatus = led.CHARGE_NULL;	
 		}
 	}
 }
@@ -1399,12 +1358,10 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		case BOARD_BASE:
 		{
 			switch (wichSensor) {
+				case SENSOR_BATT_VOLTAGE:
 				case SENSOR_BATT_PERCENT:
 				 	// Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
 					result = true;
-					break;
-				case SENSOR_BATT_VOLTAGE:
-					if (battery.isPresent(charger)) result = true;
 					break;
 				case SENSOR_SDCARD:
 					result = true;
@@ -1470,18 +1427,15 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 				switch (wichSensor) {
 					case SENSOR_BATT_PERCENT:
 					{
-						if (!battery.isPresent(charger)) {
+						if (!battery.present) {
 							result = String("-1");
 							break;
 						}
-						uint32_t thisPercent = battery.percent();
-						if (thisPercent > 100) thisPercent = 100;
-						else if (thisPercent < 0) thisPercent = 0;
-						result = String(thisPercent);
+						result = String(battery.percent());
 						break;
 					}
 					case SENSOR_BATT_VOLTAGE:
-						if (!battery.isPresent(charger)) {
+						if (!battery.present) {
 							result = String("-1");
 							break;
 						}

@@ -28,6 +28,8 @@ enum SensorType
 	SENSOR_ALTITUDE,
 	SENSOR_PRESSURE,
 	SENSOR_PRESSURE_TEMP,
+	SENSOR_CCS811_VOCS,
+	SENSOR_CCS811_ECO2,
 	SENSOR_PM_1,
 	SENSOR_PM_25,
 	SENSOR_PM_10,
@@ -83,9 +85,6 @@ enum SensorType
 	SENSOR_BME680_HUMIDITY,
 	SENSOR_BME680_PRESSURE,
 	SENSOR_BME680_VOCS,
-
-	SENSOR_CCS811_VOCS,
-	SENSOR_CCS811_ECO2,
 
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
@@ -157,6 +156,8 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 		SENSOR_ALTITUDE, 			"ALT", 			"Altitude", 					0,		false,		false,			"M"},
 			OneSensor { BOARD_URBAN, 		SENSOR_PRESSURE, 			"PRESS",		"Barometric pressure",				58,		true,		false,			"kPa"},
 			OneSensor { BOARD_URBAN, 		SENSOR_PRESSURE_TEMP,			"PRESS_TEMP",		"Pressure internal temperature", 		0,		false,		false,			"C"},
+			OneSensor { BOARD_URBAN,		SENSOR_CCS811_VOCS,			"CCS811_VOCS",		"VOC Gas CCS811",				0,		true,		true,			"ppb"},
+			OneSensor { BOARD_URBAN,		SENSOR_CCS811_ECO2,			"CCS811_ECO2",		"eCO2 Gas CCS811",				0,		true,		true,			"ppm"},
 			OneSensor { BOARD_URBAN,		SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		false,			"ug/m3"},
 			OneSensor { BOARD_URBAN,		SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		false,			"ug/m3"},
 			OneSensor { BOARD_URBAN,		SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		false,			"ug/m3"},
@@ -220,9 +221,6 @@ class AllSensors
 			OneSensor { BOARD_AUX,			SENSOR_BME680_HUMIDITY,			"BME680_HUM",		"Humidity BME680",				0,		false,		false,			"%"},
 			OneSensor { BOARD_AUX,			SENSOR_BME680_PRESSURE,			"BME680_PRESS",		"Barometric pressure BME680",			0,		false,		false,			"kPa"},
 			OneSensor { BOARD_AUX,			SENSOR_BME680_VOCS,			"BME680_VOCS",		"VOC Gas BME680",				0,		false,		false,			"Ohms"},
-
-			OneSensor { BOARD_AUX,			SENSOR_CCS811_VOCS,			"CCS811_VOCS",		"VOC Gas CCS811",				0,		false,		true,			"ppb"},
-			OneSensor { BOARD_AUX,			SENSOR_CCS811_ECO2,			"CCS811_ECO2",		"eCO2 Gas CCS811",				0,		false,		true,			"ppm"},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

@@ -8,6 +8,8 @@
 #include <Adafruit_MPL3115A2.h>
 #include "SckSoundTables.h"
 #include <I2S.h>
+#include <SparkFunCCS811.h>
+
 
 // Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
 // It includes drivers for this sensors:
@@ -16,6 +18,9 @@
 // * Temperature and Humidity - SHT31 -> (0x44)
 // * Noise  - Invensense ICS43432 I2S microphone;microphone:
 // * Barometric pressure - MPL3115 -> (0x60)
+// * VOC and ECO2 - CCS811 -> (0x5a)
+
+class SckBase;
 
 // Pins
 const uint8_t pinPM_SERIAL_RX = pinBOARD_CONN_11;
@@ -151,7 +156,26 @@ class Sck_PM
 		bool reset();
 };
 
-class SckBase;
+// VOC ans ECO2 - CCS811
+class Sck_CCS811
+{
+	// TODO review  the utility of baseline on datasheet and implement cotrol interface if needed
+	// TODO check consumption and quality in different drive modes: 1 sec [default], 10 sec, 60 sec or 0.25 sec (RAW mode)
+
+	public:
+		const byte deviceAddress = 0x5a;
+		bool start();
+		bool stop();
+		bool getReading(SckBase *base);
+
+		bool compensate = true; 	// Compensation is for both sensors or none
+		float VOCgas;
+		float ECO2gas;
+	private:
+		bool alreadyStarted = false;
+		CCS811 ccs = CCS811(deviceAddress);
+};
+
 
 class SckUrban
 {
@@ -180,6 +204,9 @@ class SckUrban
 
 		// Barometric pressure and Altitude
 		Sck_MPL3115A2 sck_mpl3115A2;
+
+		// VOC and ECO2
+		Sck_CCS811 sck_ccs811;
 
 		// PM sensor
 		Sck_PM sck_pm;

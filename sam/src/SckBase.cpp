@@ -114,11 +114,45 @@ void SckBase::setup()
 	if (urban.setup(this)) {
 		sckOut("Urban board detected");
 		urbanPresent = true;
-	} else {
-		sckOut("No urban board detected!!");
+
+ 		// Find out if urban was reinstalled just now
+		bool justInstalled = true;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
+			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) {
+				justInstalled = false;
+			}
+		}
+
+		if (justInstalled) {
+			sckOut("Enabling default sensors...");
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+				if (wichSensor->location == BOARD_URBAN && wichSensor->defaultEnabled) enableSensor(wichSensor->type);
+			}
+			saveConfig();
+		}
+
+	} else {
+		sckOut("No urban board detected!!");
+		urbanPresent = false;
+
+ 		// Find out if urban was removed just now
+		bool justRemoved = false;
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) {
+				justRemoved = true;
+			}
+		}
+
+		if (justRemoved) {
+			sckOut("Disabling sensors...");
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+				if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
+			}
+			saveConfig();
 		}
 	}
 

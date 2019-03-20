@@ -13,25 +13,23 @@ bool SckUrban::setup(SckBase *base)
 		SensorType thisType = SENSOR_COUNT;
 		thisType = static_cast<SensorType>(i);
 		if (base->sensors[thisType].location == BOARD_URBAN) {
-			if (base->sensors[thisType].enabled) {
-				switch(thisType) {
-					case SENSOR_LIGHT: 				if (!sck_bh1721fvc.start()) return false; break;
-					case SENSOR_TEMPERATURE:
-					case SENSOR_HUMIDITY: 				if (!sck_sht31.start()) return false; break;
-					case SENSOR_NOISE_DBA:
-					case SENSOR_NOISE_DBC:
-					case SENSOR_NOISE_DBZ:
-					case SENSOR_NOISE_FFT: 				if (!sck_noise.start()) return false; break;
-					case SENSOR_ALTITUDE:
-					case SENSOR_PRESSURE:
-					case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.start()) return false; break;
-					case SENSOR_CCS811_VOCS:			return sck_ccs811.start(); break;
-					case SENSOR_CCS811_ECO2: 			return sck_ccs811.start(); break;
-					case SENSOR_PM_1:
-					case SENSOR_PM_25:
-					case SENSOR_PM_10: 				sck_pm.start(); break;
-					default: break;
-				}
+			switch(thisType) {
+				case SENSOR_LIGHT: 				if (!sck_bh1721fvc.start()) return false; break;
+				case SENSOR_TEMPERATURE:
+				case SENSOR_HUMIDITY: 				if (!sck_sht31.start()) return false; break;
+				case SENSOR_NOISE_DBA:
+				case SENSOR_NOISE_DBC:
+				case SENSOR_NOISE_DBZ:
+				case SENSOR_NOISE_FFT: 				if (!sck_noise.start()) return false; break;
+				case SENSOR_ALTITUDE:
+				case SENSOR_PRESSURE:
+				case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.start()) return false; break;
+				case SENSOR_CCS811_VOCS:			return sck_ccs811.start(); break;
+				case SENSOR_CCS811_ECO2: 			return sck_ccs811.start(); break;
+				case SENSOR_PM_1:
+				case SENSOR_PM_25:
+				case SENSOR_PM_10: 				sck_pm.start(); break;
+				default: break;
 			}
 		}
 	}
@@ -825,8 +823,6 @@ bool Sck_PM::reset()
 bool Sck_CCS811::start()
 {
 	if (alreadyStarted) return true;
-
-	SerialUSB.println(ccs.begin());
 
 	if (ccs.begin() != CCS811Core::SENSOR_SUCCESS) return false;
 

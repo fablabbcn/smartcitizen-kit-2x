@@ -37,7 +37,7 @@ const uint8_t pinAUX_WIRE_SDA = 11;		// PA16 -- Auxiliary I2C SDA -- SERCOM1:PAD
 const uint8_t pinAUX_WIRE_SCL = 13;		// PA17 -- Auxiliary I2C SCL -- SERCOM1:PAD[1]
 
 // I2S bus
-const uint8_t pinI2S_SCK = 2;			// PA10 -- I2S_SCK
+const uint8_t pinI2S_SCK = 1;			// PA10 -- I2S_SCK
 const uint8_t pinI2S_SD = 9;			// PA07 -- I2S_SD
 const uint8_t pinI2S_FS = 0;			// PA11 -- I2S_FS
 

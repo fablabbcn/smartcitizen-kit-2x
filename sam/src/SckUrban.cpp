@@ -381,6 +381,10 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 // Noise
 bool Sck_Noise::start()
 {
+	// TODO find why I2S fails without this
+	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
+	while (GCLK->STATUS.bit.SYNCBUSY);
+
 	return true;
 }
 bool Sck_Noise::stop()

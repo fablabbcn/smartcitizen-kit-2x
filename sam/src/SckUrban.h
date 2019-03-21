@@ -174,6 +174,14 @@ class Sck_CCS811
 		float VOCgas;
 		float ECO2gas;
 	private:
+
+		//Mode 0 = Idle
+		//Mode 1 = read every 1s
+		//Mode 2 = every 10s
+		//Mode 3 = every 60s
+		//Mode 4 = RAW mode
+		const uint8_t driveMode = 3;
+
 		uint32_t startTime = 0;
 		const uint32_t warmingTime = 300000; 	// Minimal time for sensor stabilization in ms (the kit will not return readings during this period) 5 minutes as default
 		bool alreadyStarted = false;

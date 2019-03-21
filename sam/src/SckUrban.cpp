@@ -826,6 +826,8 @@ bool Sck_CCS811::start()
 
 	if (ccs.begin() != CCS811Core::SENSOR_SUCCESS) return false;
 
+	if (ccs.setDriveMode(driveMode != CCS811Core::SENSOR_SUCCESS)) return false;
+
 	startTime = millis();
 	alreadyStarted = true;
 	return true;

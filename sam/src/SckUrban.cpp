@@ -829,13 +829,11 @@ bool Sck_CCS811::start()
 	alreadyStarted = true;
 	return true;
 }
-
 bool Sck_CCS811::stop()
 {
 
 	return true;
 }
-
 bool Sck_CCS811::getReading(SckBase *base)
 {
 	if (!ccs.dataAvailable()) return false;
@@ -854,3 +852,20 @@ bool Sck_CCS811::getReading(SckBase *base)
 	}
 	return true;
 }
+uint16_t Sck_CCS811::getBaseline()
+{
+	if (!alreadyStarted) {
+		if (!start()) return false;
+	}
+	return ccs.getBaseline();
+}
+bool Sck_CCS811::setBaseline(uint16_t wichBaseline)
+{
+	if (!alreadyStarted) {
+		if (!start()) return false;
+	}
+	if (ccs.setBaseline(wichBaseline) != ccs.SENSOR_SUCCESS); return false;
+	return true;
+}
+
+

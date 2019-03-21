@@ -281,4 +281,5 @@ class SckBase
 bool I2Cdetect(TwoWire *_Wire, byte address);
 void ISR_button();
 void ISR_sdDetect();
+void ext_reset();
 

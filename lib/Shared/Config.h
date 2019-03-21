@@ -19,6 +19,7 @@ struct SensorConfig { bool enabled; uint32_t interval; };
 struct Credentials { bool set=false; char ssid[64]="null"; char pass[64]="null"; };
 struct Token { bool set=false; char token[7]="null"; };
 struct MAC { bool valid=false; char address[18]="not synced"; };
+struct Extra { bool ccsBaselineValid=false; uint16_t ccsBaseline; }; 			// Here we save variables that don't have an specific place
 
 struct Configuration {
 	bool valid = true;
@@ -30,4 +31,5 @@ struct Configuration {
 	Token token;
 	SensorConfig sensors[SENSOR_COUNT];
 	bool sdDebug = false;
+	Extra extra;
 };

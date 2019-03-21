@@ -65,7 +65,7 @@ void SckBase::setup()
 	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
 	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
 	rtc.enableAlarm(rtc.MATCH_HHMMSS);
-	rtc.attachInterrupt(NVIC_SystemReset);
+	rtc.attachInterrupt(ext_reset);
 
 	// SDcard and flash select pins
 	pinMode(pinCS_SDCARD, OUTPUT);
@@ -640,6 +640,13 @@ void SckBase::loadConfig()
 	st.tokenSet = config.token.set;
 	st.tokenError = false;
 	st.mode = config.mode;
+
+	// CSS vocs sensor baseline loading
+	if (config.extra.ccsBaselineValid) {
+		sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
+		sckOut();
+		urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
+	}
 }
 void SckBase::saveConfig(bool defaults)
 {
@@ -1246,6 +1253,16 @@ void SckBase::flashSelect()
 // **** Power
 void SckBase::sck_reset()
 {
+	// Save updated CCS sensor baseline
+	uint16_t savedBaseLine = urban.sck_ccs811.getBaseline();
+	if (savedBaseLine != 0)	{
+		sprintf(outBuff, "Saved CCS baseline on eeprom: %u", savedBaseLine);
+		sckOut();
+		config.extra.ccsBaseline = savedBaseLine;
+		config.extra.ccsBaselineValid = true;
+		eepromConfig.write(config);
+	}
+
 	sckOut("Bye!!");
 	NVIC_SystemReset();
 }

@@ -10,6 +10,8 @@ SckBase base;
 SckTest sckTest(&base);
 #endif
 
+bool reset_pending = false;
+
 // Led update interrupt
 void TC5_Handler (void) {
 	base.led.tick();
@@ -42,9 +44,13 @@ void setup() {
 }
 
 void loop() {
+	if (reset_pending) base.sck_reset();
 	base.update();
 }
 
-void serialEventRun(){
+void serialEventRun() {
 	base.inputUpdate();
+}
+void ext_reset() {
+	reset_pending = true;
 }

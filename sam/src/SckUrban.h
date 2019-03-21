@@ -167,6 +167,8 @@ class Sck_CCS811
 		bool start();
 		bool stop();
 		bool getReading(SckBase *base);
+		uint16_t getBaseline();
+		bool setBaseline(uint16_t wichBaseline);
 
 		bool compensate = true; 	// Compensation is for both sensors or none
 		float VOCgas;

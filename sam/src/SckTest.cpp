@@ -6,15 +6,10 @@
 void SckTest::test_full()
 {
 	// Enable sensors for test
-	testBase->enableSensor(SENSOR_CO_RESISTANCE);
-	testBase->enableSensor(SENSOR_NO2_RESISTANCE);
 	testBase->enableSensor(SENSOR_TEMPERATURE);
 	testBase->enableSensor(SENSOR_HUMIDITY);
 	testBase->enableSensor(SENSOR_LIGHT);
 	testBase->enableSensor(SENSOR_PRESSURE);
-	testBase->enableSensor(SENSOR_PARTICLE_RED);
-	testBase->enableSensor(SENSOR_PARTICLE_GREEN);
-	testBase->enableSensor(SENSOR_PARTICLE_IR);
 	testBase->enableSensor(SENSOR_PM_1);
 	testBase->enableSensor(SENSOR_PM_25);
 	testBase->enableSensor(SENSOR_PM_10);
@@ -45,7 +40,7 @@ void SckTest::test_full()
 
 	testBase->outputLevel = OUT_SILENT;
 
-	// Test battery gauge
+	// Test battery
 	test_battery();
 
 	// Test SDcard
@@ -53,12 +48,6 @@ void SckTest::test_full()
 
 	// Test Flash memory
 	if (!test_flash()) errors++;
-
-	// Test MICS POT
-	if (!test_micsPot()) errors++;
-
-	// Test MICS ADC
-	test_micsAdc();
 
 	// Test SHT temp and hum
 	test_SHT();
@@ -68,9 +57,6 @@ void SckTest::test_full()
 
 	// Test Pressure 
 	if (!test_Pressure()) errors++;
-
-	// Test MAX dust sensor
-	test_MAX();
 
 	// Test PM sensor
 	test_PM();
@@ -142,22 +128,20 @@ void SckTest::test_button()
 
 bool SckTest::test_battery()
 {
-	SerialUSB.println("\r\nTesting battery level");
+	SerialUSB.println("\r\nTesting battery voltage");
 
 	uint8_t battErrors = errors;
 
-	if (!testBase->getReading(SENSOR_BATT_PERCENT) || testBase->sensors[SENSOR_BATT_PERCENT].reading.toFloat() < 0) {
+	if (!testBase->battery.isPresent(testBase->charger)) {
 		SerialUSB.println("ERROR no battery detected!!");
 		errors ++;
-	} else {
-		test_report.tests[TEST_BATT_GAUGE] = testBase->sensors[SENSOR_BATT_PERCENT].reading.toFloat();
 	}
 
-	if (!testBase->getReading(SENSOR_BATT_CHARGE_RATE) || testBase->sensors[SENSOR_BATT_CHARGE_RATE].reading.toFloat() <= 0) {
-		SerialUSB.println("ERROR no battery charge rate detected!!");
+	if (!testBase->getReading(SENSOR_BATT_VOLTAGE) || testBase->sensors[SENSOR_BATT_VOLTAGE].reading.toFloat() <= 0) {
+		SerialUSB.println("ERROR reading battery voltage!");
 		errors ++;
 	} else {
-		test_report.tests[TEST_BATT_CHG_RATE] = testBase->sensors[SENSOR_BATT_CHARGE_RATE].reading.toFloat();
+		test_report.tests[TEST_BATT_VOLT] = testBase->sensors[SENSOR_BATT_VOLTAGE].reading.toFloat();
 	}
 
 	if (testBase->charger.getChargeStatus() != testBase->charger.CHRG_FAST_CHARGING) {
@@ -169,14 +153,11 @@ bool SckTest::test_battery()
 
 	if (battErrors < errors) return false;
 
-	SerialUSB.print(test_report.tests[TEST_BATT_GAUGE]);
-	SerialUSB.println(" %");
-	SerialUSB.print("charging at: ");
-	SerialUSB.print(test_report.tests[TEST_BATT_CHG_RATE]);
-	SerialUSB.println(" mA");
+	SerialUSB.print(test_report.tests[TEST_BATT_VOLT]);
+	SerialUSB.println(" V");
 	SerialUSB.print("Charger status: ");
 	SerialUSB.println(testBase->charger.chargeStatusTitles[testBase->charger.getChargeStatus()]);
-	SerialUSB.println("Battery gauge test finished OK");
+	SerialUSB.println("Battery test finished OK");
 	return true;
 }
 
@@ -261,52 +242,6 @@ bool SckTest::test_flash()
 	return true;
 }
 
-bool SckTest::test_micsPot()
-{
-	const float ohmsPerStep	= 10000.0/127; // Ohms for each potenciometer step
-
-	SerialUSB.println("\r\nTesting MICS digital POT...");
-
-	uint32_t writePoint = 5000;
-
-	testBase->urban.sck_mics4514.getNO2load();
-	uint32_t startPoint = testBase->urban.sck_mics4514.no2LoadResistor;
-	if (abs(startPoint - writePoint) < 1000) writePoint = 2000;
-
-	testBase->urban.sck_mics4514.setNO2load(writePoint);
-	testBase->urban.sck_mics4514.getNO2load();
-	uint32_t readPoint = testBase->urban.sck_mics4514.no2LoadResistor; 
-
-	if (writePoint - readPoint > ohmsPerStep) {
-		SerialUSB.println("ERROR MICS digital POT test failed!!!");
-		return false;
-	}
-
-	test_report.tests[TEST_MICS_POT] = 1;
-	SerialUSB.println("MICS digital POT test finished OK");
-	return true;
-}
-
-bool SckTest::test_micsAdc()
-{
-	SerialUSB.println("\r\nTesting MICS sensor...");
-
-	uint8_t adcErrors = errors;
-	if (!testBase->getReading(SENSOR_CO_RESISTANCE)) {
-		SerialUSB.println("ERROR reading CO sensor");
-		errors ++;
-	} else test_report.tests[TEST_CARBON] = testBase->sensors[SENSOR_CO_RESISTANCE].reading.toFloat();
-	
-	if (!testBase->getReading(SENSOR_NO2_RESISTANCE)) {
-		SerialUSB.println("ERROR reading NO2 sensor");
-		errors ++;
-	} else test_report.tests[TEST_NITRO] = testBase->sensors[SENSOR_NO2_RESISTANCE].reading.toFloat();
-
-	if (adcErrors < errors) return false;
-	SerialUSB.println("MICS readings test finished OK");
-	return true;
-}
-
 bool SckTest::test_SHT()
 {
 	SerialUSB.println("\r\nTesting SHT31 sensor...");
@@ -350,31 +285,6 @@ bool SckTest::test_Pressure()
 	} else test_report.tests[TEST_PRESS] = testBase->sensors[SENSOR_PRESSURE].reading.toFloat();
 
 	SerialUSB.println("Pressure reading test finished OK");
-	return true;
-}
-
-bool SckTest::test_MAX()
-{
-	SerialUSB.println("\r\nTesting Dust sensor...");
-	
-	uint8_t maxErrors = errors;
-	if (!testBase->getReading(SENSOR_PARTICLE_RED)) { 
-		SerialUSB.println("ERROR reading Dust Red channel sensor");
-		errors ++;
-	} else test_report.tests[TEST_MAX_RED] = testBase->sensors[SENSOR_PARTICLE_RED].reading.toFloat();
-
-	if (!testBase->getReading(SENSOR_PARTICLE_GREEN)) { 
-		SerialUSB.println("ERROR reading Dust Green channel sensor");
-		errors ++;
-	} else test_report.tests[TEST_MAX_GREEN] = testBase->sensors[SENSOR_PARTICLE_GREEN].reading.toFloat();
-
-	if (!testBase->getReading(SENSOR_PARTICLE_IR)) { 
-		SerialUSB.println("ERROR reading Dust InfraRed channel sensor");
-		errors ++;
-	} else test_report.tests[TEST_MAX_IR] = testBase->sensors[SENSOR_PARTICLE_IR].reading.toFloat();
-
-	if (maxErrors < errors) return false;
-	SerialUSB.println("MAX dust sensor reading test finished OK");
 	return true;
 }
 
@@ -466,28 +376,21 @@ bool SckTest::publishResult()
 		/* "errors":3,                                  // Number of errors */
 		/* "tests": */
 		/* 			[ */
-		/* 		{"00":78.5},     // battery gauge - percent */
-		/* 		{"01":2},        // battery charge rate - mA */
-		/* 		{"02":1},        // battery charging - bool */
-		/* 		{"03":1},        // SD card - bool */
-		/* 		{"04":1},        // flash memory - bool */
-		/* 		{"05":1},        // user (button) - bool */
-		/* 		{"06":1},        // MICS POT - bool */
-		/* 		{"07":58.4},     // MICS carbon - kOhm */
-		/* 		{"08":23.5},     // MICS nitro - kOhm */
-		/* 		{"09":25.5},     // SHT31 temperature - C */
-		/* 		{"10":56.6},     // SHT31 humidity - percent */
-		/* 		{"11":228.7},    // Light - Lux */
-		/* 		{"12":28.7},     // Barometric pressure - kPa */
-		/* 		{"13":33.5},     // MAX red - units */
-		/* 		{"14":33.5},     // MAX green - units */
-		/* 		{"15":33.5},     // MAX ir -units */
-		/* 		{"16":48.7},     // Noise - dbA */
-		/* 		{"17":18.7},     // PM-1 - ug/m3 */
-		/* 		{"18":18.7},     // PM-2.5 - ug/m3 */
-		/* 		{"19":18.7},     // PM-10 - ug/m3 */
-		/* 		{"20":1},        // Auxiliary I2C bus - bool */
-		/* 		{"21":8}         // Wifi connection time - seconds */
+		/* 		{"00":78.5},     // battery - percent */
+		/* 		{"01":1},        // battery charging - bool */
+		/* 		{"02":1},        // SD card - bool */
+		/* 		{"03":1},        // flash memory - bool */
+		/* 		{"04":1},        // user (button) - bool */
+		/* 		{"05":25.5},     // SHT31 temperature - C */
+		/* 		{"06":56.6},     // SHT31 humidity - percent */
+		/* 		{"07":228.7},    // Light - Lux */
+		/* 		{"08":28.7},     // Barometric pressure - kPa */
+		/* 		{"09":48.7},     // Noise - dbA */
+		/* 		{"10":18.7},     // PM-1 - ug/m3 */
+		/* 		{"11":18.7},     // PM-2.5 - ug/m3 */
+		/* 		{"12":18.7},     // PM-10 - ug/m3 */
+		/* 		{"13":1},        // Auxiliary I2C bus - bool */
+		/* 		{"14":8}         // Wifi connection time - seconds */
 		/* 			] */
 		/* } */
 

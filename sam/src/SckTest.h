@@ -20,12 +20,9 @@ class SckTest
 		bool test_flash();
 
 		// sensors
-		bool test_micsPot();
-		bool test_micsAdc();
 		bool test_SHT();
 		bool test_Light();
 		bool test_Pressure();
-		bool test_MAX();
 		bool test_Noise();
 		bool test_PM();
 		bool test_auxWire();
@@ -37,28 +34,21 @@ class SckTest
 		volatile ButtonLed_sate butLedState = TEST_BLUE;
 
 		enum Test_type {
-			TEST_BATT_GAUGE, 		// 0 percent
-			TEST_BATT_CHG_RATE, 		// 1 mA
-			TEST_BATT_CHG, 			// 2 bool
-			TEST_SD, 			// 3 bool
-			TEST_FLASH, 			// 4 bool
-			TEST_USER, 			// 5 (button) bool
-			TEST_MICS_POT, 			// 6 bool
-			TEST_CARBON, 			// 7 kOhm
-			TEST_NITRO, 			// 8 kOhm
-			TEST_TEMP, 			// 9 C
-			TEST_HUM, 			// 10 percent
-			TEST_LIGHT, 			// 11 Lux
-			TEST_PRESS, 			// 12 kPa
-			TEST_MAX_RED, 			// 13 units
-			TEST_MAX_GREEN, 		// 14 units
-			TEST_MAX_IR, 			// 15 units
-			TEST_NOISE, 			// 16 dbA
-			TEST_PM_1, 			// 17 ug/m3
-			TEST_PM_25, 			// 18 ug/m3
-			TEST_PM_10, 			// 19 ug/m3
-			TEST_AUXWIRE, 			// 20 bool
-			TEST_WIFI_TIME, 		// 21 seconds
+			TEST_BATT_VOLT,			// 0 bool
+			TEST_BATT_CHG, 			// 1 bool
+			TEST_SD, 			// 2 bool
+			TEST_FLASH, 			// 3 bool
+			TEST_USER, 			// 4 (button) bool
+			TEST_TEMP, 			// 5 C
+			TEST_HUM, 			// 6 percent
+			TEST_LIGHT, 			// 7 Lux
+			TEST_PRESS, 			// 8 kPa
+			TEST_NOISE, 			// 9 dbA
+			TEST_PM_1, 			// 10 ug/m3
+			TEST_PM_25, 			// 11 ug/m3
+			TEST_PM_10, 			// 12 ug/m3
+			TEST_AUXWIRE, 			// 13 bool
+			TEST_WIFI_TIME, 		// 14 seconds
 
 			TEST_COUNT
 		};
@@ -86,4 +76,3 @@ class SckTest
 
 // TODO
 // SAM firmware upload error reporting
-// remember to uncomment MICS sensor enabling 

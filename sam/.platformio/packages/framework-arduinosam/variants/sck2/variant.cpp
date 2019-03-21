@@ -24,15 +24,15 @@
  * | 0          |  PA11  | I2S_FS          |                	| EIC/EXTINT[11] ADC/AIN[19]           PTC/X[3] *SERCOM0/PAD[3]  SERCOM2/PAD[3]  TCC0/WO[3]  TCC1/WO[1]
  * | 1          |  PA10  | I2S_SCK         |                	| EIC/EXTINT[10] ADC/AIN[18]           PTC/X[2] *SERCOM0/PAD[2]                  TCC0/WO[2]  TCC1/WO[0]
  * | 2          |  PA14  | SPI_CS_SDcard   |                	| EIC/EXTINT[14]                                 SERCOM2/PAD[2]  SERCOM4/PAD[2]  TC3/WO[0]   TCC0/WO[4]
- * | 3          |  PA09  | HEAT_NO2        |                	| EIC/EXTINT[9]  ADC/AIN[17]           PTC/X[1]  SERCOM0/PAD[1]  SERCOM2/PAD[1]  TCC0/WO[1]  TCC1/WO[3]
- * | 4          |  PA08  | HEAT_CO         |                	| EIC/NMI        ADC/AIN[16]           PTC/X[0]  SERCOM0/PAD[0]  SERCOM2/PAD[0]  TCC0/WO[0]  TCC1/WO[2]
+ * | 3          |  PA09  | FREE_1          |                	| EIC/EXTINT[9]  ADC/AIN[17]           PTC/X[1]  SERCOM0/PAD[1]  SERCOM2/PAD[1]  TCC0/WO[1]  TCC1/WO[3]
+ * | 4          |  PA08  | FREE_2          |                	| EIC/NMI        ADC/AIN[16]           PTC/X[0]  SERCOM0/PAD[0]  SERCOM2/PAD[0]  TCC0/WO[0]  TCC1/WO[2]
  * | 5          |  PA15  | CD_SDcard       |                	| EIC/EXTINT[15]                                 SERCOM2/PAD[3]  SERCOM4/PAD[3]  TC3/WO[1]   TCC0/WO[5]
  * | 6          |  PA20  | LED_RED         |                	| EIC/EXTINT[4]                        PTC/X[8]  SERCOM5/PAD[2]  SERCOM3/PAD[2]              TCC0/WO[6]
  * | 7          |  PA21  | BUTTON          |                 	| EIC/EXTINT[5]                        PTC/X[9]  SERCOM5/PAD[3]  SERCOM3/PAD[3]              TCC0/WO[7]
  * +------------+--------+-----------------+--------------------+--------------------------------------------------------------------------------------------------------
  * |            |        |                 |                 	|
  * +------------+--------+-----------------+--------------------+--------------------------------------------------------------------------------------------------------
- * | 8          |  PA06  | BATT_INS        |                 	| EIC/EXTINT[6]  ADC/AIN[6]  AC/AIN[2] PTC/Y[4]  SERCOM0/PAD[2]                  TCC1/WO[0]
+ * | 8          |  PA06  | PM_ENABLE       |                 	| EIC/EXTINT[6]  ADC/AIN[6]  AC/AIN[2] PTC/Y[4]  SERCOM0/PAD[2]                  TCC1/WO[0]
  * | 9          |  PA07  | I2S_SD          |                 	| EIC/EXTINT[7]  ADC/AIN[7]  AC/AIN[3] PTC/Y[5]  SERCOM0/PAD[3]                  TCC1/WO[1]
  * | 10         |  PA18  | LED_BLUE        |                 	| EIC/EXTINT[2]                        PTC/X[6]  SERCOM1/PAD[2]  SERCOM3/PAD[2]  TC3/WO[0]    TCC0/WO[2]
  * | 11         |  PA16  | SDA_B           | SERCOM1/PAD[0]  	| EIC/EXTINT[0]                        PTC/X[4]  SERCOM1/PAD[0]  SERCOM3/PAD[0]  TCC2/WO[0]   TCC0/WO[6]
@@ -41,7 +41,7 @@
  * +------------+--------+-----------------+--------------------+--------------------------------------------------------------------------------------------------------
  * |            |        |                 |                 	|
  * +------------+--------+-----------------+--------------------+--------------------------------------------------------------------------------------------------------
- * | 14         |  PA02  | GAUGE_INT       |                 	| EIC/EXTINT[2]  ADC/AIN[0]  DAC/VOUT  PTC/Y[0]
+ * | 14         |  PA02  | MEASURE_BATT    |                 	| EIC/EXTINT[2]  ADC/AIN[0]  DAC/VOUT  PTC/Y[0]
  * | 15         |  PB08  | CH_PD           |                 	| EIC/EXTINT[8]  ADC/AIN[2]            PTC/Y[14] SERCOM4/PAD[0]                  TC4/WO[0]
  * | 16         |  PB09  | GPIO0           |                 	| EIC/EXTINT[9]  ADC/AIN[3]            PTC/Y[15] SERCOM4/PAD[1]                  TC4/WO[1]
  * | 17         |  PA04  | TX_WIFI         | SERCOM0_ALT/PAD[0] | EIC/EXTINT[4]  ADC/AIN[4]  AC/AIN[0] PTC/Y[2]  SERCOM0/PAD[0]                  TCC0/WO[0]
@@ -66,7 +66,7 @@
  * +------------+--------+-----------------+--------------------+--------------------------------------------------------------------------------------------------------
  * |            |        |                 |                 	|
  * +------------+--------+-----------------+--------------------+--------------------------------------------------------------------------------------------------------
- * | 27         |  PA28  | SW_PMS          |                 	| EIC/EXTINT[8]
+ * | 27         |  PA28  | FREE_3          |                 	| EIC/EXTINT[8]
  * | 28         |  PA24  | TARGET_USB_N    |                 	| USB/DM
  * | 29         |  PA25  | TARGET_USB_P    |                 	| USB/DP
  * +------------+--------+-----------------+--------------------+--------------------------------------------------------------------------------------------------------
@@ -92,18 +92,18 @@ const PinDescription g_APinDescription[]=
   { PORTA, 11, PIO_COM, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_11 },                                  // I2S_FS
   { PORTA, 10, PIO_COM, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_10 },                                  // I2S_SCK
   { PORTA, 14, PIO_DIGITAL, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_14 },                              // SPI_CS_SDcard
-  { PORTA,  9, PIO_TIMER, (PIN_ATTR_DIGITAL|PIN_ATTR_PWM|PIN_ATTR_TIMER), No_ADC_Channel, PWM0_CH1, TCC0_CH1, EXTERNAL_INT_NONE },      // HEAT_NO2
-  { PORTA,  8, PIO_TIMER, (PIN_ATTR_DIGITAL|PIN_ATTR_PWM|PIN_ATTR_TIMER), No_ADC_Channel, PWM0_CH0, TCC0_CH0, EXTERNAL_INT_NONE },      // HEAT_CO
+  { PORTA,  9, PIO_TIMER, (PIN_ATTR_DIGITAL|PIN_ATTR_PWM|PIN_ATTR_TIMER), No_ADC_Channel, PWM0_CH1, TCC0_CH1, EXTERNAL_INT_NONE },      // FREE_1
+  { PORTA,  8, PIO_TIMER, (PIN_ATTR_DIGITAL|PIN_ATTR_PWM|PIN_ATTR_TIMER), No_ADC_Channel, PWM0_CH0, TCC0_CH0, EXTERNAL_INT_NONE },      // FREE_2
   { PORTA, 15, PIO_DIGITAL, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_15 },                              // CD_SDcard
   { PORTA, 20, PIO_TIMER_ALT, (PIN_ATTR_DIGITAL|PIN_ATTR_PWM|PIN_ATTR_TIMER_ALT), No_ADC_Channel, PWM0_CH6, TCC0_CH6, EXTERNAL_INT_4 }, // LED_RED
   { PORTA, 21, PIO_DIGITAL, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_5 },                               // BUTTON
-  { PORTA,  6, PIO_ANALOG, PIN_ATTR_ANALOG, ADC_Channel6, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_6 }, 					// BATT_INS
+  { PORTA,  6, PIO_DIGITAL, PIN_ATTR_NONE, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE }, 				// PM_ENABLE
   { PORTA,  7, PIO_COM, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_7 },                                   // I2S_SD
   { PORTA, 18, PIO_TIMER, (PIN_ATTR_DIGITAL|PIN_ATTR_PWM|PIN_ATTR_TIMER), No_ADC_Channel, PWM3_CH0, TC3_CH0, EXTERNAL_INT_2 },          // LED_BLUE
   { PORTA, 16, PIO_SERCOM, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_0 },                                // SDA_B: SERCOM1/PAD[0]
   { PORTA, 19, PIO_TIMER_ALT, (PIN_ATTR_DIGITAL|PIN_ATTR_PWM|PIN_ATTR_TIMER_ALT), No_ADC_Channel, PWM0_CH3, TCC0_CH3, EXTERNAL_INT_3},  // LED_GREEN
   { PORTA, 17, PIO_SERCOM, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_1 },                                // SCL_B: SERCOM1/PAD[1]
-  { PORTA,  2, PIO_DIGITAL, (PIN_ATTR_DIGITAL|PIN_ATTR_PWM|PIN_ATTR_TIMER), No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_2 }, // GAUGE_INT
+  { PORTA,  2, PIO_ANALOG, PIN_ATTR_ANALOG, ADC_Channel0, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_2 },  					// MEASURE_BATT
   { PORTB,  8, PIO_DIGITAL, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_8 },                               // CH_PD
   { PORTB,  9, PIO_DIGITAL, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_9 },                               // GPIO0
   { PORTA,  4, PIO_SERCOM_ALT, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_4 },                            // TX_WIFI  SERCOM_ALT0/PAD[0] 
@@ -116,7 +116,7 @@ const PinDescription g_APinDescription[]=
   { PORTB, 11, PIO_SERCOM_ALT, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_11 },                           // SPI_SCK: SERCOM_ALT4/PAD[3]
   { PORTB,  3, PIO_SERCOM_ALT, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE },                         // RX_PMS   SERCOM_ALT5/PAD[1]
   { PORTA, 27, PIO_OUTPUT, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE },                             // USBLED
-  { PORTA, 28, PIO_DIGITAL, PIN_ATTR_NONE, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE },                               // SW_PMS
+  { PORTA, 28, PIO_DIGITAL, PIN_ATTR_NONE, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE },                               // FREE_3
   { PORTA, 24, PIO_COM, PIN_ATTR_NONE, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE },                                   // TARGET_USB_N
   { PORTA, 25, PIO_COM, PIN_ATTR_NONE, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE },                                   // TARGET_USB_P
   { PORTB, 22, PIO_OUTPUT, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE },                             // P_WIFI 
@@ -134,13 +134,13 @@ const PinDescription g_APinDescription[]=
 
   // Arduino defined...
   { PORTA, 21, PIO_DIGITAL, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_5 },                               // *** BUTTON
-  { PORTA,  6, PIO_ANALOG, PIN_ATTR_ANALOG, ADC_Channel6, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_6 }, 					// *** BATT_INS
+  { PORTA,  6, PIO_DIGITAL, PIN_ATTR_NONE, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE }, 				// *** PM_ENABLE
   { PORTA,  7, PIO_COM, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_7 },                                   // *** I2S_SD
 
-  { PORTA, 3, PIO_DIGITAL, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_3 },                                // INT_CHG
+  { PORTA, 3, PIO_DIGITAL, PIN_ATTR_DIGITAL, No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_3 },                                // *** INT_CHG
 
   // Arduino defined...
-  { PORTA,  2, PIO_DIGITAL, (PIN_ATTR_DIGITAL|PIN_ATTR_PWM|PIN_ATTR_TIMER), No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_2 }, // *** GAUGE_INT
+  { PORTA,  2, PIO_ANALOG, PIN_ATTR_ANALOG, ADC_Channel0, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_2 }, 					// *** MEASURE_BATT
 
 } ;
 

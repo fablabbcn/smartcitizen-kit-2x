@@ -1,8 +1,22 @@
-# Smart Citizen Kit 2.0 [![Travis](https://travis-ci.org/fablabbcn/smartcitizen-kit-20.svg?branch=master)](https://travis-ci.org/fablabbcn/smartcitizen-kit-20)
+# Smart Citizen Kit 2.1 
+[![Travis](https://travis-ci.org/fablabbcn/smartcitizen-kit-20.svg?branch=master)](https://travis-ci.org/fablabbcn/smartcitizen-kit-20)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
+[![DOI](https://zenodo.org/badge/109865611.svg)](https://zenodo.org/badge/latestdoi/109865611)
 
-![Smart Citizen kit 2.0](https://c1.staticflickr.com/5/4795/39073624650_69ae90efae_b.jpg "Smart Citizen kit 2.0")
+[Click here for version 2.0](https://github.com/fablabbcn/smartcitizen-kit-20/tree/2.0)
 
+## Sensor list
+
+|Metric|Units|Sensor|
+|-|:-:|:-:|
+| **Atmospheric Pressure** | kPa | NXP MPL3115A2 |
+| **Air Temperature / Relative Humidity** | ºC / %rh | Sensirion SHT31|
+| **VOCS, eCO2** | ppm |AMS CCS811|
+| **Noise Level and Spectrum** | dBa |TDK ICS43432|
+| **Particle Matter (PM1/2.5/10)** | ug/m3 | Plantower PMS5003 |
+| **Ambient Light** | lx | Rohm BH12721FVC |
+
+See the documentation at: http://docs.smartcitizen.me/
 
 ## Development
 

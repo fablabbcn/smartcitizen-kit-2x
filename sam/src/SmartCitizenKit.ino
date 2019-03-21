@@ -10,6 +10,8 @@ SckBase base;
 SckTest sckTest(&base);
 #endif
 
+bool reset_pending = false;
+
 // Led update interrupt
 void TC5_Handler (void) {
 	base.led.tick();
@@ -23,10 +25,6 @@ void ISR_button() {
 #else
 	base.butFeedback();
 #endif
-}
-// Battery events interrupt
-void ISR_battery() {
-	base.battPendingEvent = true;
 }
 // Card detect interrupt
 void ISR_sdDetect() {
@@ -46,9 +44,13 @@ void setup() {
 }
 
 void loop() {
+	if (reset_pending) base.sck_reset();
 	base.update();
 }
 
-void serialEventRun(){
+void serialEventRun() {
 	base.inputUpdate();
+}
+void ext_reset() {
+	reset_pending = true;
 }

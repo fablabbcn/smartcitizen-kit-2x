@@ -178,7 +178,7 @@ static const uint8_t SCL1 = PIN_WIRE1_SCL;
 #define I2S_INTERFACES_COUNT 1
 
 #define I2S_DEVICE          0
-#define I2S_CLOCK_GENERATOR 5
+#define I2S_CLOCK_GENERATOR 3
 #define PIN_I2S_SD          (9u)
 #define PIN_I2S_SCK         (1u)
 #define PIN_I2S_FS          (0u)

@@ -298,8 +298,8 @@ void readSensor_com(SckBase* base, String parameters)
 {
 	SensorType sensorToRead = base->sensors.getTypeFromString(parameters);
 	if (!base->sensors[sensorToRead].enabled) sprintf(base->outBuff, "%s sensor is disabled!!!", base->sensors[sensorToRead].title);
-	else if (base->getReading(sensorToRead, true)) sprintf(base->outBuff, "%s: %s %s", base->sensors[sensorToRead].title, base->sensors[sensorToRead].reading.c_str(), base->sensors[sensorToRead].unit);
-	else sprintf(base->outBuff, "ERROR reading %s sensor!!!", base->sensors[sensorToRead].title);
+	base->getReading(sensorToRead, true);
+	sprintf(base->outBuff, "%s: %s %s", base->sensors[sensorToRead].title, base->sensors[sensorToRead].reading.c_str(), base->sensors[sensorToRead].unit);
 	base->sckOut();
 }
 void controlSensor_com(SckBase* base, String parameters)
@@ -391,8 +391,8 @@ void monitorSensor_com(SckBase* base, String parameters)
 		if (printMs) sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
 		lastMillis = millis();
 		for (uint8_t i=0; i<index; i++) {
-			if (base->getReading(sensorsToMonitor[i], true)) sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].reading.c_str());
-			else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
+			base->getReading(sensorsToMonitor[i], true);
+			sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].reading.c_str());
 			if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
 		}
 		if (sdSave) base->monitorFile.file.println(base->outBuff);
@@ -412,51 +412,6 @@ void freeRAM_com(SckBase* base, String parameters)
 	uint32_t free = &stack_dummy - sbrk(0);
 	sprintf(base->outBuff, "Free RAM: %lu bytes", free);
 	base->sckOut();
-}
-void batt_com(SckBase* base, String parameters)
-{
-	if(!base->battery.isPresent(base->charger)) {
-			base->sckOut("No battery present");
-			return;
-	}
-
-	// get
-	if (parameters.length() <= 0) {
-
-			sprintf(base->outBuff, "Charge: %u %%\r\nVoltage: %0.2f V\r\nCharge current: %i mA\r\nPower: %i mW\r\nCapacity: %u/%u mAh\r\nState of health: %u %%",
-			base->battery.percent(),
-			base->battery.voltage(),
-			base->battery.current(),
-			base->battery.power(),
-			base->battery.remainCapacity(),
-			base->battery.designCapacity,
-			base->battery.health()
-			);
-	
-			base->sckOut();
-	// set
-	} else {
-	
-		uint16_t capI = parameters.indexOf("-cap");
-		if (capI >=0) {
-			String capC = parameters.substring(capI+5);
-			capC.trim();
-			uint16_t capU = capC.toInt();
-
-			if (capU > 100 && capU <= 8000) {
-				base->sckOut("Reconfiguring battery...");
-			
-				if (base->config.battDesignCapacity != capU) {
-					base->config.battDesignCapacity = capU;
-					base->saveConfig();
-				}
-				batt_com(base, "");
-			} else {
-				base->sckOut("Wrong or unsuported battery capacity!!");
-			}
-		}
-	
-	}
 }
 void i2cDetect_com(SckBase* base, String parameters)
 {
@@ -523,6 +478,12 @@ void charger_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
 		base->sckOut();
 
+		sprintf(base->outBuff, "Min system voltage: %0.2f volts", base->charger.getSysMinVolt());
+		base->sckOut();
+
+		sprintf(base->outBuff, "Battery lower than %0.2f: %s", base->charger.getSysMinVolt(), base->charger.getBatLowerSysMin() ? "true" : "false");
+		base->sckOut();
+		
 	// Set
 	} else {
 	

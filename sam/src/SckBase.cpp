@@ -20,11 +20,7 @@ FlashStorage(eepromConfig, Configuration);
 
 void SckBase::setup()
 {
-	/* delay(3000); */
 	SerialUSB.println("Starting...");
-	// TEMP turn off PMSpower
-	pinMode(pinBOARD_CONN_7, OUTPUT);
-	digitalWrite(pinBOARD_CONN_7, HIGH);
 
 	// Led
 	led.setup();
@@ -56,10 +52,7 @@ void SckBase::setup()
 
 	// Power management configuration
 	charger.setup();
-	pinMode(pinBATT_INSERTION, INPUT_PULLUP);
-	pinPeripheral(pinBATT_INSERTION, PIO_ANALOG);
-	pinMode(pinGAUGE_INT, INPUT_PULLUP);
-	attachInterrupt(pinGAUGE_INT, ISR_battery, FALLING);
+	battery.setup(charger);
 
 	// RTC setup
 	rtc.begin();
@@ -73,7 +66,7 @@ void SckBase::setup()
 	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
 	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
 	rtc.enableAlarm(rtc.MATCH_HHMMSS);
-	rtc.attachInterrupt(NVIC_SystemReset);
+	rtc.attachInterrupt(ext_reset);
 
 	// SDcard and flash select pins
 	pinMode(pinCS_SDCARD, OUTPUT);
@@ -123,40 +116,47 @@ void SckBase::setup()
 	analogReadResolution(12);
 	if (urban.present()) {
 		sckOut("Urban board detected");
+		urbanPresent = true;
 
-		// Check which urban board sensors are enabled
-		uint8_t urbanSensorCount = 0;
+ 		// Find out if urban was reinstalled just now
+		bool justInstalled = true;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
-			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) urbanSensorCount++;
-		}
-
-		// If there is none enabled, we enable default sensors
-		if (urbanSensorCount == 0) {
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
-				if (wichSensor->location == BOARD_URBAN && wichSensor->defaultEnabled && !wichSensor->enabled) {
-					enableSensor(wichSensor->type);
-					saveNeeded = true;
-				}
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) {
+				justInstalled = false;
 			}
 		}
 
-		if (!sensors[SENSOR_PM_10].enabled) enableSensor(SENSOR_PM_1); 	// Allow hotplug of PM sensor
-		urban.setup(this);
-		urban.stop(SENSOR_PM_1); 	// Make sure PM is off until battery is ready for it
-		urbanPresent = true;
+		if (justInstalled) {
+			sckOut("Enabling default sensors...");
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+				if (wichSensor->location == BOARD_URBAN && wichSensor->defaultEnabled) enableSensor(wichSensor->type);
+			}
+			saveConfig();
+		}
+
 	} else {
 		sckOut("No urban board detected!!");
-		// Disable all sensors
+		urbanPresent = false;
+
+ 		// Find out if urban was removed just now
+		bool justRemoved = false;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
-			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled)  {
-				disableSensor(wichSensor->type);
-				saveNeeded = true;
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) {
+				justRemoved = true;
 			}
 		}
-		urbanPresent = false;
+
+		if (justRemoved) {
+			sckOut("Disabling sensors...");
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+				if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
+			}
+			saveConfig();
+		}
 	}
 
 	// Detect and enable auxiliary boards
@@ -638,16 +638,17 @@ void SckBase::loadConfig()
 		wichSensor->everyNint = config.sensors[i].everyNint;
 	}
 
-	// If battery capacity is not set, update it
-	if (config.battDesignCapacity != battery.designCapacity) {
-		battery.designCapacity = config.battDesignCapacity;
-		battery.setup(charger, true);
-	}
-
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;
 	st.tokenError = false;
 	st.mode = config.mode;
+
+	// CSS vocs sensor baseline loading
+	if (config.extra.ccsBaselineValid) {
+		sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
+		sckOut();
+		urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
+	}
 }
 void SckBase::saveConfig(bool defaults)
 {
@@ -680,12 +681,6 @@ void SckBase::saveConfig(bool defaults)
 	}
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
-
-	// If battery capacity changed, update it
-	if (config.battDesignCapacity != battery.designCapacity) {
-		battery.designCapacity = config.battDesignCapacity;
-		battery.setup(charger, true);
-	}
 
 	// Update state
 	st.mode = config.mode;
@@ -1213,6 +1208,16 @@ void SckBase::flashSelect()
 // **** Power
 void SckBase::sck_reset()
 {
+	// Save updated CCS sensor baseline
+	uint16_t savedBaseLine = urban.sck_ccs811.getBaseline();
+	if (savedBaseLine != 0)	{
+		sprintf(outBuff, "Saved CCS baseline on eeprom: %u", savedBaseLine);
+		sckOut();
+		config.extra.ccsBaseline = savedBaseLine;
+		config.extra.ccsBaselineValid = true;
+		eepromConfig.write(config);
+	}
+
 	sckOut("Bye!!");
 	NVIC_SystemReset();
 }
@@ -1257,123 +1262,61 @@ void SckBase::goToSleep()
 }
 void SckBase::updatePower()
 {
-
-	// Update battery present status
-	bool prevBattPresent = battery.present;
-	battery.isPresent(charger);
-	bool battChanged = false;
-
-	// Update USB connection status
 	charger.detectUSB();
-
-	// If battery status changed enable/disable charging
-	if (prevBattPresent != battery.present) {
-
-		battChanged = true;
-
-		if (battery.present) {
-			sckOut("Battery inserted!!");
-			if (!charger.chargeState()) charger.chargeState(true); 	// Enable charging
-		} else {
-			sckOut("Battery removed!!");
-			sckOut("Stoping PM sensor...");
-			charger.chargeState(false); 	// Disable charging
-			urban.sck_pm.stop();
-			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
-		}
-	}
-
-	if (battPendingEvent) {
-		battery.percent();
-		sprintf(outBuff, "Battery changed: %u %%", battery.lastPercent);
-		sckOut();
-		battPendingEvent = false;
-	}
 
 	if (charger.onUSB) {
 
-		// Reset lowBatt counter
+		// Reset lowBatt counters
 		battery.lowBatCounter = 0;
-
-		// Reset emergencyLowBatt counter
 		battery.emergencyLowBatCounter = 0;
 
-		// Update charge status
-		SckCharger::ChargeStatus prevChargeStatus = charger.chargeStatus;
-		charger.chargeStatus = charger.getChargeStatus();
-
-		bool justStoppedCharging = false;
-		// If charger status changed
-		if (prevChargeStatus != charger.chargeStatus || battChanged) {
-
-			if (battery.present) {
-
-				switch(charger.chargeStatus) {
-					case charger.CHRG_PRE_CHARGE:
-					case charger.CHRG_FAST_CHARGING:
-
-						sckOut("Charging battery...");
-						led.chargeStatus = led.CHARGE_CHARGING;
-						break;
-
-					case charger.CHRG_NOT_CHARGING:
-					case charger.CHRG_CHARGE_TERM_DONE:
-						if (charger.chargeState()) charger.chargeState(false);
-						// Verify again that battery is present
-						if (battery.isPresent(charger)) {
-							sckOut("Battery fully charged");
-							led.chargeStatus = led.CHARGE_FINISHED;
-							justStoppedCharging = true;
-						}
-						break;
-
-					default: break;
+		switch(charger.getChargeStatus()) {
+		
+			case charger.CHRG_NOT_CHARGING:
+				// If voltage is too low we asume we don't have battery.
+				if (charger.getBatLowerSysMin()) {
+					if (battery.present) sckOut("Battery removed!!");
+					battery.present = false;
+					led.chargeStatus = led.CHARGE_NULL;
+				} else {
+					if (!battery.present) sckOut("Battery connected!!");
+					battery.present = true;
+					if (battery.voltage() < battery.maxVolt) charger.chargeState(true);
+					else led.chargeStatus = led.CHARGE_FINISHED;
 				}
+				break;
+			case charger.CHRG_CHARGE_TERM_DONE:
 
-			} else {
+				// To be sure the batt is present, turn off charging and check voltages on next cycle
 				if (charger.chargeState()) charger.chargeState(false);
-				sckOut("Battery is not charging");
-				led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
-			}
+				break;
+			default:
+				battery.present = true;
+				led.chargeStatus = led.CHARGE_CHARGING;	
+				break;
 		}
-
-		// Avoid PM sensor discharging battery when USB connected
-		if (battery.lastPercent < battery.threshold_recharge && battery.present && !justStoppedCharging) charger.chargeState(true);
-
 	} else {
 
+		battery.present = true;
+		uint8_t battNow = battery.percent();
+
 		// Emergency lowBatt
-		if (battery.lastPercent < battery.threshold_emergency) {
-			if (battery.emergencyLowBatCounter < 5) {
-				battery.emergencyLowBatCounter++;
-				led.chargeStatus = led.CHARGE_NULL;
-			} else led.chargeStatus = led.CHARGE_LOW;
-			// TODO replace this with proper led feeback and sleep mode
-			/* led.powerEmergency = true; */
-
-		// Detect lowBatt
-		} else if (battery.lastPercent < battery.threshold_low) {
-			if (battery.lowBatCounter < 5) {
-				battery.lowBatCounter++;
-				led.chargeStatus = led.CHARGE_NULL;
-			} else led.chargeStatus = led.CHARGE_LOW;
-
-		} else {
-			sckOut("Battery is not charging");
-			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
-
-		}
-	}
-
-
-	// PM sensor only works if battery is available
-	if (sensors[SENSOR_PM_1].enabled && !st.sleeping) {
-		if (!urban.sck_pm.started) {
-			if (millis() > 10000 && battery.present) {
-				if (battery.lastPercent > battery.threshold_emergency || charger.chargeStatus == charger.CHRG_FAST_CHARGING) {
-					if (urban.sck_pm.start()) sckOut("Started PM sensor...");
-				}
+		if (battNow < battery.threshold_emergency) {
+			if (battery.emergencyLowBatCounter < 5) battery.emergencyLowBatCounter++;
+			else {
+				// TODO replace this with sleep mode
+				led.chargeStatus = led.CHARGE_LOW;
 			}
+
+		// Low Batt
+		} else if (battNow < battery.threshold_low) {
+			if (battery.lowBatCounter < 5) battery.lowBatCounter++;
+			else led.chargeStatus = led.CHARGE_LOW;
+		
+		
+		} else {
+		
+			led.chargeStatus = led.CHARGE_NULL;	
 		}
 	}
 }
@@ -1419,14 +1362,10 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		case BOARD_BASE:
 		{
 			switch (wichSensor) {
+				case SENSOR_BATT_VOLTAGE:
 				case SENSOR_BATT_PERCENT:
 				 	// Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
 					result = true;
-					break;
-				case SENSOR_BATT_VOLTAGE:
-				case SENSOR_BATT_CHARGE_RATE:
-				case SENSOR_BATT_POWER:
-					if (battery.isPresent(charger)) result = true;
 					break;
 				case SENSOR_SDCARD:
 					result = true;
@@ -1460,8 +1399,6 @@ bool SckBase::disableSensor(SensorType wichSensor)
 			switch (wichSensor) {
 				case SENSOR_BATT_PERCENT:
 				case SENSOR_BATT_VOLTAGE:
-				case SENSOR_BATT_CHARGE_RATE:
-				case SENSOR_BATT_POWER:
 				case SENSOR_SDCARD:
 					result = true;
 					break;
@@ -1494,38 +1431,19 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 				switch (wichSensor) {
 					case SENSOR_BATT_PERCENT:
 					{
-						if (!battery.isPresent(charger)) {
+						if (!battery.present) {
 							result = String("-1");
 							break;
 						}
-						uint32_t thisPercent = battery.percent();
-						if (thisPercent > 100) thisPercent = 100;
-						else if (thisPercent < 0) thisPercent = 0;
-						result = String(thisPercent);
+						result = String(battery.percent());
 						break;
 					}
 					case SENSOR_BATT_VOLTAGE:
-						if (!battery.isPresent(charger)) {
+						if (!battery.present) {
 							result = String("-1");
 							break;
 						}
 						result = String(battery.voltage());
-						break;
-
-					case SENSOR_BATT_CHARGE_RATE:
-						if (!battery.isPresent(charger)) {
-							result = String("-1");
-							break;
-						}
-						result = String(battery.current());
-						break;
-					case SENSOR_BATT_POWER:
-
-						if (!battery.isPresent(charger)) {
-							result = String("-1");
-							break;
-						}
-						result = String(battery.power());
 						break;
 					case SENSOR_SDCARD:
 						if (st.cardPresent) result = String("1");
@@ -1537,6 +1455,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 		case BOARD_URBAN:
 		{
 				result = urban.getReading(this, wichSensor, wait);
+				sensors[wichSensor].reading = result;
 				if (result.startsWith("null")) return false;
 				break;
 		}
@@ -1741,12 +1660,6 @@ bool SckBase::setTime(String epoch)
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		st.timeStat.setOk();
-		if (urbanPresent) {
-			// Update MICS clock
-			getReading(SENSOR_CO_HEAT_TIME);
-			getReading(SENSOR_NO2_HEAT_TIME);
-		}
-		espStarted = rtc.getEpoch() - wasOn;
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
 		sckOut();

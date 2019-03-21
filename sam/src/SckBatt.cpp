@@ -276,341 +276,48 @@ void SckCharger::detectUSB()
 	if (vbusStatus == VBUS_ADAPTER_PORT) {
 		if (!onUSB) {
 			onUSB = true;
+			// TODO avoid reset if kit was on off state
 			NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
 		}
 	} else onUSB = false;
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }
+float SckCharger::getSysMinVolt()
+{
+	float minVolt = 3.0;
+
+	byte powOnReg = readREG(POWER_ON_CONF_REG);
+
+	powOnReg = (powOnReg>>VSYS_MIN) & 0b111;
+
+	minVolt += (0.1 * (powOnReg & 1));
+	minVolt += (0.2 * ((powOnReg>>1) & 1));
+	minVolt += (0.4 * ((powOnReg>>2) & 1));
+
+	return minVolt;
+}
+bool SckCharger::getBatLowerSysMin()
+{
+	byte ssr = readREG(SYS_STATUS_REG);
+	
+	return (ssr & 1);
+}
 
 // Battery
-bool SckBatt::isPresent(SckCharger charger)
+bool SckBatt::setup(SckCharger charger)
 {
-	// First check pinBATT_INSERTION
-	uint32_t valueRead = 0;
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-	ADC->INPUTCTRL.bit.MUXPOS = ADC_Channel6; 	// Selection for the positive ADC input
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-	ADC->CTRLA.bit.ENABLE = 0x01;             	// Enable ADC
-	while (ADC->STATUS.bit.SYNCBUSY == 1); 		// Start conversion
-	ADC->SWTRIG.bit.START = 1;
-	ADC->INTFLAG.reg = ADC_INTFLAG_RESRDY; 		// Clear the Data Ready flag
-	while (ADC->STATUS.bit.SYNCBUSY == 1);		// Start conversion again, since The first conversion after the reference is changed must not be used.
-	ADC->SWTRIG.bit.START = 1;
-	while (ADC->INTFLAG.bit.RESRDY == 0);   	// Waiting for conversion to complete
-	valueRead = ADC->RESULT.reg;			// Store the value
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-	ADC->CTRLA.bit.ENABLE = 0x00;             	// Disable ADC
-	while (ADC->STATUS.bit.SYNCBUSY == 1);
-
-	if (valueRead < 400 and millis() > 7000) {  // Give time to the charger setup after booting boot
-		Wire.beginTransmission(address);
-		uint8_t error = Wire.endTransmission();
-
-		if (error == 0) {
-			present = true;	
-			if (!configured) {
-				if (!setup(charger)) return false;
-			}
-			return true;
-		}
-	} 
-	
-	present = false;
-	configured = false;
-	return false;
-}
-bool SckBatt::setup(SckCharger charger, bool force)
-{
-	// This function should only be called if we are sure the batt is present (from inside battery.isPresent())
-	if (configured && !force) return true;
-
-	// Check if gauge is alive
-	Wire.beginTransmission(address);
-	uint8_t error = Wire.endTransmission();
-	if (error != 0) return false;
-
-	// --- Configure battery
-	enterConfig();
-
-	// Set chemID
-	setChemID(GAUGE_CTRL_SET_CHEM_B);
-	
-	// Set Design Capacity
-	setSubclass(GAUGE_CLASSID_STATE, designCapacityOffset, designCapacity);
-	
-	// Set Design Energy
-	setSubclass(GAUGE_CLASSID_STATE, designEnergyOffset, designCapacity * nominalVoltage);
-	
-	// Set Terminate Voltage
-	setSubclass(GAUGE_CLASSID_STATE, terminateVoltageOffset, terminateVoltage);
-	
-	// Set Taper Rate 
-	setSubclass(GAUGE_CLASSID_STATE, taperRateOffset, designCapacity  / (0.1 * taperCurrent));
-
-	// Allow reporting 100% even when Charge termination is not detected
-	setSubclass(GAUGE_CLASSID_OPCONFIG, opConfig_C_Offset, 0b10001111);
-
-	// Configure interrupt for 1 percent changes in charge, active LOW
-	interruptSetup();
-
-	exitConfig();
-
-	configured = true;
-
-	// Setup charger timer depending on battery design capacity
-	uint16_t currLimit = charger.chargerCurrentLimit();
-	int8_t timeNeeded = ceil(designCapacity / currLimit);
-	charger.chargeTimer(timeNeeded);
+	pinMode(pinMEASURE_BATT, INPUT);
+	pinPeripheral(pinMEASURE_BATT, PIO_ANALOG);
 
 	return true;
 }
 float SckBatt::voltage()
 {
-	return readWord(GAUGE_COM_VOLTAGE) / 1000.0;
+	float thisVoltage = analogRead(pinMEASURE_BATT) * 2.0 / 4096.0 * workingVoltage;
+	return thisVoltage;
 }
 uint8_t SckBatt::percent()
 {
-	lastPercent = readWord(GAUGE_COM_SOC);
-	return lastPercent;
-}
-int16_t SckBatt::current()
-{
-	return readWord(GAUGE_COM_CURRENT);
-}
-int16_t SckBatt::power()
-{
-	return readWord(GAUGE_COM_POWER);
-}
-uint8_t SckBatt::health()
-{
-	return readWord(GAUGE_COM_SOH);
-}
-uint16_t SckBatt::remainCapacity()
-{
-	return readWord(GAUGE_COM_REMAIN_CAPACITY);
-}
-bool SckBatt::enterConfig()
-{
-	// Unseal (We need to send the command twice)
-	if (!(readControlWord(GAUGE_CTRL_SET_UNSEALED) && readControlWord(GAUGE_CTRL_SET_UNSEALED))) return false;
-
-	// Enter config update mode and wait until the command is complete
-	if (readControlWord(GAUGE_CTRL_SET_CONFIG_UPDATE)) {
-		int16_t timeout = 2000;
-		while ((timeout--) && (!(readWord(GAUGE_REG_FLAGS) & GAUGE_FLAGS_CONFIG_UPDATE))) delay(1);
-		if (timeout < 1) return false;
-	}
-
-	return true;
-}
-bool SckBatt::exitConfig()
-{
-	// Soft Reset exits Config Update state
-	if (!readControlWord(GAUGE_CTRL_SOFT_RESET)) return false;
-
-	// Wait Config Update State change has been done
-	int16_t timeout = 2000;
-	while ((timeout--) && ((readWord(GAUGE_REG_FLAGS) & GAUGE_FLAGS_CONFIG_UPDATE))) delay(1);
-	if (timeout < 1) return false;
-
-	// Seal the device
-	readControlWord(GAUGE_CTRL_SET_SEALED);
-
-	return false;
-}
-bool SckBatt::setChemID(uint16_t wichID)
-{
-	if (readControlWord(wichID)){
-
-		uint16_t profile = readControlWord(GAUGE_CTRL_GET_CHEM_ID);
-
-		uint16_t desiredProfile = 0;
-		if (wichID == GAUGE_CTRL_SET_CHEM_A) desiredProfile = 0x3230;
-		else if (wichID == GAUGE_CTRL_SET_CHEM_B) desiredProfile = 0x1202;
-		else if (wichID == GAUGE_CTRL_SET_CHEM_C) desiredProfile = 0x3142;
-
-		if (profile == desiredProfile) return true;
-	}
-
-	return false;
-}
-bool SckBatt::interruptSetup()
-{
-	// (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf) page 38
-	// Default opConfig = 0110010001111000
-	// (no) changes:
-	// GPIOPOL (bit 11) --> 0 (LOW level interrupt)
-	// BATLOWEN (bit 2) --> 0 (enables SOC_INT)
-	uint16_t newOPConfig = 0b0110010001111000;
-	if (!setSubclass(GAUGE_CLASSID_OPCONFIG, opConfigOffset, newOPConfig)) return false;
-
-	// (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf) page 50
-	// SOC interrupt delta (if charge percent changes this or more it will raise an interrupt)
-	// State class (82), offset 20.
-	// new value: 1%
-	if (!setSubclass(GAUGE_CLASSID_STATE, 20, 1)) return false;
-
-	return true;
-}
-bool SckBatt::setSubclass(uint8_t subclassID, uint8_t offset, uint16_t value)
-{
-	uint8_t MSB = value >> 8;
-	uint8_t LSB = value & 0x00FF;
-	uint8_t toSendData[2] = {MSB, LSB};
-
-	writeExtendedData(subclassID, offset, toSendData, 2);
-
-	return (getSubclass(subclassID, offset) == value);
-}
-uint16_t SckBatt::getSubclass(uint8_t subclassID, uint8_t offset)
-{
-	uint8_t MSB = readExtendedData(subclassID, offset);
-	uint8_t LSB = readExtendedData(subclassID, offset+1);
-
-	return ((uint16_t)MSB << 8) | LSB;
-
-}
-uint16_t SckBatt::readWord(uint16_t subAddress)
-{
-	uint8_t data[2];
-	i2cReadBytes(subAddress, data, 2);
-	return ((uint16_t) data[1] << 8) | data[0];
-}
-uint16_t SckBatt::readControlWord(uint16_t function)
-{
-	uint8_t subCommandMSB = (function >> 8);
-	uint8_t subCommandLSB = (function & 0x00FF);
-	uint8_t command[2] = {subCommandLSB, subCommandMSB};
-	uint8_t data[2] = {0, 0};
-	
-	i2cWriteBytes((uint8_t) 0, command, 2);
-	
-	if (i2cReadBytes((uint8_t) 0, data, 2)) return ((uint16_t)data[1] << 8) | data[0];
-	
-	return false;
-}
-bool SckBatt::writeExtendedData(uint8_t classID, uint8_t offset, uint8_t * data, uint8_t len)
-{
-	if (len > 32) return false;
-	
-	// Enable block data memory control
-	if (!blockDataControl()) return false;
-
-	// Write class ID using DataBlockClass()
-	if (!blockDataClass(classID)) return false;
-	
-	// Write 32-bit block offset (usually 0)
-	blockDataOffset(offset / 32);
-
-	// Compute checksum going in
-	computeBlockChecksum();
-
-	// Write data bytes:
-	for (int i = 0; i < len; i++) {
-		// Write to offset, mod 32 if offset is greater than 32
-		// The blockDataOffset above sets the 32-bit block
-		writeBlockData((offset % 32) + i, data[i]);
-	}
-	
-	// Write new checksum using BlockDataChecksum (0x60)
-	uint8_t newCsum = computeBlockChecksum();
-	writeBlockChecksum(newCsum);
-
-	return true;
-}
-uint8_t SckBatt::readExtendedData(uint8_t classID, uint8_t offset)
-{
-	uint8_t retData = 0;
-		
-	// Enable block data memory control
-	if (!blockDataControl()) return false;
-
-	// Write class ID using DataBlockClass()
-	if (!blockDataClass(classID)) return false;
-
-	// Write 32-bit block offset (usually 0)
-	blockDataOffset(offset / 32);
-	
-	// Compute checksum going in
-	computeBlockChecksum();
-
-	retData = readBlockData(offset % 32); // Read from offset (limit to 0-31)
-	
-	return retData;
-}
-bool SckBatt::blockDataControl()
-{
-	// Issue a BlockDataControl() command to enable BlockData access
-	uint8_t enableByte = 0x00;
-	return i2cWriteBytes(0x61, &enableByte, 1);
-}
-bool SckBatt::blockDataClass(uint8_t id)
-{
-	// Issue a DataClass() command to set the data class to be accessed
-	return i2cWriteBytes(0x3E, &id, 1);
-}
-bool SckBatt::blockDataOffset(uint8_t offset)
-{
-	// Issue a DataBlock() command to set the data block to be accessed
-	return i2cWriteBytes(0x3F, &offset, 1);
-}
-uint8_t SckBatt::computeBlockChecksum()
-{
-	uint8_t data[32];
-	i2cReadBytes(0x40, data, 32);
-
-	uint8_t csum = 0;
-	for (int i=0; i<32; i++)
-	{
-		csum += data[i];
-	}
-	csum = 255 - csum;
-	
-	return csum;
-}
-bool SckBatt::writeBlockChecksum(uint8_t csum)
-{
-	// Use the BlockDataCheckSum() command to write a checksum value
-	return i2cWriteBytes(0x60, &csum, 1);	
-}
-bool SckBatt::writeBlockData(uint8_t offset, uint8_t data)
-{
-	// Use BlockData() to write a byte to an offset of the loaded data
-	uint8_t address = offset + 0x40;
-	return i2cWriteBytes(address, &data, 1);
-}
-uint8_t SckBatt::readBlockData(uint8_t offset)
-{
-	// Use BlockData() to read a byte from the loaded extended data
-	uint8_t ret;
-	uint8_t address = offset + 0x40;
-	i2cReadBytes(address, &ret, 1);
-	return ret;
-}
-bool SckBatt::i2cWriteBytes(uint8_t subAddress, uint8_t * src, uint8_t count)
-{
-	Wire.beginTransmission(address);
-	Wire.write(subAddress);
-	for (int i=0; i<count; i++) Wire.write(src[i]);
-	Wire.endTransmission(true);
-	
-	return true;	
-}
-bool SckBatt::i2cReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count)
-{
-	int16_t timeout = 2000;	
-	Wire.beginTransmission(address);
-	Wire.write(subAddress);
-	Wire.endTransmission(true);
-	
-	Wire.requestFrom(address, count);
-	while ((Wire.available() < count) && timeout--)
-		delay(1);
-	if (timeout) {
-		for (int i=0; i<count; i++) dest[i] = Wire.read();
-		return true;
-	}
-	
-	return false;
+	return 75;
 }

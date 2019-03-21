@@ -5,6 +5,8 @@
 #include <Pins.h>
 #include "wiring_private.h"
 
+const float workingVoltage = 3.3;
+
 class SckCharger
 {
 private:
@@ -17,6 +19,7 @@ private:
 	
 	byte POWER_ON_CONF_REG = 1;
 	byte BOOST_LIM = 0;			// Limit for boost mode. 0 – 1 A, 1 – 1.5 A
+	byte VSYS_MIN = 1; 			// (Three bits 1:3 -- bit 1 - 0.1v, bit 2 - 0.2v, bit 3 - 0.4v) Minimum System Voltage Limit -> Offset:3.0 V, Range3.0 V – 3.7 VDefault:3.5 V (101)
 	byte CHG_CONFIG = 4;			// Charger Configuration. 0 - Charge Disable; 1- Charge Enable
 	byte OTG_CONFIG = 5;			// Charger Configuration. 0 – OTG Disable; 1 – OTG Enable. OTG_CONFIG would over-ride Charge Enable Function in CHG_CONFIG
 	byte I2C_WATCHDOG_TIMER_RESET = 6;	// I2C Watchdog Timer Reset. 0 – Normal; 1 – Reset
@@ -24,6 +27,9 @@ private:
 
 	byte CHARGE_CURRENT_CONTROL = 2;
 	byte CHARGE_CURRENT_LIMIT = 2;		// Limit charge current.(bits 2:6) Range: 512 – 2048mA (00000–11000), bit6 - 1024mA, bit5 - 512mA, bit4 - 256mA, bit3 - 128mA, bit2 - 64mA, (ej. 00000 -> 512mA, 00100 -> 768mA)
+
+	byte CHARGE_VOLT_CONTROL = 4;
+	byte BATLOWV = 1; 			// 0 – 2.8V, 1 – 3V Default:3.0 V
 
 	byte CHG_TERM_TIMER_CTRL = 5;
 	byte CHG_TIMER = 1;			// Fast Charge Timer Setting. (Two bits 1:2) 00 – 5 hrs, 01 – 8 hrs, 10 – 12 hrs, 11 – 20 hrs
@@ -38,6 +44,7 @@ private:
 	byte DPDM_EN = 7;			// Force DPDM detection. 0 – Not in Force detection; 1 – Force detection when VBUS power is present
 
 	byte SYS_STATUS_REG = 8;		// System Status Register
+	byte VSYS_STAT = 0; 			// 0 – Not in VSYSMIN regulation (BAT > VSYSMIN), 1 – In VSYSMIN regulation (BAT < VSYSMIN)
 	byte PG_STAT = 2;			// Power Good status. 0 – Not Power Good, 1 – Power Good
 	byte DPM_STAT = 3;			// DPM (detection) 0 - Not in DPM, 1 - On DPM
 	byte CHRG_STAT = 4;			// (Two bits 4:5) 00 – Not Charging, 01 – Pre-charge (<VBATLOWV), 10 – Fast Charging, 11 – Charge Termination Done
@@ -49,6 +56,7 @@ private:
 	byte OTG_FAULT = 6;			// 0 – Normal, 1 – VBUS overloaded in OTG, or VBUS OVP, or battery is too low (any conditions that cannot start boost function)
 	byte WATCHDOG_FAULT = 7;		// 0 – Normal, 1- Watchdog timer expiration	
 
+	float batLow = 3.0; 			// If batt < batLow the charger will start with precharging cycle.
 	byte readREG(byte wichRegister);
 	bool writeREG(byte wichRegister, byte data);
 
@@ -104,6 +112,8 @@ public:
 	bool getDPMstatus();
 	void forceInputCurrentLimitDetection();
 	void detectUSB();
+	float getSysMinVolt();
+	bool getBatLowerSysMin();
 	ChargeStatus getChargeStatus();
 	VBUSstatus getVBUSstatus();
 	byte getNewFault();		// TODO
@@ -115,110 +125,24 @@ public:
 
 class SckBatt
 {
-	// Parts of this code where taken from https://github.com/sparkfun/SparkFun_BQ27441_Arduino_Library
-	// Thanks Sparkfun!!
 	private:
 		// Nominal Voltage of battery in volts
 		const float nominalVoltage = 3.7;
 
-		// Minimum operating voltage in mV.
-		const uint16_t terminateVoltage = 2500;
-		const uint8_t terminateVoltageOffset = 10;
-
-		// Low limit of current flow at which charger stops charging cycle in mAh (wih added error margin)
-		// Page 31 of http://www.ti.com/lit/ds/symlink/bq24259.pdf
-		const uint16_t taperCurrent = 313;
-
-		// Page 39 of http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf
-		// 00 = Chem ID 3230 is used.
-		// 01 = Chem ID 1202 is used. (default batt of SCK)
-		// 10 = Chem ID 3142 is used.
-		// 11 = RSVD
-		const byte chemID = 1;
-
-		uint8_t designCapacityOffset = 6;
-
-		// Design energy in mWh, page 49 of (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf)
-		// designEnergy = designCapacity * nominalVoltage
-		uint8_t designEnergyOffset = 8;
-
-		// Taper Rate: used to sync full charge between gauge and charger
-		// taperRate = designCapacity / (0.1 * taperCurrent)
-		uint8_t taperRateOffset = 21;
-
-		// OpConfig
-		const uint8_t opConfigOffset 			= 0;
-		const uint8_t opConfig_C_Offset			= 2;
-
-		// Gauge Control() commands
-	    	const uint16_t GAUGE_REG_CTRL_STATUS		= 0x00;
-		const uint16_t GAUGE_CTRL_GET_CHEM_ID		= 0x0008;
-		const uint16_t GAUGE_CTRL_SET_CHEM_A		= 0x0030; // Chem profile: 3230 - 4.35v charging voltage
-		const uint16_t GAUGE_CTRL_SET_CHEM_B		= 0x0031; // Chem profile: 1202- 4.2v charging voltage (default for SCK)
-		const uint16_t GAUGE_CTRL_SET_CHEM_C		= 0x0032; // Chem profile: 3142 - 4.4v charging voltage
-
-		const uint16_t GAUGE_CTRL_SET_CONFIG_UPDATE 	= 0x0013;
-		const uint16_t GAUGE_CTRL_SET_UNSEALED 		= 0x8000;
-		const uint16_t GAUGE_CTRL_SET_SEALED 		= 0x0020;
-		const uint16_t GAUGE_CTRL_SOFT_RESET 		= 0x0042;
-
-		const uint16_t GAUGE_REG_FLAGS 			= 0x06;
-		const uint16_t GAUGE_FLAGS_CONFIG_UPDATE 	= 4;
-	
-		const uint8_t GAUGE_CLASSID_STATE 		= 82;
-		const uint8_t GAUGE_CLASSID_OPCONFIG 		= 64;
-
-		const uint8_t GAUGE_COM_VOLTAGE 		= 0x04;
-		const uint8_t GAUGE_COM_SOC 			= 0x1C;
-		const uint8_t GAUGE_COM_CURRENT 		= 0x10;
-		const uint8_t GAUGE_COM_POWER 			= 0x18;
-		const uint8_t GAUGE_COM_SOH 			= 0x20;
-		const uint8_t GAUGE_COM_REMAIN_CAPACITY		= 0x2A;
-
-		bool enterConfig();
-		bool exitConfig();
-		bool setChemID(uint16_t wichID);
-		bool interruptSetup();
-		bool setSubclass(uint8_t subclassID, uint8_t offset, uint16_t value);
-		uint16_t getSubclass(uint8_t subclassID, uint8_t offset);
-		uint16_t readWord(uint16_t subAddress);
-		uint16_t readControlWord(uint16_t function); 	// param function is the subcommand of control() to be read
-		bool writeExtendedData(uint8_t classID, uint8_t offset, uint8_t * data, uint8_t len);
-		uint8_t readExtendedData(uint8_t classID, uint8_t offset);
-		bool blockDataControl();
-		bool blockDataClass(uint8_t id);
-		bool blockDataOffset(uint8_t offset);
-		uint8_t computeBlockChecksum(void);
-		bool writeBlockData(uint8_t offset, uint8_t data);
-		uint8_t readBlockData(uint8_t offset);
-		bool writeBlockChecksum(uint8_t csum);
-		bool i2cWriteBytes(uint8_t subAddress, uint8_t * src, uint8_t count); 		// Write a specified number of bytes over I2C to a given subAddress
-		bool i2cReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count); 	// Read a specified number of bytes over I2C at a given subAddress
-		
-		uint8_t address = 0x55;
-		bool configured = false;
 	public:
+		bool present = false;
+
+		float maxVolt = 4.1; 	// This should be updated when dynamic lookup table is implemented
+
 		const uint8_t threshold_low = 10;
-		const uint8_t threshold_recharge = 98;
 		const uint8_t threshold_emergency = 2;
+
 		uint8_t lowBatCounter = 0;
 		uint8_t emergencyLowBatCounter = 0;
 
-		bool present = false;
-		uint8_t lastPercent = 0;
-		// Design capacity in mAh, page 49 of (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf)
-		uint16_t designCapacity = 2000; 	// Don't change this default here, change it in Config.h. This will be overwriten by config value
-
-		bool setup(SckCharger charger, bool force=false);
-		bool isPresent(SckCharger charger);
+		bool setup(SckCharger charger);
 		float voltage();
-		int16_t current();
-		int16_t power(); 	// Negative during discharge, positive when charging, (mWh)
 		uint8_t percent();
-		uint8_t health();
-		uint16_t remainCapacity();
-
 };
 
 void ISR_charger();
-void ISR_battery();

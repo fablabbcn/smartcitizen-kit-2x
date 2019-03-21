@@ -89,8 +89,6 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
 		case SENSOR_BME680_VOCS:		return bme680.start(); break;
-		case SENSOR_CCS811_VOCS:		return ccs811.start(); break;
-		case SENSOR_CCS811_ECO2: 		return ccs811.start(); break;
 		default: break;
 	}
 
@@ -161,8 +159,6 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
 		case SENSOR_BME680_VOCS:		return bme680.stop(); break;
-		case SENSOR_CCS811_VOCS:		return ccs811.stop(); break;
-		case SENSOR_CCS811_ECO2:		return ccs811.stop(); break;
 		default: break;
 	}
 
@@ -231,8 +227,6 @@ float AuxBoards::getReading(SensorType wichSensor, SckBase *base)
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()); return bme680.humidity;  break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()); return bme680.pressure;  break;
 		case SENSOR_BME680_VOCS:		if (bme680.getReading()); return bme680.VOCgas;  break;
-		case SENSOR_CCS811_VOCS:		if (ccs811.getReading(base)); return ccs811.VOCgas;  break;
-		case SENSOR_CCS811_ECO2:		if (ccs811.getReading(base)); return ccs811.ECO2gas;  break;
 		default: break;
 	}
 
@@ -393,14 +387,6 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 			}
 			break;
-		} case SENSOR_CCS811_VOCS:
-		case SENSOR_CCS811_ECO2: {
-
-			if (command.startsWith("compensate")) {
-				ccs811.compensate = !ccs811.compensate;
-				return (ccs811.compensate ? "True" : "False");
-			}
-
 		} default: return "Unrecognized sensor!!!"; break;
 	}
 	return "Unknown error on control command!!!";
@@ -1222,41 +1208,6 @@ bool Sck_BME680::getReading()
 	pressure = bme.pressure / 1000;  // Converted to kPa
 	VOCgas = bme.gas_resistance;
 
-	return true;
-}
-
-bool Sck_CCS811::start()
-{
-	if (alreadyStarted) return true;
-
-	if (ccs.begin() != CCS811Core::SENSOR_SUCCESS) return false;
-
-	alreadyStarted = true;
-	return true;
-}
-
-bool Sck_CCS811::stop()
-{
-
-	return true;
-}
-
-bool Sck_CCS811::getReading(SckBase *base)
-{
-	if (!ccs.dataAvailable()) return false;
-
-	ccs.readAlgorithmResults();
-
-	VOCgas = ccs.getTVOC();
-	ECO2gas = ccs.getCO2();
-
-	if (compensate) {
-		if (base->sensors[SENSOR_TEMPERATURE].enabled && base->sensors[SENSOR_HUMIDITY].enabled) {
-			if (base->getReading(SENSOR_HUMIDITY) && base->getReading(SENSOR_TEMPERATURE)) {
-				ccs.setEnvironmentalData(base->sensors[SENSOR_HUMIDITY].reading.toFloat(), base->sensors[SENSOR_TEMPERATURE].reading.toFloat());
-			}
-		}
-	}
 	return true;
 }
 

@@ -15,21 +15,12 @@ enum SensorType
 	// Base Sensors
 	SENSOR_BATT_PERCENT,
 	SENSOR_BATT_VOLTAGE,
-	SENSOR_BATT_CHARGE_RATE,
-	SENSOR_BATT_POWER,
 	SENSOR_SDCARD,
 
 	// Urban Sensors
 	SENSOR_LIGHT,
 	SENSOR_TEMPERATURE,
 	SENSOR_HUMIDITY,
-	SENSOR_CO_RESISTANCE,
-	SENSOR_CO_HEAT_VOLT,
-	SENSOR_CO_HEAT_TIME,
-	SENSOR_NO2_RESISTANCE,
-	SENSOR_NO2_HEAT_VOLT,
-	SENSOR_NO2_HEAT_TIME,
-	SENSOR_NO2_LOAD_RESISTANCE,
 	SENSOR_NOISE_DBA,
 	SENSOR_NOISE_DBC,
 	SENSOR_NOISE_DBZ,
@@ -37,10 +28,8 @@ enum SensorType
 	SENSOR_ALTITUDE,
 	SENSOR_PRESSURE,
 	SENSOR_PRESSURE_TEMP,
-	SENSOR_PARTICLE_RED,
-	SENSOR_PARTICLE_GREEN,
-	SENSOR_PARTICLE_IR,
-	SENSOR_PARTICLE_TEMPERATURE,
+	SENSOR_CCS811_VOCS,
+	SENSOR_CCS811_ECO2,
 	SENSOR_PM_1,
 	SENSOR_PM_25,
 	SENSOR_PM_10,
@@ -121,9 +110,6 @@ enum SensorType
 	SENSOR_BME680_PRESSURE,
 	SENSOR_BME680_VOCS,
 
-	SENSOR_CCS811_VOCS,
-	SENSOR_CCS811_ECO2,
-
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
 
@@ -156,7 +142,7 @@ class OneSensor
 			shortTitle = nShortTitle;
 			title = nTitle;
 			unit = nUnit;
-			reading = "none";
+			reading = "null";
 			lastReadingTime = 0;
 			valid = false;
 			controllable = nControllable;
@@ -178,44 +164,32 @@ class AllSensors
 			//	SensorLocation 	priority	SensorType 				shortTitle		title 						id		enabled		controllable	everyNintervals		unit
 
 			// Base Sensors
-			OneSensor { BOARD_BASE, 	100,	SENSOR_BATT_PERCENT,			"BATT",			"Battery", 					10,		true,		false,		1,			"%"},
-			OneSensor { BOARD_BASE, 	100,	SENSOR_BATT_VOLTAGE,			"BATT_VOLT",		"Battery voltage",				0,		false,		false,		1,			"V"},
-			OneSensor { BOARD_BASE, 	100,	SENSOR_BATT_CHARGE_RATE,		"BATT_CHG_RATE",	"Battery charge rate",				97,		false,		false,		1,			"mA"},
-			OneSensor { BOARD_BASE, 	100,	SENSOR_BATT_POWER,			"BATT_POWER",		"Battery power rate",				0,		false,		false,		1,			"mW"},
-			OneSensor { BOARD_BASE, 	100,	SENSOR_SDCARD,				"SDCARD",		"SDcard present", 				0,		false,		false,		1,			"Present"},
+			OneSensor { BOARD_BASE, 	100,	SENSOR_BATT_PERCENT,			"BATT",			"Battery", 					10,		true,		false,		1, 		 	"%"},
+			OneSensor { BOARD_BASE, 	100,	SENSOR_BATT_VOLTAGE,			"BATT_VOLT",		"Battery voltage",				0,		false,		false,		1, 			"V"},
+			OneSensor { BOARD_BASE, 	100,	SENSOR_SDCARD,				"SDCARD",		"SDcard present", 				0,		false,		false,		1, 			"Present"},
 
 			// Urban Sensors
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_LIGHT, 				"LIGHT",		"Light", 					14,		true,		false,		1,			"Lux"},
-			OneSensor { BOARD_URBAN, 	0,	SENSOR_TEMPERATURE, 			"TEMP",			"Temperature", 					55,		true,		false,		1,			"C"},
-			OneSensor { BOARD_URBAN, 	0,	SENSOR_HUMIDITY,			"HUM",			"Humidity", 					56,		true,		false,		1,			"%"},
-			OneSensor { BOARD_URBAN, 	200,	SENSOR_CO_RESISTANCE,			"CO_MICS_RAW",		"Carbon monoxide resistance", 			16,		false,		true,		1,			"kOhm"},
-			OneSensor { BOARD_URBAN, 	200,	SENSOR_CO_HEAT_VOLT, 			"CO_MICS_VHEAT",	"Carbon monoxide heat voltage",			0,		false,		false,		1,			"V"},
-			OneSensor { BOARD_URBAN, 	200,	SENSOR_CO_HEAT_TIME, 			"CO_MICS_THEAT",	"Carbon monoxide heat time",			0,		false,		false,		1,			"sec"},
-			OneSensor { BOARD_URBAN, 	200,	SENSOR_NO2_RESISTANCE,			"NO2_MICS_RAW",		"Nitrogen dioxide resistance",			15,		false,		true,		1,			"kOhm"},
-			OneSensor { BOARD_URBAN, 	200,	SENSOR_NO2_HEAT_VOLT, 			"NO2_MICS_VHEAT",	"Nitrogen dioxide heat voltage",		0,		false,		false,		1,			"V"},
-			OneSensor { BOARD_URBAN, 	200,	SENSOR_NO2_HEAT_TIME, 			"NO2_MICS_THEAT",	"Nitrogen dioxide heat time",			0,		false,		false,		1,			"sec"},
-			OneSensor { BOARD_URBAN, 	200,	SENSOR_NO2_LOAD_RESISTANCE, 		"NO2_MICS_RLOAD",	"Nitrogen dioxide load resistance",		0,		false,		false,		1,			"Ohms"},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_NOISE_DBA, 			"NOISE_A",		"Noise dBA", 					53,		true,		true,		1,			"dBA"},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_NOISE_DBC, 			"NOISE_B",		"Noise dBC", 					0,		false,		true,		1,			"dBC"},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_NOISE_DBZ, 			"NOISE_Z",		"Noise dBZ", 					0,		false,		true,		1,			"dB"},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_NOISE_FFT, 			"NOISE_FFT",		"Noise FFT", 					0,		false,		true,		1,			},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_ALTITUDE, 			"ALT", 			"Altitude", 					0,		false,		false,		1,			"M"},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_PRESSURE, 			"PRESS",		"Barometric pressure",				58,		true,		false,		1,			"kPa"},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_PRESSURE_TEMP,			"PRESS_TEMP",		"Pressure internal temperature", 		0,		false,		false,		1,			"C"},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_PARTICLE_RED, 			"DUST_RED",		"Dust particle Red Channel",	 		0,		false,		false,		1,			},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_PARTICLE_GREEN,			"DUST_GREEN",		"Dust particle Green Channel",	 		0,		false,		false,		1,			},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_PARTICLE_IR,			"DUST_IR",		"Dust particle InfraRed Channel",	 	0,		false,		false,		1,			},
-			OneSensor { BOARD_URBAN, 	100,	SENSOR_PARTICLE_TEMPERATURE,		"DUST_TEMP",		"Dust particle internal temperature",		0,		false,		false,		1,			"C"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		false,		1,			"ug/m3"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		false,		1,			"ug/m3"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		false,		1,			"ug/m3"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_03,				"PN_03",		"PN 0.3",					0,		false,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_05,				"PN_05",		"PN 0.5",					0,		false,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_1,				"PN_1",			"PN 1.0",					0,		false,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_25,				"PN_25",		"PN 2.5",					0,		false,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_5,				"PN_5",			"PN 5.0",					0,		false,		false,		1,			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_10,				"PN_10",		"PN 10.0",					0,		false,		false,		1,			"#/0.1l"},
-
+			OneSensor { BOARD_URBAN, 	100,	SENSOR_LIGHT, 				"LIGHT",		"Light", 					14,		true,		false,		1, 			"Lux"},
+			OneSensor { BOARD_URBAN, 	0,	SENSOR_TEMPERATURE, 			"TEMP",			"Temperature", 					55,		true,		false,		1, 			"C"},
+			OneSensor { BOARD_URBAN, 	0,	SENSOR_HUMIDITY,			"HUM",			"Humidity", 					56,		true,		false,		1, 			"%"},
+			OneSensor { BOARD_URBAN, 	100,	SENSOR_NOISE_DBA, 			"NOISE_A",		"Noise dBA", 					53,		true,		true,		1, 			"dBA"},
+			OneSensor { BOARD_URBAN, 	100,	SENSOR_NOISE_DBC, 			"NOISE_B",		"Noise dBC", 					0,		false,		true,		1, 			"dBC"},
+			OneSensor { BOARD_URBAN, 	100,	SENSOR_NOISE_DBZ, 			"NOISE_Z",		"Noise dBZ", 					0,		false,		true,		1, 			"dB"},
+			OneSensor { BOARD_URBAN, 	100,	SENSOR_NOISE_FFT, 			"NOISE_FFT",		"Noise FFT", 					0,		false,		true,		1, 			},
+			OneSensor { BOARD_URBAN, 	100,	SENSOR_ALTITUDE, 			"ALT", 			"Altitude", 					0,		false,		false,		1, 			"M"},
+			OneSensor { BOARD_URBAN, 	100,	SENSOR_PRESSURE, 			"PRESS",		"Barometric pressure",				58,		true,		false,		1, 			"kPa"},
+			OneSensor { BOARD_URBAN, 	100,	SENSOR_PRESSURE_TEMP,			"PRESS_TEMP",		"Pressure internal temperature", 		0,		false,		false,		1, 			"C"},
+			OneSensor { BOARD_URBAN,	100,	SENSOR_CCS811_VOCS,			"CCS811_VOCS",		"VOC Gas CCS811",				0,		true,		true,		1, 			"ppb"},
+			OneSensor { BOARD_URBAN,	100,	SENSOR_CCS811_ECO2,			"CCS811_ECO2",		"eCO2 Gas CCS811",				0,		true,		true,		1, 			"ppm"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		false,		1, 			"ug/m3"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		false,		1, 			"ug/m3"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		false,		1, 			"ug/m3"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_03,				"PN_03",		"PN 0.3",					0,		false,		false,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_05,				"PN_05",		"PN 0.5",					0,		false,		false,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_1,				"PN_1",			"PN 1.0",					0,		false,		false,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_25,				"PN_25",		"PN 2.5",					0,		false,		false,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_5,				"PN_5",			"PN 5.0",					0,		false,		false,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_10,				"PN_10",		"PN 10.0",					0,		false,		false,		1, 			"#/0.1l"},
 
 			// I2C Auxiliary Sensors
 			// SCK Gases Board for Alphasense (3 Gas sensor Slots, + SHT31 Temp-Humidity)
@@ -262,7 +236,7 @@ class AllSensors
 
 			OneSensor { BOARD_AUX,		200,	SENSOR_EXT_A_PM_1,			"EXT_PM_A_1",		"Ext PM_A 1.0",					71,		false,		false,		1,			"ug/m3"},
 			OneSensor { BOARD_AUX,		200,	SENSOR_EXT_A_PM_25,			"EXT_PM_A_25",		"Ext PM_A 2.5",					72,		false,		false,		1,			"ug/m3"},
-			OneSensor { BOARD_AUX,		200,	SENSOR_EXT_A_PM_10,			"EXT_PM_A_10",		"Ext PM_A 10.0",					73,		false,		false,		1,			"ug/m3"},
+			OneSensor { BOARD_AUX,		200,	SENSOR_EXT_A_PM_10,			"EXT_PM_A_10",		"Ext PM_A 10.0",				73,		false,		false,		1,			"ug/m3"},
 			OneSensor { BOARD_AUX,		200,	SENSOR_EXT_A_PN_03,			"EXT_PN_A_03",		"Ext PN_A 0.3",					99,		false,		false,		1,			"#/0.1l"},
 			OneSensor { BOARD_AUX,		200,	SENSOR_EXT_A_PN_05,			"EXT_PN_A_05",		"Ext PN_A 0.5",					100,		false,		false,		1,			"#/0.1l"},
 			OneSensor { BOARD_AUX,		200,	SENSOR_EXT_A_PN_1,			"EXT_PN_A_1",		"Ext PN_A 1.0",					101,		false,		false,		1,			"#/0.1l"},
@@ -293,9 +267,6 @@ class AllSensors
 			OneSensor { BOARD_AUX,		0,	SENSOR_BME680_HUMIDITY,			"BME680_HUM",		"Humidity BME680",				0,		false,		false,		1,			"%"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_PRESSURE,			"BME680_PRESS",		"Barometric pressure BME680",			0,		false,		false,		1,			"kPa"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_VOCS,			"BME680_VOCS",		"VOC Gas BME680",				0,		false,		false,		1,			"Ohms"},
-
-			OneSensor { BOARD_AUX,		100,	SENSOR_CCS811_VOCS,			"CCS811_VOCS",		"VOC Gas CCS811",				0,		false,		true,		1,			"ppb"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_CCS811_ECO2,			"CCS811_ECO2",		"eCO2 Gas CCS811",				0,		false,		true,		1,			"ppm"},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

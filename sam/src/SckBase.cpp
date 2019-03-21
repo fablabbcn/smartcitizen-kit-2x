@@ -1567,6 +1567,7 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 		case BOARD_URBAN:
 		{
 				result = urban.getReading(this, wichSensor, wait);
+				sensors[wichSensor].reading = result;
 				if (result.startsWith("null")) return false;
 				break;
 		}

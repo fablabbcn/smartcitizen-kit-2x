@@ -7,6 +7,17 @@ void SERCOM5_Handler() {
 	SerialPM.IrqHandler();
 }
 
+bool SckUrban::present()
+{
+	SerialUSB.println("detecting urban");
+
+	if ( 	!I2Cdetect(&Wire, sck_bh1721fvc.address) ||
+		!I2Cdetect(&Wire, sck_sht31.address) ||
+		!I2Cdetect(&Wire, sck_mpl3115A2.address) ||
+		!I2Cdetect(&Wire, sck_ccs811.address)
+	) return true;
+}
+
 bool SckUrban::setup(SckBase *base)
 {
 	for (uint16_t i=0; i<SENSOR_COUNT; i++) {
@@ -52,7 +63,13 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_CCS811_ECO2: 			return sck_ccs811.start(); break;
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
-		case SENSOR_PM_10: 				if (sck_pm.start()) return true; break;
+		case SENSOR_PM_10:
+		case SENSOR_PN_03:
+		case SENSOR_PN_05:
+		case SENSOR_PN_1:
+		case SENSOR_PN_25:
+		case SENSOR_PN_5:
+		case SENSOR_PN_10: 				if (sck_pm.start()) return true; break;
 		default: break;
 	}
 
@@ -75,8 +92,13 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_CCS811_ECO2: 			return sck_ccs811.stop(); break;
 		case SENSOR_PM_1:
 		case SENSOR_PM_25:
-		case SENSOR_PM_10: 				if (sck_pm.stop()) return true; break;
-
+		case SENSOR_PM_10:
+		case SENSOR_PN_03:
+		case SENSOR_PN_05:
+		case SENSOR_PN_1:
+		case SENSOR_PN_25:
+		case SENSOR_PN_5:
+		case SENSOR_PN_10: 				if (sck_pm.stop()) return true; break;
 		default: break;
 	}
 
@@ -108,6 +130,12 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 		case SENSOR_PM_1: 			if (sck_pm.update()) return String(sck_pm.pm1); break;
 		case SENSOR_PM_25: 			if (sck_pm.update()) return String(sck_pm.pm25); break;
 		case SENSOR_PM_10: 			if (sck_pm.update()) return String(sck_pm.pm10); break;
+		case SENSOR_PN_03: 			if (sck_pm.update()) return String(sck_pm.pn03); break;
+		case SENSOR_PN_05: 			if (sck_pm.update()) return String(sck_pm.pn05); break;
+		case SENSOR_PN_1: 			if (sck_pm.update()) return String(sck_pm.pn1); break;
+		case SENSOR_PN_25: 			if (sck_pm.update()) return String(sck_pm.pn25); break;
+		case SENSOR_PN_5: 			if (sck_pm.update()) return String(sck_pm.pn5); break;
+		case SENSOR_PN_10: 			if (sck_pm.update()) return String(sck_pm.pn10); break;
 		default: break;
 	}
 
@@ -134,7 +162,6 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 				sck_ccs811.compensate = !sck_ccs811.compensate;
 				return (sck_ccs811.compensate ? "True" : "False");
 			}
-					 
 		}
 		default: break;
         }
@@ -146,6 +173,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 // Light
 bool Sck_BH1721FVC::start()
 {
+	if (!I2Cdetect(&Wire, address)) return false;
 	return true;
 }
 bool Sck_BH1721FVC::stop()
@@ -429,7 +457,7 @@ bool Sck_Noise::getReading(SensorType wichSensor)
 	FFT(source);
 
 	switch(wichSensor) {
-	
+
 		case SENSOR_NOISE_DBA:
 			// Equalization and A weighting
 			for (uint16_t i=0; i<FFT_NUM; i++) readingFFT[i] *= (double)(equalWeight_A[i] / 65536.0);
@@ -516,11 +544,11 @@ double Sck_Noise::dynamicScale(int32_t *source, int16_t *scaledSource)
 	return divider;
 }
 void Sck_Noise::applyWindow(int16_t *src, const uint16_t *window, uint16_t len)
-{ 
+{
 	/* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
 		-------
 		This is an FFT library for ARM cortex M0+ CPUs
-		Adafruit invests time and resources providing this open source code, 
+		Adafruit invests time and resources providing this open source code,
 		please support Adafruit and open-source hardware by purchasing products from Adafruit!
 		Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
 		------
@@ -537,7 +565,7 @@ void Sck_Noise::arm_radix2_butterfly(int16_t * pSrc, int16_t fftLen, int16_t * p
 	/* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
 		-------
 		This is an FFT library for ARM cortex M0+ CPUs
-		Adafruit invests time and resources providing this open source code, 
+		Adafruit invests time and resources providing this open source code,
 		please support Adafruit and open-source hardware by purchasing products from Adafruit!
 		Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
 		------
@@ -644,7 +672,7 @@ void Sck_Noise::arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pB
 	/* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
 		-------
 		This is an FFT library for ARM cortex M0+ CPUs
-		Adafruit invests time and resources providing this open source code, 
+		Adafruit invests time and resources providing this open source code,
 		please support Adafruit and open-source hardware by purchasing products from Adafruit!
 		Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
 		------
@@ -694,7 +722,7 @@ void Sck_Noise::fft2db()
 // Barometric pressure and Altitude
 bool Sck_MPL3115A2::start()
 {
-
+	if (!I2Cdetect(&Wire, address)) return false;
 	if (Adafruit_mpl3115A2.begin()) return true;
 	return false;
 }
@@ -772,42 +800,78 @@ bool Sck_PM::stop()
 }
 bool Sck_PM::update()
 {
-	// TODO test correlation between this readings and turning of the fan between readings 
-
 	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
+	if (millis() - lastFail < 1000) return false; 		// We need at least one second after las fail
 
 	// Empty serial buffer
 	while(SerialPM.available()) SerialPM.read();
-	
+
 	// Wait for new readings
 	uint32_t startPoint = millis();
-	while(SerialPM.available() < 25) if (millis() - startPoint > 1000) break; 
+	while(SerialPM.available() < (buffLong + 2)) {
+		if (millis() - startPoint > 1500) {
+			// Timeout
+			lastFail = millis();
 
-	while(SerialPM.available()) {
-
-		byte sb = 0;
-		sb = SerialPM.read();
-
-		if (sb == 0x42) {
-			SerialPM.readBytes(buff, buffLong);
-			if (buff[0] == 0x4d) {
-
-				values[0] = buff[3];
-				values[1] = buff[4];
-				values[2] = buff[5];
-				values[3] = buff[6];
-				values[4] = buff[7];
-				values[5] = buff[8];
-
-				pm1 = (buff[3]<<8) + buff[4];
-				pm25 = (buff[5]<<8) + buff[6];
-				pm10 = (buff[7]<<8) + buff[8];
-
-				lastReading = millis();
-
-				return true;
+			// After 10 seconds declare the PM innactive
+			if (millis() - lastReading < 10000) {
+				active = false;
 			}
+			return false;
 		}
+	}
+
+
+	uint16_t sum = 0;
+
+	// Search for start char 1
+	byte sc1 = 0;
+	startPoint = millis();
+	while (sc1 != 0x42) {
+		sc1 = SerialPM.read();
+		if (millis() - startPoint > 1500) return false;
+	}
+	sum += sc1;
+
+	// Confirm we receive start char 2
+	byte sc2 = 0;
+	sc2 = SerialPM.read();
+
+	if (sc2 == 0x4d) {
+
+		sum += sc2;
+
+		unsigned char buff[buffLong];
+		byte howMany =  SerialPM.readBytes(buff, buffLong);
+
+		// Is buffer complete?
+		if (howMany < 30) {
+			return false;
+		}
+
+		// Checksum
+		uint16_t checkSum = (buff[28]<<8) + buff[29];
+		for(int i=0; i<(buffLong - 2); i++) sum += buff[i];
+		if(sum != checkSum) {
+			return false;
+		}
+
+		// Get the values
+		pm1 = (buff[2]<<8) + buff[3];
+		pm25 = (buff[4]<<8) + buff[5];
+		pm10 = (buff[6]<<8) + buff[7];
+		pn03 = (buff[14]<<8) + buff[15];
+		pn05 = (buff[16]<<8) + buff[17];
+		pn1 = (buff[18]<<8) + buff[19];
+		pn25 = (buff[20]<<8) + buff[21];
+		pn5 = (buff[22]<<8) + buff[23];
+		pn10 = (buff[24]<<8) + buff[25];
+
+		lastReading = millis();
+		lastFail = 0;
+		active = true;
+
+		return true;
 	}
 	return false;
 }

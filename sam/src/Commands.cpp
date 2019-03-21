@@ -52,8 +52,6 @@ void getVersion_com(SckBase* base, String parameters)
 	base->sckOut();
 	sprintf(base->outBuff, "ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s", base->config.mac.address, base->ESPversion.c_str(), base->ESPbuildDate.c_str());
 	base->sckOut();
-	sprintf(base->outBuff, "ESP update needed: %s\r\n", base->ESPupdateNeeded ? "true" : "false");
-	base->sckOut();
 }
 void resetCause_com(SckBase* base, String parameters)
 {
@@ -142,7 +140,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "\r\nDisabled\r\n----------");
 		base->sckOut();
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			thisType = static_cast<SensorType>(i);
+
+			thisType = base->sensors.sensorsPriorized(i);
 
 			if (!base->sensors[thisType].enabled) base->sckOut(base->sensors[thisType].title);
 		}
@@ -151,9 +150,9 @@ void sensorConfig_com(SckBase* base, String parameters)
 		base->sckOut();
 		// Get sensor type
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			thisType = static_cast<SensorType>(i);
 
-			if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].interval) + " sec)");
+			thisType = base->sensors.sensorsPriorized(i);
+			if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].everyNint * base->config.readInterval) + " sec)");
 		}
 
 	} else {
@@ -175,24 +174,48 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_PM_1].enabled = true; 
 					base->sensors[SENSOR_PM_25].enabled = true; 
 					base->sensors[SENSOR_PM_10].enabled = true;
+					base->sensors[SENSOR_PN_03].enabled = true;
+					base->sensors[SENSOR_PN_05].enabled = true;
+					base->sensors[SENSOR_PN_1].enabled = true;
+					base->sensors[SENSOR_PN_25].enabled = true;
+					base->sensors[SENSOR_PN_5].enabled = true;
+					base->sensors[SENSOR_PN_10].enabled = true;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_PM_1 || sensorToChange == SENSOR_EXT_PM_25 || sensorToChange == SENSOR_EXT_PM_10) {
 					base->sensors[SENSOR_EXT_PM_1].enabled = true; 
 					base->sensors[SENSOR_EXT_PM_25].enabled = true; 
 					base->sensors[SENSOR_EXT_PM_10].enabled = true;
+					base->sensors[SENSOR_EXT_PN_03].enabled = true;
+					base->sensors[SENSOR_EXT_PN_05].enabled = true;
+					base->sensors[SENSOR_EXT_PN_1].enabled = true;
+					base->sensors[SENSOR_EXT_PN_25].enabled = true;
+					base->sensors[SENSOR_EXT_PN_5].enabled = true;
+					base->sensors[SENSOR_EXT_PN_10].enabled = true;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_A_PM_1 || sensorToChange == SENSOR_EXT_A_PM_25 || sensorToChange == SENSOR_EXT_A_PM_10) {
 					base->sensors[SENSOR_EXT_A_PM_1].enabled = true; 
 					base->sensors[SENSOR_EXT_A_PM_25].enabled = true; 
 					base->sensors[SENSOR_EXT_A_PM_10].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_03].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_05].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_1].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_25].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_5].enabled = true;
+					base->sensors[SENSOR_EXT_A_PN_10].enabled = true;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_B_PM_1 || sensorToChange == SENSOR_EXT_B_PM_25 || sensorToChange == SENSOR_EXT_B_PM_10) {
 					base->sensors[SENSOR_EXT_B_PM_1].enabled = true; 
 					base->sensors[SENSOR_EXT_B_PM_25].enabled = true; 
 					base->sensors[SENSOR_EXT_B_PM_10].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_03].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_05].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_1].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_25].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_5].enabled = true;
+					base->sensors[SENSOR_EXT_B_PN_10].enabled = true;
 					extraPrint = true;
 				}
-				if (extraPrint) base->sckOut("Also disabled the other two PM sizes");
+				if (extraPrint) base->sckOut("Also enabled the rest of PM metrics");
 				saveNeeded = true;
 			}
 		} else if (parameters.indexOf("-disable") >=0) {
@@ -206,24 +229,48 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_PM_1].enabled = false; 
 					base->sensors[SENSOR_PM_25].enabled = false; 
 					base->sensors[SENSOR_PM_10].enabled = false;
+					base->sensors[SENSOR_PN_03].enabled = false;
+					base->sensors[SENSOR_PN_05].enabled = false;
+					base->sensors[SENSOR_PN_1].enabled = false;
+					base->sensors[SENSOR_PN_25].enabled = false;
+					base->sensors[SENSOR_PN_5].enabled = false;
+					base->sensors[SENSOR_PN_10].enabled = false;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_PM_1 || sensorToChange == SENSOR_EXT_PM_25 || sensorToChange == SENSOR_EXT_PM_10) {
 					base->sensors[SENSOR_EXT_PM_1].enabled = false; 
 					base->sensors[SENSOR_EXT_PM_25].enabled = false; 
 					base->sensors[SENSOR_EXT_PM_10].enabled = false;
+					base->sensors[SENSOR_EXT_PN_03].enabled = false;
+					base->sensors[SENSOR_EXT_PN_05].enabled = false;
+					base->sensors[SENSOR_EXT_PN_1].enabled = false;
+					base->sensors[SENSOR_EXT_PN_25].enabled = false;
+					base->sensors[SENSOR_EXT_PN_5].enabled = false;
+					base->sensors[SENSOR_EXT_PN_10].enabled = false;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_A_PM_1 || sensorToChange == SENSOR_EXT_A_PM_25 || sensorToChange == SENSOR_EXT_A_PM_10) {
 					base->sensors[SENSOR_EXT_A_PM_1].enabled = false; 
 					base->sensors[SENSOR_EXT_A_PM_25].enabled = false; 
 					base->sensors[SENSOR_EXT_A_PM_10].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_03].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_05].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_1].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_25].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_5].enabled = false;
+					base->sensors[SENSOR_EXT_A_PN_10].enabled = false;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_B_PM_1 || sensorToChange == SENSOR_EXT_B_PM_25 || sensorToChange == SENSOR_EXT_B_PM_10) {
 					base->sensors[SENSOR_EXT_B_PM_1].enabled = false; 
 					base->sensors[SENSOR_EXT_B_PM_25].enabled = false; 
 					base->sensors[SENSOR_EXT_B_PM_10].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_03].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_05].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_1].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_25].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_5].enabled = false;
+					base->sensors[SENSOR_EXT_B_PN_10].enabled = false;
 					extraPrint = true;
 				}
-				if (extraPrint) base->sckOut("Also disabled the other two PM sizes");
+				if (extraPrint) base->sckOut("Also disabled the the rest of PM metrics");
 				saveNeeded = true;
 			}
 		} else if (parameters.indexOf("-interval") >=0) {
@@ -233,9 +280,13 @@ void sensorConfig_com(SckBase* base, String parameters)
 			uint16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
 			String strInterval = parameters.substring(intervalIndex);
 			uint32_t intervalInt = strInterval.toInt();
-			if (intervalInt > minimal_sensor_reading_interval && intervalInt < max_sensor_reading_interval)	base->sensors[sensorToChange].interval = strInterval.toInt();
-			base->sckOut(msg + String(base->sensors[sensorToChange].title));
-			saveNeeded = true;
+			uint8_t everyNint_pre = intervalInt / base->config.readInterval;
+			if (everyNint_pre > 0 && everyNint_pre < 255) {
+				base->sensors[sensorToChange].everyNint = everyNint_pre;
+				base->sckOut(msg + String(base->sensors[sensorToChange].title));
+			} else {
+				base->sckOut("Wrong new interval!!!");
+			}
 		}
 		if (saveNeeded) {
 			base->saveConfig();
@@ -478,7 +529,7 @@ void config_com(SckBase* base, String parameters)
 			if (readIntI >= 0) {
 				String readIntC = parameters.substring(readIntI+8);
 				uint32_t readIntV = readIntC.toInt();
-				if (readIntV > minimal_publish_interval && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
+				if (readIntV >= minimal_publish_interval && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
 			}
 			uint16_t credI = parameters.indexOf("-wifi");
 			if (credI >= 0) {
@@ -579,7 +630,7 @@ void state_com(SckBase* base, String parameters)
 void hello_com(SckBase* base, String parameters)
 {
 
-	base->st.helloPending = true;
+	if (base->sendMessage(ESPMES_MQTT_HELLO, "")) base->sckOut("Hello sent!");
 	base->sckOut("Waiting for MQTT hello response...");
 }
 void debug_com(SckBase* base, String parameters)

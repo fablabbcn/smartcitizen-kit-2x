@@ -61,6 +61,7 @@ void SckBase::setup()
 		rtc.setTime(0, 0, 0);
 		rtc.setDate(1, 1, 15);
 	}
+	espStarted = rtc.getEpoch();
 
 	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
 	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
@@ -109,9 +110,11 @@ void SckBase::setup()
 	loadConfig();
 	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
 
+	bool saveNeeded = false;
+
 	// Urban board
 	analogReadResolution(12);
-	if (urban.setup(this)) {
+	if (urban.present()) {
 		sckOut("Urban board detected");
 		urbanPresent = true;
 
@@ -157,10 +160,9 @@ void SckBase::setup()
 	}
 
 	// Detect and enable auxiliary boards
-	bool saveNeeded = false;
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
-		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+		OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 
 		if (wichSensor->location == BOARD_AUX) {
 			if (enableSensor(wichSensor->type)) {
@@ -572,7 +574,7 @@ void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine)
 }
 void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 {
-	if (strncmp(strOut, outBuff, strlen(strOut)-1) == 0) {
+	if (strncmp(strOut, outBuff, strlen(strOut)) == 0) {
 		outRepetitions++;
 		if (outRepetitions >= 10) {
 			sckOut("Last message repeated 10 times");
@@ -633,7 +635,7 @@ void SckBase::loadConfig()
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 		wichSensor->enabled = config.sensors[i].enabled;
-		wichSensor->interval = config.sensors[i].interval;
+		wichSensor->everyNint = config.sensors[i].everyNint;
 	}
 
 	st.wifiSet = config.credentials.set;
@@ -667,21 +669,20 @@ void SckBase::saveConfig(bool defaults)
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
-			config.sensors[i].interval = default_sensor_reading_interval;
+			config.sensors[i].everyNint = 1;
 		}
 		pendingSyncConfig = true;
 	} else {
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 			config.sensors[i].enabled = wichSensor->enabled;
-			config.sensors[i].interval = wichSensor->interval;
+			config.sensors[i].everyNint = wichSensor->everyNint;
 		}
 	}
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
 
 	// Update state
-	if (urbanPresent) urban.setup(this);
 	st.mode = config.mode;
 	st.wifiSet = config.credentials.set;
 	st.tokenSet = config.token.set;
@@ -743,6 +744,11 @@ bool SckBase::sendConfig()
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
+	json["ver"] = SAMversion;
+	json["bd"] = SAMbuildDate;
+
+	if ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet && !st.wifiStat.error)) json["ac"] = (uint8_t)ESPMES_CONNECT;
+	else json["ac"] = (uint8_t)ESPMES_START_AP;
 
 	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
 	json.printTo(&netBuff[1], json.measureLength() + 1);
@@ -947,9 +953,9 @@ bool SckBase::sendMessage()
 	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
 
 	if (debugESPcom) {
-		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bits", totalParts, totalSize);
+		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bytes", totalParts, totalSize);
 		sckOut();
-		sckOut(netBuff);
+		SerialUSB.println(netBuff);
 	}
 
 	for (uint8_t i=0; i<totalParts; i++) {
@@ -1016,29 +1022,12 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);
 				ipAddress = json["ip"].as<String>();
-				macAddress = json["mac"].as<String>();
 				hostname = json["hn"].as<String>();
-				ESPversion = json["ver"].as<String>();
-				ESPbuildDate = json["bd"].as<String>();
-
-				if (macAddress.length() <= 0 ) {
-					sckOut("No ESP info received!! retrying...");
-					sendMessage(ESPMES_GET_NETINFO);
-					break;
-				}
 
 				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname.c_str(), ipAddress.c_str(), macAddress.c_str());
 				sckOut();
 				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
 				sckOut();
-
-				// Udate mac address if we haven't yet
-				if (!config.mac.valid && macAddress.length() > 0) {
-					sprintf(config.mac.address, "%s", macAddress.c_str());
-					config.mac.valid = true;
-					saveInfo();
-					saveConfig();
-				}
 
 				break;
 		}
@@ -1131,41 +1120,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				saveInfo();
 			}
 
-			if (st.onSetup) {
-
-				// Do we need to update ESP firmware?
-				VersionInt ESPversionInt = parseVersionStr(ESPversion);
-				VersionInt SAMversionInt = parseVersionStr(SAMversion);
-
-				if ((SAMversionInt.mayor != ESPversionInt.mayor) || (SAMversionInt.minor != ESPversionInt.minor)) ESPupdateNeeded = true;
-				else ESPupdateNeeded= false;
-
-				// Send SAM version and updateNeeded flag
-				jsonBuffer.clear();
-				JsonObject& jsonSend = jsonBuffer.createObject();
-				jsonSend["ver"] = SAMversion;
-				jsonSend["bd"] = SAMbuildDate;
-				jsonSend["un"] = (uint8_t)ESPupdateNeeded;
-
-				sprintf(netBuff, "%c", ESPMES_UPDATE_INFO);
-				jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
-
-				if (!sendMessage()) sckOut("ERROR sending update info to ESP!!!");
-
-			} else if (st.mode == MODE_NET) {
-
-				if (st.wifiSet) {
-					if (!sendMessage(ESPMES_CONNECT)) sckOut("ERROR asking ESP to connect!!!");
-				}
-
-			} else if (st.mode == MODE_SD) {
-
-				if (st.wifiSet && !st.wifiStat.error) {
-					if (!sendMessage(ESPMES_CONNECT)) sckOut("ERROR asking ESP to connect!!!");
-				}
-			}
-
-			if (pendingSyncConfig) sendConfig();
+			sendConfig();
 			break;
 		}
 		default: break;
@@ -1384,8 +1339,8 @@ void SckBase::updateSensors()
 		ISOtime();
 		sckOut(ISOtimeBuff, PRIO_LOW);
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
-			if (sensors[wichSensor].enabled && (rtc.getEpoch() - sensors[wichSensor].lastReadingTime >= sensors[wichSensor].interval)) {
+			SensorType wichSensor = sensors.sensorsPriorized(i);
+			if (sensors[wichSensor].enabled && (rtc.getEpoch() - sensors[wichSensor].lastReadingTime >= (sensors[wichSensor].everyNint * config.readInterval))) {
 				if (getReading(wichSensor, true)) {
 					sensors[wichSensor].lastReadingTime = lastSensorUpdate;
 					sprintf(outBuff, "%s: %s %s", sensors[wichSensor].title, sensors[wichSensor].reading.c_str(), sensors[wichSensor].unit);
@@ -1395,8 +1350,6 @@ void SckBase::updateSensors()
 		}
 		sckOut("-----------\r\n", PRIO_LOW);
 	}
-
-
 
 	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
 		timeToPublish = true;
@@ -1508,7 +1461,9 @@ bool SckBase::getReading(SensorType wichSensor, bool wait)
 		}
 		case BOARD_AUX:
 		{
-				result = String(auxBoards.getReading(wichSensor, this), 2);	// TODO port auxBoards to String mode
+				float preResult = auxBoards.getReading(wichSensor, this);
+				if (preResult == -9999) result = "null";
+				else result = String(preResult, 2);	// TODO port auxBoards to String mode
 				break;
 		}
 	}
@@ -1558,32 +1513,32 @@ bool SckBase::netPublish()
 		// 	*/
 
 
+	memset(netBuff, 0, sizeof(netBuff));
 	sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
 	bool timeSet = false;
 	uint8_t count = 0;
 
-	sprintf(netBuff, "%s%s", netBuff, "{\"data\":[{\"recorded_at\":\"");
+	sprintf(netBuff, "%s%s", netBuff, "{");
 
 	for (uint16_t sensorIndex=0; sensorIndex<SENSOR_COUNT; sensorIndex++) {
 
-		SensorType wichSensor = static_cast<SensorType>(sensorIndex);
+		SensorType wichSensor = sensors.sensorsPriorized(sensorIndex);
 
-		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0) {
-
+		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0 && (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2)) && !sensors[wichSensor].reading.startsWith("null")) {
 			if (!timeSet) {
 				char thisTime[20];
 				epoch2iso(sensors[wichSensor].lastReadingTime, thisTime);
-				sprintf(netBuff, "%s%s\",\"sensors\":[", netBuff, thisTime);
+				sprintf(netBuff, "%st:%s", netBuff, thisTime);
 				timeSet = true;
-				sprintf(netBuff, "%s{\"id\":%u, \"value\":%.02f}", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
+				sprintf(netBuff, "%s,%u:%g", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			} else {
-				sprintf(netBuff, "%s,{\"id\":%u, \"value\":%.02f}", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
+				sprintf(netBuff, "%s,%u:%g", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
 			}
 			count ++;
 		}
 	}
 
-	sprintf(netBuff, "%s%s", netBuff, "]}]}");
+	sprintf(netBuff, "%s%s", netBuff, "}");
 
 	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
 	sckOut(PRIO_MED);
@@ -1623,7 +1578,7 @@ bool SckBase::sdPublish()
 		if (writeHeader) {
 			postFile.file.print("TIME");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				SensorType wichSensor = static_cast<SensorType>(i);
+				SensorType wichSensor = sensors.sensorsPriorized(i);
 				if (sensors[wichSensor].enabled) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].shortTitle);
@@ -1632,7 +1587,7 @@ bool SckBase::sdPublish()
 			postFile.file.println("");
 			postFile.file.print("ISO 8601");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				SensorType wichSensor = static_cast<SensorType>(i);
+				SensorType wichSensor = sensors.sensorsPriorized(i);
 				if (sensors[wichSensor].enabled) {
 					postFile.file.print(",");
 					if (String(sensors[wichSensor].unit).length() > 0) {
@@ -1643,7 +1598,7 @@ bool SckBase::sdPublish()
 			postFile.file.println("");
 			postFile.file.print("Time");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				SensorType wichSensor = static_cast<SensorType>(i);
+				SensorType wichSensor = sensors.sensorsPriorized(i);
 				if (sensors[wichSensor].enabled) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].title);
@@ -1651,7 +1606,7 @@ bool SckBase::sdPublish()
 			}
 			postFile.file.println("");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				SensorType wichSensor = static_cast<SensorType>(i);
+				SensorType wichSensor = sensors.sensorsPriorized(i);
 				if (sensors[wichSensor].enabled) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].id);
@@ -1664,16 +1619,21 @@ bool SckBase::sdPublish()
 		// Write readings
 		bool timeSet = false;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = static_cast<SensorType>(i);
+			SensorType wichSensor = sensors.sensorsPriorized(i);
 			if (sensors[wichSensor].enabled) {
-				if (!timeSet) {
-					epoch2iso(sensors[wichSensor].lastReadingTime, ISOtimeBuff);
-					postFile.file.print(ISOtimeBuff);
-					timeSet = true;
+				if (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2) && !sensors[wichSensor].reading.startsWith("null")) {
+					if (!timeSet) {
+						epoch2iso(sensors[wichSensor].lastReadingTime, ISOtimeBuff);
+						postFile.file.print(ISOtimeBuff);
+						timeSet = true;
+					}
+					postFile.file.print(",");
+					postFile.file.print(sensors[wichSensor].reading);
+				} else {
+					postFile.file.print(",");
+					postFile.file.print("null");
 				}
-				postFile.file.print(",");
-				if (!sensors[wichSensor].reading.startsWith("null")) postFile.file.print(sensors[wichSensor].reading);
-			}
+			} 
 		}
 		postFile.file.println("");
 		postFile.file.close();
@@ -1696,6 +1656,7 @@ void SckBase::publish()
 // **** Time
 bool SckBase::setTime(String epoch)
 {
+	uint32_t wasOn = rtc.getEpoch() - espStarted;
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		st.timeStat.setOk();

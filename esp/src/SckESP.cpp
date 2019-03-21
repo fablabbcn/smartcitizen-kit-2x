@@ -148,6 +148,9 @@ void SckESP::SAMbusUpdate()
 			uint8_t pre = netPack[1];
 			ESPMessage wichMessage = static_cast<ESPMessage>(pre);
 
+			// Empty netBuff before starting to store the new message
+			memset(netBuff, 0, sizeof(netBuff));
+
 			// Get content from first package (1 byte less than the rest)
 			memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
 
@@ -190,20 +193,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 {
 	switch(wichMessage)
 	{
-
-		case ESPMES_UPDATE_INFO:
-		{
-			// This message will only be received on setup mode so after parsing it we start AP mode
-
-			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-			JsonObject& json = jsonBuffer.parseObject(netBuff);
-			SAMversion = json["ver"].as<String>();
-			SAMbuildDate = json["bd"].as<String>();
-			updateNeeded = json["un"];
-
-			startAP();
-			break;
-		}
 		case ESPMES_SET_CONFIG:
 		{
 			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
@@ -213,8 +202,23 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			strcpy(config.credentials.pass, json["pa"]);
 			config.token.set = json["ts"];
 			strcpy(config.token.token, json["to"]);
+			SAMversion = json["ver"].as<String>();
+			SAMbuildDate = json["bd"].as<String>();
+			uint8_t action = json["ac"];
+			ESPMessage wichAction = static_cast<ESPMessage>(action);
+
+			// Do we need to update ESP firmware?
+			VersionInt ESPversionInt = parseVersionStr(ESPversion);
+			VersionInt SAMversionInt = parseVersionStr(SAMversion);
+
+			if ((SAMversionInt.mayor != ESPversionInt.mayor) || (SAMversionInt.minor != ESPversionInt.minor)) updateNeeded = true;
+			else updateNeeded= false;
 
 			saveConfig(config);
+
+			if (wichAction == ESPMES_START_AP) startAP();
+			else if (wichAction == ESPMES_CONNECT) tryConnection();
+
 			break;
 		}
 		case ESPMES_GET_NETINFO:
@@ -344,7 +348,41 @@ bool SckESP::mqttPublish()
 		debugOUT(String(pubTopic));
 		debugOUT(String(netBuff));
 
-		if (MQTTclient.publish(pubTopic, netBuff)) {
+		char pubPayload[1024];
+		
+
+		// /* Example
+		// {	"data":[
+		// 		{"recorded_at":"2017-03-24T13:35:14Z",
+		// 			"sensors":[
+		// 				{"id":29,"value":48.45},
+		// 				{"id":13,"value":66},
+		// 				{"id":12,"value":28},
+		// 				{"id":10,"value":4.45}
+		// 			]
+		// 		}
+		// 	]
+		// }
+		// 	*/
+
+		char thisTime[21];
+		snprintf(thisTime, 21, &netBuff[3]);
+		sprintf(pubPayload, "%s%s%s", "{\"data\":[{\"recorded_at\":\"", thisTime, "\",\"sensors\":[{\"id\":");
+
+		for (uint16_t i=24; i<NETBUFF_SIZE; i++) {
+			
+			char thisChar[2];
+			snprintf(thisChar, 2, &netBuff[i]);
+
+			if (netBuff[i] == ':') sprintf(pubPayload, "%s%s", pubPayload, ",\"value\":");
+			else if (netBuff[i] == ',') sprintf(pubPayload, "%s%s", pubPayload, "},{\"id\":");
+			else sprintf(pubPayload, "%s%s", pubPayload, thisChar);
+		}
+
+		sprintf(pubPayload, "%s%s", pubPayload, "]}]}");
+
+
+		if (MQTTclient.publish(pubTopic, pubPayload)) {
 			debugOUT(F("MQTT readings published OK !!!"));
 			return true;
 		}
@@ -407,9 +445,6 @@ bool SckESP::sendNetinfo()
 	jsonSend["hn"] = hostname;
 	ipAddr = WiFi.localIP().toString();
 	jsonSend["ip"] = ipAddr;
-	jsonSend["mac"] = macAddr;
-	jsonSend["ver"] = ESPversion;
-	jsonSend["bd"] = ESPbuildDate;
 
 	sprintf(netBuff, "%c", SAMMES_NETINFO);
 	jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);

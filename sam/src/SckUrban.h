@@ -135,20 +135,50 @@ class Sck_PM
 {
 	private:
 		bool detectionFailed = false;
-
+		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
-		uint8_t values[6] = {0,0,0,0,0,0};	// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
+		
+		static const uint8_t buffLong = 30; 	// Excluding both start chars
 
-		static const uint8_t buffLong = 23;
-		unsigned char buff[buffLong];
+		// Serial transmission from PMS
+		// 0: Start char 1 0x42 (fixed)
+		// 1: Start char 2 0x4d (fixed)
+		// 2-3 : Frame length = 2x13 + 2 (data + parity)
+
+		// 4-5: PM1.0 concentration (CF = 1, standard particles) Unit ug/m^3
+		// 6-7: PM2.5 concentration (CF = 1, standard particulates) Unit ug/m^3
+		// 8-9: PM10 concentration (CF = 1, standard particulate matter) Unit ug/m^3
+
+		// 10-11: PM1.0 concentration (in the atmosphere) Unit ug/m^3
+		// 12-13: PM2.5 concentration (in the atmosphere) Unit ug/m^3
+		// 14-15: PM10 concentration (in the atmosphere) Unit ug/m^3
+
+		// 16-17: Particles in 0.1 liter of air > 0.3um 
+		// 18-19: Particles in 0.1 liter of air > 0.5um 
+		// 20-21: Particles in 0.1 liter of air > 1.0um 
+		// 22-23: Particles in 0.1 liter of air > 2.5um 
+		// 24-25: Particles in 0.1 liter of air > 5.0um 
+		// 26-27: Particles in 0.1 liter of air > 10um 
+
+		// 28: Version number
+		// 29: Error code
+
+		// 30-31: Sum of each byte from start_1 ... error_code 
 
 	public:
 		// Readings
 		uint16_t pm1;
 		uint16_t pm25;
 		uint16_t pm10;
+		uint16_t pn03;
+		uint16_t pn05;
+		uint16_t pn1;
+		uint16_t pn25;
+		uint16_t pn5;
+		uint16_t pn10;
 
 		bool started = false;
+		bool active = false;
 
 		bool start();
 		bool stop();
@@ -163,7 +193,7 @@ class Sck_CCS811
 	// TODO check consumption and quality in different drive modes: 1 sec [default], 10 sec, 60 sec or 0.25 sec (RAW mode)
 
 	public:
-		const byte deviceAddress = 0x5a;
+		const byte address = 0x5a;
 		bool start();
 		bool stop();
 		bool getReading(SckBase *base);
@@ -185,18 +215,16 @@ class Sck_CCS811
 		uint32_t startTime = 0;
 		const uint32_t warmingTime = 300000; 	// Minimal time for sensor stabilization in ms (the kit will not return readings during this period) 5 minutes as default
 		bool alreadyStarted = false;
-		CCS811 ccs = CCS811(deviceAddress);
+		CCS811 ccs = CCS811(address);
 };
 
 
 class SckUrban
 {
 	private:
-		struct Resistor {
-			byte deviceAddress;
-			byte resistorAddress;
-		};
+
 	public:
+		bool present();
 		bool setup(SckBase *base);
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);

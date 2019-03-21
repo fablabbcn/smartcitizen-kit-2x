@@ -395,18 +395,38 @@ class PMsensor
 
 		const byte deviceAddress = 0x02;
 
-		uint16_t readingPM1;
-		uint16_t readingPM25;
-		uint16_t readingPM10;
+		uint16_t pm1;
+		uint16_t pm25;
+		uint16_t pm10;
+		uint16_t pn03;
+		uint16_t pn05;
+		uint16_t pn1;
+		uint16_t pn25;
+		uint16_t pn5;
+		uint16_t pn10;
 
 		bool start();
 		bool stop();
-		float getReading(PMslot slot, uint8_t wichReading);
+		float getReading(PMslot slot, SensorType wichSensor);
 	private:
 		bool started = false;
 		bool failed = false;
 
-		uint8_t values[6];		// 6 bytes 0:1->pm1, 2:3->pm25, 4:5->pm10
+		static const uint8_t valuesSize = 18;
+		uint8_t values[valuesSize];
+
+		// 24 bytes:
+		// 0:1->pm1, 2:3->pm25, 4:5->pm10, 
+		// Number of particles with diameter beyond X um in 0.1 L of air.
+		// 6:7 -> 0.3 um
+		// 8:9 -> 0.5 um
+		// 10:11 -> 1.0 um
+		// 12:13 -> 2.5 um
+		// 14:15 -> 5.0 um
+		// 16:17 -> 10.0 um
+		//
+		uint32_t lastReading = 0;
+		PMslot lastSlot;
 };
 
 class PM_DallasTemp

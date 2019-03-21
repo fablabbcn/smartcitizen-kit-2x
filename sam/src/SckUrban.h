@@ -174,6 +174,8 @@ class Sck_CCS811
 		float VOCgas;
 		float ECO2gas;
 	private:
+		uint32_t startTime = 0;
+		const uint32_t warmingTime = 300000; 	// Minimal time for sensor stabilization in ms (the kit will not return readings during this period) 5 minutes as default
 		bool alreadyStarted = false;
 		CCS811 ccs = CCS811(deviceAddress);
 };

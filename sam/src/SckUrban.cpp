@@ -24,8 +24,8 @@ bool SckUrban::setup(SckBase *base)
 				case SENSOR_ALTITUDE:
 				case SENSOR_PRESSURE:
 				case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.start()) return false; break;
-				case SENSOR_CCS811_VOCS:			return sck_ccs811.start(); break;
-				case SENSOR_CCS811_ECO2: 			return sck_ccs811.start(); break;
+				case SENSOR_CCS811_VOCS:
+				case SENSOR_CCS811_ECO2: 			if (!sck_ccs811.start()) return false; break;
 				case SENSOR_PM_1:
 				case SENSOR_PM_25:
 				case SENSOR_PM_10: 				sck_pm.start(); break;
@@ -103,8 +103,8 @@ String SckUrban::getReading(SckBase *base, SensorType wichSensor, bool wait)
 		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude(wait)) return String(sck_mpl3115A2.altitude); break;
 		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure(wait)) return String(sck_mpl3115A2.pressure); break;
 		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature(wait)) return String(sck_mpl3115A2.temperature); break;
-		case SENSOR_CCS811_VOCS:		if (sck_ccs811.getReading(base)); return String(sck_ccs811.VOCgas);  break;
-		case SENSOR_CCS811_ECO2:		if (sck_ccs811.getReading(base)); return String(sck_ccs811.ECO2gas);  break;
+		case SENSOR_CCS811_VOCS:		if (sck_ccs811.getReading(base)) return String(sck_ccs811.VOCgas); break;
+		case SENSOR_CCS811_ECO2:		if (sck_ccs811.getReading(base)) return String(sck_ccs811.ECO2gas); break;
 		case SENSOR_PM_1: 			if (sck_pm.update()) return String(sck_pm.pm1); break;
 		case SENSOR_PM_25: 			if (sck_pm.update()) return String(sck_pm.pm25); break;
 		case SENSOR_PM_10: 			if (sck_pm.update()) return String(sck_pm.pm10); break;
@@ -826,16 +826,21 @@ bool Sck_CCS811::start()
 
 	if (ccs.begin() != CCS811Core::SENSOR_SUCCESS) return false;
 
+	startTime = millis();
 	alreadyStarted = true;
 	return true;
 }
 bool Sck_CCS811::stop()
 {
-
+	alreadyStarted = false;
+	startTime = 0;
 	return true;
 }
 bool Sck_CCS811::getReading(SckBase *base)
 {
+	if (!alreadyStarted) start();
+	if ((startTime == 0) || ((millis() - startTime) < warmingTime)) return false;
+
 	if (!ccs.dataAvailable()) return false;
 
 	ccs.readAlgorithmResults();

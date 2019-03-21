@@ -120,7 +120,7 @@ class OneSensor
 			shortTitle = nShortTitle;
 			title = nTitle;
 			unit = nUnit;
-			reading = "none";
+			reading = "null";
 			lastReadingTime = 0;
 			valid = false;
 			controllable = nControllable;

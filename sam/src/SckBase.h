@@ -178,7 +178,7 @@ class SckBase
 		bool alarmRunning_TC3 = false;
 
 	public:
-		const String hardwareVer = "2.0";
+		const String hardwareVer = "2.1";
 		const String SAMversion	= SAMverNum + "-" + String(__GIT_HASH__); 		// mayor.minor.build-gitcommit
 		const String SAMbuildDate = String(__ISO_DATE__);
 		String ESPversion = "not synced";

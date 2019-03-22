@@ -114,7 +114,7 @@ void SckBase::setup()
 
 	// Urban board
 	analogReadResolution(12);
-	if (urban.present()) {
+	if (urban.setup(this)) {
 		sckOut("Urban board detected");
 		urbanPresent = true;
 
@@ -131,7 +131,7 @@ void SckBase::setup()
 			sckOut("Enabling default sensors...");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-				if (wichSensor->location == BOARD_URBAN && wichSensor->defaultEnabled) enableSensor(wichSensor->type);
+				if (wichSensor->location == BOARD_URBAN) wichSensor->enabled = wichSensor->defaultEnabled;
 			}
 			saveConfig();
 		}

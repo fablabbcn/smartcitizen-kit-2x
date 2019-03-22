@@ -906,6 +906,8 @@ bool Sck_CCS811::getReading(SckBase *base)
 {
 	if (!alreadyStarted) start();
 	if ((startTime == 0) || ((millis() - startTime) < warmingTime)) return false;
+	if (millis() - lastReadingMill < 1000) return true;
+	lastReadingMill = millis();
 
 	if (!ccs.dataAvailable()) return false;
 

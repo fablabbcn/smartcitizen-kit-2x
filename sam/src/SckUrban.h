@@ -213,6 +213,7 @@ class Sck_CCS811
 		const uint8_t driveMode = 3;
 
 		uint32_t startTime = 0;
+		uint32_t lastReadingMill = 0;
 		const uint32_t warmingTime = 300000; 	// Minimal time for sensor stabilization in ms (the kit will not return readings during this period) 5 minutes as default
 		bool alreadyStarted = false;
 		CCS811 ccs = CCS811(address);

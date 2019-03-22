@@ -785,6 +785,12 @@ byte Sck_MICS4514::readI2C(int deviceaddress, byte address)
 // Noise
 bool Sck_Noise::start()
 {
+	if (alreadyStarted) return true;
+
+	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
+	while (GCLK->STATUS.bit.SYNCBUSY);
+
+	alreadyStarted = true;
 	return true;
 }
 bool Sck_Noise::stop()

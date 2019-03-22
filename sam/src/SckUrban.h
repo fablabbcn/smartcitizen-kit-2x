@@ -156,6 +156,7 @@ class Sck_MICS4514
 class Sck_Noise
 {
 	private:
+		bool alreadyStarted = false;
 		const double RMS_HANN = 0.61177;
 		const uint8_t FULL_SCALE_DBSPL = 120;
 		const uint8_t BIT_LENGTH = 24;

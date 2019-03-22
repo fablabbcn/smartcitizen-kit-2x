@@ -327,7 +327,7 @@ bool SckTest::test_Noise()
 {
 	SerialUSB.println("\r\nTesting Noise sensor...");
 
-	if (!testBase->getReading(SENSOR_NOISE_DBA)) { 
+	if (!testBase->getReading(SENSOR_NOISE_DBA)) {
 		SerialUSB.println("ERROR reading Noise sensor");
 		return false;
 	} else test_report.tests[TEST_NOISE] = testBase->sensors[SENSOR_NOISE_DBA].reading.toFloat();
@@ -416,10 +416,6 @@ bool SckTest::test_auxWire()
 
 bool SckTest::connect_ESP()
 {
-	uint32_t started = millis();
-
-	SerialUSB.println("\r\nTesting ESP and WIFI connectivity...");
-
 	strncpy(testBase->config.credentials.ssid, TEST_WIFI_SSID, 64);
 	strncpy(testBase->config.credentials.pass, TEST_WIFI_PASSWD, 64);
 	testBase->config.credentials.set = true;
@@ -428,8 +424,17 @@ bool SckTest::connect_ESP()
 	testBase->config.token.set = true;
 	testBase->saveConfig();
 
+	SerialUSB.println("\r\nTesting ESP and WIFI connectivity...");
+
 	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_HARD_SLOW);
+	uint32_t started = millis();
 	while (testBase->pendingSyncConfig || !testBase->st.wifiStat.ok) {
+
+		if (millis() % 5000 == 0) {
+			delay(1);
+			testBase->ESPcontrol(testBase->ESP_REBOOT);
+		}
+
 		testBase->update();
 		testBase->inputUpdate();
 		delay(1);
@@ -454,7 +459,7 @@ bool SckTest::publishResult()
 		/* "errors":3,                                  // Number of errors */
 		/* "tests": */
 		/* 			[ */
-		/* 		{"00":78.5},     // battery - percent */
+		/* 		{"00":3.5},     // battery - voltage */
 		/* 		{"01":1},        // battery charging - bool */
 		/* 		{"02":1},        // SD card - bool */
 		/* 		{"03":1},        // flash memory - bool */
@@ -463,12 +468,14 @@ bool SckTest::publishResult()
 		/* 		{"06":56.6},     // SHT31 humidity - percent */
 		/* 		{"07":228.7},    // Light - Lux */
 		/* 		{"08":28.7},     // Barometric pressure - kPa */
-		/* 		{"09":48.7},     // Noise - dbA */
-		/* 		{"10":18.7},     // PM-1 - ug/m3 */
-		/* 		{"11":18.7},     // PM-2.5 - ug/m3 */
-		/* 		{"12":18.7},     // PM-10 - ug/m3 */
-		/* 		{"13":1},        // Auxiliary I2C bus - bool */
-		/* 		{"14":8}         // Wifi connection time - seconds */
+		/* 		{"09":48.7},     // VOC's - ppb */
+		/* 		{"10":88.5},     // ECO2 - ppm */
+		/* 		{"11":48.7},     // Noise - dbA */
+		/* 		{"12":18.7},     // PM-1 - ug/m3 */
+		/* 		{"13":18.7},     // PM-2.5 - ug/m3 */
+		/* 		{"14":18.7},     // PM-10 - ug/m3 */
+		/* 		{"15":1},        // Auxiliary I2C bus - bool */
+		/* 		{"16":8}         // Wifi connection time - seconds */
 		/* 			] */
 		/* } */
 
@@ -531,7 +538,8 @@ bool SckTest::publishResult()
 
 	SerialUSB.println("Test results sent to platform");
 
-	if (testBase->sdDetect() && testBase->sd.begin(pinCS_SDCARD)) {
+	testBase->sdDetect();
+	if (testBase->st.cardPresent && testBase->sdInit()) {
 		File reportFile;
 		char reportFileName[14];
 		sprintf(reportFileName, "%lx.json", test_report.id[4]);

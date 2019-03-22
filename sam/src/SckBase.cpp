@@ -813,6 +813,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		{
 				sckOut("ESP off...", PRIO_LOW);
 				st.espON = false;
+				st.espBooting = false;
 				digitalWrite(pinESP_CH_PD, LOW);
 				digitalWrite(pinPOWER_ESP, HIGH);
 				digitalWrite(pinESP_GPIO0, LOW);

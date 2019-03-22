@@ -45,7 +45,7 @@ class SckTest
 			TEST_LIGHT, 			// 7 Lux
 			TEST_PRESS, 			// 8 kPa
 			TEST_VOCS, 			// 9 ppb
-			TEST_ECO2, 			// 10  ppb
+			TEST_ECO2, 			// 10 ppm
 			TEST_NOISE, 			// 11 dbA
 			TEST_PM_1, 			// 12 ug/m3
 			TEST_PM_25, 			// 13 ug/m3

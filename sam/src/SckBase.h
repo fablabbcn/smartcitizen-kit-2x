@@ -274,7 +274,10 @@ class SckBase
 		};
 
 #ifdef testing
+		const bool inTest = true;
 		friend class SckTest;
+#else
+		const bool inTest = false;
 #endif
 };
 

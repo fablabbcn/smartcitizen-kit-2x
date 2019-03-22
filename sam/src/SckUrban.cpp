@@ -7,19 +7,6 @@ void SERCOM5_Handler() {
 	SerialPM.IrqHandler();
 }
 
-bool SckUrban::present()
-{
-	SerialUSB.println("detecting urban");
-
-	if ( 	!I2Cdetect(&Wire, sck_bh1721fvc.address) ||
-		!I2Cdetect(&Wire, sck_sht31.address) ||
-		!I2Cdetect(&Wire, sck_mpl3115A2.address) ||
-		!I2Cdetect(&Wire, sck_max30105.address)) {
-		return false;
-	}
-	return true;
-}
-
 bool SckUrban::setup(SckBase *base)
 {
 	uint32_t currentTime = 0;

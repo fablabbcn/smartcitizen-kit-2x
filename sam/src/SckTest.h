@@ -23,6 +23,7 @@ class SckTest
 		bool test_SHT();
 		bool test_Light();
 		bool test_Pressure();
+		bool test_VOC();
 		bool test_Noise();
 		bool test_PM();
 		bool test_auxWire();
@@ -43,12 +44,14 @@ class SckTest
 			TEST_HUM, 			// 6 percent
 			TEST_LIGHT, 			// 7 Lux
 			TEST_PRESS, 			// 8 kPa
-			TEST_NOISE, 			// 9 dbA
-			TEST_PM_1, 			// 10 ug/m3
-			TEST_PM_25, 			// 11 ug/m3
-			TEST_PM_10, 			// 12 ug/m3
-			TEST_AUXWIRE, 			// 13 bool
-			TEST_WIFI_TIME, 		// 14 seconds
+			TEST_VOCS, 			// 9 ppb
+			TEST_ECO2, 			// 10  ppb
+			TEST_NOISE, 			// 11 dbA
+			TEST_PM_1, 			// 12 ug/m3
+			TEST_PM_25, 			// 13 ug/m3
+			TEST_PM_10, 			// 14 ug/m3
+			TEST_AUXWIRE, 			// 15 bool
+			TEST_WIFI_TIME, 		// 16 seconds
 
 			TEST_COUNT
 		};

@@ -430,7 +430,7 @@ bool SckTest::connect_ESP()
 	uint32_t started = millis();
 	while (testBase->pendingSyncConfig || !testBase->st.wifiStat.ok) {
 
-		if (millis() % 5000 == 0) {
+		if (millis() % 20000 == 0 || millis() - started == 1000) {
 			delay(1);
 			testBase->ESPcontrol(testBase->ESP_REBOOT);
 		}

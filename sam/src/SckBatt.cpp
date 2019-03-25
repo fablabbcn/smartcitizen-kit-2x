@@ -314,10 +314,20 @@ bool SckBatt::setup(SckCharger charger)
 }
 float SckBatt::voltage()
 {
-	float thisVoltage = analogRead(pinMEASURE_BATT) * 2.0 / 4096.0 * workingVoltage;
+	float thisVoltage = analogRead(pinMEASURE_BATT) * 2.0 / analogResolution * workingVoltage;
 	return thisVoltage;
 }
-uint8_t SckBatt::percent()
+int8_t SckBatt::percent()
 {
-	return 75;
+	int8_t percent = -1;
+
+	uint16_t thisVoltage = (uint16_t)(analogRead(pinMEASURE_BATT) * 2.0 * 1000.0 /  analogResolution * workingVoltage);
+
+	if (thisVoltage >= batTable[99]) percent = 100;
+	else if (thisVoltage <= batTable[0]) percent = 0;
+	else {
+		// Search in the batt table
+		for (uint8_t i=0; i<100; i++) if (thisVoltage < batTable[i]) percent = batTable[i];
+	}
+	return percent;
 }

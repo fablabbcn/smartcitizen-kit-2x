@@ -79,12 +79,8 @@ void SckBase::setup()
 	attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
 	sdDetect();
 
-	// Flash memory
-	// TODO disable debug messages from library
-	flashSelect();
-	flash.begin();
-	flash.setClock(133000);
-	// flash.eraseChip(); // we need to do this on factory reset? and at least once on new kits.
+	// Flash storage
+	readingsList.flashStart();
 
 /* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
 
@@ -361,20 +357,20 @@ void SckBase::reviewState()
 
 					if (st.publishStat.ok) {
 
-						// TODO go to sleep on receive MQTT success message
-						sdPublish();
+						// If sd Publish fails we dont care (because we are in network mode)
+						// but still we need to mark this group as published OK and reduce the groups index
+						/* if (!sdPublish()) ramGroupsIndex--; */
 
 						ESPcontrol(ESP_SLEEP);
 						timeToPublish = false;
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
 
+						// TODO go to sleep on receive MQTT success message
+
 					} else if (st.publishStat.error) {
 
 						sckOut("Will retry on next publish interval!!!");
-
-						// TODO replace this with flash saving and in next publish push all flash readings
-						sdPublish();
 
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
@@ -1199,12 +1195,6 @@ bool SckBase::saveInfo()
 	return false;
 }
 
-// **** Flash memory
-void SckBase::flashSelect()
-{
-	digitalWrite(pinCS_SDCARD, HIGH);	// disables SDcard
-	digitalWrite(pinCS_FLASH, LOW);
-}
 
 // **** Power
 void SckBase::sck_reset()
@@ -1331,14 +1321,15 @@ void SckBase::updateSensors()
 	if (!st.timeStat.ok || st.helloPending) return;
 	if (st.onSetup) return;
 	if (st.mode == MODE_SD && !st.cardPresent) return;
-	else if (st.mode == MODE_NET && st.wifiStat.error) return;
 
 	// Main reading loop
 	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {
 		
 		lastSensorUpdate = rtc.getEpoch();
+		pendingSensors = 0;
 
-		// TODO  create new RAM group with this timestamp
+		// Create new RAM group with this timestamp
+		readingsList.createGroup(lastSensorUpdate);
 
 		sckOut("\r\n-----------", PRIO_LOW);
 		ISOtime();
@@ -1355,33 +1346,20 @@ void SckBase::updateSensors()
 				// Is time to read it?
 				if ((lastSensorUpdate - wichSensor.lastReadingTime) >= (wichSensor.everyNint * config.readInterval)) {
 
-					getReading(&wichSensor);
-
-					if (wichSensor.state == 0) {
-
-						wichSensor.lastReadingTime = lastSensorUpdate;
-
-						// TODO Save reading on RAM/Flash
-
-						sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
-						sckOut(PRIO_LOW);
-
-					} else if (wichSensor.state > 0) {
+					if (!getReading(&wichSensor)) {
 					
-						// Append pending sensors to pending list
-						pendingSensors ++;
-						pendingSensorsList[pendingSensors - 1] = wichSensor.type;
+						pendingSensorsList[pendingSensors] = wichSensor.type;
+						pendingSensors++;
 
-					} else if (wichSensor.state == -1) {
-					
-						// Sensor reading ERROR
-						// TODO save null value
-					}
+					} else wichSensor.lastReadingTime = lastSensorUpdate;
 				}
 			}
 		}
+		if (pendingSensors == 0) {
+			readingsList.saveLastGroup();
+			sckOut("-----------", PRIO_LOW);
+		}
 
-	// If some sensor is pendig to be reapending d
 	} else if (pendingSensors > 0) {
 
 		SensorType tmpPendingSensorList[pendingSensors];
@@ -1390,34 +1368,23 @@ void SckBase::updateSensors()
 		for (uint8_t i=0; i<pendingSensors; i++) {
 
 			OneSensor wichSensor = sensors[pendingSensorsList[i]];
-			getReading(&wichSensor);
-
-			if (wichSensor.state == 0) {
 			
-				wichSensor.lastReadingTime = lastSensorUpdate;
-
-				// TODO Save reading on RAM/Flash
-				
-				sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
-				sckOut(PRIO_LOW);
-				
-
-			} else if (wichSensor.state > 0) {
-
+			if (!getReading(&wichSensor)) {
+			
 				// Reappend the sensor to the pending list
 				tmpPendingSensorList[i] = wichSensor.type;
 				tmpPendingSensors ++;
 
-			} else if (wichSensor.state == -1) {
-			
-				// ERROR on getting reading
-				// TODO save a null value
-				
-			}
+			} else wichSensor.lastReadingTime = lastSensorUpdate;
 		}
 
 		pendingSensors = tmpPendingSensors;
-		for (uint8_t i=0; i<pendingSensors; i++) pendingSensorsList[i] = tmpPendingSensorList[i];
+		if (pendingSensors <= 0) {
+			readingsList.saveLastGroup();
+			sckOut("-----------", PRIO_LOW);
+		} else {
+			for (uint8_t i=0; i<pendingSensors; i++) pendingSensorsList[i] = tmpPendingSensorList[i];
+		}
 	}
 
 
@@ -1489,7 +1456,7 @@ bool SckBase::disableSensor(SensorType wichSensor)
 
 	return false;
 }
-void SckBase::getReading(OneSensor *wichSensor)
+bool SckBase::getReading(OneSensor *wichSensor)
 {
 	switch (wichSensor->location) {
 		case BOARD_BASE:
@@ -1523,6 +1490,21 @@ void SckBase::getReading(OneSensor *wichSensor)
 				break;
 		}
 	}
+
+	// Reading is not yet ready
+	if (wichSensor->state > 0) return false;
+
+	// Sensor reading ERROR, save null value
+	if (wichSensor->state == -1) wichSensor->reading == "null";
+
+	// Save reading 
+	readingsList.appendReading(wichSensor->type, wichSensor->reading);
+
+	// Print reading to console
+	sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
+	sckOut(PRIO_LOW);
+
+	return true;
 }
 bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 {
@@ -1550,6 +1532,8 @@ bool SckBase::netPublish()
 		return false;
 	}
 
+	/* if (ramGroupsIndex < 0) return false; */
+
 	// /* Example
 		// {	"data":[
 		// 		{"recorded_at":"2017-03-24T13:35:14Z",
@@ -1567,32 +1551,41 @@ bool SckBase::netPublish()
 
 	memset(netBuff, 0, sizeof(netBuff));
 	sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
-	bool timeSet = false;
-	uint8_t count = 0;
+	uint8_t counter = 0;
+	
+	// Timestamp from current group
+	/* char thisTime[20]; */
+	/* epoch2iso(ramGroups[ramGroupsIndex].timeStamp, thisTime); */
+	/* sprintf(netBuff, "%s%s%s%s", netBuff, "{\"data\":[{\"recorded_at\":\"", thisTime, "\",\"sensors\":["); */
 
-	sprintf(netBuff, "%s%s", netBuff, "{");
+	// To avoid extra commas
+	/* bool first = true; */
 
-	for (uint16_t sensorIndex=0; sensorIndex<SENSOR_COUNT; sensorIndex++) {
+	// TODO buscar como eliminar esto y usar RAMgetGroup()
+	// Iterate over the saved readings for this group
+	/* for (uint8_t i=ramGroups[ramGroupsIndex].firstReadingIndex; i<=ramGroups[ramGroupsIndex].firstReadingIndex + ramGroups[ramGroupsIndex].numberOfReadings; i++) { */
+		
+		// Get sensor type
+	// DESCOMENTAR ESTO DESPUES DE LAS PRUEBAS DE TAMAÑO DE LOS ARRAYS
+		/* OneSensor *wichSensor = &sensors[static_cast<SensorType>(ramReadings[i].type)]; */
 
-		SensorType wichSensor = sensors.sensorsPriorized(sensorIndex);
+		// Check if this sensor has platform ID (if no id is present we can only publish it to sd card)
+		/* if (wichSensor->id > 0){ */
+			/* if (!first) sprintf(netBuff, "%s,", netBuff); */
+			/* first = false; */
 
-		if (sensors[wichSensor].enabled && sensors[wichSensor].id > 0 && (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2)) && !sensors[wichSensor].reading.startsWith("null")) {
-			if (!timeSet) {
-				char thisTime[20];
-				epoch2iso(sensors[wichSensor].lastReadingTime, thisTime);
-				sprintf(netBuff, "%st:%s", netBuff, thisTime);
-				timeSet = true;
-				sprintf(netBuff, "%s,%u:%g", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
-			} else {
-				sprintf(netBuff, "%s,%u:%g", netBuff, sensors[wichSensor].id, sensors[wichSensor].reading.toFloat());;
-			}
-			count ++;
-		}
-	}
+			// DESCOMENTAR ESTO DESPUES DE LAS PRUEBAS DE TAMAÑO DE LOS ARRAYS
+			/* char thisReading[ramReadings[i].size + 1]; */
+			/* memcpy(thisReading, &ramCharBuff[ramReadings[i].startIndex], ramReadings[i].size); */
+			/* thisReading[ramReadings[i].size] = '\0'; 	// Add null char at the end */
+			/* sprintf(netBuff, "%s{\"id\":%u, \"value\":%s}", netBuff, wichSensor->id, thisReading);; */
+			/* counter ++; */
+		/* } */
+	/* } */
 
 	sprintf(netBuff, "%s%s", netBuff, "}");
 
-	sprintf(outBuff, "Publishing %i sensor readings...   ", count);
+	sprintf(outBuff, "Publishing %i sensor readings...   ", counter);
 	sckOut(PRIO_MED);
 
 	bool result = sendMessage();
@@ -1600,6 +1593,7 @@ bool SckBase::netPublish()
 }
 bool SckBase::sdPublish()
 {
+	SerialUSB.println("time to publish");
 	if (!sdSelect()) return false;
 
 	sprintf(postFile.name, "%02d-%02d-%02d.CSV", rtc.getYear(), rtc.getMonth(), rtc.getDay());
@@ -1668,28 +1662,69 @@ bool SckBase::sdPublish()
 			writeHeader = false;
 		}
 
-		// Write readings
-		bool timeSet = false;
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			SensorType wichSensor = sensors.sensorsPriorized(i);
-			if (sensors[wichSensor].enabled) {
-				if (abs(sensors[wichSensor].lastReadingTime - lastSensorUpdate) < (config.readInterval / 2) && !sensors[wichSensor].reading.startsWith("null")) {
-					if (!timeSet) {
-						epoch2iso(sensors[wichSensor].lastReadingTime, ISOtimeBuff);
-						postFile.file.print(ISOtimeBuff);
-						timeSet = true;
+		// From the saved groups check wich one's need to be published to sdcard
+		uint32_t savedGroups = readingsList.countGroups();
+	SerialUSB.print("Saved groups: ");
+	SerialUSB.println(savedGroups);
+		uint8_t counter = 0;
+		for (uint32_t thisGroup=0; thisGroup<savedGroups; thisGroup++) {
+			if (!readingsList.getFlag(thisGroup, readingsList.SD_PUBLISHED)) {
+
+				uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
+
+				// Save time
+				epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
+				postFile.file.print(ISOtimeBuff);
+
+				// Go through all the enabled sensors
+				for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+					SensorType wichSensor = sensors.sensorsPriorized(i);
+					if (sensors[wichSensor].enabled) {
+
+						// Find sensor inside group readings
+						for (uint16_t re=0; re<readingsOnThisGroup; re++) {
+							OneReading thisReading = readingsList.readReading(thisGroup, re);
+							if (thisReading.type == wichSensor) {
+							
+								// Save reading
+								postFile.file.print(",");
+								postFile.file.print(thisReading.value);
+							}
+						}
 					}
+<<<<<<< ours
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].reading);
 				} else {
 					postFile.file.print(",");
 					postFile.file.print("null");
+=======
+>>>>>>> theirs
 				}
-			} 
+
+				// Set SD_PUBLISHED flag for this group
+				readingsList.setFlag(thisGroup, readingsList.SD_PUBLISHED, true);
+
+				// newLine
+				postFile.file.println("");
+
+				counter++;
+			}
 		}
-		postFile.file.println("");
+
 		postFile.file.close();
-		sckOut("Sd card publish OK!!", PRIO_MED);
+
+		if (counter > 0) {
+
+			// If we are on MODE_SD we can delete the published groups
+			if (st.mode == MODE_SD) {
+				for (uint8_t i=0; i<counter; i++) readingsList.delLastGroup();
+			}
+
+			sprintf(outBuff, "Published %u group of readings to sd card", counter);
+			sckOut();
+		}
+		/* sckOut("Sd card publish OK!!", PRIO_MED); */
 		return true;
 	} else  {
 		st.cardPresent = false;

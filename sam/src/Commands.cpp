@@ -411,9 +411,46 @@ void monitorSensor_com(SckBase* base, String parameters)
 	}
 	base->monitorFile.file.close();
 }
-void publish_com(SckBase* base, String parameters)
+void readings_com(SckBase* base, String parameters)
 {
-	base->publish();
+	bool details = false;
+	if (parameters.indexOf("-details") >=0) {
+		details = true;
+		parameters.replace("-details", "");
+		parameters.trim();
+	}
+
+	uint32_t savedGroups = base->readingsList.countGroups();
+
+	if (savedGroups <= 0) {
+		base->sckOut("No readings stored on memory"); 
+		return;
+	}
+
+	for (uint32_t thisGroup=0; thisGroup<savedGroups; thisGroup++) {
+
+		uint16_t readingsOnThisGroup = base->readingsList.countReadings(thisGroup);
+		char thisTime[25];
+		base->epoch2iso(base->readingsList.getTime(thisGroup), thisTime);
+		base->sckOut("-----------");
+		sprintf(base->outBuff, "%lu - %s - %i readings on Memory.", thisGroup+1, thisTime, readingsOnThisGroup);
+		base->sckOut();
+		if (details) {
+			sprintf(base->outBuff, "Published to the platform: %s\r\nPublished to sdcard: %s", base->readingsList.getFlag(thisGroup, base->readingsList.NET_PUBLISHED) ? "true" : "false", base->readingsList.getFlag(thisGroup, base->readingsList.SD_PUBLISHED) ? "true" : "false");
+			base->sckOut();
+			for (uint16_t re=0; re<readingsOnThisGroup; re++) {
+				OneReading thisReading = base->readingsList.readReading(thisGroup, re);
+				sprintf(base->outBuff, "%s: %s %s", base->sensors[thisReading.type].title, thisReading.value.c_str(), base->sensors[thisReading.type].unit);
+				base->sckOut();
+			}
+			/* base->sckOut("\r\n "); */
+		}
+		base->sckOut("-----------");
+	}
+	base->sckOut(" ");
+
+	// TODO code for -publish option
+	/* base->publish(); */
 }
 extern "C" char *sbrk(int i);
 void freeRAM_com(SckBase* base, String parameters)
@@ -659,12 +696,19 @@ void debug_com(SckBase* base, String parameters)
 			sprintf(base->outBuff, "ESP comm debug: %s", base->debugESPcom ? "true" : "false");
 			base->sckOut();
 		}
+		if (parameters.indexOf("-list") >= 0) {
+			base->readingsList.debug = ! base->readingsList.debug;
+			sprintf(base->outBuff, "Reading list debug: %s", base->readingsList.debug ? "true" : "false");
+			base->sckOut();
+		}
 
 	// Get	
 	} else {
 		sprintf(base->outBuff, "%s\r\nSD card debug: %s", base->outBuff, base->config.sdDebug ? "true" : "false");
 		base->sckOut();
 		sprintf(base->outBuff, "%s\r\nESP comm debug: %s", base->outBuff, base->debugESPcom ? "true" : "false");
+		base->sckOut();
+		sprintf(base->outBuff, "%s\r\nReadings list debug: %s", base->outBuff, base->readingsList.debug ? "true" : "false");
 		base->sckOut();
 	}
 }

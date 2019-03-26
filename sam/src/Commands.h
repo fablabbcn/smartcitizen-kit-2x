@@ -20,7 +20,7 @@ enum CommandType {
 	COM_READ_SENSOR,
 	COM_CONTROL_SENSOR,
 	COM_MONITOR_SENSOR,
-	COM_PUBLISH,
+	COM_READINGS,
 	COM_GET_FREERAM,
 	COM_I2C_DETECT,
 	COM_CHARGER,
@@ -48,7 +48,7 @@ void sensorConfig_com(SckBase* base, String parameters);
 void readSensor_com(SckBase* base, String parameters);
 void controlSensor_com(SckBase* base, String parameters);
 void monitorSensor_com(SckBase* base, String parameters);
-void publish_com(SckBase* base, String parameters);
+void readings_com(SckBase* base, String parameters);
 void freeRAM_com(SckBase* base, String parameters);
 void i2cDetect_com(SckBase* base, String parameters);
 void charger_com(SckBase* base, String parameters);
@@ -61,6 +61,7 @@ void hello_com(SckBase* base, String parameters);
 void debug_com(SckBase* base, String parameters);
 void shell_com(SckBase* base, String parameters);
 void custom_mqtt_com(SckBase* base, String parameters);
+void ramGet_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -97,7 +98,7 @@ class AllCommands {
 			OneCom {90,	COM_READ_SENSOR,	"read",		"Reads sensor [sensorName]",														readSensor_com},
 			OneCom {90,	COM_CONTROL_SENSOR,	"control",	"Control sensor [sensorName] [command]",												controlSensor_com},
 			OneCom {90,	COM_MONITOR_SENSOR,	"monitor",	"Continously read sensor [-sd] [-notime] [-noms] [sensorName[,sensorNameN]]",								monitorSensor_com},
-			OneCom {90,	COM_PUBLISH,		"publish",	"Publish sensor readings",														publish_com},
+			OneCom {90,	COM_READINGS,		"saved",	"Shows locally stored sensor readings [-details] [-publish]",											readings_com},
 			OneCom {90,	COM_GET_FREERAM,	"free",		"Shows the amount of free RAM memory",													freeRAM_com},
 			OneCom {90,	COM_I2C_DETECT,		"i2c",		"Search the I2C bus for devices",													i2cDetect_com},
 			OneCom {90,	COM_CHARGER,		"charger",	"Controls or shows charger configuration [-otg on/off] [-charge on/off]",								charger_com},
@@ -107,10 +108,9 @@ class AllCommands {
 			OneCom {100,	COM_TIME,		"time",		"Shows/sets time [epoch time] [-sync]",													time_com},
 			OneCom {100,	COM_STATE,		"state",	"Shows state flags",															state_com},
 			OneCom {100,	COM_HELLO,		"hello",	"Sends MQTT hello to platform",														hello_com},
-			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages [-sdcard] [-espcom]", 												debug_com},
+			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages [-sdcard] [-espcom] [-list]", 												debug_com},
 			OneCom {100,	COM_SHELL, 		"shell", 	"Shows or sets shell mode [-on] [-off]",												shell_com},
 			OneCom {100,	COM_CUSTOM_MQTT,	"mqtt", 	"Publish custom mqtt message ('topic' 'message')",											custom_mqtt_com},
-
 		};
 
 		OneCom & operator[](CommandType type) {

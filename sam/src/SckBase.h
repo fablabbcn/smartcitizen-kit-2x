@@ -8,7 +8,6 @@
 #include <SPI.h>
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
-#include <SPIFlash.h>
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
 #include <RHReliableDatagram.h>
@@ -25,6 +24,7 @@
 #include "Sensors.h"
 #include "SckUrban.h"
 #include "SckAux.h"
+#include "SckList.h"
 
 #include "version.h"
 
@@ -90,7 +90,6 @@ struct SckState
 	}
 };
 
-
 class SckBase
 {
 	private:
@@ -104,7 +103,6 @@ class SckBase
 
 		// **** Time
 		const uint8_t TIME_TIMEOUT = 20;		// seconds
-		void epoch2iso(uint32_t toConvert, char* isoTime);
 
 		// **** Mode Control
 		void reviewState();
@@ -152,9 +150,6 @@ class SckBase
 		bool sdInit();
 		bool saveInfo();
 		bool infoSaved = false;
-		// Flash memory
-		SPIFlash flash = SPIFlash(pinCS_FLASH);
-		void flashSelect();
 
 		// Power
 		uint8_t wakeUP_H = 3; 	// 3AM UTC
@@ -164,7 +159,6 @@ class SckBase
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
 		void goToSleep();
-
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 	// seconds
@@ -200,6 +194,7 @@ class SckBase
 		char ISOtimeBuff[20];
 		bool setTime(String epoch);
 		bool ISOtime();
+		void epoch2iso(uint32_t toConvert, char* isoTime);
 
 		// Peripherals
 		SckLed led;
@@ -207,12 +202,15 @@ class SckBase
 
 		// **** Sensors
 		AllSensors sensors;
-		void getReading(OneSensor *wichSensor);
+		bool getReading(OneSensor *wichSensor);
 		bool controlSensor(SensorType wichSensorType, String wichCommand);
 		void publish();
 		bool enableSensor(SensorType wichSensor);
 		bool disableSensor(SensorType wichSensor);
 		bool writeHeader = false;
+
+		// RAM readings store
+		SckList readingsList;
 
 		// Configuration
 		Configuration config;

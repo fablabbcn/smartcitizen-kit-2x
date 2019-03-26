@@ -80,7 +80,7 @@ void SckBase::setup()
 	sdDetect();
 
 	// Flash storage
-	readingsList.flashStart();
+	/* readingsList.flashStart(); */
 
 /* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
 
@@ -294,7 +294,6 @@ void SckBase::reviewState()
 
 					sckOut("ERROR Can't publish without wifi!!!");
 
-					// TODO replace this with flash saving and in next publish push all flash readings
 					sdPublish();
 
 					ESPcontrol(ESP_OFF); 		// Hard off not sleep to be sure the ESP state is reset
@@ -357,27 +356,29 @@ void SckBase::reviewState()
 
 					if (st.publishStat.ok) {
 
-						// If sd Publish fails we dont care (because we are in network mode)
-						// but still we need to mark this group as published OK and reduce the groups index
-						/* if (!sdPublish()) ramGroupsIndex--; */
-
-						ESPcontrol(ESP_SLEEP);
-						timeToPublish = false;
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
 
-						// TODO go to sleep on receive MQTT success message
+						// If there is no more readings left to publish netPublish will return false
+						if (!netPublish()) {
+							ESPcontrol(ESP_SLEEP);
+							timeToPublish = false;
+							// TODO go to sleep on receive MQTT success message
+						}
+
 
 					} else if (st.publishStat.error) {
 
 						sckOut("Will retry on next publish interval!!!");
 
+						// TODO do we really want to flash an error now? or until when?
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
 						ESPcontrol(ESP_SLEEP);
 						timeToPublish = false;
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
+
 					} else if (st.publishStat.retry()) netPublish();
 				}
 			}
@@ -1030,7 +1031,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_WIFI_CONNECTED:
 
-			sckOut("Conected to wifi!!", PRIO_LOW); st.wifiStat.setOk(); break;
+			sckOut("Connected to wifi!!", PRIO_LOW); st.wifiStat.setOk(); break;
 
 		case SAMMES_SSID_ERROR:
 
@@ -1549,46 +1550,55 @@ bool SckBase::netPublish()
 		// 	*/
 
 
-	memset(netBuff, 0, sizeof(netBuff));
-	sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
-	uint8_t counter = 0;
+	bool result = false;
+	while (readingsList.countGroups() > 0) {
+		uint32_t thisGroup = 0;
+		if (!readingsList.getFlag(thisGroup, readingsList.NET_PUBLISHED)) {
 	
-	// Timestamp from current group
-	/* char thisTime[20]; */
-	/* epoch2iso(ramGroups[ramGroupsIndex].timeStamp, thisTime); */
-	/* sprintf(netBuff, "%s%s%s%s", netBuff, "{\"data\":[{\"recorded_at\":\"", thisTime, "\",\"sensors\":["); */
+			memset(netBuff, 0, sizeof(netBuff));
+			uint16_t publishedReadings = 0;
+			sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
 
-	// To avoid extra commas
-	/* bool first = true; */
+			// Save time
+			epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
+			sprintf(netBuff, "%s%s%s%s", netBuff, "{\"data\":[{\"recorded_at\":\"", ISOtimeBuff, "\",\"sensors\":[");
 
-	// TODO buscar como eliminar esto y usar RAMgetGroup()
-	// Iterate over the saved readings for this group
-	/* for (uint8_t i=ramGroups[ramGroupsIndex].firstReadingIndex; i<=ramGroups[ramGroupsIndex].firstReadingIndex + ramGroups[ramGroupsIndex].numberOfReadings; i++) { */
+			// To avoid extra commas
+			bool first = true;
+
+			uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
+			for (uint8_t i=0; i<readingsOnThisGroup; i++) {
+
+				if (!first) sprintf(netBuff, "%s,", netBuff);
+				first = false;
+
+				OneReading thisReading = readingsList.readReading(thisGroup, i);
+				sprintf(netBuff, "%s{\"id\":%u, \"value\":%s}", netBuff, sensors[thisReading.type].id, thisReading.value.c_str());;
+				publishedReadings ++;
+			}
+
+			// Set NET_PUBLISHED flag for this group
+			readingsList.setFlag(thisGroup, readingsList.NET_PUBLISHED, true);
+
+			if (!readingsList.getFlag(thisGroup, readingsList.SD_PUBLISHED)) sdPublish();
+
+			if (st.mode == MODE_NET) readingsList.delLastGroup();
+
+			sprintf(netBuff, "%s%s", netBuff, "]}]}");
+
+			sprintf(outBuff, "Publishing %i sensor readings...   ", publishedReadings);
+			sckOut(PRIO_MED);
+
+			result = sendMessage();
+
+			break;
+		} else {
 		
-		// Get sensor type
-	// DESCOMENTAR ESTO DESPUES DE LAS PRUEBAS DE TAMAÑO DE LOS ARRAYS
-		/* OneSensor *wichSensor = &sensors[static_cast<SensorType>(ramReadings[i].type)]; */
+			// If the group is already published delete it from saved ones
+			readingsList.delLastGroup();
+		}
 
-		// Check if this sensor has platform ID (if no id is present we can only publish it to sd card)
-		/* if (wichSensor->id > 0){ */
-			/* if (!first) sprintf(netBuff, "%s,", netBuff); */
-			/* first = false; */
-
-			// DESCOMENTAR ESTO DESPUES DE LAS PRUEBAS DE TAMAÑO DE LOS ARRAYS
-			/* char thisReading[ramReadings[i].size + 1]; */
-			/* memcpy(thisReading, &ramCharBuff[ramReadings[i].startIndex], ramReadings[i].size); */
-			/* thisReading[ramReadings[i].size] = '\0'; 	// Add null char at the end */
-			/* sprintf(netBuff, "%s{\"id\":%u, \"value\":%s}", netBuff, wichSensor->id, thisReading);; */
-			/* counter ++; */
-		/* } */
-	/* } */
-
-	sprintf(netBuff, "%s%s", netBuff, "}");
-
-	sprintf(outBuff, "Publishing %i sensor readings...   ", counter);
-	sckOut(PRIO_MED);
-
-	bool result = sendMessage();
+	}
 	return result;
 }
 bool SckBase::sdPublish()
@@ -1664,8 +1674,6 @@ bool SckBase::sdPublish()
 
 		// From the saved groups check wich one's need to be published to sdcard
 		uint32_t savedGroups = readingsList.countGroups();
-	SerialUSB.print("Saved groups: ");
-	SerialUSB.println(savedGroups);
 		uint8_t counter = 0;
 		for (uint32_t thisGroup=0; thisGroup<savedGroups; thisGroup++) {
 			if (!readingsList.getFlag(thisGroup, readingsList.SD_PUBLISHED)) {

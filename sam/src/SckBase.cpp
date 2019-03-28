@@ -121,7 +121,7 @@ void SckBase::setup()
 
 	// Urban board
 	analogReadResolution(12);
-	if (urban.setup(this)) {
+	if (urban.setup()) {
 		sckOut("Urban board detected");
 
 		// Check which urban board sensors are enabled
@@ -143,7 +143,6 @@ void SckBase::setup()
 		}
 
 		if (!sensors[SENSOR_PM_10].enabled) enableSensor(SENSOR_PM_1); 	// Allow hotplug of PM sensor
-		urban.setup(this);
 		urban.stop(SENSOR_PM_1); 	// Make sure PM is off until battery is ready for it
 		urbanPresent = true;
 

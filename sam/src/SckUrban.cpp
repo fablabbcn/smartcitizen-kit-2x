@@ -7,43 +7,15 @@ void SERCOM5_Handler() {
 	SerialPM.IrqHandler();
 }
 
-bool SckUrban::setup(SckBase *base)
+bool SckUrban::setup()
 {
-	uint32_t currentTime = 0;
-	if (base->st.timeStat.ok) currentTime = base->rtc.getEpoch();
+	if (!sck_bh1721fvc.start()) return false;
+	if (!sck_sht31.start()) return false;
+	if (!sck_noise.start()) return false;
+	if (!sck_mpl3115A2.start()) return false;
+	if (!sck_max30105.start()) return false;
+	sck_pm.start(); // This sensor is independent of the urban board. That's way we don't declare error if it's not there.
 
-	// To protect MICS turn off heaters
-	sck_mics4514.startPWM(); 	// Workaround Noise not working without mics init
-	sck_mics4514.stop(currentTime);
-
-	for (uint16_t i=0; i<SENSOR_COUNT; i++) {
-		SensorType thisType = SENSOR_COUNT;
-		thisType = static_cast<SensorType>(i);
-		if (base->sensors[thisType].location == BOARD_URBAN) {
-			switch(thisType) {
-				case SENSOR_LIGHT: 				if (!sck_bh1721fvc.start()) return false; break;
-				case SENSOR_TEMPERATURE:
-				case SENSOR_HUMIDITY: 				if (!sck_sht31.start()) return false; break;
-				case SENSOR_CO_RESISTANCE:
-				case SENSOR_NO2_RESISTANCE:			if (!sck_mics4514.start(currentTime))	return false; break;
-				case SENSOR_NOISE_DBA:
-				case SENSOR_NOISE_DBC:
-				case SENSOR_NOISE_DBZ:
-				case SENSOR_NOISE_FFT: 				if (!sck_noise.start()) return false; break;
-				case SENSOR_ALTITUDE:
-				case SENSOR_PRESSURE:
-				case SENSOR_PRESSURE_TEMP: 			if (!sck_mpl3115A2.start()) return false; break;
-				case SENSOR_PARTICLE_RED:
-				case SENSOR_PARTICLE_GREEN:
-				case SENSOR_PARTICLE_IR:
-				case SENSOR_PARTICLE_TEMPERATURE: 		if (!sck_max30105.start()) return false; break;
-				case SENSOR_PM_1:
-				case SENSOR_PM_25:
-				case SENSOR_PM_10: 				sck_pm.start(); break;
-				default: break;
-			}
-		}
-	}
 	return true;
 };
 bool SckUrban::start(SensorType wichSensor)

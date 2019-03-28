@@ -114,7 +114,7 @@ void SckBase::setup()
 
 	// Urban board
 	analogReadResolution(12);
-	if (urban.setup(this)) {
+	if (urban.setup()) {
 		sckOut("Urban board detected");
 		urbanPresent = true;
 

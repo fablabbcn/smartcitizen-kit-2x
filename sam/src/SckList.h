@@ -61,8 +61,7 @@ class SckList
 			SD_PUBLISHED
 		};
 
-		// TODO change this to false for production
-		bool debug = true;
+		bool debug = false;
 		void flashStart();
 		
 		bool usingFlash = false;

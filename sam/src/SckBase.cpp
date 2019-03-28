@@ -294,6 +294,7 @@ void SckBase::reviewState()
 
 					sckOut("ERROR Can't publish without wifi!!!");
 
+					// Publish to sd card
 					sdPublish();
 
 					ESPcontrol(ESP_OFF); 		// Hard off not sleep to be sure the ESP state is reset
@@ -359,8 +360,22 @@ void SckBase::reviewState()
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
 
-						// If there is no more readings left to publish netPublish will return false
-						if (!netPublish()) {
+						// Publish to sdcard
+						sdPublish();
+
+						epoch2iso(readingsList.getTime(0), ISOtimeBuff);
+						sprintf(outBuff, "(%s) Published OK, erasing from memory", ISOtimeBuff);
+						sckOut();
+
+						// Delete the group that was published
+						readingsList.delLastGroup();
+
+						// Continue as fast as posible with remaining readings, or go to sleep
+						if (readingsList.countGroups() > 0) {
+
+							if (st.publishStat.retry()) netPublish();
+						} else {
+
 							ESPcontrol(ESP_SLEEP);
 							timeToPublish = false;
 							// TODO go to sleep on receive MQTT success message
@@ -371,6 +386,9 @@ void SckBase::reviewState()
 
 						sckOut("Will retry on next publish interval!!!");
 
+						// Publish to sd card
+						sdPublish();
+
 						// TODO do we really want to flash an error now? or until when?
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
@@ -379,7 +397,13 @@ void SckBase::reviewState()
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
 
-					} else if (st.publishStat.retry()) netPublish();
+					} else if (readingsList.countGroups() > 0) {
+					
+						if (st.publishStat.retry()) {
+							if (st.publishStat.retrys > 1) sckOut("Retrying publish...");
+							netPublish();
+						}
+					}
 				}
 			}
 		}
@@ -1061,7 +1085,6 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_PUBLISH_OK:
 
 			st.publishStat.setOk();
-			sckOut("Network publish OK!!   ");
 			break;
 
 		case SAMMES_MQTT_PUBLISH_ERROR:
@@ -1527,7 +1550,6 @@ bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 }
 bool SckBase::netPublish()
 {
-
 	if (!st.espON) {
 		ESPcontrol(ESP_ON);
 		return false;
@@ -1551,7 +1573,7 @@ bool SckBase::netPublish()
 
 
 	bool result = false;
-	while (readingsList.countGroups() > 0) {
+	if (readingsList.countGroups() > 0) {
 		uint32_t thisGroup = 0;
 		if (!readingsList.getFlag(thisGroup, readingsList.NET_PUBLISHED)) {
 	
@@ -1577,21 +1599,14 @@ bool SckBase::netPublish()
 				publishedReadings ++;
 			}
 
-			// Set NET_PUBLISHED flag for this group
-			readingsList.setFlag(thisGroup, readingsList.NET_PUBLISHED, true);
-
-			if (!readingsList.getFlag(thisGroup, readingsList.SD_PUBLISHED)) sdPublish();
-
-			if (st.mode == MODE_NET) readingsList.delLastGroup();
 
 			sprintf(netBuff, "%s%s", netBuff, "]}]}");
 
-			sprintf(outBuff, "Publishing %i sensor readings...   ", publishedReadings);
-			sckOut(PRIO_MED);
+			sprintf(outBuff, "(%s) Sent %i readings to platform.", ISOtimeBuff, publishedReadings);
+			sckOut();
 
 			result = sendMessage();
 
-			break;
 		} else {
 		
 			// If the group is already published delete it from saved ones
@@ -1603,7 +1618,6 @@ bool SckBase::netPublish()
 }
 bool SckBase::sdPublish()
 {
-	SerialUSB.println("time to publish");
 	if (!sdSelect()) return false;
 
 	sprintf(postFile.name, "%02d-%02d-%02d.CSV", rtc.getYear(), rtc.getMonth(), rtc.getDay());
@@ -1684,6 +1698,7 @@ bool SckBase::sdPublish()
 				epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
 				postFile.file.print(ISOtimeBuff);
 
+
 				// Go through all the enabled sensors
 				for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 					SensorType wichSensor = sensors.sensorsPriorized(i);
@@ -1709,6 +1724,9 @@ bool SckBase::sdPublish()
 				postFile.file.println("");
 
 				counter++;
+
+				sprintf(outBuff, "(%s) Readings saved to sdcard.", ISOtimeBuff, counter);
+				sckOut();
 			}
 		}
 
@@ -1720,23 +1738,13 @@ bool SckBase::sdPublish()
 			if (st.mode == MODE_SD) {
 				for (uint8_t i=0; i<counter; i++) readingsList.delLastGroup();
 			}
-
-			sprintf(outBuff, "Published %u group of readings to sd card", counter);
-			sckOut();
 		}
-		/* sckOut("Sd card publish OK!!", PRIO_MED); */
 		return true;
 	} else  {
 		st.cardPresent = false;
 		st.cardPresentError = false;
 	}
 	return false;
-}
-void SckBase::publish()
-{
-	if (st.mode == MODE_NET) netPublish();
-	else if (st.mode == MODE_SD) sdPublish();
-	else sckOut("Can't publish without been configured!!");
 }
 
 // **** Time

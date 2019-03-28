@@ -20,8 +20,6 @@ FlashStorage(eepromConfig, Configuration);
 
 void SckBase::setup()
 {
-	SerialUSB.println("Starting...");
-
 	// Led
 	led.setup();
 
@@ -103,6 +101,7 @@ void SckBase::setup()
 #endif
 
 	// Configuration
+	ESPcontrol(ESP_REBOOT);
 	loadConfig();
 	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
 
@@ -199,9 +198,7 @@ void SckBase::update()
 void SckBase::reviewState()
 {
 
-	if (pendingSyncConfig) {
-		sendConfig();
-	}
+	if (pendingSyncConfig) sendConfig();
 
 	if (sdInitPending) sdInit();
 
@@ -742,7 +739,8 @@ void SckBase::saveConfig(bool defaults)
 
 	}
 
-	if (pendingSyncConfig && !st.espON) ESPcontrol(ESP_ON);
+	if (pendingSyncConfig && !st.espON && !st.espBooting) sendConfig();
+	else ESPcontrol(ESP_ON);
 }
 Configuration SckBase::getConfig()
 {
@@ -875,7 +873,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_ON:
 		{
-				if (st.espBooting) return;
+				if (st.espBooting || st.espON) return;
 				sckOut("ESP on...", PRIO_LOW);
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode

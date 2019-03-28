@@ -1692,14 +1692,6 @@ bool SckBase::sdPublish()
 							}
 						}
 					}
-<<<<<<< ours
-					postFile.file.print(",");
-					postFile.file.print(sensors[wichSensor].reading);
-				} else {
-					postFile.file.print(",");
-					postFile.file.print("null");
-=======
->>>>>>> theirs
 				}
 
 				// Set SD_PUBLISHED flag for this group

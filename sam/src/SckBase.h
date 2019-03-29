@@ -115,6 +115,7 @@ class SckBase
 		void ESPbusUpdate();
 		void receiveMessage(SAMMessage wichMessage);
 		bool sendConfig();
+		uint32_t sendConfigTimer = 0;
 		bool pendingSyncConfig = false;
 
 		// Button

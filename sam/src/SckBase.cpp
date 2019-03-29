@@ -198,7 +198,16 @@ void SckBase::update()
 void SckBase::reviewState()
 {
 
-	if (pendingSyncConfig) sendConfig();
+	if (millis() - sendConfigTimer > 1000) {
+		sendConfigTimer = millis();
+		if (pendingSyncConfig) {
+			if (st.espON) {
+				if (!st.espBooting) sendConfig();
+			} else {
+				ESPcontrol(ESP_ON);
+			}
+		}
+	}
 
 	if (sdInitPending) sdInit();
 
@@ -487,9 +496,8 @@ void SckBase::enterSetup()
 	st.tokenError = false;
 	st.cardPresentError = false;
 
-	// Start wifi APmode
-	if (!st.espON) ESPcontrol(ESP_ON);
-	else if (sendMessage(ESPMES_START_AP, "")) sckOut("Started Access point on ESP");
+	// Reboot ESP to have a clean start
+	ESPcontrol(ESP_REBOOT);
 }
 void SckBase::printState()
 {
@@ -739,8 +747,7 @@ void SckBase::saveConfig(bool defaults)
 
 	}
 
-	if (pendingSyncConfig && !st.espON && !st.espBooting) sendConfig();
-	else ESPcontrol(ESP_ON);
+	if (pendingSyncConfig && !st.espON) ESPcontrol(ESP_ON);
 }
 Configuration SckBase::getConfig()
 {
@@ -766,7 +773,7 @@ bool SckBase::sendConfig()
 	json["ver"] = SAMversion;
 	json["bd"] = SAMbuildDate;
 
-	if ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet && !st.wifiStat.error)) json["ac"] = (uint8_t)ESPMES_CONNECT;
+	if (!st.onSetup && ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet))) json["ac"] = (uint8_t)ESPMES_CONNECT;
 	else json["ac"] = (uint8_t)ESPMES_START_AP;
 
 	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
@@ -1139,7 +1146,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				saveInfo();
 			}
 
-			sendConfig();
+			pendingSyncConfig = true;
 			break;
 		}
 		default: break;

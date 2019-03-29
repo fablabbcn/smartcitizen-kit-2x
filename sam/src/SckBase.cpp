@@ -1597,7 +1597,7 @@ bool SckBase::netPublish()
 				first = false;
 
 				OneReading thisReading = readingsList.readReading(thisGroup, i);
-				if (sensors[thisReading.type].id > 0) {
+				if (sensors[thisReading.type].id > 0 && !thisReading.value.startsWith("null")) {
 					sprintf(netBuff, "%s{\"id\":%u, \"value\":%s}", netBuff, sensors[thisReading.type].id, thisReading.value.c_str());;
 					publishedReadings ++;
 				}

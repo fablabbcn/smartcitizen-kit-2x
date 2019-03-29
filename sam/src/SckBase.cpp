@@ -434,10 +434,7 @@ void SckBase::reviewState()
 
 					} else if (readingsList.countGroups() > 0) {
 					
-						if (st.publishStat.retry()) {
-							if (st.publishStat.retrys > 1) sckOut("Retrying publish...");
-							netPublish();
-						}
+						if (st.publishStat.retry()) netPublish();
 					}
 				}
 			}
@@ -1697,7 +1694,6 @@ bool SckBase::netPublish()
 
 				OneReading thisReading = readingsList.readReading(thisGroup, i);
 				if (sensors[thisReading.type].id > 0 && !thisReading.value.startsWith("null")) {
-
 					sprintf(netBuff, "%s,%u:%s", netBuff, sensors[thisReading.type].id, thisReading.value.c_str());;
 					publishedReadings ++;
 				}

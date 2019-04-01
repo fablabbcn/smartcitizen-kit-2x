@@ -1657,10 +1657,6 @@ bool SckBase::getReading(OneSensor *wichSensor)
 	// Save reading 
 	readingsList.appendReading(wichSensor->type, wichSensor->reading);
 
-	// Print reading to console
-	sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
-	sckOut(PRIO_LOW);
-
 	return true;
 }
 bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)

@@ -206,6 +206,10 @@ class Sck_CCS811
 	// TODO check consumption and quality in different drive modes: 1 sec [default], 10 sec, 60 sec or 0.25 sec (RAW mode)
 
 	public:
+		Sck_CCS811(RTCZero* myrtc) {
+			rtc = myrtc;
+		}
+
 		const byte address = 0x5a;
 		bool start();
 		bool stop();
@@ -227,9 +231,10 @@ class Sck_CCS811
 
 		uint32_t startTime = 0;
 		uint32_t lastReadingMill = 0;
-		const uint32_t warmingTime = 300000; 	// Minimal time for sensor stabilization in ms (the kit will not return readings during this period) 5 minutes as default
+		const uint32_t warmingTime = 300; 	// Minimal time for sensor stabilization in seconds(the kit will not return readings during this period) 5 minutes as default
 		bool alreadyStarted = false;
 		CCS811 ccs = CCS811(address);
+		RTCZero* rtc;
 };
 
 
@@ -263,7 +268,7 @@ class SckUrban
 		Sck_MPL3115A2 sck_mpl3115A2;
 
 		// VOC and ECO2
-		Sck_CCS811 sck_ccs811;
+		Sck_CCS811 sck_ccs811 = Sck_CCS811(rtc);
 
 		// PM sensor
 		Sck_PM sck_pm = Sck_PM(rtc);

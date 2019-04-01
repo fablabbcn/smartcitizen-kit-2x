@@ -907,7 +907,7 @@ bool Sck_CCS811::start()
 
 	if (ccs.setDriveMode(driveMode != CCS811Core::SENSOR_SUCCESS)) return false;
 
-	startTime = millis();
+	startTime = rtc->getEpoch();
 	alreadyStarted = true;
 	return true;
 }
@@ -920,7 +920,7 @@ bool Sck_CCS811::stop()
 bool Sck_CCS811::getReading(SckBase *base)
 {
 	if (!alreadyStarted) start();
-	if (((startTime == 0) || ((millis() - startTime) < warmingTime)) && !base->inTest) return false;
+	if (((startTime == 0) || ((rtc->getEpoch() - startTime) < warmingTime)) && !base->inTest) return false;
 	if (millis() - lastReadingMill < 1000) return true;
 	lastReadingMill = millis();
 

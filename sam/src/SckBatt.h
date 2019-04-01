@@ -7,6 +7,8 @@
 
 const float workingVoltage = 3.3;
 
+class SckBase;
+
 class SckCharger
 {
 private:
@@ -111,7 +113,7 @@ public:
 	bool getPowerGoodStatus();
 	bool getDPMstatus();
 	void forceInputCurrentLimitDetection();
-	void detectUSB();
+	void detectUSB(SckBase *base);
 	float getSysMinVolt();
 	bool getBatLowerSysMin();
 	ChargeStatus getChargeStatus();

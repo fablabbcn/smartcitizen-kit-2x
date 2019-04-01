@@ -41,7 +41,7 @@ public:
 	};
 
 	void setup();
-	void update(ColorName colorName, pulseModes pulse);
+	void update(ColorName colorName, pulseModes pulse, bool force=false);
 	void off();
 	void tick();
 

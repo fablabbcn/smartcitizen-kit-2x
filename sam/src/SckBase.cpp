@@ -1412,12 +1412,18 @@ void SckBase::updatePower()
 
 		// Emergency lowBatt
 		if (battery.lastPercent < battery.threshold_emergency) {
-			if (battery.emergencyLowBatCounter < 5) {
-				battery.emergencyLowBatCounter++;
-				led.chargeStatus = led.CHARGE_NULL;
-			} else led.chargeStatus = led.CHARGE_LOW;
-			// TODO replace this with proper led feeback and sleep mode
-			/* led.powerEmergency = true; */
+			if (battery.emergencyLowBatCounter < 5) battery.emergencyLowBatCounter++;
+			else {
+
+				for (uint8_t i=0; i<5; i++) {
+					led.off();
+					delay(200);
+					led.update(led.ORANGE, led.PULSE_STATIC, true);
+					delay(200);
+				}
+				sckOFF = true;
+				goToSleep();
+			}
 
 		// Detect lowBatt
 		} else if (battery.lastPercent < battery.threshold_low) {
@@ -1425,7 +1431,6 @@ void SckBase::updatePower()
 				battery.lowBatCounter++;
 				led.chargeStatus = led.CHARGE_NULL;
 			} else led.chargeStatus = led.CHARGE_LOW;
-
 		} else {
 			sckOut("Battery is not charging");
 			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery

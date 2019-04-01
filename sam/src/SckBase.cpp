@@ -1343,8 +1343,15 @@ void SckBase::updatePower()
 		if (battNow < battery.threshold_emergency) {
 			if (battery.emergencyLowBatCounter < 5) battery.emergencyLowBatCounter++;
 			else {
-				// TODO replace this with sleep mode
-				led.chargeStatus = led.CHARGE_LOW;
+
+				for (uint8_t i=0; i<5; i++) {
+					led.off();
+					delay(200);
+					led.update(led.ORANGE, led.PULSE_STATIC, true);
+					delay(200);
+				}
+				sckOFF = true;
+				goToSleep();
 			}
 
 		// Low Batt

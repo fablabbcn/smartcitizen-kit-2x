@@ -281,18 +281,36 @@ void SckBase::reviewState()
 	/* sdDetect() */
 	/* buttonEvent(); */
 
-	if (st.sleeping) {
-
-
-	} else if (st.onShell) {
+	if (st.onShell) {
 
 
 	} else if (st.onSetup) {
+
+	
+	} else if (sckOFF) {
 
 
 	} else if (st.mode == MODE_NOT_CONFIGURED) {
 
 		if (!st.onSetup) enterSetup();
+
+	} else if (!timeToPublish && millis() - buttonLastEvent > waitAfterLastEvent) {
+
+		while (!timeToPublish && millis() - buttonLastEvent > waitAfterLastEvent) {
+
+			updateSensors();
+			updatePower();
+			if (pendingSensors > 0 || charger.onUSB) break;
+			goToSleep();
+
+			// Let the led be visible for one instant
+			if (st.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC, true);
+			else if (st.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC, true);
+			delay(10);
+		}
+
+		if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT, true);
+		else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT, true);
 
 	} else if (st.mode == MODE_NET) {
 
@@ -411,9 +429,7 @@ void SckBase::reviewState()
 							if (st.publishStat.retry()) netPublish();
 						} else {
 
-							ESPcontrol(ESP_SLEEP);
 							timeToPublish = false;
-							// TODO go to sleep on receive MQTT success message
 						}
 
 
@@ -495,17 +511,19 @@ void SckBase::reviewState()
 
 		} else {
 			led.update(led.PINK, led.PULSE_SOFT);
-			if (st.espON) ESPcontrol(ESP_SLEEP);
+			if (st.espON) ESPcontrol(ESP_OFF);
 
 			updateSensors();
 
-			if (timeToPublish) {
+			if (timeToPublish && readingsList.countGroups() > 0) {
+
 				if (!sdPublish()) {
 					sckOut("ERROR failed publishing to SD card");
 					led.update(led.PINK, led.PULSE_HARD_FAST);
+				} else {
+					timeToPublish = false;
+					lastPublishTime = rtc.getEpoch();
 				}
-				timeToPublish = false;
-				lastPublishTime = rtc.getEpoch();
 			}
 		}
 	}
@@ -1263,9 +1281,8 @@ void SckBase::sck_reset()
 }
 void SckBase::goToSleep()
 {
-	digitalWrite(pinLED_USB, HIGH);
 	led.off();
-	ESPcontrol(ESP_SLEEP);
+	if (st.espON) ESPcontrol(ESP_OFF);
 
 	// ESP control pins savings
 	digitalWrite(pinESP_CH_PD, LOW);
@@ -1273,32 +1290,38 @@ void SckBase::goToSleep()
 	digitalWrite(pinESP_RX_WIFI, LOW);
 	digitalWrite(pinESP_TX_WIFI, LOW);
 
-
+	// TODO check every component for power optimizations
 	// TODO MICS heaters saving
-	// TODO checke every component for power optimizations
-
-	// Disconnect USB
-	/* USBDevice.detach(); */
-	/* USBDeviceAttached = false; */
 
 	// Stop PM sensor
 	if (urban.sck_pm.started) urban.sck_pm.stop();
 
-	if (sleepTime > 0) sprintf(outBuff, "Sleeping for %lu seconds", (sleepTime) / 1000);
-	else sprintf(outBuff, "Sleeping forever!!! (until a button click)");
-	sckOut();
+	// Turn off USB led
+	digitalWrite(pinLED_USB, HIGH);
 
-	uint32_t localSleepTime = sleepTime;
-	sleepTime = 0;
+	if (sckOFF) {
+	
+		sprintf(outBuff, "Sleeping forever!!! (until a button click)");
+		sckOut();
 
-	if (localSleepTime > 0) LowPower.deepSleep(localSleepTime);
-	else {
 		// Disable the Sanity cyclic reset so it doesn't wake us up
 		rtc.disableAlarm();
 		rtc.detachInterrupt();
 
 		LowPower.deepSleep();
+	} else {
+	
+		sprintf(outBuff, "Sleeping for %.2f seconds", (sleepTime) / 1000.0);
+		sckOut();
+
+		st.sleeping = true;
+
+		LowPower.deepSleep(sleepTime);
 	}
+
+	// Recover Noise sensor timer
+	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
+	while (GCLK->STATUS.bit.SYNCBUSY);
 }
 void SckBase::updatePower()
 {
@@ -1309,7 +1332,7 @@ void SckBase::updatePower()
 	bool battChanged = false;
 
 	// Update USB connection status
-	charger.detectUSB();
+	charger.detectUSB(this);
 
 	// If battery status changed enable/disable charging
 	if (prevBattPresent != battery.present) {
@@ -1410,10 +1433,6 @@ void SckBase::updatePower()
 		}
 	}
 }
-/* void SckBase::wakeUp() */
-/* { */
-/* 	sckOut("Waked up!!!"); */
-/* } */
 
 // **** Sensors
 void SckBase::updateSensors()
@@ -1424,7 +1443,7 @@ void SckBase::updateSensors()
 
 	// Main reading loop
 	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {
-		
+
 		lastSensorUpdate = rtc.getEpoch();
 		pendingSensors = 0;
 

@@ -121,7 +121,7 @@ class SckBase
 		// Button
 		const uint16_t buttonLong = 5000;
 		const uint16_t buttonVeryLong = 15000;
-		uint32_t buttonLastEvent = 0;
+		volatile uint32_t buttonLastEvent = 0;
 		bool butOldState = true;
 		bool wakingUp = false;
 		void buttonEvent();
@@ -156,7 +156,9 @@ class SckBase
 		uint8_t wakeUP_H = 3; 	// 3AM UTC
 		uint8_t wakeUP_M = 0;
 		uint8_t wakeUP_S = 0;
-		uint32_t sleepTime;
+		const uint16_t sleepTime = 2500; 	// ms between micro led flashes
+		const uint16_t waitAfterLastEvent = 60000; // Time to avoid sleep after user interaction in ms
+
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
 		void goToSleep();
@@ -261,6 +263,7 @@ class SckBase
 		SckBatt battery;
 		volatile bool battPendingEvent = false;
 		SckCharger charger;
+		bool sckOFF = false;
 
 		// Misc
 		void getUniqueID();

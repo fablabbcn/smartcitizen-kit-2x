@@ -1,4 +1,5 @@
 #include "SckBatt.h"
+#include "SckBase.h"
 
 void SckCharger::setup()
 {
@@ -263,7 +264,7 @@ bool SckCharger::writeREG(byte wichRegister, byte data)
 	if (readREG(wichRegister) == data) return true;
 	else return false;
 }
-void SckCharger::detectUSB()
+void SckCharger::detectUSB(SckBase *base)
 {
 	VBUSstatus vbusStatus = getVBUSstatus();
 
@@ -275,7 +276,8 @@ void SckCharger::detectUSB()
 	if (vbusStatus == VBUS_ADAPTER_PORT) {
 		if (!onUSB) {
 			onUSB = true;
-			NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
+			// Avoid reset if kit was on off state
+			if (!base->sckOFF && !base->st.sleeping) NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
 		}
 	} else onUSB = false;
 

@@ -5,6 +5,8 @@
 #include <Pins.h>
 #include "wiring_private.h"
 
+class SckBase;
+
 class SckCharger
 {
 private:
@@ -103,7 +105,7 @@ public:
 	bool getPowerGoodStatus();
 	bool getDPMstatus();
 	void forceInputCurrentLimitDetection();
-	void detectUSB();
+	void detectUSB(SckBase *base);
 	ChargeStatus getChargeStatus();
 	VBUSstatus getVBUSstatus();
 	byte getNewFault();		// TODO

@@ -49,10 +49,10 @@ class Status
 		void reset();
 
 	Status(uint8_t maxRetrys=5, uint32_t timeout=1000)
-    	{
+{
 		_maxRetrys = maxRetrys;
 		_timeout = timeout;
-    	}
+}
 };
 
 struct SckState
@@ -78,13 +78,13 @@ struct SckState
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup
-				&& a.espON == espON
-				&& a.wifiSet == wifiSet
-				&& a.tokenSet == tokenSet
-				&& a.helloPending == helloPending
-				&& a.mode == mode
-				&& a.cardPresent == cardPresent
-				&& a.sleeping == sleeping
+			&& a.espON == espON
+			&& a.wifiSet == wifiSet
+			&& a.tokenSet == tokenSet
+			&& a.helloPending == helloPending
+			&& a.mode == mode
+			&& a.cardPresent == cardPresent
+			&& a.sleeping == sleeping
 		   ) return true;
 		else return false;
 	}

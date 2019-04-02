@@ -113,7 +113,7 @@ void SckBase::setup()
 		sckOut("Urban board detected");
 		urbanPresent = true;
 
- 		// Find out if urban was reinstalled just now
+		// Find out if urban was reinstalled just now
 		bool justInstalled = true;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
@@ -135,7 +135,7 @@ void SckBase::setup()
 		sckOut("No urban board detected!!");
 		urbanPresent = false;
 
- 		// Find out if urban was removed just now
+		// Find out if urban was removed just now
 		bool justRemoved = false;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
@@ -257,7 +257,7 @@ void SckBase::reviewState()
 
 	} else if (st.onSetup) {
 
-	
+
 	} else if (sckOFF) {
 
 
@@ -420,7 +420,7 @@ void SckBase::reviewState()
 						st.publishStat.reset(); 		// Restart publish error counter
 
 					} else if (readingsList.countGroups() > 0) {
-					
+
 						if (st.publishStat.retry()) netPublish();
 					}
 				}
@@ -1276,7 +1276,7 @@ void SckBase::goToSleep()
 	digitalWrite(pinLED_USB, HIGH);
 
 	if (sckOFF) {
-	
+
 		sprintf(outBuff, "Sleeping forever!!! (until a button click)");
 		sckOut();
 
@@ -1286,7 +1286,7 @@ void SckBase::goToSleep()
 
 		LowPower.deepSleep();
 	} else {
-	
+
 		sprintf(outBuff, "Sleeping for %.2f seconds", (sleepTime) / 1000.0);
 		sckOut();
 
@@ -1310,7 +1310,7 @@ void SckBase::updatePower()
 		battery.emergencyLowBatCounter = 0;
 
 		switch(charger.getChargeStatus()) {
-		
+
 			case charger.CHRG_NOT_CHARGING:
 				// If voltage is too low we asume we don't have battery.
 				if (charger.getBatLowerSysMin()) {
@@ -1331,7 +1331,7 @@ void SckBase::updatePower()
 				break;
 			default:
 				battery.present = true;
-				led.chargeStatus = led.CHARGE_CHARGING;	
+				led.chargeStatus = led.CHARGE_CHARGING;
 				break;
 		}
 	} else {
@@ -1358,10 +1358,10 @@ void SckBase::updatePower()
 		} else if (battNow < battery.threshold_low) {
 			if (battery.lowBatCounter < 5) battery.lowBatCounter++;
 			else led.chargeStatus = led.CHARGE_LOW;
-		
-		
+
+
 		} else {
-			led.chargeStatus = led.CHARGE_NULL;	
+			led.chargeStatus = led.CHARGE_NULL;
 		}
 	}
 }
@@ -1398,7 +1398,7 @@ void SckBase::updateSensors()
 				if ((lastSensorUpdate - wichSensor.lastReadingTime) >= (wichSensor.everyNint * config.readInterval)) {
 
 					if (!getReading(&wichSensor)) {
-					
+
 						pendingSensorsList[pendingSensors] = wichSensor.type;
 						pendingSensors++;
 
@@ -1415,13 +1415,13 @@ void SckBase::updateSensors()
 
 		SensorType tmpPendingSensorList[pendingSensors];
 		uint8_t tmpPendingSensors = 0;
-		
+
 		for (uint8_t i=0; i<pendingSensors; i++) {
 
 			OneSensor wichSensor = sensors[pendingSensorsList[i]];
-			
+
 			if (!getReading(&wichSensor)) {
-			
+
 				// Reappend the sensor to the pending list
 				tmpPendingSensorList[i] = wichSensor.type;
 				tmpPendingSensors ++;
@@ -1452,7 +1452,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
 			switch (wichSensor) {
 				case SENSOR_BATT_VOLTAGE:
 				case SENSOR_BATT_PERCENT:
-				 	// Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
+					// Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
 					result = true;
 					break;
 				case SENSOR_SDCARD:
@@ -1515,7 +1515,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
 				switch (wichSensor->type) {
 					case SENSOR_BATT_PERCENT:
 						if (!battery.present) wichSensor->reading = String("-1");
-						else wichSensor->reading = String(battery.percent());						
+						else wichSensor->reading = String(battery.percent());
 						break;
 					case SENSOR_BATT_VOLTAGE:
 						if (!battery.present) wichSensor->reading = String("-1");
@@ -1548,7 +1548,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
 	// Sensor reading ERROR, save null value
 	if (wichSensor->state == -1) wichSensor->reading == "null";
 
-	// Save reading 
+	// Save reading
 	readingsList.appendReading(wichSensor->type, wichSensor->reading);
 
 	return true;
@@ -1599,7 +1599,7 @@ bool SckBase::netPublish()
 	if (readingsList.countGroups() > 0) {
 		uint32_t thisGroup = 0;
 		if (!readingsList.getFlag(thisGroup, readingsList.NET_PUBLISHED)) {
-	
+
 			memset(netBuff, 0, sizeof(netBuff));
 			uint16_t publishedReadings = 0;
 			sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
@@ -1633,7 +1633,7 @@ bool SckBase::netPublish()
 			result = sendMessage();
 
 		} else {
-		
+
 			// If the group is already published delete it from saved ones
 			readingsList.delLastGroup();
 		}
@@ -1733,7 +1733,7 @@ bool SckBase::sdPublish()
 						for (uint16_t re=0; re<readingsOnThisGroup; re++) {
 							OneReading thisReading = readingsList.readReading(thisGroup, re);
 							if (thisReading.type == wichSensor) {
-							
+
 								// Save reading
 								postFile.file.print(",");
 								postFile.file.print(thisReading.value);

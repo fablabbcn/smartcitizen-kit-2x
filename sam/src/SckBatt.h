@@ -16,9 +16,9 @@ private:
 	uint8_t timeout = 10; // ms
 
 	// Registers
-	byte INPUT_SOURCE_CONTROL = 0; 			
+	byte INPUT_SOURCE_CONTROL = 0;
 	byte INPUT_CURR_LIMIT = 0;		// Bits 0:2 - > 000 – 100 mA, 001 – 150 mA, 010 – 500 mA, 011 – 900 mA, 100 – 1 A, 01 – 1.5 A, 110 - 2 A 111 - 3 A
-	
+
 	byte POWER_ON_CONF_REG = 1;
 	byte BOOST_LIM = 0;			// Limit for boost mode. 0 – 1 A, 1 – 1.5 A
 	byte VSYS_MIN = 1; 			// (Three bits 1:3 -- bit 1 - 0.1v, bit 2 - 0.2v, bit 3 - 0.4v) Minimum System Voltage Limit -> Offset:3.0 V, Range3.0 V – 3.7 VDefault:3.5 V (101)
@@ -52,11 +52,11 @@ private:
 	byte CHRG_STAT = 4;			// (Two bits 4:5) 00 – Not Charging, 01 – Pre-charge (<VBATLOWV), 10 – Fast Charging, 11 – Charge Termination Done
 	byte VBUS_STAT = 6;			// (Two bits 6:7) 00 – Unknown (no input, or DPDM detection incomplete), 01 – USB host, 10 – Adapter port, 11 – OTG
 
-	byte NEW_FAULT_REGISTER = 9;		
+	byte NEW_FAULT_REGISTER = 9;
 	byte BAT_FAULT = 3;			// 0 – Normal, 1 – Battery OVP
 	byte CHRG_FAULT = 4;			// (Two bits 4:5) 00 – Normal, 01 – Input fault (OVP or bad source), 10 - Thermal shutdown, 11 – Charge Timer Expiration
 	byte OTG_FAULT = 6;			// 0 – Normal, 1 – VBUS overloaded in OTG, or VBUS OVP, or battery is too low (any conditions that cannot start boost function)
-	byte WATCHDOG_FAULT = 7;		// 0 – Normal, 1- Watchdog timer expiration	
+	byte WATCHDOG_FAULT = 7;		// 0 – Normal, 1- Watchdog timer expiration
 
 	float batLow = 3.0; 			// If batt < batLow the charger will start with precharging cycle.
 	byte readREG(byte wichRegister);
@@ -131,7 +131,7 @@ class SckBatt
 		const float nominalVoltage = 3.7;
 		const uint16_t analogResolution = 4096;
 
-		const uint16_t batTable[100] PROGMEM = {3078,3364,3468,3540,3600,3641,3682,3701,3710,3716,3716,3716,3720,3714,3720,3725,3732,3742,3739,3744,3744,3754,3760,3762,3770,3768,3774,3774,3774,3779,3784,3790,3788,3794,3798,3798,3804,3809,3809,3812,3817,3817,3822,3823,3828,3828,3828,3833,3838,3838,3842,3847,3852,3859,3858,3864,3862,3869,3877,3877,3883,3888,3894,3898,3902,3906,3912,3923,3926,3936,3942,3946,3960,3972,3979,3982,3991,3997,4002,4002,4012,4018,4028,4043,4057,4074,4084,4094,4098,4098,4109,4115,4123,4134,4142,4153,4158,4170,4180,4188};
+		const uint16_t batTable[100] PROGMEM = {3324,3326,3335,3357,3376,3394,3411,3428,3436,3447,3460,3467,3471,3482,3495,3502,3511,3516,3524,3525,3533,3533,3544,3550,3554,3561,3565,3571,3571,3577,3583,3593,3594,3594,3603,3605,3605,3612,3617,3619,3622,3625,3629,3634,3641,3641,3647,3651,3655,3659,3665,3672,3679,3686,3693,3696,3700,3708,3717,3723,3731,3740,3748,3753,3766,3771,3778,3784,3791,3799,3809,3819,3826,3832,3843,3852,3858,3867,3880,3892,3901,3911,3917,3926,3942,3950,3959,3968,3975,3986,4001,4011,4025,4042,4055,4069,4100,4117,4152,4201};
 
 	public:
 		bool present = false;

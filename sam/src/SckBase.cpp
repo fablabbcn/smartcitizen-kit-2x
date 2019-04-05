@@ -85,7 +85,7 @@ void SckBase::setup()
 	sdDetect();
 
 	// Flash storage
-	/* readingsList.flashStart(); */
+	readingsList.flashStart();
 
 /* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
 
@@ -1290,14 +1290,19 @@ void SckBase::goToSleep()
 	digitalWrite(pinESP_RX_WIFI, LOW);
 	digitalWrite(pinESP_TX_WIFI, LOW);
 
-	// TODO check every component for power optimizations
 	// TODO MICS heaters saving
 
 	// Stop PM sensor
 	if (urban.sck_pm.started) urban.sck_pm.stop();
 
+	// Turn off Auxiliary I2C bus
+	digitalWrite(pinPOWER_AUX_WIRE, HIGH);	// LOW -> ON , HIGH -> OFF
+
 	// Turn off USB led
 	digitalWrite(pinLED_USB, HIGH);
+
+	// Sd card savings
+	digitalWrite(pinCS_SDCARD, HIGH);
 
 	if (sckOFF) {
 	

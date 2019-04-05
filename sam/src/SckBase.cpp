@@ -1827,6 +1827,7 @@ bool SckBase::sdPublish()
 					if (sensors[wichSensor].enabled) {
 
 						// Find sensor inside group readings
+						// TODO this can be optimized
 						for (uint16_t re=0; re<readingsOnThisGroup; re++) {
 							OneReading thisReading = readingsList.readReading(thisGroup, re);
 							if (thisReading.type == wichSensor) {

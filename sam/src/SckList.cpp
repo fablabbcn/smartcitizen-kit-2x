@@ -60,6 +60,13 @@ uint32_t SckList::getGroupRightIndex(uint32_t wichGroup)
 		groupCounter++;
 	}
 
+	if (debug) {
+		SerialUSB.print("Right index of group ");
+		SerialUSB.print(wichGroup);
+		SerialUSB.print(" is ");
+		SerialUSB.println(thisIndex);
+	}
+
 	return thisIndex;
 }
 uint32_t SckList::getGroupLeftIndex(uint32_t wichGroup)
@@ -73,6 +80,13 @@ uint32_t SckList::getGroupLeftIndex(uint32_t wichGroup)
 
 	uint32_t leftIndex = rightIndex - readGroupSize(rightIndex);
 
+	if (debug) {
+		SerialUSB.print("Left index of group ");
+		SerialUSB.print(wichGroup);
+		SerialUSB.print(" is ");
+		SerialUSB.println(leftIndex);
+	}
+
 	return leftIndex;
 }
 uint16_t SckList::readGroupSize(uint32_t rightGroupIndex)
@@ -80,6 +94,11 @@ uint16_t SckList::readGroupSize(uint32_t rightGroupIndex)
 	// Read and join the first two bytes (group size)
 	uGroupSize.b[1] = read(rightGroupIndex - 2);
 	uGroupSize.b[0] = read(rightGroupIndex - 1);
+
+	if (debug) {
+		SerialUSB.print("Size of group: ");
+		SerialUSB.println(uGroupSize.i);
+	}
 
 	return uGroupSize.i;
 }
@@ -98,6 +117,8 @@ bool SckList::createGroup(uint32_t timeStamp)
 };
 bool SckList::saveLastGroup()
 {
+	debugOut("Saving last group");
+
 	// If last created group has no readings return false
 	if (lastGroupRightIndex + 6 == index) return false;
 
@@ -107,6 +128,11 @@ bool SckList::saveLastGroup()
 
 	// Save group size
 	uGroupSize.i = index - lastGroupRightIndex + 2; // Group size in bytes (including this last two bytes that are going to be filled now)
+
+	if (debug) {
+		SerialUSB.print("Saved group size is: ");
+		SerialUSB.println(uGroupSize.i);
+	}
 
 	if (!append(uGroupSize.b[1])) return false;
 	if (!append(uGroupSize.b[0])) return false;
@@ -161,10 +187,6 @@ bool SckList::delLastGroup()
 		lastGroupRightIndex = index;
 	}
 
-	debugOut("Full readinglist after deleting last group:");
-	if (debug) for (uint32_t i=0; i<index; i++) SerialUSB.print(read(i));
-	debugOut(" ");
-
 	totalGroups--;
 
 	// After deleting the last group if we are using flash we should return to RAM
@@ -174,10 +196,18 @@ bool SckList::delLastGroup()
 }
 uint32_t SckList::countGroups()
 {
+	if (debug) {
+		SerialUSB.print("Counting groups: ");
+		SerialUSB.println(totalGroups);
+	}
 	return totalGroups;
 }
 uint32_t SckList::getTime(uint32_t wichGroup)
 {
+	if (debug) {
+		SerialUSB.print("Getting time from group ");
+		SerialUSB.println(wichGroup);
+	}
 	// Get the index where the timeStamp starts
 	uint32_t timeIndex = getGroupLeftIndex(wichGroup) + 2;
 
@@ -187,17 +217,41 @@ uint32_t SckList::getTime(uint32_t wichGroup)
 		timeIndex++;
 	}
 
+	if (debug) {
+		SerialUSB.print("epoch: ");
+		SerialUSB.println(uTimeStamp.i);
+	}
+
 	return uTimeStamp.i;
 }
 uint16_t SckList::countReadings(uint32_t wichGroup)
 {
+	if (debug) {
+		SerialUSB.print("Counting readings on group: ");
+		SerialUSB.println(wichGroup);
+	}
 	// TODO optimizar la obtencion de indices, cuando pides left tambien calcula right, como esta ahora lo hace doble.
 	uint32_t rightIndex = getGroupRightIndex(wichGroup);
 	uint32_t leftIndex = getGroupLeftIndex(wichGroup);
 	uint16_t counter = 0;
 
+	if (debug) {
+		SerialUSB.print("From index ");
+		SerialUSB.print(leftIndex);
+		SerialUSB.print(" to index ");
+		SerialUSB.println(rightIndex);
+	}
 	while (leftIndex < rightIndex - 3) { // The minus 3 are: 1 byte:flags, and 2 bytes: group size
+
 		uint8_t readingSize = read(leftIndex + 1); // Get reading size byte
+
+		if (debug) {
+			SerialUSB.print("Reading number ");
+			SerialUSB.print(counter + 1);
+			SerialUSB.print(" of size ");
+			SerialUSB.println(readingSize);
+		}
+
 		leftIndex += readingSize + 2; // Add readingSize + 1 byte from sensorType + 1 byte from where the size is written
 		counter++; // Count how many readings exist until we reach the end of the group
 	}
@@ -259,7 +313,7 @@ void SckList::setFlag(uint32_t wichGroup, GroupFlags wichFlag, bool value)
 {
 	// Get group Index
 	uint32_t flagsIndex = getGroupRightIndex(wichGroup) - 3;
-	
+
 	// Read de full flags byte
 	byte byteFlags = read(flagsIndex);
 

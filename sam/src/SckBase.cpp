@@ -1406,7 +1406,11 @@ void SckBase::updateSensors()
 						pendingSensorsList[pendingSensors] = wichSensor.type;
 						pendingSensors++;
 
-					} else wichSensor.lastReadingTime = lastSensorUpdate;
+					} else {
+						wichSensor.lastReadingTime = lastSensorUpdate;
+						sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
+						sckOut();
+					}
 				}
 			}
 		}
@@ -1430,7 +1434,11 @@ void SckBase::updateSensors()
 				tmpPendingSensorList[i] = wichSensor.type;
 				tmpPendingSensors ++;
 
-			} else wichSensor.lastReadingTime = lastSensorUpdate;
+			} else  {
+				wichSensor.lastReadingTime = lastSensorUpdate;
+				sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
+				sckOut();
+			}
 		}
 
 		pendingSensors = tmpPendingSensors;

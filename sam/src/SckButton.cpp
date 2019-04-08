@@ -36,7 +36,7 @@ void SckBase::buttonEvent()
 }
 void SckBase::buttonStillDown()
 {
-	uint32_t pressedTime = millis() - buttonLastEvent;
+	uint32_t pressedTime = millis() - lastUserEvent;
 
 	if (pressedTime >= buttonVeryLong) {
 
@@ -64,7 +64,7 @@ void SckBase::buttonStillDown()
 }
 void SckBase::butFeedback()
 {
-	buttonLastEvent = millis();
+	lastUserEvent = millis();
 	if (!butState){
 		if (sckOFF) sck_reset();
 		if (!st.onSetup) {

@@ -85,7 +85,7 @@ void SckBase::setup()
 	sdDetect();
 
 	// Flash storage
-	readingsList.flashStart();
+	/* readingsList.flashStart(); */
 
 /* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
 
@@ -300,7 +300,8 @@ void SckBase::reviewState()
 
 			updateSensors();
 			updatePower();
-			if (pendingSensors > 0 || charger.onUSB) break;
+			if (pendingSensors > 0) break; // TODO test to sleep during PM wait
+			if (charger.onUSB) break;
 			goToSleep();
 
 			// Let the led be visible for one instant
@@ -419,9 +420,6 @@ void SckBase::reviewState()
 						epoch2iso(readingsList.getTime(0), ISOtimeBuff);
 						sprintf(outBuff, "(%s) Published OK, erasing from memory", ISOtimeBuff);
 						sckOut();
-
-						// Delete the group that was published
-						readingsList.delLastGroup();
 
 						// Continue as fast as posible with remaining readings, or go to sleep
 						if (readingsList.countGroups() > 0) {
@@ -1454,15 +1452,18 @@ void SckBase::updateSensors()
 	// Main reading loop
 	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {
 
+		ISOtime();
 		lastSensorUpdate = rtc.getEpoch();
 		pendingSensors = 0;
 
-		// Create new RAM group with this timestamp
-		readingsList.createGroup(lastSensorUpdate);
-
 		sckOut("\r\n-----------", PRIO_LOW);
-		ISOtime();
 		sckOut(ISOtimeBuff, PRIO_LOW);
+
+		// Create new RAM group with this timestamp
+		if (!readingsList.createGroup(lastSensorUpdate)) {
+			sckOut("Error creating new group of readings!!!");
+			return;
+		};
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
@@ -1481,6 +1482,8 @@ void SckBase::updateSensors()
 						pendingSensors++;
 
 					} else {
+						// Save reading
+						readingsList.appendReading(wichSensor.type, wichSensor.reading);
 						wichSensor.lastReadingTime = lastSensorUpdate;
 						sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
 						sckOut();
@@ -1509,6 +1512,8 @@ void SckBase::updateSensors()
 				tmpPendingSensors ++;
 
 			} else  {
+				// Save reading
+				readingsList.appendReading(wichSensor.type, wichSensor.reading);
 				wichSensor.lastReadingTime = lastSensorUpdate;
 				sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
 				sckOut();
@@ -1667,9 +1672,6 @@ bool SckBase::getReading(OneSensor *wichSensor)
 	// Sensor reading ERROR, save null value
 	if (wichSensor->state == -1) wichSensor->reading == "null";
 
-	// Save reading 
-	readingsList.appendReading(wichSensor->type, wichSensor->reading);
-
 	return true;
 }
 bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
@@ -1825,7 +1827,7 @@ bool SckBase::sdPublish()
 		uint32_t savedGroups = readingsList.countGroups();
 		uint8_t counter = 0;
 		for (uint32_t thisGroup=0; thisGroup<savedGroups; thisGroup++) {
-			if (!readingsList.getFlag(thisGroup, readingsList.SD_PUBLISHED)) {
+			if (readingsList.getFlag(thisGroup, readingsList.SD_PUBLISHED) == 0) {
 
 				uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
 
@@ -1839,6 +1841,7 @@ bool SckBase::sdPublish()
 					SensorType wichSensor = sensors.sensorsPriorized(i);
 					if (sensors[wichSensor].enabled) {
 
+						bool founded = false;
 						// Find sensor inside group readings
 						// TODO this can be optimized
 						for (uint16_t re=0; re<readingsOnThisGroup; re++) {
@@ -1846,9 +1849,15 @@ bool SckBase::sdPublish()
 							if (thisReading.type == wichSensor) {
 							
 								// Save reading
+								founded = true;
 								postFile.file.print(",");
 								postFile.file.print(thisReading.value);
 							}
+						}
+						
+						if (!founded) {
+							postFile.file.print(",");
+							postFile.file.print("null");
 						}
 					}
 				}
@@ -1861,7 +1870,8 @@ bool SckBase::sdPublish()
 
 				counter++;
 
-				sprintf(outBuff, "(%s) Readings saved to sdcard.", ISOtimeBuff, counter);
+				epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
+				sprintf(outBuff, "(%s) Readings saved to sdcard.", ISOtimeBuff);
 				sckOut();
 			}
 		}

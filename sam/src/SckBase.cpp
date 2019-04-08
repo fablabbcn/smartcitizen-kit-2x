@@ -294,24 +294,24 @@ void SckBase::reviewState()
 
 		if (!st.onSetup) enterSetup();
 
-	} else if (!timeToPublish && millis() - buttonLastEvent > waitAfterLastEvent) {
+	/* } else if (!timeToPublish && millis() - lastUserEvent > waitAfterLastEvent) { */
 
-		while (!timeToPublish && millis() - buttonLastEvent > waitAfterLastEvent) {
+	/* 	while (!timeToPublish && millis() - lastUserEvent > waitAfterLastEvent) { */
 
-			updateSensors();
-			updatePower();
-			if (pendingSensors > 0) break; // TODO test to sleep during PM wait
-			if (charger.onUSB) break;
-			goToSleep();
+	/* 		updateSensors(); */
+	/* 		updatePower(); */
+	/* 		if (pendingSensors > 0) break; */
+	/* 		if (charger.onUSB) break; */
+	/* 		goToSleep(); */
 
-			// Let the led be visible for one instant
-			if (st.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC, true);
-			else if (st.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC, true);
-			delay(10);
-		}
+	/* 		// Let the led be visible for one instant */
+	/* 		if (st.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC, true); */
+	/* 		else if (st.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC, true); */
+	/* 		delay(10); */
+	/* 	} */
 
-		if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT, true);
-		else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT, true);
+	/* 	if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT, true); */
+	/* 	else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT, true); */
 
 	} else if (st.mode == MODE_NET) {
 
@@ -508,10 +508,32 @@ void SckBase::reviewState()
 			}
 
 		} else {
-			led.update(led.PINK, led.PULSE_SOFT);
-			if (st.espON) ESPcontrol(ESP_OFF);
+
+												// Conditions to go to sleep
+			while ( 	!charger.onUSB && 					// No USB connected
+					!timeToPublish && 					// No need to publish
+					pendingSensors <= 0 && 					// No sensor to wait to
+					millis() - lastUserEvent > waitAfterLastEvent) { 	// No user interaction (button or sdcard events) TODO integrar movimientos de USB
+				
+
+				goToSleep();
+				
+				uint32_t wakedUp = millis();
+
+				// Let the led be visible for one instant
+				if (st.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC, true);
+				else if (st.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC, true);
+
+				updateSensors();
+				updatePower();
+
+				while (millis() - wakedUp < 10);
+			}
 
 			updateSensors();
+
+			led.update(led.PINK, led.PULSE_SOFT);
+			if (st.espON) ESPcontrol(ESP_OFF);
 
 			if (timeToPublish && readingsList.countGroups() > 0) {
 
@@ -1230,6 +1252,7 @@ bool SckBase::sdInit()
 }
 bool SckBase::sdDetect()
 {
+	lastUserEvent = millis();
 	st.cardPresent = !digitalRead(pinCARD_DETECT);
 	st.cardPresentError = false;
 
@@ -1430,10 +1453,8 @@ void SckBase::updatePower()
 
 		// Detect lowBatt
 		} else if (battery.lastPercent < battery.threshold_low) {
-			if (battery.lowBatCounter < 5) {
-				battery.lowBatCounter++;
-				led.chargeStatus = led.CHARGE_NULL;
-			} else led.chargeStatus = led.CHARGE_LOW;
+			if (battery.lowBatCounter < 5) battery.lowBatCounter++;
+			else led.chargeStatus = led.CHARGE_LOW;
 		} else {
 			sckOut("Battery is not charging");
 			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery

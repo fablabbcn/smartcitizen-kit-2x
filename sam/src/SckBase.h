@@ -247,7 +247,7 @@ class SckBase
 
 		// Button
 		volatile bool butState = true;
-		volatile uint32_t buttonLastEvent = 0;
+		volatile uint32_t lastUserEvent = 0;
 		void butFeedback();
 
 		// Commands

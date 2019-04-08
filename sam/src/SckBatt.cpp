@@ -276,10 +276,15 @@ void SckCharger::detectUSB(SckBase *base)
 	if (vbusStatus == VBUS_ADAPTER_PORT) {
 		if (!onUSB) {
 			onUSB = true;
-			// Avoid reset if kit was on off state
-			if (!base->sckOFF && !base->st.sleeping) NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
+			if (!base->sckOFF) NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
 		}
-	} else onUSB = false;
+	} else  {
+		if (onUSB) {
+			// This registers connecting the charger as a user event and waits to take automatic actions
+			base->lastUserEvent = millis();
+		}
+		onUSB = false;
+	}
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }

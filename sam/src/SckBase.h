@@ -121,7 +121,6 @@ class SckBase
 		// Button
 		const uint16_t buttonLong = 5000;
 		const uint16_t buttonVeryLong = 15000;
-		volatile uint32_t buttonLastEvent = 0;
 		bool butOldState = true;
 		bool wakingUp = false;
 		void buttonEvent();
@@ -248,6 +247,7 @@ class SckBase
 
 		// Button
 		volatile bool butState = true;
+		volatile uint32_t buttonLastEvent = 0;
 		void butFeedback();
 
 		// Commands

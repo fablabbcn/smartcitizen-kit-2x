@@ -75,5 +75,5 @@ class SckList
 		bool appendReading(SensorType wichsensor, String value);
 		OneReading readReading(uint32_t wichGroup, uint8_t wichReading);
 		void setFlag(uint32_t wichGroup, GroupFlags wichFlag, bool value);
-		bool getFlag(uint32_t wichGroup, GroupFlags wichFlag);
+		int8_t getFlag(uint32_t wichGroup, GroupFlags wichFlag); 		// Return flags or -1 on error
 };

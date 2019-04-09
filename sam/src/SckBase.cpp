@@ -1435,7 +1435,7 @@ void SckBase::updateSensors()
 
 					} else {
 						// Save reading
-						readingsList.appendReading(wichSensor.type, wichSensor.reading);
+						if (!readingsList.appendReading(wichSensor.type, wichSensor.reading)) sckOut("Failed saving reading!!!");
 						wichSensor.lastReadingTime = lastSensorUpdate;
 						sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
 						sckOut();
@@ -1444,7 +1444,7 @@ void SckBase::updateSensors()
 			}
 		}
 		if (pendingSensors == 0) {
-			readingsList.saveLastGroup();
+			if (!readingsList.saveLastGroup()) sckOut("Failed saving reading Group!!");
 			sckOut("-----------", PRIO_LOW);
 		}
 
@@ -1465,7 +1465,7 @@ void SckBase::updateSensors()
 
 			} else  {
 				// Save reading
-				readingsList.appendReading(wichSensor.type, wichSensor.reading);
+				if (!readingsList.appendReading(wichSensor.type, wichSensor.reading)) sckOut("Failed saving reading!!!");
 				wichSensor.lastReadingTime = lastSensorUpdate;
 				sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
 				sckOut();
@@ -1474,7 +1474,7 @@ void SckBase::updateSensors()
 
 		pendingSensors = tmpPendingSensors;
 		if (pendingSensors <= 0) {
-			readingsList.saveLastGroup();
+			if (!readingsList.saveLastGroup()) sckOut("Failed saving reading Group!!");
 			sckOut("-----------", PRIO_LOW);
 		} else {
 			for (uint8_t i=0; i<pendingSensors; i++) pendingSensorsList[i] = tmpPendingSensorList[i];

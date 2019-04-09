@@ -1042,6 +1042,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_SET_CONFIG:
 		{
 
+				lastUserEvent = millis();
 				sckOut("Received new config from ESP");
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);

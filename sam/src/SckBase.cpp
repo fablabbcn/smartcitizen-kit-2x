@@ -715,7 +715,7 @@ void SckBase::loadConfig()
 	st.mode = config.mode;
 
 	// CSS vocs sensor baseline loading
-	if (config.extra.ccsBaselineValid) {
+	if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
 		sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
 		sckOut();
 		urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
@@ -1283,13 +1283,15 @@ bool SckBase::saveInfo()
 void SckBase::sck_reset()
 {
 	// Save updated CCS sensor baseline
-	uint16_t savedBaseLine = urban.sck_ccs811.getBaseline();
-	if (savedBaseLine != 0)	{
-		sprintf(outBuff, "Saved CCS baseline on eeprom: %u", savedBaseLine);
-		sckOut();
-		config.extra.ccsBaseline = savedBaseLine;
-		config.extra.ccsBaselineValid = true;
-		eepromConfig.write(config);
+	if (I2Cdetect(&Wire, urban.sck_ccs811.address)) {
+		uint16_t savedBaseLine = urban.sck_ccs811.getBaseline();
+		if (savedBaseLine != 0)	{
+			sprintf(outBuff, "Saved CCS baseline on eeprom: %u", savedBaseLine);
+			sckOut();
+			config.extra.ccsBaseline = savedBaseLine;
+			config.extra.ccsBaselineValid = true;
+			eepromConfig.write(config);
+		}
 	}
 
 	sckOut("Bye!!");
@@ -1322,6 +1324,9 @@ void SckBase::goToSleep()
 
 		sprintf(outBuff, "Sleeping forever!!! (until a button click)");
 		sckOut();
+
+		// Stop CCS811 VOCS sensor
+		urban.stop(SENSOR_CCS811_VOCS);
 
 		// Disable the Sanity cyclic reset so it doesn't wake us up
 		rtc.disableAlarm();

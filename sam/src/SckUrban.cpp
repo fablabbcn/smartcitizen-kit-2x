@@ -909,7 +909,7 @@ bool Sck_CCS811::start()
 
 	if (ccs.begin() != CCS811Core::SENSOR_SUCCESS) return false;
 
-	if (ccs.setDriveMode(driveMode != CCS811Core::SENSOR_SUCCESS)) return false;
+	if (ccs.setDriveMode(driveMode) != CCS811Core::SENSOR_SUCCESS) return false;
 
 	startTime = rtc->getEpoch();
 	alreadyStarted = true;
@@ -917,6 +917,10 @@ bool Sck_CCS811::start()
 }
 bool Sck_CCS811::stop()
 {
+	// If the sensor is not there we don't need to stop it
+	if (!I2Cdetect(&Wire, address)) return true;
+
+	if (ccs.setDriveMode(0) != CCS811Core::SENSOR_SUCCESS) return false;
 	alreadyStarted = false;
 	startTime = 0;
 	return true;

@@ -1255,6 +1255,12 @@ bool SckBase::sdInit()
 		sckOut("Sd card ready to use");
 		st.cardPresent = true;
 		st.cardPresentError = false;
+
+		// Check if there is a info file on sdcard 
+		if (!sd.exists(infoFile.name)) {
+			infoSaved = false;
+			saveInfo();
+		}
 		return true;
 	}
 	sckOut("ERROR on Sd card Init!!!");

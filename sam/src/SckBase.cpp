@@ -453,6 +453,7 @@ void SckBase::reviewState()
 			}
 
 			updateSensors();
+			if (readingsList.countGroups() > 0) sdPublish();
 
 		}
 
@@ -537,7 +538,7 @@ void SckBase::reviewState()
 			led.update(led.PINK, led.PULSE_SOFT);
 			if (st.espON) ESPcontrol(ESP_OFF);
 
-			if (timeToPublish && readingsList.countGroups() > 0) {
+			if (readingsList.countGroups() > 0) {
 
 				if (!sdPublish()) {
 					sckOut("ERROR failed publishing to SD card");

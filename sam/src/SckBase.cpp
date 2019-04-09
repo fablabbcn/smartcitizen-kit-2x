@@ -1352,6 +1352,9 @@ void SckBase::goToSleep()
 		rtc.disableAlarm();
 		rtc.detachInterrupt();
 
+		// Detach sdcard interrupt to avoid spurious wakeup
+		detachInterrupt(pinCARD_DETECT);
+
 		LowPower.deepSleep();
 	} else {
 	

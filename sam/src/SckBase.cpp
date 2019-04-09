@@ -294,25 +294,6 @@ void SckBase::reviewState()
 
 		if (!st.onSetup) enterSetup();
 
-	/* } else if (!timeToPublish && millis() - lastUserEvent > waitAfterLastEvent) { */
-
-	/* 	while (!timeToPublish && millis() - lastUserEvent > waitAfterLastEvent) { */
-
-	/* 		updateSensors(); */
-	/* 		updatePower(); */
-	/* 		if (pendingSensors > 0) break; */
-	/* 		if (charger.onUSB) break; */
-	/* 		goToSleep(); */
-
-	/* 		// Let the led be visible for one instant */
-	/* 		if (st.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC, true); */
-	/* 		else if (st.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC, true); */
-	/* 		delay(10); */
-	/* 	} */
-
-	/* 	if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT, true); */
-	/* 	else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT, true); */
-
 	} else if (st.mode == MODE_NET) {
 
 		if (!st.wifiSet) {
@@ -335,9 +316,7 @@ void SckBase::reviewState()
 			return;
 		}
 
-		if (!st.helloPending) updateSensors();
-
-		if (st.helloPending || !st.timeStat.ok || timeToPublish || !infoPublished) {
+		if (st.helloPending || !st.timeStat.ok || (timeToPublish  && readingsList.countGroups() > 0) || !infoPublished) {
 
 			if (!st.wifiStat.ok) {
 
@@ -420,6 +399,7 @@ void SckBase::reviewState()
 						epoch2iso(readingsList.getTime(0), ISOtimeBuff);
 						sprintf(outBuff, "(%s) Published OK, erasing from memory", ISOtimeBuff);
 						sckOut();
+						readingsList.delLastGroup();
 
 						// Continue as fast as posible with remaining readings, or go to sleep
 						if (readingsList.countGroups() > 0) {
@@ -438,7 +418,6 @@ void SckBase::reviewState()
 						// Publish to sd card
 						sdPublish();
 
-						// TODO do we really want to flash an error now? or until when?
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
 						ESPcontrol(ESP_SLEEP);
@@ -452,7 +431,31 @@ void SckBase::reviewState()
 					}
 				}
 			}
+		} else {
+
+
+			while ( 	!charger.onUSB && 					// No USB connected
+					pendingSensors <= 0 && 					// No sensor to wait to
+					millis() - lastUserEvent > waitAfterLastEvent) { 	// No recent user interaction (button, sdcard or USB events)
+
+
+				goToSleep();
+
+				uint32_t wakedUp = millis();
+
+				// Let the led be visible for one instant
+				led.update(led.BLUE2, led.PULSE_STATIC, true);
+
+				updateSensors();
+				updatePower();
+
+				while (millis() - wakedUp < 10);
+			}
+
+			updateSensors();
+
 		}
+
 
 	} else if  (st.mode == MODE_SD) {
 
@@ -513,16 +516,15 @@ void SckBase::reviewState()
 			while ( 	!charger.onUSB && 					// No USB connected
 					!timeToPublish && 					// No need to publish
 					pendingSensors <= 0 && 					// No sensor to wait to
-					millis() - lastUserEvent > waitAfterLastEvent) { 	// No user interaction (button or sdcard events) TODO integrar movimientos de USB
-				
+					millis() - lastUserEvent > waitAfterLastEvent) { 	// No recent user interaction (button, sdcard or USB events)
+
 
 				goToSleep();
-				
+
 				uint32_t wakedUp = millis();
 
 				// Let the led be visible for one instant
-				if (st.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC, true);
-				else if (st.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC, true);
+				led.update(led.PINK2, led.PULSE_STATIC, true);
 
 				updateSensors();
 				updatePower();
@@ -1875,7 +1877,7 @@ bool SckBase::sdPublish()
 								postFile.file.print(thisReading.value);
 							}
 						}
-						
+
 						if (!founded) {
 							postFile.file.print(",");
 							postFile.file.print("null");

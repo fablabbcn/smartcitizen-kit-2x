@@ -111,7 +111,7 @@ bool SckList::createGroup(uint32_t timeStamp)
 
 	// Check if there is an open group and delete it
 	if (lastGroupIsOpen()) saveLastGroup();
-	
+
 	uint32_t preErrorIndex = index;
 
 	// Store timeStamp in current index
@@ -178,15 +178,18 @@ bool SckList::delLastGroup()
 {
 	if (totalGroups == 0) return false;
 
-	uint32_t openGroupEndIndex = 0;
-	uint32_t openGroupStartIndex = 0;
 
 	// If last group is open we need to move it to the new end
 	if (lastGroupIsOpen()) {
+
+		uint32_t openGroupEndIndex = 0;
+		uint32_t openGroupStartIndex = 0;
+
 		debugOut("The last group is open!!");
+
 		openGroupEndIndex = index;
 		openGroupStartIndex = lastGroupRightIndex;
-	
+
 		// The new index should be were deleted group started
 		index =  lastGroupRightIndex - readGroupSize(lastGroupRightIndex);
 
@@ -194,10 +197,10 @@ bool SckList::delLastGroup()
 		lastGroupRightIndex = index;
 
 		// Copy the open group to the place where deleted group was
-		for (uint8_t i=openGroupStartIndex; i<openGroupEndIndex; i++) append(read(i));
+		for (uint32_t i=openGroupStartIndex; i<openGroupEndIndex; i++) append(read(i));
 
 	} else {
-	
+
 		// Change index to remove last Group
 		index =  lastGroupRightIndex - readGroupSize(lastGroupRightIndex);
 		lastGroupRightIndex = index;
@@ -231,7 +234,7 @@ uint32_t SckList::getTime(uint32_t wichGroup)
 	uint32_t leftIndex = getGroupLeftIndex(wichGroup);
 
 	// Return error in case of wrong left index
-	if (wichGroup != 0 && leftIndex == 0) return 0;
+	if (wichGroup != totalGroups-1 && leftIndex == 0) return 0;
 
 
 	uint32_t timeIndex = leftIndex + 2;
@@ -263,7 +266,7 @@ uint16_t SckList::countReadings(uint32_t wichGroup)
 	uint32_t leftIndex = getGroupLeftIndex(wichGroup);
 
 	// Return error in case of wrong left index
-	if (wichGroup != 0 && leftIndex == 0) return 0;
+	if (wichGroup != totalGroups-1 && leftIndex == 0) return 0;
 
 	uint16_t counter = 0;
 
@@ -307,7 +310,7 @@ OneReading SckList::readReading(uint32_t wichGroup, uint8_t wichReading)
 	uint32_t leftIndex = getGroupLeftIndex(wichGroup);
 
 	// Return error in case of wrong left index
-	if (wichGroup != 0 && leftIndex == 0) return thisReading;
+	if (wichGroup != totalGroups-1 && leftIndex == 0) return thisReading;
 
 	uint16_t counter = 0;
 

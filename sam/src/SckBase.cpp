@@ -227,11 +227,18 @@ void SckBase::update()
 void SckBase::reviewState()
 {
 
-	if (millis() - sendConfigTimer > 1000) {
-		sendConfigTimer = millis();
-		if (pendingSyncConfig) {
-			if (st.espON) {
+	// Avoid ESP hangs
+	if (st.espBooting) {
+		if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
+	}
+
+	if (pendingSyncConfig) {
+		if (millis() - sendConfigTimer > 1000) {
+			sendConfigTimer = millis();
+			if (sendConfigCounter > 3) ESPcontrol(ESP_REBOOT);
+			else if (st.espON) {
 				if (!st.espBooting) sendConfig();
+				sendConfigCounter++;
 			} else {
 				ESPcontrol(ESP_ON);
 			}
@@ -984,6 +991,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				sckOut("ESP deep sleep...", PRIO_LOW);
 				sendMessage(ESPMES_LED_OFF);
 				st.espON = false;
+				st.espBooting = false;
 				digitalWrite(pinESP_CH_PD, LOW);
 				sprintf(outBuff, "Esp was awake for %lu seconds", (rtc.getEpoch() - espStarted));
 				sckOut(PRIO_LOW);

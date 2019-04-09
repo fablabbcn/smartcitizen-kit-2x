@@ -116,6 +116,7 @@ class SckBase
 		void receiveMessage(SAMMessage wichMessage);
 		bool sendConfig();
 		uint32_t sendConfigTimer = 0;
+		uint8_t sendConfigCounter = 0;
 		bool pendingSyncConfig = false;
 
 		// Button

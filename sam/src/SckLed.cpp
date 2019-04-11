@@ -32,6 +32,7 @@ void SckLed::update(ColorName colorName, pulseModes pulse, bool force)
 			configureTimer5(fastInterval);
 			break;
 		case PULSE_SOFT:
+			colorIndex = 0;
 			if (colorName == RED) currentPulse = pulseRed;
 			else if (colorName == BLUE) currentPulse = pulseBlue;
 			else if (colorName == PINK) currentPulse = pulsePink;

@@ -1348,6 +1348,9 @@ void SckBase::goToSleep()
 	// Recover Noise sensor timer
 	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
 	while (GCLK->STATUS.bit.SYNCBUSY);
+
+	// Turn on Auxiliary I2C bus
+	digitalWrite(pinPOWER_AUX_WIRE, LOW);	// LOW -> ON , HIGH -> OFF
 }
 void SckBase::updatePower()
 {

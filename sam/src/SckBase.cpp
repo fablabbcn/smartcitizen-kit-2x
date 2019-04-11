@@ -449,15 +449,13 @@ void SckBase::reviewState()
 
 				goToSleep();
 
-				uint32_t wakedUp = millis();
-
-				// Let the led be visible for one instant
+				// Let the led be visible for one instant (and start breathing if we need to read sensors)
 				led.update(led.BLUE2, led.PULSE_STATIC, true);
+				delay(10);
+				led.update(led.BLUE, led.PULSE_SOFT, true);
 
 				updateSensors();
 				updatePower();
-
-				while (millis() - wakedUp < 10);
 			}
 
 			updateSensors();
@@ -530,15 +528,13 @@ void SckBase::reviewState()
 
 				goToSleep();
 
-				uint32_t wakedUp = millis();
-
-				// Let the led be visible for one instant
+				// Let the led be visible for one instant (and start breathing if we need to read sensors)
 				led.update(led.PINK2, led.PULSE_STATIC, true);
+				delay(10);
+				led.update(led.PINK, led.PULSE_SOFT, true);
 
 				updateSensors();
 				updatePower();
-
-				while (millis() - wakedUp < 10);
 			}
 
 			updateSensors();

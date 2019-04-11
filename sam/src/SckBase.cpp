@@ -206,8 +206,10 @@ void SckBase::reviewState()
 	if (pendingSyncConfig) {
 		if (millis() - sendConfigTimer > 1000) {
 			sendConfigTimer = millis();
-			if (sendConfigCounter > 3) ESPcontrol(ESP_REBOOT);
-			else if (st.espON) {
+			if (sendConfigCounter > 3) {
+				ESPcontrol(ESP_REBOOT);
+				sendConfigCounter = 0;
+			} else if (st.espON) {
 				if (!st.espBooting) sendConfig();
 				sendConfigCounter++;
 			} else {

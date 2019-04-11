@@ -826,6 +826,7 @@ bool SckBase::sendConfig()
 
 	if (sendMessage()) {
 		pendingSyncConfig = false;
+		sendConfigCounter = 0;
 		sckOut("Synced config with ESP!!", PRIO_LOW);
 		return true;
 	}

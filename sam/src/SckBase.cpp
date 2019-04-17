@@ -50,7 +50,7 @@ void SckBase::setup()
 
 	// Power management configuration
 	charger.setup();
-	battery.setup(charger);
+	battery.setup();
 
 	// RTC setup
 	rtc.begin();
@@ -1389,7 +1389,7 @@ void SckBase::updatePower()
 	} else {
 
 		battery.present = true;
-		uint8_t battNow = battery.percent();
+		uint8_t battNow = battery.percent(&charger);
 
 		// Emergency lowBatt
 		if (battNow < battery.threshold_emergency) {
@@ -1581,7 +1581,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
 				switch (wichSensor->type) {
 					case SENSOR_BATT_PERCENT:
 						if (!battery.present) wichSensor->reading = String("-1");
-						else wichSensor->reading = String(battery.percent());
+						else wichSensor->reading = String(battery.percent(&charger));
 						break;
 					case SENSOR_BATT_VOLTAGE:
 						if (!battery.present) wichSensor->reading = String("-1");

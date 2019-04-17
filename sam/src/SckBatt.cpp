@@ -310,7 +310,7 @@ bool SckCharger::getBatLowerSysMin()
 }
 
 // Battery
-bool SckBatt::setup(SckCharger charger)
+bool SckBatt::setup()
 {
 	pinMode(pinMEASURE_BATT, INPUT);
 	pinPeripheral(pinMEASURE_BATT, PIO_ANALOG);
@@ -326,23 +326,38 @@ float SckBatt::voltage()
 	float thisVoltage = (total/sampleNum) * 2.0 / analogResolution * workingVoltage;
 	return thisVoltage;
 }
-int8_t SckBatt::percent()
+int8_t SckBatt::percent(SckCharger *charger)
 {
 	int8_t percent = -1;
 
 	uint16_t thisVoltage = (uint16_t)(voltage() * 1000);
 
-	if (thisVoltage >= batTable[99]) percent = 100;
-	else if (thisVoltage <= batTable[0]) percent = 0;
-	else {
-		// Search in the batt table
-		for (int8_t i=1; i<100; i++) {
-			if (thisVoltage < batTable[i]) {
-				percent = i;
-				break;
+	if (charger->onUSB) {
+	
+		if (thisVoltage >= batTableOnUSB[99]) percent = 100;
+		else if (thisVoltage <= batTableOnUSB[0]) percent = 0;
+		else {
+			// Search in the batt table
+			for (int8_t i=1; i<100; i++) {
+				if (thisVoltage < batTableOnUSB[i]) {
+					percent = i;
+					break;
+				}
+			}
+		}
+	} else {
+	
+		if (thisVoltage >= batTable[99]) percent = 100;
+		else if (thisVoltage <= batTable[0]) percent = 0;
+		else {
+			// Search in the batt table
+			for (int8_t i=1; i<100; i++) {
+				if (thisVoltage < batTable[i]) {
+					percent = i;
+					break;
+				}
 			}
 		}
 	}
-
 	return percent;
 }

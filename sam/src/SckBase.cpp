@@ -1614,6 +1614,24 @@ bool SckBase::getReading(OneSensor *wichSensor)
 	// Sensor reading ERROR, save null value
 	if (wichSensor->state == -1) wichSensor->reading == "null";
 
+	// Temperature / Humidity temporary Correction
+	// TODO remove this when calibration routine is ready
+	if (wichSensor->type == SENSOR_TEMPERATURE) {
+		float aux_temp = wichSensor->reading.toFloat();
+
+		// Correct depending on battery/USB and network/sd card status
+		if (charger.onUSB) {
+			if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp - 3.3);
+			else wichSensor->reading = String(aux_temp - 1.6);
+		} else {
+			wichSensor->reading = String(aux_temp - 1.3);
+		}
+
+	} else if(wichSensor->type == SENSOR_HUMIDITY) {
+		float aux_hum = wichSensor->reading.toFloat();
+		wichSensor->reading = String(aux_hum + 10);
+	}
+
 	return true;
 }
 bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)

@@ -331,8 +331,10 @@ int8_t SckBatt::percent(SckCharger *charger)
 	int8_t percent = -1;
 
 	uint16_t thisVoltage = (uint16_t)(voltage() * 1000);
+	
+	SckCharger::ChargeStatus currentStatus = charger->getChargeStatus();		
 
-	if (charger->onUSB) {
+	if (currentStatus == charger->CHRG_PRE_CHARGE || currentStatus == charger->CHRG_FAST_CHARGING) {
 	
 		if (thisVoltage >= batTableOnUSB[99]) percent = 100;
 		else if (thisVoltage <= batTableOnUSB[0]) percent = 0;

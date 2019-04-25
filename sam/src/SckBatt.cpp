@@ -280,7 +280,7 @@ void SckCharger::detectUSB(SckBase *base)
 		}
 	} else  {
 		if (onUSB) {
-			// This registers connecting the charger as a user event and waits to take automatic actions
+			// This registers disconnection of the charger as a user event
 			base->lastUserEvent = millis();
 		}
 		onUSB = false;

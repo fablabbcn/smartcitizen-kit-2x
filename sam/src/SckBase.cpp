@@ -1621,7 +1621,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
 
 		// Correct depending on battery/USB and network/sd card status
 		if (charger.onUSB) {
-			if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp - 3.3);
+			if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp - 2.6);
 			else wichSensor->reading = String(aux_temp - 1.6);
 		} else {
 			wichSensor->reading = String(aux_temp - 1.3);

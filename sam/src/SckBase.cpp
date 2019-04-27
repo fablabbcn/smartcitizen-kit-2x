@@ -1437,6 +1437,33 @@ void SckBase::updateSensors()
 		lastSensorUpdate = rtc.getEpoch();
 		pendingSensors = 0;
 
+		// TODO remove this (temp debug code)
+		// ------------------------------
+		sckOut("Last Reset cause:  ", PRIO_MED, false);
+		uint8_t resetCause = PM->RCAUSE.reg;
+
+		switch(resetCause){
+			case 1:
+				sckOut("POR: Power On Reset");
+				break;
+			case 2:
+				sckOut("BOD12: Brown Out 12 Detector Reset");
+				break;
+			case 4:
+				sckOut("BOD33: Brown Out 33 Detector Reset");
+				break;
+			case 16:
+				sckOut("EXT: External Reset");
+				break;
+			case 32:
+				sckOut("WDT: Watchdog Reset");
+				break;
+			case 64:
+				sckOut("SYST: System Reset Request");
+				break;
+		}
+		// ---------------------------------
+
 		sckOut("\r\n-----------", PRIO_LOW);
 		sckOut(ISOtimeBuff, PRIO_LOW);
 

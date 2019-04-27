@@ -928,7 +928,8 @@ bool Sck_CCS811::stop()
 bool Sck_CCS811::getReading(SckBase *base)
 {
 	if (!alreadyStarted) start();
-	if (((startTime == 0) || ((rtc->getEpoch() - startTime) < warmingTime)) && !base->inTest) return false;
+	uint32_t rtcNow = rtc->getEpoch();
+	if (((startTime == 0) || ((rtcNow - startTime) < warmingTime)) && !base->inTest) return false;
 	if (millis() - lastReadingMill < 1000) return true;
 	lastReadingMill = millis();
 

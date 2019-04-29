@@ -194,6 +194,7 @@ class SckBase
 
 		// **** Time
 		RTCZero rtc;
+		bool timeSyncAfterBoot = false;
 		char ISOtimeBuff[20];
 		bool setTime(String epoch);
 		bool ISOtime();

@@ -1138,7 +1138,12 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_WIFI_CONNECTED:
 
-			sckOut("Connected to wifi!!", PRIO_LOW); st.wifiStat.setOk(); break;
+			sckOut("Connected to wifi!!", PRIO_LOW);
+			st.wifiStat.setOk();
+			if (!timeSyncAfterBoot) {
+				if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
+			}
+			break;
 
 		case SAMMES_SSID_ERROR:
 
@@ -1967,6 +1972,7 @@ bool SckBase::setTime(String epoch)
 	uint32_t wasOn = rtc.getEpoch() - espStarted;
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
+		timeSyncAfterBoot = true;
 		st.timeStat.setOk();
 		if (urbanPresent) {
 			// Update MICS clock

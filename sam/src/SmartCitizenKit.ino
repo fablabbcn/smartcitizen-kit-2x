@@ -52,6 +52,5 @@ void serialEventRun() {
 	base.inputUpdate();
 }
 void ext_reset() {
-	SerialUSB.println("External reset called!! (RTC alarm)");
 	reset_pending = true;
 }

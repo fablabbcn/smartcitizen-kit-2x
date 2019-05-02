@@ -1435,6 +1435,7 @@ void SckBase::updatePower()
 // **** Sensors
 void SckBase::updateSensors()
 {
+	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) st.timeStat.reset();
 	if (!st.timeStat.ok || st.helloPending) return;
 	if (st.onSetup) return;
 	if (st.mode == MODE_SD && !st.cardPresent) return;

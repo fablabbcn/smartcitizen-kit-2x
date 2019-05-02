@@ -1358,6 +1358,10 @@ void SckBase::goToSleep()
 		// Detach sdcard interrupt to avoid spurious wakeup
 		detachInterrupt(pinCARD_DETECT);
 
+		// Atach button wake Up interrupt
+		pinMode(pinBUTTON, INPUT_PULLUP);
+		LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
+
 		LowPower.deepSleep();
 	} else {
 	

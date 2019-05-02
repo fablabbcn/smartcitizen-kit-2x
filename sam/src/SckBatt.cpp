@@ -336,12 +336,12 @@ int8_t SckBatt::percent(SckCharger *charger)
 
 	if (currentStatus == charger->CHRG_PRE_CHARGE || currentStatus == charger->CHRG_FAST_CHARGING) {
 	
-		if (thisVoltage >= batTableOnUSB[99]) percent = 100;
-		else if (thisVoltage <= batTableOnUSB[0]) percent = 0;
+		if (thisVoltage >= batTableCharging[99]) percent = 100;
+		else if (thisVoltage <= batTableCharging[0]) percent = 0;
 		else {
 			// Search in the batt table
 			for (int8_t i=1; i<100; i++) {
-				if (thisVoltage < batTableOnUSB[i]) {
+				if (thisVoltage < batTableCharging[i]) {
 					percent = i;
 					break;
 				}

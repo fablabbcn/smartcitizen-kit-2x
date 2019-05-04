@@ -1452,7 +1452,8 @@ void SckBase::updateSensors()
 
 		// Create new RAM group with this timestamp
 		if (!readingsList.createGroup(lastSensorUpdate)) {
-			sckOut("Error creating new group of readings!!!");
+			sckOut("RAM full: Error creating new group of readings!!!");
+			sck_reset(); // TODO this is temporal until flash support is ready
 			return;
 		};
 

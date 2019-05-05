@@ -138,8 +138,8 @@ class SckBatt
 
 		float maxVolt = 4.1; 	// This should be updated when dynamic lookup table is implemented
 
-		const uint8_t threshold_low = 10;
-		const uint8_t threshold_emergency = 2;
+		const uint8_t threshold_low = 20;
+		const uint8_t threshold_emergency = 10;
 
 		uint8_t lowBatCounter = 0;
 		uint8_t emergencyLowBatCounter = 0;

@@ -308,7 +308,7 @@ void SckBase::reviewState()
 		if (!st.wifiSet) {
 			if (!st.wifiStat.error) {
 				sckOut("ERROR wifi is not configured!!!");
-				ESPcontrol(ESP_SLEEP);
+				ESPcontrol(ESP_OFF);
 				led.update(led.BLUE, led.PULSE_HARD_FAST);
 				st.wifiStat.error = true;
 			}
@@ -318,7 +318,7 @@ void SckBase::reviewState()
 		if (!st.tokenSet) {
 			if (!st.tokenError) {
 				sckOut("ERROR token is not configured!!!");
-				ESPcontrol(ESP_SLEEP);
+				ESPcontrol(ESP_OFF);
 				led.update(led.BLUE, led.PULSE_HARD_FAST);
 				st.tokenError = true;
 			}
@@ -429,7 +429,7 @@ void SckBase::reviewState()
 
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 
-						ESPcontrol(ESP_SLEEP);
+						ESPcontrol(ESP_OFF);
 						timeToPublish = false;
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
@@ -470,7 +470,7 @@ void SckBase::reviewState()
 		if (!st.cardPresent) {
 			if (!st.cardPresentError) {
 				sckOut("ERROR can't find SD card!!!");
-				if (st.espON) ESPcontrol(ESP_SLEEP);
+				if (st.espON) ESPcontrol(ESP_OFF);
 				led.update(led.PINK, led.PULSE_HARD_FAST);
 				st.cardPresentError = true;
 			}
@@ -481,7 +481,7 @@ void SckBase::reviewState()
 			if (!st.wifiSet)  {
 				if (!st.wifiStat.error) {
 					sckOut("ERROR time is not synced and no wifi set!!!");
-					ESPcontrol(ESP_SLEEP);
+					ESPcontrol(ESP_OFF);
 					led.update(led.PINK, led.PULSE_HARD_FAST);
 					st.wifiStat.error = true;
 				}
@@ -496,7 +496,7 @@ void SckBase::reviewState()
 
 						sckOut("ERROR time is not synced!!!");
 
-						ESPcontrol(ESP_SLEEP);
+						ESPcontrol(ESP_OFF);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
 						st.wifiStat.reset();
 					}
@@ -512,7 +512,7 @@ void SckBase::reviewState()
 
 						sckOut("ERROR time sync failed!!!");
 						st.timeStat.reset();
-						ESPcontrol(ESP_SLEEP);
+						ESPcontrol(ESP_OFF);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
 					}
 				}
@@ -810,7 +810,7 @@ void SckBase::saveConfig(bool defaults)
 
 			if (!st.wifiSet) sckOut("ERROR Wifi not configured: can't set Network Mode!!!");
 			if (!st.tokenSet) sckOut("ERROR Token not configured: can't set Network Mode!!!");
-			ESPcontrol(ESP_SLEEP);
+			ESPcontrol(ESP_OFF);
 			led.update(led.BLUE, led.PULSE_HARD_FAST);
 		}
 

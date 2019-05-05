@@ -1320,9 +1320,6 @@ void SckBase::goToSleep()
 	// Turn off USB led
 	digitalWrite(pinLED_USB, HIGH);
 
-	// Sd card savings
-	digitalWrite(pinCS_SDCARD, HIGH);
-
 	if (sckOFF) {
 
 		sprintf(outBuff, "Sleeping forever!!! (until a button click)");

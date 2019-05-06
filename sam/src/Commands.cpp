@@ -742,11 +742,11 @@ void debug_com(SckBase* base, String parameters)
 
 	// Get	
 	} else {
-		sprintf(base->outBuff, "%s\r\nSD card debug: %s", base->outBuff, base->config.sdDebug ? "true" : "false");
+		sprintf(base->outBuff, "SD card debug: %s", base->config.sdDebug ? "true" : "false");
 		base->sckOut();
-		sprintf(base->outBuff, "%s\r\nESP comm debug: %s", base->outBuff, base->debugESPcom ? "true" : "false");
+		sprintf(base->outBuff, "ESP comm debug: %s", base->debugESPcom ? "true" : "false");
 		base->sckOut();
-		sprintf(base->outBuff, "%s\r\nReadings list debug: %s", base->outBuff, base->readingsList.debug ? "true" : "false");
+		sprintf(base->outBuff, "Readings list debug: %s", base->readingsList.debug ? "true" : "false");
 		base->sckOut();
 	}
 }

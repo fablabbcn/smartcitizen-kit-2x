@@ -324,6 +324,7 @@ float SckBatt::voltage()
 	for (uint8_t i=0; i<sampleNum; i++) total += analogRead(pinMEASURE_BATT);
 	
 	float thisVoltage = (total/sampleNum) * 2.0 / analogResolution * workingVoltage;
+	last_volt = thisVoltage;
 	return thisVoltage;
 }
 int8_t SckBatt::percent(SckCharger *charger)
@@ -361,5 +362,6 @@ int8_t SckBatt::percent(SckCharger *charger)
 			}
 		}
 	}
+	last_percent = percent;
 	return percent;
 }

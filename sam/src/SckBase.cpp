@@ -1354,6 +1354,11 @@ void SckBase::goToSleep()
 		LowPower.deepSleep(sleepTime);
 	}
 
+	// Re enable Sanity cyclic reset
+	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
+	rtc.enableAlarm(rtc.MATCH_HHMMSS);
+	rtc.attachInterrupt(ext_reset);
+
 	// Recover Noise sensor timer
 	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
 	while (GCLK->STATUS.bit.SYNCBUSY);

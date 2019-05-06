@@ -1467,6 +1467,7 @@ void SckBase::updatePower()
 
 		// Emergency lowBatt
 		if (battery.lastPercent < battery.threshold_emergency) {
+			battery.percent();
 			if (battery.emergencyLowBatCounter < 5) battery.emergencyLowBatCounter++;
 			else {
 
@@ -1476,21 +1477,28 @@ void SckBase::updatePower()
 					led.update(led.ORANGE, led.PULSE_STATIC, true);
 					delay(200);
 				}
+				// Ignore last user event and go to sleep
+				lastUserEvent = millis() - waitAfterLastEvent;
 
 				sleepTime = 60000; 			// Wake up every minute to check if USB power is back
-				while (!charger.onUSB && battery.lastPercent < battery.threshold_emergency) {
+				while (!charger.onUSB) {
 					goToSleep();
 					charger.detectUSB(this); 	// When USB is detecteed the kit should reset to start on clean state
 					battery.percent();
+					if (millis() - lastUserEvent < waitAfterLastEvent) break;  // Wakeup on user interaction (will go to sleep again after sone blinks)
 				}
 				sleepTime = 2500; 			// Return to runtime default sleep period (in theory this is not needed, but just in case)
 			}
 
 		// Detect lowBatt
 		} else if (battery.lastPercent < battery.threshold_low) {
+			battery.emergencyLowBatCounter = 0;
+			battery.percent();
 			if (battery.lowBatCounter < 5) battery.lowBatCounter++;
 			else led.chargeStatus = led.CHARGE_LOW;
 		} else {
+			battery.emergencyLowBatCounter = 0;
+			battery.lowBatCounter = 0;
 			sckOut("Battery is not charging");
 			led.chargeStatus = led.CHARGE_NULL; 	// No led feedback if no battery
 

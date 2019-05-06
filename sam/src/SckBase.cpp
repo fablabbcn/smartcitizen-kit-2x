@@ -81,6 +81,7 @@ void SckBase::setup()
 	pinMode(pinCARD_DETECT, INPUT_PULLUP);
 
 	// SD card
+	SerialUSB.println("Setting up SDcard interrupt");
 	attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
 	sdDetect();
 

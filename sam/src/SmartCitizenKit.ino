@@ -44,7 +44,9 @@ void setup() {
 }
 
 void loop() {
-	if (reset_pending) base.sck_reset();
+	if (reset_pending) {
+		if (base.rtc.getHours() == base.wakeUP_H && base.rtc.getMinutes() >= base.wakeUP_M && millis() > 82800000) base.sck_reset();
+	}
 	base.update();
 }
 

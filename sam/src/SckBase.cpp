@@ -1665,49 +1665,40 @@ bool SckBase::netPublish()
 	/* if (ramGroupsIndex < 0) return false; */
 
 	// /* Example
-		// {	"data":[
-		// 		{"recorded_at":"2017-03-24T13:35:14Z",
-		// 			"sensors":[
-		// 				{"id":29,"value":48.45},
-		// 				{"id":13,"value":66},
-		// 				{"id":12,"value":28},
-		// 				{"id":10,"value":4.45}
-		// 			]
-		// 		}
-		// 	]
-		// }
-		// 	*/
+	// {	t:2017-03-24T13:35:14Z,
+	// 		29:48.45,
+	// 		13:66,
+	// 		12:28,
+	// 		10:4.45
+	// }
+	// 	*/
 
 
 	bool result = false;
 	if (readingsList.countGroups() > 0) {
 		uint32_t thisGroup = 0;
-		if (!readingsList.getFlag(thisGroup, readingsList.NET_PUBLISHED)) {
-	
+		if (readingsList.getFlag(thisGroup, readingsList.NET_PUBLISHED) == 0) {
+
 			memset(netBuff, 0, sizeof(netBuff));
 			uint16_t publishedReadings = 0;
 			sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
 
 			// Save time
 			epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
-			sprintf(netBuff, "%s%s%s%s", netBuff, "{\"data\":[{\"recorded_at\":\"", ISOtimeBuff, "\",\"sensors\":[");
-
-			// To avoid extra commas
-			bool first = true;
+			sprintf(netBuff, "%s{t:%s", netBuff, ISOtimeBuff);
 
 			uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
 			for (uint8_t i=0; i<readingsOnThisGroup; i++) {
 
-				if (!first) sprintf(netBuff, "%s,", netBuff);
-				first = false;
-
 				OneReading thisReading = readingsList.readReading(thisGroup, i);
-				sprintf(netBuff, "%s{\"id\":%u, \"value\":%s}", netBuff, sensors[thisReading.type].id, thisReading.value.c_str());;
-				publishedReadings ++;
+				if (sensors[thisReading.type].id > 0 && !thisReading.value.startsWith("null")) {
+
+					sprintf(netBuff, "%s,%u:%s", netBuff, sensors[thisReading.type].id, thisReading.value.c_str());;
+					publishedReadings ++;
+				}
 			}
 
-
-			sprintf(netBuff, "%s%s", netBuff, "]}]}");
+			sprintf(netBuff, "%s%s", netBuff, "}");
 
 			sprintf(outBuff, "(%s) Sent %i readings to platform.", ISOtimeBuff, publishedReadings);
 			sckOut();
@@ -1715,8 +1706,11 @@ bool SckBase::netPublish()
 			result = sendMessage();
 
 		} else {
-		
+
 			// If the group is already published delete it from saved ones
+			epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
+			sprintf(outBuff, "(%s) Published OK, erasing from memory", ISOtimeBuff);
+			sckOut();
 			readingsList.delLastGroup();
 		}
 

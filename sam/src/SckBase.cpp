@@ -1393,19 +1393,6 @@ void SckBase::updatePower()
 
 		}
 	}
-
-
-	// TODO rmove this when oneShot mode is integrated
-	// PM sensor only works if battery is available
-	if (sensors[SENSOR_PM_1].enabled && !st.sleeping) {
-		if (!urban.sck_pm.started) {
-			if (millis() > 10000 && battery.present) {
-				if (battery.lastPercent > battery.threshold_emergency || charger.chargeStatus == charger.CHRG_FAST_CHARGING) {
-					if (urban.sck_pm.start()) sckOut("Started PM sensor...");
-				}
-			}
-		}
-	}
 }
 /* void SckBase::wakeUp() */
 /* { */
@@ -1454,13 +1441,13 @@ void SckBase::updateSensors()
 						sckOut(PRIO_LOW);
 
 					} else if (wichSensor.state > 0) {
-					
+
 						// Append pending sensors to pending list
 						pendingSensors ++;
 						pendingSensorsList[pendingSensors - 1] = wichSensor.type;
 
 					} else if (wichSensor.state == -1) {
-					
+
 						// Sensor reading ERROR
 						// TODO save null value
 					}

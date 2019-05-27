@@ -244,6 +244,7 @@ void SckBase::reviewState()
 			} else {
 				ESPcontrol(ESP_ON);
 			}
+		}
 	}
 
 	if (sdInitPending) sdInit();
@@ -724,7 +725,6 @@ void SckBase::loadConfig()
 
 	if (savedConf.valid) config = savedConf;
 	else {
-		// TODO check if there is a valid sdcard config and load it
 		sckOut("Can't find valid configuration!!! loading defaults...");
 		saveConfig(true);
 	}

@@ -45,7 +45,6 @@ void SckBase::buttonStillDown()
 
 		sckOFF = false;
 
-		// TODO make sure ESP token is reset
 		// Factory defaults
 		saveConfig(true);
 		sck_reset();

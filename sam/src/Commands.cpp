@@ -443,7 +443,6 @@ void readings_com(SckBase* base, String parameters)
 				sprintf(base->outBuff, "%s: %s %s", base->sensors[thisReading.type].title, thisReading.value.c_str(), base->sensors[thisReading.type].unit);
 				base->sckOut();
 			}
-			/* base->sckOut("\r\n "); */
 		}
 		base->sckOut("-----------");
 	}

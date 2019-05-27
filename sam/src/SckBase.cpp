@@ -1471,7 +1471,7 @@ void SckBase::updatePower()
 				}
 
 				sleepTime = 60000; 			// Wake up every minute to check if USB power is back
-				while (!charger.onUSB && battNow < battery.threshold_emergency) {
+				while (!charger.onUSB && battery.lastPercent < battery.threshold_emergency) {
 					goToSleep();
 					charger.detectUSB(this); 	// When USB is detecteed the kit should reset to start on clean state
 					battery.percent();

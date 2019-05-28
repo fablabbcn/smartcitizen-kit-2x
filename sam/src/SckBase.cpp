@@ -296,7 +296,7 @@ void SckBase::reviewState()
 
 	} else if (st.onSetup) {
 
-	
+
 	} else if (sckOFF) {
 
 
@@ -436,7 +436,7 @@ void SckBase::reviewState()
 						st.publishStat.reset(); 		// Restart publish error counter
 
 					} else if (readingsList.countGroups() > 0) {
-					
+
 						if (st.publishStat.retry()) netPublish();
 					}
 				}
@@ -917,6 +917,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		{
 				sckOut("ESP off...", PRIO_LOW);
 				st.espON = false;
+				st.espBooting = false;
 				digitalWrite(pinESP_CH_PD, LOW);
 				digitalWrite(pinPOWER_ESP, HIGH);
 				digitalWrite(pinESP_GPIO0, LOW);
@@ -1260,7 +1261,7 @@ bool SckBase::sdInit()
 		st.cardPresent = true;
 		st.cardPresentError = false;
 
-		// Check if there is a info file on sdcard 
+		// Check if there is a info file on sdcard
 		if (!sd.exists(infoFile.name)) {
 			infoSaved = false;
 			saveInfo();
@@ -1333,8 +1334,6 @@ void SckBase::goToSleep()
 	digitalWrite(pinESP_RX_WIFI, LOW);
 	digitalWrite(pinESP_TX_WIFI, LOW);
 
-	// TODO MICS heaters saving
-
 	// Stop PM sensor
 	if (urban.sck_pm.started) urban.sck_pm.stop();
 
@@ -1345,7 +1344,7 @@ void SckBase::goToSleep()
 	digitalWrite(pinLED_USB, HIGH);
 
 	if (sckOFF) {
-	
+
 		sprintf(outBuff, "Sleeping forever!!! (until a button click)");
 		sckOut();
 
@@ -1362,7 +1361,7 @@ void SckBase::goToSleep()
 
 		LowPower.deepSleep();
 	} else {
-	
+
 		sprintf(outBuff, "Sleeping for %.2f seconds", (sleepTime) / 1000.0);
 		sckOut();
 
@@ -1548,7 +1547,7 @@ void SckBase::updateSensors()
 				if ((lastSensorUpdate - wichSensor.lastReadingTime) >= (wichSensor.everyNint * config.readInterval)) {
 
 					if (!getReading(&wichSensor)) {
-					
+
 						pendingSensorsList[pendingSensors] = wichSensor.type;
 						pendingSensors++;
 
@@ -1571,13 +1570,13 @@ void SckBase::updateSensors()
 
 		SensorType tmpPendingSensorList[pendingSensors];
 		uint8_t tmpPendingSensors = 0;
-		
+
 		for (uint8_t i=0; i<pendingSensors; i++) {
 
 			OneSensor wichSensor = sensors[pendingSensorsList[i]];
-			
+
 			if (!getReading(&wichSensor)) {
-			
+
 				// Reappend the sensor to the pending list
 				tmpPendingSensorList[i] = wichSensor.type;
 				tmpPendingSensors ++;
@@ -1937,7 +1936,7 @@ bool SckBase::sdPublish()
 						for (uint16_t re=0; re<readingsOnThisGroup; re++) {
 							OneReading thisReading = readingsList.readReading(thisGroup, re);
 							if (thisReading.type == wichSensor) {
-							
+
 								// Save reading
 								founded = true;
 								postFile.file.print(",");

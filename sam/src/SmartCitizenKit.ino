@@ -10,6 +10,8 @@ SckBase base;
 SckTest sckTest(&base);
 #endif
 
+bool reset_pending = false;
+
 // Led update interrupt
 void TC5_Handler (void) {
 	base.led.tick();
@@ -46,9 +48,16 @@ void setup() {
 }
 
 void loop() {
+	if (reset_pending) {
+		if (base.rtc.getHours() == base.wakeUP_H && base.rtc.getMinutes() >= base.wakeUP_M && millis() > 82800000) base.sck_reset();
+	}
 	base.update();
 }
 
 void serialEventRun(){
 	base.inputUpdate();
+}
+
+void ext_reset() {
+	reset_pending = true;
 }

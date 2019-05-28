@@ -153,9 +153,6 @@ class SckBase
 		bool infoSaved = false;
 
 		// Power
-		uint8_t wakeUP_H = 3; 	// 3AM UTC
-		uint8_t wakeUP_M = 0;
-		uint8_t wakeUP_S = 0;
 		uint16_t sleepTime = 2500; 	// ms between micro led flashes
 		const uint16_t waitAfterLastEvent = 60000; // Time to avoid sleep after user interaction in ms
 
@@ -261,6 +258,9 @@ class SckBase
 		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
+		uint8_t wakeUP_H = 3; 	// 3AM UTC
+		uint8_t wakeUP_M = 0;
+		uint8_t wakeUP_S = 0;
 		void sck_reset();
 		SckBatt battery;
 		volatile bool battPendingEvent = false;
@@ -287,4 +287,5 @@ class SckBase
 bool I2Cdetect(TwoWire *_Wire, byte address);
 void ISR_button();
 void ISR_sdDetect();
+void ext_reset();
 

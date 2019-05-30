@@ -1750,15 +1750,15 @@ bool SckBase::getReading(OneSensor *wichSensor)
 
 		// Correct depending on battery/USB and network/sd card status
 		if (charger.onUSB) {
-			if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp - 0);
-			else wichSensor->reading = String(aux_temp - 0);
+			if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp - 2.7);
+			else wichSensor->reading = String(aux_temp - 0.95);
 		} else {
-			wichSensor->reading = String(aux_temp - 0);
+			wichSensor->reading = String(aux_temp - 0.95);
 		}
 
 	} else if(wichSensor->type == SENSOR_HUMIDITY) {
 		float aux_hum = wichSensor->reading.toFloat();
-		wichSensor->reading = String(aux_hum + 0);
+		wichSensor->reading = String(aux_hum + 11);
 	}
 
 	return true;

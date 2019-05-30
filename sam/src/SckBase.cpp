@@ -246,6 +246,7 @@ void SckBase::reviewState()
 				ESPcontrol(ESP_ON);
 			}
 		}
+		return;
 	}
 
 	if (sdInitPending) sdInit();

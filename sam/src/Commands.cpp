@@ -288,10 +288,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 				base->sckOut("Wrong new interval!!!");
 			}
 		}
-		if (saveNeeded) {
-			base->saveConfig();
-			base->writeHeader = true;
-		}
+		if (saveNeeded) base->saveConfig();
 	}
 }
 void readSensor_com(SckBase* base, String parameters)

@@ -1569,6 +1569,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
 		sensors[wichSensor].enabled = true;
 		sckOut();
+		writeHeader = true;
 		return true;
 	}
 
@@ -1598,6 +1599,7 @@ bool SckBase::disableSensor(SensorType wichSensor)
 		sprintf(outBuff, "Disabling %s", sensors[wichSensor].title);
 		sensors[wichSensor].enabled = false;
 		sckOut();
+		writeHeader = true;
 		return true;
 	}
 

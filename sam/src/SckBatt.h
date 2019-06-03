@@ -136,7 +136,7 @@ class SckBatt
 	public:
 		bool present = false;
 
-		float maxVolt = 4.2; 	// This should be updated when dynamic lookup table is implemented
+		float maxVolt = 4.1; 	// This should be updated when dynamic lookup table is implemented
 
 		const int8_t threshold_low = 20;
 		const int8_t threshold_emergency = 10;

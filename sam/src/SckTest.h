@@ -12,21 +12,22 @@ class SckTest
 		SckBase* testBase;
 
 		uint8_t errors = 0;
+		bool title = true;
 
 		bool test_user();
-		bool test_battery();
+		uint8_t test_battery();
 		bool test_charger();
-		bool test_sdcard();
-		bool test_flash();
+		uint8_t test_sdcard();
+		uint8_t test_flash();
 
 		// sensors
-		bool test_SHT();
-		bool test_Light();
-		bool test_Pressure();
-		bool test_VOC();
-		bool test_Noise();
-		bool test_PM();
-		bool test_auxWire();
+		uint8_t test_SHT();
+		uint8_t test_Light();
+		uint8_t test_Pressure();
+		uint8_t test_VOC();
+		uint8_t test_Noise();
+		uint8_t test_PM();
+		uint8_t test_auxWire();
 
 		bool connect_ESP();
 		bool publishResult();
@@ -35,7 +36,7 @@ class SckTest
 		volatile ButtonLed_sate butLedState = TEST_BLUE;
 
 		enum Test_type {
-			TEST_BATT_VOLT,			// 0 bool
+			TEST_BATT_VOLT,			// 0 float
 			TEST_BATT_CHG, 			// 1 bool
 			TEST_SD, 			// 2 bool
 			TEST_FLASH, 			// 3 bool

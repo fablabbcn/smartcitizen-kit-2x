@@ -395,3 +395,23 @@ void SckList::debugOut(const char *text)
 {
 	if (debug) SerialUSB.println(text);
 }
+uint32_t SckList::getFlashCapacity()
+{
+	if (!flashStarted) flashStart();
+
+	flashSelect();
+	return flash.getCapacity();
+}
+bool SckList::testFlash()
+{
+	String writeSRT = "testing the flash!";
+	uint32_t fAddress = flash.getAddress(flash.sizeofStr(writeSRT));
+
+	flash.writeStr(fAddress, writeSRT);
+
+	String readSTR;
+	flash.readStr(fAddress, readSTR);
+
+	if (!readSTR.equals(writeSRT)) return false;
+	return true;
+}

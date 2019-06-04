@@ -522,10 +522,10 @@ void charger_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
 		base->sckOut();
 
-		sprintf(base->outBuff, "Min system voltage: %0.2f volts", base->charger.getSysMinVolt());
+		sprintf(base->outBuff, "Min system voltage: %0.2f volts", base->charger.sysMinVolt());
 		base->sckOut();
 
-		sprintf(base->outBuff, "Battery lower than %0.2f: %s", base->charger.getSysMinVolt(), base->charger.getBatLowerSysMin() ? "true" : "false");
+		sprintf(base->outBuff, "Battery lower than %0.2f: %s", base->charger.sysMinVolt(), base->charger.getBatLowerSysMin() ? "true" : "false");
 		base->sckOut();
 		
 	// Set

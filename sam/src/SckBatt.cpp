@@ -7,6 +7,9 @@ void SckCharger::setup()
 
 	resetConfig();
 
+	// Set SYSV_MIN to 3.3v  011
+	sysMinVolt(3300);
+
 	// Disable I2C watchdog timer
 	I2Cwatchdog(0);
 
@@ -49,7 +52,7 @@ uint16_t SckCharger::inputCurrentLimit(int16_t current)
 		for (uint8_t i=7; i>=0; i--) {
 			if (current >= values[i]) {
 				limitIn |= (i << INPUT_CURR_LIMIT);
-				break;	
+				break;
 			}
 		}
 
@@ -89,7 +92,7 @@ bool SckCharger::chargeState(int8_t enable)
 
 	if (enable > -1) {
 		byte conf = readREG(POWER_ON_CONF_REG);
-		if (enable)	conf |= (1 << CHG_CONFIG);
+		if (enable) conf |= (1 << CHG_CONFIG);
 		else  conf &= ~(1 << CHG_CONFIG);
 		writeREG(POWER_ON_CONF_REG, conf);
 	}
@@ -118,22 +121,22 @@ bool SckCharger::OTG(int8_t enable)
 
 	// TODO review OTG function
 	if (enable > -1) {
-		
+
 		byte conf = readREG(POWER_ON_CONF_REG);
 		if (enable) {
 
 			chargeState(false);				// Charge off
 			conf |= (1 << OTG_CONFIG);		// OTG on
 			writeREG(POWER_ON_CONF_REG, conf);
-			
+
 		} else {
 			conf &= ~(1 << OTG_CONFIG);		// OTG off
 			writeREG(POWER_ON_CONF_REG, conf);
 			chargeState(true);				// Charge on
 		}
-		
+
 	}
-	
+
 	return (readREG(POWER_ON_CONF_REG) >> OTG_CONFIG) & 1;
 }
 uint8_t SckCharger::I2Cwatchdog(int16_t rseconds)
@@ -152,7 +155,7 @@ uint8_t SckCharger::I2Cwatchdog(int16_t rseconds)
 		for (uint8_t i=3; i>=0; i--) {
 			if (rseconds >= values[i]) {
 				timerCtrl |= (i << I2C_WATCHDOG);
-				break;	
+				break;
 			}
 		}
 
@@ -168,7 +171,7 @@ uint8_t SckCharger::chargeTimer(int8_t rhours)
 	uint8_t values[4] = {5, 8, 12, 20};
 
 	if (rhours > -1) {
-		
+
 		byte chgTimer = readREG(CHG_TERM_TIMER_CTRL);
 
 		chgTimer &= ~(1 << CHG_TIMER_ENABLE);		// Disable timer
@@ -184,7 +187,7 @@ uint8_t SckCharger::chargeTimer(int8_t rhours)
 			for (uint8_t i=0; i<4; i++) {
 				if (rhours <= values[i]) {
 					chgTimer |= (i<<CHG_TIMER);
-					break;	
+					break;
 				}
 			}
 			writeREG(CHG_TERM_TIMER_CTRL, chgTimer);		// Save new settings
@@ -208,7 +211,7 @@ bool SckCharger::getDPMstatus()
 {
 
 	byte status = readREG(SYS_STATUS_REG);
-	return status & (1 << DPM_STAT);	
+	return status & (1 << DPM_STAT);
 }
 void SckCharger::forceInputCurrentLimitDetection()
 {
@@ -250,9 +253,9 @@ byte SckCharger::readREG(byte wichRegister)
 
 	uint32_t started = millis();
 	while(Wire.available() != 1) {
-  		if (millis() - started > timeout) return -1;
-   	}
-   	return Wire.read();
+		if (millis() - started > timeout) return -1;
+	}
+	return Wire.read();
 }
 bool SckCharger::writeREG(byte wichRegister, byte data)
 {
@@ -288,24 +291,53 @@ void SckCharger::detectUSB(SckBase *base)
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }
-float SckCharger::getSysMinVolt()
+float SckCharger::sysMinVolt(int16_t voltage)
 {
-	float minVolt = 3.0;
-
 	byte powOnReg = readREG(POWER_ON_CONF_REG);
+
+	// Set voltage
+	if (voltage >= 3000 && voltage <= 3700) {
+
+		powOnReg &= 0b11110001; 	// Clear Minimum System Voltage Limit bits
+		uint16_t diffVolt = voltage - 3000;
+
+		if (diffVolt >= 400) {
+			powOnReg |= (1 << 3);
+			diffVolt -= 400;
+		}
+
+		if (diffVolt >= 200) {
+			SerialUSB.println("entro1");
+			powOnReg |= (1 << 2);
+			diffVolt -= 200;
+		}
+
+		if (diffVolt >= 100) {
+			SerialUSB.println("entro22");
+			powOnReg |= (1 << 1);
+			diffVolt -= 100;
+		}
+
+		writeREG(POWER_ON_CONF_REG, powOnReg);
+	}
+
+	// Get voltage
+	uint16_t minVolt = 3000;
+
+	powOnReg = readREG(POWER_ON_CONF_REG);
 
 	powOnReg = (powOnReg>>VSYS_MIN) & 0b111;
 
-	minVolt += (0.1 * (powOnReg & 1));
-	minVolt += (0.2 * ((powOnReg>>1) & 1));
-	minVolt += (0.4 * ((powOnReg>>2) & 1));
+	minVolt += (100 * (powOnReg & 1));
+	minVolt += (200 * ((powOnReg>>1) & 1));
+	minVolt += (400 * ((powOnReg>>2) & 1));
 
-	return minVolt;
+	return (float)(minVolt/1000.0);
 }
 bool SckCharger::getBatLowerSysMin()
 {
 	byte ssr = readREG(SYS_STATUS_REG);
-	
+
 	return (ssr & 1);
 }
 
@@ -322,7 +354,7 @@ float SckBatt::voltage()
 	uint32_t total = 0;
 	int8_t sampleNum = 10;
 	for (uint8_t i=0; i<sampleNum; i++) total += analogRead(pinMEASURE_BATT);
-	
+
 	float thisVoltage = (total/sampleNum) * 2.0 / analogResolution * workingVoltage;
 	last_volt = thisVoltage;
 	return thisVoltage;
@@ -332,11 +364,11 @@ int8_t SckBatt::percent(SckCharger *charger)
 	int8_t percent = -1;
 
 	uint16_t thisVoltage = (uint16_t)(voltage() * 1000);
-	
-	SckCharger::ChargeStatus currentStatus = charger->getChargeStatus();		
+
+	SckCharger::ChargeStatus currentStatus = charger->getChargeStatus();
 
 	if (currentStatus == charger->CHRG_PRE_CHARGE || currentStatus == charger->CHRG_FAST_CHARGING) {
-	
+
 		if (thisVoltage >= batTableCharging[99]) percent = 100;
 		else if (thisVoltage <= batTableCharging[0]) percent = 0;
 		else {
@@ -349,7 +381,7 @@ int8_t SckBatt::percent(SckCharger *charger)
 			}
 		}
 	} else {
-	
+
 		if (thisVoltage >= batTable[99]) percent = 100;
 		else if (thisVoltage <= batTable[0]) percent = 0;
 		else {

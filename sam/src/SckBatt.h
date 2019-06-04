@@ -21,7 +21,7 @@ private:
 
 	byte POWER_ON_CONF_REG = 1;
 	byte BOOST_LIM = 0;			// Limit for boost mode. 0 – 1 A, 1 – 1.5 A
-	byte VSYS_MIN = 1; 			// (Three bits 1:3 -- bit 1 - 0.1v, bit 2 - 0.2v, bit 3 - 0.4v) Minimum System Voltage Limit -> Offset:3.0 V, Range3.0 V – 3.7 VDefault:3.5 V (101)
+	byte VSYS_MIN = 1; 			// (Three bits 1:3 -- bit 1 - 0.1v, bit 2 - 0.2v, bit 3 - 0.4v) Minimum System Voltage Limit -> Offset:3.0 V, Range3.0 V – 3.7 VDefault:3.5 V (101), we set this to 3.3v (011) on setup 
 	byte CHG_CONFIG = 4;			// Charger Configuration. 0 - Charge Disable; 1- Charge Enable
 	byte OTG_CONFIG = 5;			// Charger Configuration. 0 – OTG Disable; 1 – OTG Enable. OTG_CONFIG would over-ride Charge Enable Function in CHG_CONFIG
 	byte I2C_WATCHDOG_TIMER_RESET = 6;	// I2C Watchdog Timer Reset. 0 – Normal; 1 – Reset
@@ -114,7 +114,7 @@ public:
 	bool getDPMstatus();
 	void forceInputCurrentLimitDetection();
 	void detectUSB(SckBase *base);
-	float getSysMinVolt();
+	float sysMinVolt(int16_t voltage=-1); 	// Get/Set Minimum System Voltage Limit in mV (default is 3.5v)
 	bool getBatLowerSysMin();
 	ChargeStatus getChargeStatus();
 	VBUSstatus getVBUSstatus();

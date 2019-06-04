@@ -307,13 +307,11 @@ float SckCharger::sysMinVolt(int16_t voltage)
 		}
 
 		if (diffVolt >= 200) {
-			SerialUSB.println("entro1");
 			powOnReg |= (1 << 2);
 			diffVolt -= 200;
 		}
 
 		if (diffVolt >= 100) {
-			SerialUSB.println("entro22");
 			powOnReg |= (1 << 1);
 			diffVolt -= 100;
 		}

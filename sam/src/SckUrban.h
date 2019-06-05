@@ -15,7 +15,7 @@
 // Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
 // It includes drivers for this sensors:
 //
-// * Light - BH1721 -> (0x29)
+// * Light - BH1730FVC -> (0x29)
 // * Temperature and Humidity - SHT31 -> (0x44)
 // * Noise  - Invensense ICS43432 I2S microphone;microphone:
 // * Barometric pressure - MPL3115 -> (0x60)
@@ -35,10 +35,10 @@ enum SensorState
 };
 
 // Light
-class Sck_BH1721FVC
+class Sck_BH1730FVC
 {
 	// Datasheet
-	// http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1721fvc-e.pdf
+	// https://www.mouser.es/datasheet/2/348/bh1730fvc-e-1018573.pdf
 
 	private:
 		bool sendCommand(byte wichCommand);
@@ -256,7 +256,7 @@ class SckUrban
 		bool control(SckBase *base, SensorType wichSensor, String command);
 
 		// Light
-		Sck_BH1721FVC sck_bh1721fvc;
+		Sck_BH1730FVC sck_bh1730fvc;
 
 		// Temperature and Humidity
 		Sck_SHT31 sck_sht31 = Sck_SHT31(&Wire);

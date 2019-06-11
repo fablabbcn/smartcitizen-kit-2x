@@ -169,7 +169,7 @@ var app = new Vue({
 
       if (purpose == 'connect'){
         this.weHaveTriedConnecting = true;
-        this.notify('Kit is trying to connect online...', 2000);
+        this.notify('Kit is trying to connect online...', 5000);
         that.xmlWrapper(that.theApi + path +
             '?ssid=' + encodeURIComponent(that.selectedWifi) +
             '&password=' + encodeURIComponent(that.wifipass) +

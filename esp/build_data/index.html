@@ -119,7 +119,7 @@
           <p>Your kit is now trying to connect to the online platform, and this website has no connection to the kit anymore.</p>
           <p>Check the light on your Kit:</p>
           <ul>
-		  <li>Your Kit light should be <span class="text-blue" >blue</span>.<br />If it's blinking fast, there is a problem with the WiFi credentials.<br />Press the button until the light turns red and repeat the process.</li>
+		  <li>Your Kit light should be <span class="blue-breathe" >blue</span>.<br />If it's blinking fast, there is a problem with the WiFi credentials.<br />Press the button until the light turns <span class="red-breathe" >red</span> and repeat the process.</li>
           </ul>
         </div>
 
@@ -570,6 +570,23 @@ a{
     width:57px;
   }
 }
+.red-breathe {
+    animation:2s red-breathe ease infinite;
+}
+@keyframes red-breathe {
+     0% { color: white;}
+     50% { color: red;}
+     100% { color: white;}
+}
+.blue-breathe {
+    animation:2s blue-breathe ease infinite;
+}
+@keyframes blue-breathe {
+     0% { color: white;}
+     50% { color: blue;}
+     100% { color: white;}
+}
+
 
 </style>
 

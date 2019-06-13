@@ -65,7 +65,7 @@ casper.test.begin("Find elements on our local page", 5, function(test) {
     //require('utils').dump( this.getElementInfo('#ssid') );
   }).then(function(){
     // Check for RED GREEN text
-    test.assertSelectorHasText('li', 'RED');
+    test.assertSelectorHasText('li', 'red');
     //test.assertSelectorHasText('li', 'BLUE');
 
     casper.capture('5.png');

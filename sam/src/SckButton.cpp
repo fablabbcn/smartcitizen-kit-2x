@@ -2,38 +2,30 @@
 
 void SckBase::buttonEvent()
 {
-	buttonLastEvent = millis();
-
 	if (!butState){
 		// Button Down
 		sckOut("Button Down", PRIO_LOW);
-
-		if (st.sleeping) {
-
-			// TODO wakeup
-			st.sleeping = false;
-			wakingUp = true;
-
-			// Setting again the Sanity cyclic reset: it was cleared on sleeping
-			rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
-			rtc.enableAlarm(rtc.MATCH_HHMMSS);
-			rtc.attachInterrupt(NVIC_SystemReset);
-		}
 
 	} else {
 		// Button Up
 		sckOut("Button Up", PRIO_LOW);
 
-		if (st.sleeping) {
-
+		if (sckOFF) {
+			
 			goToSleep();
 
-		} else if (st.onSetup || wakingUp) {
+		} else if (st.sleeping) {
+
+			if (st.mode == MODE_NOT_CONFIGURED) enterSetup();
+			else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
+			else if (st.mode == MODE_NET) led.update(led.BLUE, led.PULSE_SOFT);
+			st.sleeping = false;
+
+		} else if (st.onSetup) {
 
 			st.onSetup = false;
-			wakingUp = false;
-			if (!sendMessage(ESPMES_STOP_AP, "")) ESPcontrol(ESP_REBOOT);
-			if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
+			if (st.mode == MODE_NET) ESPcontrol(ESP_REBOOT);
+			else if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_SOFT);
 			else {
 				if (st.mode == MODE_NOT_CONFIGURED) st.mode = MODE_NET;
 				led.update(led.BLUE, led.PULSE_SOFT);
@@ -44,37 +36,39 @@ void SckBase::buttonEvent()
 }
 void SckBase::buttonStillDown()
 {
-	uint32_t pressedTime = millis() - buttonLastEvent;
+	uint32_t pressedTime = millis() - lastUserEvent;
 
-	if (pressedTime >= buttonLong && !st.sleeping) {
+	if (pressedTime >= buttonVeryLong) {
 
-		sprintf(outBuff, "Button pressed for %lu milliseconds: Long press", millis() - buttonLastEvent);
+		sprintf(outBuff, "Button pressed for %lu milliseconds: Very long press", pressedTime);
 		sckOut(PRIO_LOW);
 
-		st.sleeping = true;
-		led.off();
-
-		ESPcontrol(ESP_OFF);
-
-	} else if (pressedTime >= buttonVeryLong && st.sleeping) {
-
-		sprintf(outBuff, "Button pressed for %lu milliseconds: Very long press", millis() - buttonLastEvent);
-		sckOut(PRIO_LOW);
-
-		st.sleeping = false;
+		sckOFF = false;
 
 		// Factory defaults
 		saveConfig(true);
 		sck_reset();
+
+	} else if (pressedTime >= buttonLong && !sckOFF) {
+
+		sprintf(outBuff, "Button pressed for %lu milliseconds: Long press", pressedTime);
+		sckOut(PRIO_LOW);
+
+		sckOFF = true;
+		led.off();
+
+		ESPcontrol(ESP_OFF);
 	}
+
 }
 void SckBase::butFeedback()
 {
+	lastUserEvent = millis();
 	if (!butState){
-		if (st.sleeping || !st.onSetup) {
+		if (sckOFF) sck_reset();
+		if (!st.onSetup) {
 			if (st.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC);
 			else if (st.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC);
 		} else if (st.onSetup) led.update(led.RED2, led.PULSE_STATIC);
-		if (st.sleeping) sck_reset();
 	}
 }

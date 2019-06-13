@@ -134,20 +134,19 @@ class OneSensor
 {
 	public:
 		SensorLocation location;
+		uint8_t priority;
 		SensorType type;
 		const char *shortTitle;
 		const char *title;
 		const char *unit;
 		String reading;
 		uint32_t lastReadingTime;
-		bool valid;
 		bool controllable;
 		uint8_t id;
 		uint8_t everyNint; 	 	// Read this sensor every N intervals (default 1)
 		bool enabled;
 		bool defaultEnabled;
-		bool busy;
-		uint8_t priority;
+		int16_t state; 		// -1:error on reading, 0:reading OK, >0:number of seconds until the reading is OK
 
 		OneSensor(SensorLocation nLocation, uint8_t nPriority, SensorType nType, const char *nShortTitle, const char *nTitle, uint8_t nId=0, bool nEnabled=false, bool nControllable=false, uint8_t nEveryNint=1, const char *nUnit="") {
 			location = nLocation;
@@ -156,15 +155,14 @@ class OneSensor
 			shortTitle = nShortTitle;
 			title = nTitle;
 			unit = nUnit;
-			reading = "none";
+			reading = "null";
 			lastReadingTime = 0;
-			valid = false;
 			controllable = nControllable;
 			id = nId;
 			everyNint = nEveryNint;
-			enabled = nEnabled; 
+			enabled = nEnabled;
 			defaultEnabled = nEnabled;
-			busy = false;
+			state = -1;
 		}
 };
 
@@ -294,8 +292,8 @@ class AllSensors
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_PRESSURE,			"BME680_PRESS",		"Barometric pressure BME680",			0,		false,		false,		1,			"kPa"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_VOCS,			"BME680_VOCS",		"VOC Gas BME680",				0,		false,		false,		1,			"Ohms"},
 
-			OneSensor { BOARD_AUX,		100,	SENSOR_CCS811_VOCS,			"CCS811_VOCS",		"VOC Gas CCS811",				0,		false,		true,		1,			"ppb"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_CCS811_ECO2,			"CCS811_ECO2",		"eCO2 Gas CCS811",				0,		false,		true,		1,			"ppm"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_CCS811_VOCS,			"CCS811_VOCS",		"VOC Gas CCS811",				113,		false,		true,		1,			"ppb"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_CCS811_ECO2,			"CCS811_ECO2",		"eCO2 Gas CCS811",				112,		false,		true,		1,			"ppm"},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

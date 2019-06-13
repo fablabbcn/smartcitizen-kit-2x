@@ -5,6 +5,8 @@
 #include <Pins.h>
 #include "wiring_private.h"
 
+class SckBase;
+
 class SckCharger
 {
 private:
@@ -103,7 +105,7 @@ public:
 	bool getPowerGoodStatus();
 	bool getDPMstatus();
 	void forceInputCurrentLimitDetection();
-	void detectUSB();
+	void detectUSB(SckBase *base);
 	ChargeStatus getChargeStatus();
 	VBUSstatus getVBUSstatus();
 	byte getNewFault();		// TODO
@@ -198,19 +200,21 @@ class SckBatt
 		uint8_t address = 0x55;
 		bool configured = false;
 	public:
-		const uint8_t threshold_low = 10;
-		const uint8_t threshold_recharge = 98;
-		const uint8_t threshold_emergency = 2;
+		const int8_t threshold_recharge = 98;
+		const int8_t threshold_low = 20;
+		const int8_t threshold_emergency = 10;
+
 		uint8_t lowBatCounter = 0;
 		uint8_t emergencyLowBatCounter = 0;
 
 		bool present = false;
-		uint8_t lastPercent = 0;
+		int8_t lastPercent = -1;
 		// Design capacity in mAh, page 49 of (http://www.ti.com/lit/ug/sluubb0/sluubb0.pdf)
 		uint16_t designCapacity = 2000; 	// Don't change this default here, change it in Config.h. This will be overwriten by config value
 
 		bool setup(SckCharger charger, bool force=false);
 		bool isPresent(SckCharger charger);
+
 		float voltage();
 		int16_t current();
 		int16_t power(); 	// Negative during discharge, positive when charging, (mWh)

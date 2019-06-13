@@ -2,6 +2,7 @@
 
 #include <Wire.h>
 #include <Arduino.h>
+#include <RTCZero.h>
 
 #include <Sensors.h>
 #include "Pins.h"
@@ -51,7 +52,7 @@ class Sck_BH1721FVC
 		float reading;
 		bool start();
 		bool stop();
-		bool get(bool wait=true);
+		bool get();
 };
 
 // Temperature and Humidity
@@ -81,7 +82,7 @@ class Sck_SHT31
 		float humidity;
 		bool start();
 		bool stop();
-		bool update(bool wait=true);
+		bool update();
 };
 
 // Gases CO and NO2
@@ -156,6 +157,7 @@ class Sck_MICS4514
 class Sck_Noise
 {
 	private:
+		bool alreadyStarted = false;
 		const double RMS_HANN = 0.61177;
 		const uint8_t FULL_SCALE_DBSPL = 120;
 		const uint8_t BIT_LENGTH = 24;
@@ -196,9 +198,9 @@ class Sck_MPL3115A2
 		float temperature;
 		bool start();
 		bool stop();
-		bool getAltitude(bool wait=true);
-		bool getPressure(bool wait=true);
-		bool getTemperature(bool wait=true);
+		bool getAltitude();
+		bool getPressure();
+		bool getTemperature();
 };
 
 // Dust Particles
@@ -231,7 +233,7 @@ class Sck_PM
 		bool detectionFailed = false;
 		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
-		
+
 		static const uint8_t buffLong = 30; 	// Excluding both start chars
 
 		// Serial transmission from PMS
@@ -259,7 +261,16 @@ class Sck_PM
 
 		// 30-31: Sum of each byte from start_1 ... error_code 
 
+		unsigned char buff[buffLong];
+		uint32_t rtcStarted = 0;
+		uint32_t rtcStopped = 0;
+		uint32_t rtcReading = 0;
+		RTCZero* rtc;
+
 	public:
+		Sck_PM(RTCZero* myrtc) {
+			rtc = myrtc;
+		}
 		// Readings
 		uint16_t pm1;
 		uint16_t pm25;
@@ -273,10 +284,12 @@ class Sck_PM
 
 		bool started = false;
 		bool active = false;
+		uint16_t oneShotPeriod = 15;
 
 		bool start();
 		bool stop();
 		bool update();
+		int16_t oneShot(uint16_t period);
 		bool reset();
 };
 
@@ -289,14 +302,18 @@ class SckUrban
 			byte deviceAddress;
 			byte resistorAddress;
 		};
+		RTCZero* rtc;
 	public:
-		bool present();
-		bool setup(SckBase *base);
+		SckUrban(RTCZero* myrtc) {
+			rtc = myrtc;
+		}
+
+		bool setup();
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
 
 		// String getReading(); https://stackoverflow.com/questions/14840173/c-same-function-parameters-with-different-return-type
-		String getReading(SckBase *base, SensorType wichSensor, bool wait=true);
+		void getReading(SckBase *base, OneSensor *wichSensor);
 		bool control(SckBase *base, SensorType wichSensor, String command);
 
 		// Light
@@ -318,6 +335,6 @@ class SckUrban
 		Sck_MAX30105 sck_max30105;
 
 		// PM sensor
-		Sck_PM sck_pm;
+		Sck_PM sck_pm = Sck_PM(rtc);
 };
 

@@ -17,7 +17,7 @@
       <div class="topnav sticky ">
         <div class="bg-black">
 
-          <p class="text-center">SCK 2.0 Setup</p>
+          <p class="text-center">SCK 2 Setup</p>
 
           <div id="topbackbtn">
             <a v-show="page[currentPage].back" v-on:click="gotoPage(page[currentPage].backTo)" href="#">
@@ -119,8 +119,7 @@
           <p>Your kit is now trying to connect to the online platform, and this website has no connection to the kit anymore.</p>
           <p>Check the light on your Kit:</p>
           <ul>
-            <li><span class="text-blue" >BLUE</span>: Your kit received the configuration and is trying to connect. If the led starts blinking there was a problem with the wifi credentials.</li>
-            <li><span class="text-red" >RED</span>: Some problem happened, reset your Kit and try again.</li>
+		  <li>Your Kit light should be <span class="blue-breathe" >blue</span>.<br />If it's blinking fast, there is a problem with the WiFi credentials.<br />Press the button until the light turns <span class="red-breathe" >red</span> and repeat the process.</li>
           </ul>
         </div>
 
@@ -571,6 +570,23 @@ a{
     width:57px;
   }
 }
+.red-breathe {
+    animation:2s red-breathe ease infinite;
+}
+@keyframes red-breathe {
+     0% { color: white;}
+     50% { color: red;}
+     100% { color: white;}
+}
+.blue-breathe {
+    animation:2s blue-breathe ease infinite;
+}
+@keyframes blue-breathe {
+     0% { color: white;}
+     50% { color: blue;}
+     100% { color: white;}
+}
+
 
 </style>
 
@@ -756,7 +772,7 @@ var app = new Vue({
 
       if (purpose == 'connect'){
         this.weHaveTriedConnecting = true;
-        this.notify('Kit is trying to connect online...', 2000);
+        this.notify('Kit is trying to connect online...', 5000);
         that.xmlWrapper(that.theApi + path +
             '?ssid=' + encodeURIComponent(that.selectedWifi) +
             '&password=' + encodeURIComponent(that.wifipass) +

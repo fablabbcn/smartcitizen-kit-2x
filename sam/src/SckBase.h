@@ -8,7 +8,6 @@
 #include <SPI.h>
 #include "ArduinoLowPower.h"
 #include "SdFat.h"
-#include <SPIFlash.h>
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
 #include <RHReliableDatagram.h>
@@ -25,6 +24,7 @@
 #include "Sensors.h"
 #include "SckUrban.h"
 #include "SckAux.h"
+#include "SckList.h"
 
 #include "version.h"
 
@@ -90,7 +90,6 @@ struct SckState
 	}
 };
 
-
 class SckBase
 {
 	private:
@@ -104,7 +103,6 @@ class SckBase
 
 		// **** Time
 		const uint8_t TIME_TIMEOUT = 20;		// seconds
-		void epoch2iso(uint32_t toConvert, char* isoTime);
 
 		// **** Mode Control
 		void reviewState();
@@ -117,12 +115,13 @@ class SckBase
 		void ESPbusUpdate();
 		void receiveMessage(SAMMessage wichMessage);
 		bool sendConfig();
+		uint32_t sendConfigTimer = 0;
+		uint8_t sendConfigCounter = 0;
 		bool pendingSyncConfig = false;
 
 		// Button
 		const uint16_t buttonLong = 5000;
 		const uint16_t buttonVeryLong = 15000;
-		uint32_t buttonLastEvent = 0;
 		bool butOldState = true;
 		bool wakingUp = false;
 		void buttonEvent();
@@ -137,7 +136,7 @@ class SckBase
 		// Urban board
 		bool urbanPresent = false;
 		friend class urban;
-		SckUrban urban;
+		SckUrban urban = SckUrban(&rtc);
 
 		// STORAGE
 		// files
@@ -152,19 +151,14 @@ class SckBase
 		bool sdInit();
 		bool saveInfo();
 		bool infoSaved = false;
-		// Flash memory
-		SPIFlash flash = SPIFlash(pinCS_FLASH);
-		void flashSelect();
 
 		// Power
-		uint8_t wakeUP_H = 3; 	// 3AM UTC
-		uint8_t wakeUP_M = 0;
-		uint8_t wakeUP_S = 0;
-		uint32_t sleepTime;
+		uint16_t sleepTime = 2500; 	// ms between micro led flashes
+		const uint16_t waitAfterLastEvent = 60000; // Time to avoid sleep after user interaction in ms
+
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
 		void goToSleep();
-
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 	// seconds
@@ -173,6 +167,8 @@ class SckBase
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish();
+		uint8_t pendingSensors = 0;
+		SensorType pendingSensorsList[SENSOR_COUNT];
 
 		// Timers
 		bool alarmRunning_TC3 = false;
@@ -195,9 +191,11 @@ class SckBase
 
 		// **** Time
 		RTCZero rtc;
+		bool timeSyncAfterBoot = false;
 		char ISOtimeBuff[20];
 		bool setTime(String epoch);
 		bool ISOtime();
+		void epoch2iso(uint32_t toConvert, char* isoTime);
 
 		// Peripherals
 		SckLed led;
@@ -205,12 +203,14 @@ class SckBase
 
 		// **** Sensors
 		AllSensors sensors;
-		bool getReading(SensorType wichSensor, bool wait=true);
+		bool getReading(OneSensor *wichSensor);
 		bool controlSensor(SensorType wichSensorType, String wichCommand);
-		void publish();
 		bool enableSensor(SensorType wichSensor);
 		bool disableSensor(SensorType wichSensor);
 		bool writeHeader = false;
+
+		// RAM readings store
+		SckList readingsList;
 
 		// Configuration
 		Configuration config;
@@ -246,6 +246,7 @@ class SckBase
 
 		// Button
 		volatile bool butState = true;
+		volatile uint32_t lastUserEvent = 0;
 		void butFeedback();
 
 		// Commands
@@ -257,10 +258,14 @@ class SckBase
 		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
+		uint8_t wakeUP_H = 3; 	// 3AM UTC
+		uint8_t wakeUP_M = 0;
+		uint8_t wakeUP_S = 0;
 		void sck_reset();
 		SckBatt battery;
 		volatile bool battPendingEvent = false;
 		SckCharger charger;
+		bool sckOFF = false;
 
 		// Misc
 		void getUniqueID();
@@ -282,4 +287,5 @@ class SckBase
 bool I2Cdetect(TwoWire *_Wire, byte address);
 void ISR_button();
 void ISR_sdDetect();
+void ext_reset();
 

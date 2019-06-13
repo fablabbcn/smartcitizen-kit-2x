@@ -11,10 +11,10 @@ void SckLed::setup()
 	pulseMode = PULSE_STATIC;
 	tick();
 }
-void SckLed::update(ColorName colorName, pulseModes pulse)
+void SckLed::update(ColorName colorName, pulseModes pulse, bool force)
 {
 	
-	if (pulse == pulseMode && colorName == ledColor.name) return;
+	if (pulse == pulseMode && colorName == ledColor.name && !force) return;
 
 	pulseMode = pulse;
 	ledColor = colors[colorName];
@@ -32,6 +32,7 @@ void SckLed::update(ColorName colorName, pulseModes pulse)
 			configureTimer5(fastInterval);
 			break;
 		case PULSE_SOFT:
+			colorIndex = 0;
 			if (colorName == RED) currentPulse = pulseRed;
 			else if (colorName == BLUE) currentPulse = pulseBlue;
 			else if (colorName == PINK) currentPulse = pulsePink;

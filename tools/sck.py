@@ -176,6 +176,8 @@ class sck:
             except:
                 self.err_out('Failed building SAM firmware')
                 return False
+        else:
+            return False
         with open(os.path.join(self.paths['binFolder'], self.files['samBin']), mode='rb') as myfile:
             inpbuf = myfile.read()
         outbuf = uf2conv.convertToUF2(inpbuf)

@@ -1,4 +1,5 @@
 #include "SckBatt.h"
+#include "SckBase.h"
 
 void SckCharger::setup()
 {
@@ -126,7 +127,6 @@ bool SckCharger::OTG(int8_t enable)
 			writeREG(POWER_ON_CONF_REG, conf);
 			
 		} else {
-			SerialUSB.println("disabling OTG!");
 			conf &= ~(1 << OTG_CONFIG);		// OTG off
 			writeREG(POWER_ON_CONF_REG, conf);
 			chargeState(true);				// Charge on
@@ -264,7 +264,7 @@ bool SckCharger::writeREG(byte wichRegister, byte data)
 	if (readREG(wichRegister) == data) return true;
 	else return false;
 }
-void SckCharger::detectUSB()
+void SckCharger::detectUSB(SckBase *base)
 {
 	VBUSstatus vbusStatus = getVBUSstatus();
 
@@ -276,9 +276,15 @@ void SckCharger::detectUSB()
 	if (vbusStatus == VBUS_ADAPTER_PORT) {
 		if (!onUSB) {
 			onUSB = true;
-			NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
+			if (!base->sckOFF) NVIC_SystemReset(); 	// To start with a clean state and make sure charging is OK do a reset when power is connected.
 		}
-	} else onUSB = false;
+	} else  {
+		if (onUSB) {
+			// This registers disconnection of the charger as a user event
+			base->lastUserEvent = millis();
+		}
+		onUSB = false;
+	}
 
 	if (!onUSB) digitalWrite(pinLED_USB, HIGH); 	// Turn off Serial leds
 }

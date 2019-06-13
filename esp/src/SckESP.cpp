@@ -541,6 +541,9 @@ void SckESP::startWebServer()
 {
 	webServer.rewrite("/", "/index.html");
 
+	// For IOS
+	webServer.on("/hotspot-detect.html", HTTP_GET, extRoot);
+
 	// Handle root
 	webServer.on("/index.html", HTTP_GET, extRoot);
 
@@ -549,6 +552,7 @@ void SckESP::startWebServer()
 
 	// Microsoft captive portal.
 	webServer.on("/fwlink", HTTP_GET, extRoot);
+	webServer.on("/ncsi.txt", HTTP_GET, extRoot);
 
 	// Handle set
 	// /set?ssid=value1&password=value2&token=value3&epoch=value&pubint=60&mode=value
@@ -709,7 +713,7 @@ void SckESP::webRoot(AsyncWebServerRequest *request)
         request->send(304);
 
     } else {
-
+	
         // Dump the byte array in PROGMEM with a 200 HTTP code (OK)
         AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html_gz, index_html_gz_len);
 

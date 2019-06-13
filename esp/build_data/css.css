@@ -232,3 +232,20 @@ a{
     width:57px;
   }
 }
+.red-breathe {
+    animation:2s red-breathe ease infinite;
+}
+@keyframes red-breathe {
+     0% { color: white;}
+     50% { color: red;}
+     100% { color: white;}
+}
+.blue-breathe {
+    animation:2s blue-breathe ease infinite;
+}
+@keyframes blue-breathe {
+     0% { color: white;}
+     50% { color: blue;}
+     100% { color: white;}
+}
+

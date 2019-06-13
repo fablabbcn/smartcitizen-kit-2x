@@ -229,6 +229,8 @@ bool SckTest::test_sdcard()
 
 bool SckTest::test_flash()
 {
+	// TODO this should be migrated to use readingsList as the flash memory manager
+	
 	SerialUSB.println("\r\nTesting Flash memory...");
 	testBase->flashSelect();
 	

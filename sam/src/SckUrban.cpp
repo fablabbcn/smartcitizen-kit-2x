@@ -271,8 +271,8 @@ bool Sck_BH1730FVC::get()
 	Wire.requestFrom(address, 4);
 
 	// Get result
-	int16_t IDATA0 = 0;
-	int16_t IDATA1 = 0;
+	uint16_t IDATA0 = 0;
+	uint16_t IDATA1 = 0;
 	IDATA0 = Wire.read();
 	IDATA0 = IDATA0 | (Wire.read()<<8);
 	IDATA1 = Wire.read();

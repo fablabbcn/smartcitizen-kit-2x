@@ -45,8 +45,9 @@ class Sck_BH1730FVC
 		byte readRegister(byte wichRegister);
 
 	public:
+		bool debug = false;
 		uint8_t address = 0x29;
-		float reading;
+		int reading;
 		bool start();
 		bool stop();
 		bool get();

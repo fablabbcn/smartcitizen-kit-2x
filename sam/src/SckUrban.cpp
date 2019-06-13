@@ -150,6 +150,29 @@ bool Sck_BH1730FVC::start()
 }
 bool Sck_BH1730FVC::stop()
 {
+	// 0x00 register - CONTROL
+	uint8_t CONTROL = B000000;
+	// ADC_INTR: 	5	0:Interrupt is inactive.
+	// 			1:Interrupt is active.
+	// ADC_VALID:	4	0:ADC data is not updated after last reading.
+	// 			1:ADC data is updated after last reading.
+	// ONE_TIME:	3	0:ADC measurement is continuous.
+	// 			1:ADC measurement is one time.
+	// 			ADC	transits to power down automatically.
+	// DATA_SEL:	2	0:ADC measurement Type0 and Type1.
+	// 			1:ADC measurement Type0 only.
+	// ADC_EN:	1	0:ADC measurement stop.
+	// 			1:ADC measurement start.
+	// POWER:	0	0:ADC power down.
+	// 			1:ADC power on.
+
+	// Send Configuration
+	// This will save around 150 uA
+	Wire.beginTransmission(address);
+	Wire.write(0x80);
+	Wire.write(CONTROL);
+	Wire.endTransmission();
+
 	return true;
 }
 bool Sck_BH1730FVC::get()
@@ -174,23 +197,12 @@ bool Sck_BH1730FVC::get()
 	// 			1:ADC power on.
 
 	// 0x01 register - TIMMING
-	uint8_t ITIME0  = 0xA0;
-	// float TOP = 26500.0; 	 // This is relative to the value above (less resolution more range) TODO define max based on calibration curve (to be implemented)
+	uint8_t ITIME0  = 0xDA;
 
 	// 00h: Start / Stop of measurement is set by special command. (ADC manual integration mode)
-	// 01h to FFh: Integration time is determined by ITIME value
+	// 01h to FFh: Integration time is determined by ITIME value (defaultt is oxDA)
 	// Integration Time : ITIME_ms = Tint * 964 * (256 - ITIME)
 	// Measurement time : Tmt= ITIME_ms + Tint * 714
-
-	// TIME0 posible values, more time = more resolution
-	// 0xA0 (~3200 values in 260 ms)
-	// 0xB0 (~2100 values in 220 ms)
-	// 0xC0 (~1300 values in 180 ms)
-	// 0xD0 (~800 values in 130 ms)
-	// 0xE0 (~350 values in 88 ms)
-	// 0xF0 (~80 values in 45 ms)
-	// 0xFA (12 values in 18 ms)
-	// 0XFB (8 values in 15 ms)
 
 	// 0x02 register - INTERRUPT
 	uint8_t INTERRUPT = B00000000;
@@ -231,10 +243,26 @@ bool Sck_BH1730FVC::get()
 	Wire.endTransmission();
 
 
-	// TODO calibration curve
-	float Tint = 2.8; 	// From datasheet (2.8 typ -- 4.0 max)
-	float ITIME_ms = (Tint * 964 * (256 - ITIME0)) / 1000;
-	delay (ITIME_ms+50);
+	float Tint = 2.8; 						// Internal Clock Period (datasheet page 4 --> 2.8 typ -- 4.0 max)
+	float ITIME_ms = (Tint * 964 * (256 - ITIME0)) / 1000; 		// Integration Time (datasheet page 9)
+	float Tmt =  ITIME_ms + (Tint * 714); 				// Measurement time (datasheet page 9)
+
+	// Wait for ADC to finish
+	uint32_t started = millis();
+	uint8_t answer = 0;
+	while ((answer & 0x10) == 0) {
+		delay(10);
+		Wire.beginTransmission(address);
+		Wire.write(0x80);
+		Wire.endTransmission();
+		Wire.requestFrom(address, 1);
+		answer = Wire.read();
+		if (millis() - started > Tmt) {
+			if (debug) SerialUSB.println("ERROR: Timeout waiting for reading");
+			return false;
+		}
+	}
+
 
 	// Ask for reading
 	Wire.beginTransmission(address);
@@ -243,12 +271,14 @@ bool Sck_BH1730FVC::get()
 	Wire.requestFrom(address, 4);
 
 	// Get result
-	int16_t DATA0 = 0;
-	uint16_t DATA1 = 0;
-	DATA0 = Wire.read();
-	DATA0 = DATA0 | (Wire.read()<<8);
-	DATA1 = Wire.read();
-	DATA1 = DATA1 | (Wire.read()<<8);
+	int16_t IDATA0 = 0;
+	int16_t IDATA1 = 0;
+	IDATA0 = Wire.read();
+	IDATA0 = IDATA0 | (Wire.read()<<8);
+	IDATA1 = Wire.read();
+	IDATA1 = IDATA1 | (Wire.read()<<8);
+	float DATA0 = (float)IDATA0;
+	float DATA1 = (float)IDATA1;
 
 	// Setup gain
 	uint8_t Gain = 1;
@@ -258,15 +288,30 @@ bool Sck_BH1730FVC::get()
 
 	float Lx = 0;
 	if (DATA0 !=0) {
-	if (DATA1/DATA0 < 0.26) Lx = (1.290 * DATA0 - 2.733 * DATA1) / Gain * 102.6 / ITIME_ms;
-	else if (DATA1/DATA0 < 0.55) Lx = (0.795 * DATA0 - 0.859 * DATA1) / Gain * 102.6 / ITIME_ms;
-	else if (DATA1/DATA0 < 1.09) Lx = (0.510 * DATA0 - 0.345 * DATA1) / Gain * 102.6 / ITIME_ms;
-	else if (DATA1/DATA0 < 2.13) Lx = (0.276 * DATA0 - 0.130 * DATA1) / Gain * 102.6 / ITIME_ms;
-	else Lx = 0;
+		if (DATA1/DATA0 < 0.26) Lx = (1.290 * DATA0 - 2.733 * DATA1) / Gain * 102.6 / ITIME_ms;
+		else if (DATA1/DATA0 < 0.55) Lx = (0.795 * DATA0 - 0.859 * DATA1) / Gain * 102.6 / ITIME_ms;
+		else if (DATA1/DATA0 < 1.09) Lx = (0.510 * DATA0 - 0.345 * DATA1) / Gain * 102.6 / ITIME_ms;
+		else if (DATA1/DATA0 < 2.13) Lx = (0.276 * DATA0 - 0.130 * DATA1) / Gain * 102.6 / ITIME_ms;
+		else Lx = 0;
 	}
 
 	Lx = max(0, Lx);
-	reading  = Lx;
+	reading  = (int)Lx;
+
+	if (debug) {
+		SerialUSB.print("Integration Time ITIME_ms: ");
+		SerialUSB.println(ITIME_ms);
+		SerialUSB.print("Measurement Time Tmt: ");
+		SerialUSB.println(Tmt);
+		SerialUSB.print("Gain: ");
+		SerialUSB.println(Gain);
+		SerialUSB.print("Visible Light DATA0: ");
+		SerialUSB.println(DATA0);
+		SerialUSB.print("Infrared Light DATA1: ");
+		SerialUSB.println(DATA1);
+	}
+
+	stop();
 
 	return true;
 }

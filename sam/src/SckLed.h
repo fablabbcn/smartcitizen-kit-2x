@@ -48,6 +48,8 @@ public:
 	// Powerfeedback
 	ChargeStatus chargeStatus = CHARGE_NULL;
 
+	float dim = 1.0;
+
 private:
 
 	/* void setRGBColor(Color myColor); */

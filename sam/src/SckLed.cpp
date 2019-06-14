@@ -44,7 +44,15 @@ void SckLed::update(ColorName colorName, pulseModes pulse, bool force)
 void SckLed::tick()
 {
 
-	if (pulseMode == PULSE_SOFT) {
+	if (dim == 0) {
+		pinMode(pinRED, OUTPUT);
+		pinMode(pinGREEN, OUTPUT);
+		pinMode(pinBLUE, OUTPUT);
+		digitalWrite(pinRED, 1);
+		digitalWrite(pinGREEN, 1);
+		digitalWrite(pinBLUE, 1);
+		disableTimer5();
+	} else if (pulseMode == PULSE_SOFT) {
 		Color c = *(currentPulse + colorIndex);
 
 		if (chargeStatus == CHARGE_CHARGING) {
@@ -58,21 +66,21 @@ void SckLed::tick()
 			else c = *(currentPulse + 24);
 		}
 
-		analogWrite(pinRED, 255 - c.r);
-		analogWrite(pinGREEN, 255 - c.g);
-		analogWrite(pinBLUE, 255 - c.b);
+		analogWrite(pinRED, 255 - round(c.r * dim));
+		analogWrite(pinGREEN, 255 - round(c.g * dim));
+		analogWrite(pinBLUE, 255 - round(c.b * dim));
 		if (colorIndex == 24) direction = -1;
 		else if (colorIndex == 0) direction = 1;
 		colorIndex += direction; 
 	} else if (pulseMode == PULSE_STATIC) { 
-		analogWrite(pinRED, 255 - ledColor.r);
-		analogWrite(pinGREEN, 255 - ledColor.g);
-		analogWrite(pinBLUE, 255 - ledColor.b);
+		analogWrite(pinRED, 255 - round(ledColor.r * dim));
+		analogWrite(pinGREEN, 255 - round(ledColor.g * dim));
+		analogWrite(pinBLUE, 255 - round(ledColor.b * dim));
 	} else {
 		if (blinkON) {
-			analogWrite(pinRED, 255 - ledColor.r);
-			analogWrite(pinGREEN, 255 - ledColor.g);
-			analogWrite(pinBLUE, 255 - ledColor.b);
+			analogWrite(pinRED, 255 - round(ledColor.r * dim));
+			analogWrite(pinGREEN, 255 - round(ledColor.g * dim));
+			analogWrite(pinBLUE, 255 - round(ledColor.b * dim));
 		} else {
 			pinMode(pinRED, OUTPUT);
 			pinMode(pinGREEN, OUTPUT);

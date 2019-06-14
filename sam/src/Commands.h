@@ -33,6 +33,7 @@ enum CommandType {
 	COM_DEBUG,
 	COM_SHELL,
 	COM_CUSTOM_MQTT,
+	COM_DIMLED,
 
 	COM_COUNT
 };
@@ -62,6 +63,7 @@ void debug_com(SckBase* base, String parameters);
 void shell_com(SckBase* base, String parameters);
 void custom_mqtt_com(SckBase* base, String parameters);
 void ramGet_com(SckBase* base, String parameters);
+void dimled_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -111,6 +113,7 @@ class AllCommands {
 			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages [-sdcard] [-espcom] [-list]", 												debug_com},
 			OneCom {100,	COM_SHELL, 		"shell", 	"Shows or sets shell mode [-on] [-off]",												shell_com},
 			OneCom {100,	COM_CUSTOM_MQTT,	"mqtt", 	"Publish custom mqtt message ('topic' 'message')",											custom_mqtt_com},
+			OneCom {100,	COM_DIMLED,		"dimled", 	"Show/set brightness of LED [float]",													dimled_com},
 		};
 
 		OneCom & operator[](CommandType type) {

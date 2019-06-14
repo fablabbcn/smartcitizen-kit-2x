@@ -732,3 +732,18 @@ void custom_mqtt_com(SckBase* base, String parameters)
 	uint8_t mfourth = parameters.indexOf("'", mthird + 1);
 	base->mqttCustom(parameters.substring(mfirst + 1, msecond).c_str(), parameters.substring(mthird + 1, mfourth).c_str());
 }
+void dimled_com(SckBase* base, String parameters)
+{
+	if (parameters.length() > 0) {
+		float newDim = parameters.toFloat();
+		if (newDim >= 0 && newDim <= 1) {
+			base->led.dim = newDim;
+			base->led.tick();
+		} else {
+			base->sckOut("illegal value");
+			return;
+		}
+	}
+	sprintf(base->outBuff, "LED brightness level: %.2f", base->led.dim);
+	base->sckOut();
+}

@@ -36,4 +36,5 @@ struct Configuration {
 	SensorConfig sensors[SENSOR_COUNT];
 	bool sdDebug = false;
 	Extra extra;
+	float dimled;
 };

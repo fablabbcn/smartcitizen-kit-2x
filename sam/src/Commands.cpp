@@ -599,6 +599,12 @@ void config_com(SckBase* base, String parameters)
 					base->config.token.set = true;
 				}
 			}
+			uint16_t dimledI = parameters.indexOf("-dimled");
+			if (dimledI >= 0) {
+				String dimledC = parameters.substring(dimledI+8);
+				float dimledV = dimledC.toFloat();
+				if (dimledV >= 0 && dimledV <= 1) base->config.dimled = dimledV;
+			}
 			base->saveConfig();
 		}
 		sprintf(base->outBuff, "-- New config --\r\n");
@@ -619,7 +625,8 @@ void config_com(SckBase* base, String parameters)
 	if (currentConfig.token.set) sprintf(base->outBuff, "%s%s\r\n", base->outBuff, currentConfig.token.token);
 	else sprintf(base->outBuff, "%snot configured\r\n", base->outBuff);
 
-	sprintf(base->outBuff, "%sMac address:  %s", base->outBuff, base->config.mac.address);
+	sprintf(base->outBuff, "%sMac address:  %s\r\n", base->outBuff, base->config.mac.address);
+	sprintf(base->outBuff, "%sLED brightness level: %.2f", base->outBuff, base->config.dimled);
 	base->sckOut();
 }
 void esp_com(SckBase* base, String parameters)
@@ -731,19 +738,4 @@ void custom_mqtt_com(SckBase* base, String parameters)
 	uint8_t mthird = parameters.indexOf("'", msecond + 1);
 	uint8_t mfourth = parameters.indexOf("'", mthird + 1);
 	base->mqttCustom(parameters.substring(mfirst + 1, msecond).c_str(), parameters.substring(mthird + 1, mfourth).c_str());
-}
-void dimled_com(SckBase* base, String parameters)
-{
-	if (parameters.length() > 0) {
-		float newDim = parameters.toFloat();
-		if (newDim >= 0 && newDim <= 1) {
-			base->led.dim = newDim;
-			base->led.tick();
-		} else {
-			base->sckOut("illegal value");
-			return;
-		}
-	}
-	sprintf(base->outBuff, "LED brightness level: %.2f", base->led.dim);
-	base->sckOut();
 }

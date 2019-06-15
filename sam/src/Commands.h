@@ -33,7 +33,6 @@ enum CommandType {
 	COM_DEBUG,
 	COM_SHELL,
 	COM_CUSTOM_MQTT,
-	COM_DIMLED,
 
 	COM_COUNT
 };
@@ -63,7 +62,6 @@ void debug_com(SckBase* base, String parameters);
 void shell_com(SckBase* base, String parameters);
 void custom_mqtt_com(SckBase* base, String parameters);
 void ramGet_com(SckBase* base, String parameters);
-void dimled_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -104,7 +102,7 @@ class AllCommands {
 			OneCom {90,	COM_GET_FREERAM,	"free",		"Shows the amount of free RAM memory",													freeRAM_com},
 			OneCom {90,	COM_I2C_DETECT,		"i2c",		"Search the I2C bus for devices",													i2cDetect_com},
 			OneCom {90,	COM_CHARGER,		"charger",	"Controls or shows charger configuration [-otg on/off] [-charge on/off]",								charger_com},
-			OneCom {90,	COM_CONFIG,		"config",	"Shows/sets configuration [-defaults] [-mode sdcard/network] [-pubint seconds] [-readint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token]", config_com},
+			OneCom {90,	COM_CONFIG,		"config",	"Shows/sets configuration [-defaults] [-mode sdcard/network] [-pubint seconds] [-readint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token] [-dimled float]", config_com},
 			OneCom {100,	COM_ESP_CONTROL,	"esp",		"Controls or shows info from ESP [-on -off -sleep -wake -reboot -flash]",								esp_com},
 			OneCom {100,	COM_NETINFO,		"netinfo",	"Shows network information",														netInfo_com},
 			OneCom {100,	COM_TIME,		"time",		"Shows/sets time [epoch time] [-sync]",													time_com},
@@ -113,7 +111,6 @@ class AllCommands {
 			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages [-sdcard] [-espcom] [-list]", 												debug_com},
 			OneCom {100,	COM_SHELL, 		"shell", 	"Shows or sets shell mode [-on] [-off]",												shell_com},
 			OneCom {100,	COM_CUSTOM_MQTT,	"mqtt", 	"Publish custom mqtt message ('topic' 'message')",											custom_mqtt_com},
-			OneCom {100,	COM_DIMLED,		"dimled", 	"Show/set brightness of LED [float]",													dimled_com},
 		};
 
 		OneCom & operator[](CommandType type) {

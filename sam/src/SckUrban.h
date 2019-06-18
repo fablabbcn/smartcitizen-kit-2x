@@ -67,9 +67,11 @@ class Sck_SHT31
 		const uint16_t SOFT_RESET = 0x30A2;
 		const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
 
-		uint32_t timeout = 15;	// Time in ms to wait for a reading
-		uint32_t lastTime = 0;
-		void sendComm(uint16_t comm);
+		uint32_t timeout = 100;	// Time in ms to wait for a reading
+		uint8_t retrys = 3;
+		bool debug = false;
+		bool update();
+		bool sendComm(uint16_t comm);
 		uint8_t crc8(const uint8_t *data, int len);
 	public:
 		uint8_t address = 0x44;
@@ -80,7 +82,7 @@ class Sck_SHT31
 		float humidity;
 		bool start();
 		bool stop();
-		bool update();
+		bool getReading();
 };
 
 // Noise

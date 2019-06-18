@@ -82,8 +82,8 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 	wichSensor->state = 0;
 	switch(wichSensor->type) {
 		case SENSOR_LIGHT:			if (sck_bh1730fvc.get()) 			{ wichSensor->reading = String(sck_bh1730fvc.reading); return; } break;
-		case SENSOR_TEMPERATURE: 		if (sck_sht31.update()) 			{ wichSensor->reading = String(sck_sht31.temperature); return; } break;
-		case SENSOR_HUMIDITY: 			if (sck_sht31.update()) 			{ wichSensor->reading = String(sck_sht31.humidity); return; } break;
+		case SENSOR_TEMPERATURE: 		if (sck_sht31.getReading()) 			{ wichSensor->reading = String(sck_sht31.temperature); return; } break;
+		case SENSOR_HUMIDITY: 			if (sck_sht31.getReading()) 			{ wichSensor->reading = String(sck_sht31.humidity); return; } break;
 		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading(SENSOR_NOISE_DBA)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
 		case SENSOR_NOISE_DBC: 			if (sck_noise.getReading(SENSOR_NOISE_DBC)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
 		case SENSOR_NOISE_DBZ: 			if (sck_noise.getReading(SENSOR_NOISE_DBZ)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
@@ -345,21 +345,24 @@ bool Sck_SHT31::stop()
 }
 bool Sck_SHT31::update()
 {
-	uint32_t elapsed = millis() - lastTime;
-	if (elapsed < timeout) delay(timeout - elapsed);
-
 	uint8_t readbuffer[6];
-	sendComm(SINGLE_SHOT_HIGH_REP);
+	if (!sendComm(SINGLE_SHOT_HIGH_REP)) return false;
 
-	_Wire->requestFrom(address, (uint8_t)6);
-	// Wait for answer (datasheet says 15ms is the max)
 	uint32_t started = millis();
-	while(_Wire->available() != 6) {
-		if (millis() - started > timeout) return 0;
+	while (_Wire->requestFrom(address, 6) < 6) {
+		if (millis() - started > timeout) {
+			if (debug) SerialUSB.println("ERROR: Timed out waiting for SHT31 sensor!!!");
+			return false;
+		}
 	}
 
 	// Read response
-	for (uint8_t i=0; i<6; i++) readbuffer[i] = _Wire->read();
+	if (debug) SerialUSB.print("Response: ");
+	for (uint8_t i=0; i<6; i++) {
+		readbuffer[i] = _Wire->read();
+		if (debug) SerialUSB.print(readbuffer[i]);
+	}
+	if (debug) SerialUSB.println();
 
 	uint16_t ST, SRH;
 	ST = readbuffer[0];
@@ -367,13 +370,20 @@ bool Sck_SHT31::update()
 	ST |= readbuffer[1];
 
 	// Check Temperature crc
-	if (readbuffer[2] != crc8(readbuffer, 2)) return false;
+	if (readbuffer[2] != crc8(readbuffer, 2)) {
+		if (debug) SerialUSB.println("ERROR: Temperature reading CRC failed!!!");
+		return false;
+	}
 	SRH = readbuffer[3];
 	SRH <<= 8;
 	SRH |= readbuffer[4];
 
 	// check Humidity crc
-	if (readbuffer[5] != crc8(readbuffer+3, 2)) return false;
+	if (readbuffer[5] != crc8(readbuffer+3, 2)) {
+		if (debug) SerialUSB.println("ERROR: Humidity reading CRC failed!!!");
+		return false;
+	}
+
 	double temp = ST;
 	temp *= 175;
 	temp /= 0xffff;
@@ -385,16 +395,16 @@ bool Sck_SHT31::update()
 	shum /= 0xFFFF;
 	humidity = (float)shum;
 
-	lastTime = millis();
-
 	return true;
 }
-void Sck_SHT31::sendComm(uint16_t comm)
+bool Sck_SHT31::sendComm(uint16_t comm)
 {
 	_Wire->beginTransmission(address);
 	_Wire->write(comm >> 8);
 	_Wire->write(comm & 0xFF);
-	_Wire->endTransmission();
+	if (_Wire->endTransmission() != 0) return false;
+
+	return true;
 }
 uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 {
@@ -419,6 +429,16 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 		}
 	}
 	return crc;
+}
+bool Sck_SHT31::getReading()
+{
+	uint8_t tried = retrys;
+	while (tried > 0) {
+		if (update()) return true; 
+		tried--;
+	}
+
+	return false;
 }
 
 // Noise

@@ -219,8 +219,8 @@ void AuxBoards::getReading(OneSensor *wichSensor, SckBase *base)
 		case SENSOR_EXT_PN_10: 			wichSensor->reading = String(pmSensor.getReading(SLOT_AVG, wichSensor->type)); return;
 		case SENSOR_PM_DALLAS_TEMP: 		wichSensor->reading = String(pmDallasTemp.getReading()); return;
 		case SENSOR_DALLAS_TEMP: 		if (dallasTemp.getReading()) 			{ wichSensor->reading = String(dallasTemp.reading); return; } break;
-		case SENSOR_SHT31_TEMP: 		if (sht31.update()) 				{ wichSensor->reading = String(sht31.temperature); return; } break;
-		case SENSOR_SHT31_HUM: 			if (sht31.update()) 				{ wichSensor->reading = String(sht31.humidity); return; } break;
+		case SENSOR_SHT31_TEMP: 		if (sht31.getReading()) 				{ wichSensor->reading = String(sht31.temperature); return; } break;
+		case SENSOR_SHT31_HUM: 			if (sht31.getReading()) 				{ wichSensor->reading = String(sht31.humidity); return; } break;
 		case SENSOR_RANGE_DISTANCE: 		if (range.getReading(SENSOR_RANGE_DISTANCE)) 	{ wichSensor->reading = String(range.readingDistance); return; } break;
 		case SENSOR_RANGE_LIGHT: 		if (range.getReading(SENSOR_RANGE_LIGHT)) 	{ wichSensor->reading = String(range.readingLight); return; } break;
 		case SENSOR_BME680_TEMPERATURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.temperature); return; } break;

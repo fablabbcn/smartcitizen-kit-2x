@@ -30,7 +30,6 @@ class SckList
 		// Flash memory
 		SPIFlash flash = SPIFlash(pinCS_FLASH);
 		bool flashStarted = false;
-		bool flashSleeping = false;
 		void flashSelect(); 			// Choose between sdcard or flash memory on SPI bus (this needs to be called before using flash)
 		void migrateToFlash(); 			// When RAM buff is full we migrate all stored readings to flash until we are able to publish and empty the buffer.
 
@@ -63,7 +62,7 @@ class SckList
 
 		bool debug = false;
 		void flashStart();
-		
+
 		bool usingFlash = false;
 
 		bool createGroup(uint32_t timeStamp); 					// Starts a new group, if there is an open gruop it will delete it before.

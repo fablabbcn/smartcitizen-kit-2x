@@ -567,7 +567,7 @@ void config_com(SckBase* base, String parameters)
 			if (pubIntI >= 0) {
 				String pubIntC = parameters.substring(pubIntI+8);
 				uint32_t pubIntV = pubIntC.toInt();
-				if (pubIntV > minimal_publish_interval && pubIntV < max_publish_interval) base->config.publishInterval = pubIntV;
+				if (pubIntV >= minimal_publish_interval && pubIntV <= max_publish_interval) base->config.publishInterval = pubIntV;
 			}
 			uint16_t readIntI = parameters.indexOf("-readint");
 			if (readIntI >= 0) {

@@ -175,9 +175,8 @@ bool Sck_BH1730FVC::stop()
 
 	return true;
 }
-bool Sck_BH1730FVC::get()
+bool Sck_BH1730FVC::updateValues()
 {
-
 	// Datasheet http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1730fvc-e.pdf
 
 	// 0x00 register - CONTROL
@@ -197,7 +196,7 @@ bool Sck_BH1730FVC::get()
 	// 			1:ADC power on.
 
 	// 0x01 register - TIMMING
-	uint8_t ITIME0  = 0xDA;
+	// uint8_t ITIME  = 0xDA; 	// Datasheet default value (218 DEC)
 
 	// 00h: Start / Stop of measurement is set by special command. (ADC manual integration mode)
 	// 01h to FFh: Integration time is determined by ITIME value (defaultt is oxDA)
@@ -234,7 +233,7 @@ bool Sck_BH1730FVC::get()
 	//	  X10 : x64 gain mode
 	//	  X11 : x128 gain mode
 
-	uint8_t DATA[8] = {CONTROL, ITIME0, INTERRUPT, TH_LOW0, TH_LOW1, TH_UP0, TH_UP1, GAIN};
+	uint8_t DATA[8] = {CONTROL, ITIME, INTERRUPT, TH_LOW0, TH_LOW1, TH_UP0, TH_UP1, GAIN};
 
 	// Send Configuration
 	Wire.beginTransmission(address);
@@ -242,10 +241,9 @@ bool Sck_BH1730FVC::get()
 	for (int i= 0; i<8; i++) Wire.write(DATA[i]);
 	Wire.endTransmission();
 
-
-	float Tint = 2.8; 						// Internal Clock Period (datasheet page 4 --> 2.8 typ -- 4.0 max)
-	float ITIME_ms = (Tint * 964 * (256 - ITIME0)) / 1000; 		// Integration Time (datasheet page 9)
-	float Tmt =  ITIME_ms + (Tint * 714); 				// Measurement time (datasheet page 9)
+	// Calculate timming values
+	ITIME_ms = (Tint * 964 * (256 - ITIME)) / 1000;
+	Tmt =  ITIME_ms + (Tint * 714);
 
 	// Wait for ADC to finish
 	uint32_t started = millis();
@@ -263,7 +261,6 @@ bool Sck_BH1730FVC::get()
 		}
 	}
 
-
 	// Ask for reading
 	Wire.beginTransmission(address);
 	Wire.write(0x94);
@@ -277,21 +274,50 @@ bool Sck_BH1730FVC::get()
 	IDATA0 = IDATA0 | (Wire.read()<<8);
 	IDATA1 = Wire.read();
 	IDATA1 = IDATA1 | (Wire.read()<<8);
-	float DATA0 = (float)IDATA0;
-	float DATA1 = (float)IDATA1;
+	DATA0 = (float)IDATA0;
+	DATA1 = (float)IDATA1;
 
 	// Setup gain
-	uint8_t Gain = 1;
+	Gain = 1;
 	if (GAIN == 0x01) Gain = 2;
 	else if (GAIN == 0x02) Gain = 64;
 	else if (GAIN == 0x03) Gain = 128;
 
+	return true;
+}
+bool Sck_BH1730FVC::get()
+{
+	// Start in the default integration time
+	ITIME = 218;
+
+	if (!updateValues()) return false;
+
+	// Adjust the Integration Time (ITIME)
+	for (uint8_t i=0; i<6; i++) {
+
+		if (DATA0 > goUp || DATA1 > goUp) {
+			ITIME += (((ITIME_max - ITIME) / 2) + 1);
+			if (ITIME > 250) ITIME = ITIME_max;
+
+			if (debug) {
+				SerialUSB.print(DATA0);
+				SerialUSB.print(" -- ");
+				SerialUSB.print(DATA1);
+				SerialUSB.print(" >> ");
+				SerialUSB.println(ITIME);
+			}
+		} else break;
+
+		if (!updateValues()) return false;
+	}
+
+	// Lux calculation (Datasheet page 13)
 	float Lx = 0;
-	if (DATA0 !=0) {
-		if (DATA1/DATA0 < 0.26) Lx = (1.290 * DATA0 - 2.733 * DATA1) / Gain * 102.6 / ITIME_ms;
-		else if (DATA1/DATA0 < 0.55) Lx = (0.795 * DATA0 - 0.859 * DATA1) / Gain * 102.6 / ITIME_ms;
-		else if (DATA1/DATA0 < 1.09) Lx = (0.510 * DATA0 - 0.345 * DATA1) / Gain * 102.6 / ITIME_ms;
-		else if (DATA1/DATA0 < 2.13) Lx = (0.276 * DATA0 - 0.130 * DATA1) / Gain * 102.6 / ITIME_ms;
+	if (DATA0 > 0 && DATA1 > 0) {
+		if (DATA1/DATA0 < 0.26) Lx = ((1.290 * DATA0 - 2.733 * DATA1) / Gain) * (102.6 / ITIME_ms);
+		else if (DATA1/DATA0 < 0.55) Lx = ((0.795 * DATA0 - 0.859 * DATA1) / Gain) * (102.6 / ITIME_ms);
+		else if (DATA1/DATA0 < 1.09) Lx = ((0.510 * DATA0 - 0.345 * DATA1) / Gain) * (102.6 / ITIME_ms);
+		else if (DATA1/DATA0 < 2.13) Lx = ((0.276 * DATA0 - 0.130 * DATA1) / Gain) * (102.6 / ITIME_ms);
 		else Lx = 0;
 	}
 
@@ -309,6 +335,8 @@ bool Sck_BH1730FVC::get()
 		SerialUSB.println(DATA0);
 		SerialUSB.print("Infrared Light DATA1: ");
 		SerialUSB.println(DATA1);
+		SerialUSB.print("Calculated Lux: ");
+		SerialUSB.println(Lx);
 	}
 
 	stop();
@@ -434,7 +462,7 @@ bool Sck_SHT31::getReading()
 {
 	uint8_t tried = retrys;
 	while (tried > 0) {
-		if (update()) return true; 
+		if (update()) return true;
 		tried--;
 	}
 

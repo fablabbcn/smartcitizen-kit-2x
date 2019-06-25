@@ -61,15 +61,15 @@ And the files are under *esp/build_data*
 
 #### Starting frontend development
 
-Inside the ./mock-api folder do:
+Inside the `./mock-api` folder do:
 
 1. `npm install`
 
 1. `npm run web` - Starts frontend on [localhost:8000](http://localhost:8000)
 
-1. `npm run api` - Starts api on [localhost:3000](http://localhost:3000)
+1. `npm run api` - Starts a "mock-api" which emulates the Firmware API on [localhost:3000](http://localhost:3000)
 
-1. `gulp watch` - Watches changes and creates 2 files automatically; `final.html` and `index.gz`
+1. `gulp` - Watches changes and creates some files automatically, like: `index.html` and `index.gz`
 
 Now you can start editing **esp/build_data/build_index.html**
 

@@ -17,6 +17,9 @@ void SckTest::test_full()
 	testBase->enableSensor(SENSOR_PM_25);
 	testBase->enableSensor(SENSOR_PM_10);
 
+	// Change CCS811 drive mode to update every second
+	testBase->urban.sck_ccs811.setDriveMode(1);
+
 	// Make sure al results are 0
 	for (uint8_t i=0; i<TEST_COUNT; i++) {
 		test_report.tests[i] = 0;

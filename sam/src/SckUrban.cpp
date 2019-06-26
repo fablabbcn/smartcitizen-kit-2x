@@ -1099,5 +1099,9 @@ bool Sck_CCS811::setBaseline(uint16_t wichBaseline)
 	if (ccs.setBaseline(wichBaseline) != ccs.SENSOR_SUCCESS); return false;
 	return true;
 }
-
+bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
+{
+	if (ccs.setDriveMode(wichDrivemode) != CCS811Core::SENSOR_SUCCESS) return false;
+	return true;
+}
 

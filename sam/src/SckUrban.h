@@ -231,6 +231,7 @@ class Sck_CCS811
 		bool getReading(SckBase *base);
 		uint16_t getBaseline();
 		bool setBaseline(uint16_t wichBaseline);
+		bool setDriveMode(uint8_t wichDrivemode);
 
 		bool debug = false;
 		bool compensate = true; 	// Compensation is for both sensors or none

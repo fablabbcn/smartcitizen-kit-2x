@@ -1029,11 +1029,11 @@ bool Sck_CCS811::getReading(SckBase *base)
 	if (millis() - lastReadingMill < 5000) return true; // This prevents getting different updates for ECO2 and VOCS
 
 	if (!ccs.dataAvailable()) {
-		uint8_t Uinterval = 60000; 	// Interval between sensor update (ms)
+		uint32_t Uinterval = 60000; 	// Interval between sensor update (ms)
 		switch (driveMode) {
-			case 1: Uinterval = 1000;
-			case 2: Uinterval = 10000;
-			case 3: Uinterval = 60000;
+			case 1: Uinterval = 1000; break;
+			case 2: Uinterval = 10000; break;
+			case 3: Uinterval = 60000; break;
 		}
 
 		if (millis() - lastReadingMill < Uinterval) return true;  // We will use last reading because  sensor is not programmed to givo us readings so often

@@ -8,7 +8,7 @@ var gfi  = require('gulp-file-insert');
 var rename = require('gulp-rename');
 var livereload = require('gulp-livereload');
 // favicon lib has not been updated in 3 years, needs to support Gulp 4
-//var favicon = require('gulp-base64-favicon');
+var favicon = require('gulp-base64-favicon');
 var fs = require('fs');
 var del = require('del');
 
@@ -18,7 +18,7 @@ var del = require('del');
 function compress(cb){
   log('compressing..')
   gulp.src('../esp/build_data/build_index.html')
-  //.pipe(favicon("../esp/build_data"))
+    .pipe(favicon("../esp/build_data"))
     .pipe(gfi({
       '/* inject css.css */': '../esp/build_data/css.css',
       '// inject vue.min.js': '../esp/build_data/vue.min.js',

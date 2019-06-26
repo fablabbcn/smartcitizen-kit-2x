@@ -216,7 +216,8 @@ class Sck_PM
 // VOC ans ECO2 - CCS811
 class Sck_CCS811
 {
-	// TODO review  the utility of baseline on datasheet and implement cotrol interface if needed
+	// Datasheet https://ams.com/documents/20143/36005/CCS811_DS000459_7-00.pdf/3cfdaea5-b602-fe28-1a14-18776b61a35a
+	// TODO review  the utility of baseline on datasheet and implement control interface if needed
 	// TODO check consumption and quality in different drive modes: 1 sec [default], 10 sec, 60 sec or 0.25 sec (RAW mode)
 
 	public:
@@ -231,6 +232,7 @@ class Sck_CCS811
 		uint16_t getBaseline();
 		bool setBaseline(uint16_t wichBaseline);
 
+		bool debug = false;
 		bool compensate = true; 	// Compensation is for both sensors or none
 		float VOCgas;
 		float ECO2gas;

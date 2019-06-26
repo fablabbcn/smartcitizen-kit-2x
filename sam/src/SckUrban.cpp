@@ -1025,8 +1025,18 @@ bool Sck_CCS811::getReading(SckBase *base)
 {
 	if (!alreadyStarted) start();
 	uint32_t rtcNow = rtc->getEpoch();
-	if (((startTime == 0) || ((rtcNow - startTime) < warmingTime)) && !base->inTest) return false;
-	if (millis() - lastReadingMill < 5000) return true; // This prevents getting different updates for ECO2 and VOCS
+	if (((startTime == 0) || ((rtcNow - startTime) < warmingTime)) && !base->inTest) {
+		if (debug) {
+			SerialUSB.println("CCS811: in warming period!!");
+			SerialUSB.print("CCS811: Readings will be ready in (sec): ");
+			SerialUSB.println(warmingTime - (rtcNow - startTime));
+		}
+		return false;
+	}
+	if (millis() - lastReadingMill < 5000) {
+		if (debug) SerialUSB.println("CCS811: (not enough time passed)");
+		return true; // This prevents getting different updates for ECO2 and VOCS
+	}
 
 	if (!ccs.dataAvailable()) {
 		uint32_t Uinterval = 60000; 	// Interval between sensor update (ms)
@@ -1036,7 +1046,16 @@ bool Sck_CCS811::getReading(SckBase *base)
 			case 3: Uinterval = 60000; break;
 		}
 
-		if (millis() - lastReadingMill < Uinterval) return true;  // We will use last reading because  sensor is not programmed to givo us readings so often
+		if (debug) {
+			SerialUSB.print("CCS811: Drivemode interval (ms): ");
+			SerialUSB.println(Uinterval);
+		}
+
+		if (millis() - lastReadingMill < Uinterval) {
+			if (debug) SerialUSB.println("CCS811: using old readings (not enough time passed)");
+			return true;  // We will use last reading because  sensor is not programmed to give us readings so often
+		}
+		if (debug) SerialUSB.println("CCS811: ERROR obtaining reading!!");
 		return false;
 	}
 
@@ -1052,9 +1071,16 @@ bool Sck_CCS811::getReading(SckBase *base)
 			base->getReading(&base->sensors[SENSOR_HUMIDITY]);
 			base->getReading(&base->sensors[SENSOR_TEMPERATURE]);
 			if (base->sensors[SENSOR_HUMIDITY].state == 0 && base->sensors[SENSOR_TEMPERATURE].state == 0) {
+				if (debug) SerialUSB.println("CCS811: Compensating readings with temp/hum");
 				ccs.setEnvironmentalData(base->sensors[SENSOR_HUMIDITY].reading.toFloat(), base->sensors[SENSOR_TEMPERATURE].reading.toFloat());
+			} else {
+				if (debug) SerialUSB.println("CCS811: Compensation failed Error obtaining temp/hum readings!!");
 			}
+		} else {
+			if (debug) SerialUSB.println("CCS811: temp/hum compensation failed, some sensors are disabled");
 		}
+	} else {
+		if (debug) SerialUSB.println("CCS811: temp/hum compensation is disabled!");
 	}
 	return true;
 }

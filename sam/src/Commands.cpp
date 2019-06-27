@@ -587,6 +587,8 @@ void config_com(SckBase* base, String parameters)
 				}
 				if (parameters.substring(third + 1, fourth).length() > 0) {
 					parameters.substring(third + 1, fourth).toCharArray(base->config.credentials.pass, 64);
+				} else {
+					strncpy(base->config.credentials.pass, "", 64);
 				}
 			}
 			uint16_t tokenI = parameters.indexOf("-token");

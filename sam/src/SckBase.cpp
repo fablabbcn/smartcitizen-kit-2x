@@ -1888,12 +1888,21 @@ bool SckBase::sdPublish()
 // **** Time
 bool SckBase::setTime(String epoch)
 {
-	uint32_t wasOn = rtc.getEpoch() - espStarted;
+	// Keep track of time passed before updating clock
+	uint32_t timeSinceLastUpdate = rtc.getEpoch() - lastSensorUpdate;
+	uint32_t timeSinceLastPublish = rtc.getEpoch() - lastPublishTime;
+	uint32_t timeSinceEspStarted = rtc.getEpoch() - espStarted;
+
 	rtc.setEpoch(epoch.toInt());
 	if (abs(rtc.getEpoch() - epoch.toInt()) < 2) {
 		timeSyncAfterBoot = true;
 		st.timeStat.setOk();
-		espStarted = rtc.getEpoch() - wasOn;
+
+		// Adjust variables after updating clock
+		lastSensorUpdate = rtc.getEpoch() - timeSinceLastUpdate;
+		lastPublishTime = rtc.getEpoch() - timeSinceLastPublish;
+		espStarted = rtc.getEpoch() - timeSinceEspStarted;
+
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
 		sckOut();

@@ -193,6 +193,11 @@ var app = new Vue({
 
     },
 
+    checkIfTokenIsValid(){
+      if (this.usertoken.length === 6) {
+        this.gotoPage();
+      }
+    },
     gotoPage: function(num){
 
       // Keep lastPage in memory

@@ -83,15 +83,28 @@
         <div v-show='page[1].visible'>
           <h4>Device key</h4>
           <div class="field-token">
-            <label>Token</label>
-            <input name="token" autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false' type="text" maxlength="6" v-model='usertoken' minlength="6" placeholder="6 letters">
+            <label>Token: <b>{{usertoken}}</b></label>
+            <input
+              name="token"
+              autocomplete='off'
+              autocorrect='off'
+              autocapitalize='off'
+              spellcheck='false'
+              type="text"
+              maxlength="6"
+              v-model='usertoken'
+              minlength="6"
+              placeholder="6 letters"
+              >
           </div>
           <div style="height:20px; margin-top:10px;">
+            <!--
             <p v-show='!usertokenCheck' style="margin:0;">
             {{ 6 - usertoken.length }} letters missing.
             </p>
+            -->
           </div>
-          <button class="btn next" v-bind:class="{ 'bg-yellow': usertokenCheck }" type="button" :disabled=!usertokenCheck v-on:click='gotoPage()'>Next</button>
+          <button class="btn next bg-yellow" type="button" v-on:click='checkIfTokenIsValid()'>Next</button>
         </div>
 
         <div v-show='page[2].visible'>
@@ -795,6 +808,11 @@ var app = new Vue({
 
     },
 
+    checkIfTokenIsValid(){
+      if (this.usertoken.length === 6) {
+        this.gotoPage();
+      }
+    },
     gotoPage: function(num){
 
       // Keep lastPage in memory

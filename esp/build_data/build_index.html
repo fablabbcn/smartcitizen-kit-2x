@@ -103,6 +103,7 @@
             {{ 6 - usertoken.length }} letters missing.
             </p>
             -->
+            <p class="text-red"> {{ this.usertokenError }} </p>
           </div>
           <button class="btn next bg-yellow" type="button" v-on:click='checkIfTokenIsValid()'>Next</button>
         </div>

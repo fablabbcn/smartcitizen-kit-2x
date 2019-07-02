@@ -103,6 +103,7 @@
             {{ 6 - usertoken.length }} letters missing.
             </p>
             -->
+            <p class="text-red"> {{ this.usertokenError }} </p>
           </div>
           <button class="btn next bg-yellow" type="button" v-on:click='checkIfTokenIsValid()'>Next</button>
         </div>
@@ -653,6 +654,7 @@ var app = new Vue({
     showSdCard: false,
     theApi: window.location.protocol + '//' + window.location.host + '/',
     usertoken: '',
+    usertokenError: '',
     version: 'SCK 2.0 / SAM V0.0.2 / ESP V0.0.2',
     vueVersion: Vue.version,
     weHaveTriedConnecting: false,
@@ -811,6 +813,8 @@ var app = new Vue({
     checkIfTokenIsValid(){
       if (this.usertoken.length === 6) {
         this.gotoPage();
+      }else{
+        this.usertokenError = 'You need exactly 6 characters'
       }
     },
     gotoPage: function(num){

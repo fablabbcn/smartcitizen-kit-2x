@@ -1,8 +1,6 @@
 *node_modules
 mock-api/*.png
 npm-debug.log
-inventory.csv*
-secret.py*
 bin/
 
 # MAC stuff

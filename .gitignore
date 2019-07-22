@@ -3,6 +3,7 @@ mock-api/*.png
 npm-debug.log
 inventory.csv*
 secret.py*
+bin/
 
 # MAC stuff
 */.DS_Store

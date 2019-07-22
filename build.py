@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys, time, os
+import subprocess
 sys.path.append("./tools")
 
 def ERROR(msg=''):
@@ -31,18 +32,19 @@ def enablePrint():
     sys.stdout = sys.__stdout__
 
 
-if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv:
+if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv or len(sys.argv) < 2 or (not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv):
+    if not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv:
+        print('\nYou need to specify at least one action!!!\n')
     print('USAGE:\n\nbuild.py [options] action[s] target[s]')
     print('\noptions: -v: verbose -k: keep configuration')
-    print('actions: build, flash, register, inventory')
+    print('actions: boot (only for sam), build, flash')
     print('targets: sam, esp')
-    print('\nFor bootloader flashing you still need to use the old script build.sh')
     sys.exit()
 
 import sck
 kit = sck.sck()
 
-if 'flash' in sys.argv or 'register' in sys.argv:
+if 'flash' in sys.argv :
     kit.begin() 
     if '-k' in sys.argv: 
         kit.getConfig()
@@ -62,6 +64,25 @@ if '-v' in sys.argv:
     verbose = True
     enablePrint()
 
+if 'erase' in sys.argv:
+    print('Erasing ESP flash...')
+    kit.eraseESP()
+
+if 'boot' in sys.argv:
+    oneLine('Flashing SAM bootloader...')
+    os.chdir('bootloader/uf2-samdx1')
+    make_bootloader = subprocess.call(['make'], stdout=sys.stdout, stderr=subprocess.STDOUT)
+    if make_bootloader == 0:
+        openocd = subprocess.call(['openocd', '-f', 'openocd_sck2_SAMICE.cfg'], stdout=sys.stdout, stderr=subprocess.STDOUT)
+        if openocd != 0:
+            ERROR("Failed flashing SCK bootloader!!!\nDo you have openocd executable in your path???");
+        else:
+            OK()
+    else:
+        ERROR('Failed building SCK bootloader!!!')
+    os.chdir('../..')
+
+
 if 'build' in sys.argv:
     if 'sam' in sys.argv or 'all' in sys.argv:
         oneLine('Building SAM firmware... ')
@@ -75,6 +96,11 @@ if 'build' in sys.argv:
 
 
 if 'flash' in sys.argv:
+    if not 'build' in sys.argv:
+        if not verbose: enablePrint()
+        print('\nWARNING: No build instruction received, trying to flash previous built firmware...')
+        if not verbose: blockPrint()
+
     if 'sam' in sys.argv or 'all' in sys.argv:
         time.sleep(1)
         oneLine('Flashing SAM firmware...')
@@ -104,8 +130,3 @@ if 'flash' in sys.argv:
         elif 'sdcard' in kit.mode: 
             if kit.sdConfig(): OK()
             else: ERROR()
-
-if 'erase' in sys.argv:
-    print('Erasing ESP flash...')
-    kit.eraseESP()
-

@@ -24,6 +24,8 @@ class sck:
     paths['base'] = subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).rstrip()
     paths['binFolder'] = os.path.join(str(paths['base']), 'bin')
     paths['esptoolPy'] = os.path.join(str(paths['base']), 'tools', 'esptool.py')
+    if not os.path.exists(paths['binFolder']):
+        os.makedirs(paths['binFolder'])
     os.chdir('esp')
     paths['pioHome'] = [s.split()[1].strip(',').strip("'") for s in subprocess.check_output(['pio', 'run', '-t', 'envdump']).split('\n') if "'PIOHOME_DIR'" in s][0]
     os.chdir(paths['base'])

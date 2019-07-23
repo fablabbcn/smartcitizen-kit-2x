@@ -4,17 +4,35 @@ bool SckList::append(char value)
 {
 	// Writes value and updates de index
 	if (write(index_RAM, value)) index_RAM++;
-	else return false;
+	else {
+		debugOut("Failed appending in RAM", true);
+		return false;
+	}
 
 	return true;
 }
 bool SckList::write(uint32_t wichIndex, char value)
 {
-	if (wichIndex < SCKLIST_RAM_SIZE)  ramBuff[wichIndex] = value;
-	else {
-		// This will move al closed groups to flash and release RAM space
+	// aqui hay un problema:
+	// cuando el ram este lleno mandamos migrate to flash pero el grupo que se esta salvando justo ahora esta incompleto...
+	//
+	//
+	
+
+	if (wichIndex == SCKLIST_RAM_SIZE) {
+
+		// Aqui tengo que conservar temporalmente el grupo que no se ha terminado para poder hacer la migracion a flash
+
 		if (!usingFlash) migrateToFlash();
-	}
+
+	} else ramBuff[wichIndex] = value;
+
+	/* if (wichIndex < SCKLIST_RAM_SIZE) ramBuff[wichIndex] = value; */
+	/* else { */
+	/* 	// This will move all closed groups to flash and release RAM space */
+	/* 	if (!usingFlash) migrateToFlash(); */
+	/* } */
+
 	return true;
 }
 char SckList::read(uint32_t wichIndex)
@@ -91,6 +109,7 @@ uint16_t SckList::readGroupSize(uint32_t rightGroupIndex)
 }
 bool SckList::createGroup(uint32_t timeStamp)
 {
+	debugOut("Creating new reading group");
 	bool error = false;
 
 	// Check if there is an open group and delete it
@@ -105,6 +124,7 @@ bool SckList::createGroup(uint32_t timeStamp)
 	for (int8_t i=3; i>=0; i--) if (!append(uTimeStamp.b[i])) error = true; // The timestamp byte per byte
 
 	if (error) {
+		debugOut("Failed creting reading group", true);
 		index_RAM = preErrorIndex;
 		return false;
 	}
@@ -116,7 +136,10 @@ bool SckList::saveLastGroup()
 	debugOut("Saving last group");
 
 	// If last created group has no readings return false
-	if (lastGroupRightIndex + 6 == index_RAM) return false;
+	if (lastGroupRightIndex + 6 == index_RAM) {
+		debugOut("No readings found", true);
+		return false;
+	}
 
 	// Init tags in 1 for all
 	byte byteFlags = 0xFF;
@@ -126,24 +149,10 @@ bool SckList::saveLastGroup()
 	// Save group size
 	uGroupSize.i = index_RAM - lastGroupRightIndex + 2; // Group size in bytes (including this last two bytes that are going to be filled now)
 
-	if (debug) {
-		SerialUSB.print("Current index: ");
-		SerialUSB.println(index_RAM);
-		SerialUSB.print("last Group Right index: ");
-		SerialUSB.println(lastGroupRightIndex);
-		SerialUSB.print("Saved group size is: ");
-		SerialUSB.println(uGroupSize.i);
-	}
-
 	if (!append(uGroupSize.b[1])) return false;
 	if (!append(uGroupSize.b[0])) return false;
 
 	totalGroups_RAM++;
-
-	if (debug) {
-		SerialUSB.print("Total groups: ");
-		SerialUSB.println(totalGroups_RAM);
-	}
 
 	lastGroupRightIndex = index_RAM;
 
@@ -158,8 +167,9 @@ bool SckList::lastGroupIsOpen()
 }
 bool SckList::delLastGroup()
 {
-	if (totalGroups_RAM == 0) return false;
+	debugOut("Deleting last group");
 
+	if (totalGroups_RAM == 0) return false;
 
 	// If last group is open we need to move it to the new end
 	if (lastGroupIsOpen()) {
@@ -167,7 +177,7 @@ bool SckList::delLastGroup()
 		uint32_t openGroupEndIndex = 0;
 		uint32_t openGroupStartIndex = 0;
 
-		debugOut("The last group is open!!");
+		debugOut("The last group is open!");
 
 		openGroupEndIndex = index_RAM;
 		openGroupStartIndex = lastGroupRightIndex;
@@ -191,18 +201,15 @@ bool SckList::delLastGroup()
 	totalGroups_RAM--;
 
 	// After deleting the last group if we are using flash we should return to RAM
-	if (totalGroups_RAM == 0 && usingFlash) usingFlash = false;
+	if (totalGroups_RAM == 0 && usingFlash) {
+		debugOut("Memory is empty, returning to RAM");
+		usingFlash = false;
+	}
 
 	return true;
 }
 uint32_t SckList::countGroups()
 {
-	if (debug) {
-		SerialUSB.print("RAM groups: ");
-		SerialUSB.println(totalGroups_RAM);
-		SerialUSB.print("Flash groups: ");
-		SerialUSB.println(totalGroups_flash);
-	}
 	return totalGroups_RAM + totalGroups_flash;
 }
 uint32_t SckList::getTime(uint32_t wichGroup)
@@ -356,6 +363,7 @@ int8_t SckList::getFlag(uint32_t wichGroup, GroupFlags wichFlag)
 }
 void SckList::flashStart()
 {
+	debugOut("Starting");
 	digitalWrite(pinCS_SDCARD, HIGH);	// disables SDcard
 	digitalWrite(pinCS_FLASH, LOW);
 	flash.begin();
@@ -374,6 +382,7 @@ void SckList::flashStart()
 
 	// If no current sector found, we format the flash and start from scratch
 	if (currSector == -1) {
+		debugOut("Memory is not formated or damaged!!", true)
 		if (fstatus.fullSecCount == 0) {
 			flashFormat();
 			return;
@@ -384,6 +393,7 @@ void SckList::flashStart()
 	// Check if we have any valid readings in flash
 	uint16_t currSectorGroupNum = countSectorGroups(currSector);
 	if (fstatus.fullSecCount > 0 || currSectorGroupNum > 0) {
+		debugOut("Founded readings on memory");
 		usingFlash = true;
 	}
 
@@ -409,13 +419,17 @@ void SckList::flashSelect()
 }
 void SckList::migrateToFlash()
 {
+	debugOut("RAM is full migrating to flash");
 	flashSelect();
 	while (totalGroups_RAM > 0) flashSaveLastGroup();
 	usingFlash = true;
 }
 void SckList::debugOut(const char *text)
 {
-	if (debug) SerialUSB.println(text);
+	if (debug) {
+		SerialUSB.print("FLASH: ");
+		SerialUSB.println(text);
+	}
 }
 uint32_t SckList::getFlashCapacity()
 {
@@ -456,11 +470,18 @@ char SckList::flashRead(uint32_t wichIndex)
 }
 bool SckList::flashFormat()
 {
+	debugOut("Formating");
 	flashSelect();
 
-	if (!flash.eraseChip()) return false;
+	if (!flash.eraseChip()) {
+		debugOut("Failed resing memory", true);
+		return false;
+	}
 
-	if (!flash.writeByte(0, SECTOR_CURRENT)) return false;
+	if (!flash.writeByte(0, SECTOR_CURRENT)) {
+		debugOut("Failed writing on memory", true);
+		return false;
+	}
 
 	fstatus.freeSecCount = SCKLIST_SECTOR_NUM;
 	fstatus.fullSecCount = 0;
@@ -495,6 +516,7 @@ uint16_t SckList::countSectorGroups(uint16_t wichSector)
 }
 bool SckList::flashSaveLastGroup()
 {
+	debugOut("Saving last group to flash");
 	if (lastGroupIsOpen()) saveLastGroup();
 
 	uint16_t groupSize = readGroupSize(totalGroups_RAM);

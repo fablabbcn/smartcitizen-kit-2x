@@ -69,7 +69,7 @@ class SckList
 			uint16_t i;
 		} uGroupSize;
 
-		void debugOut(const char *msg);
+		void debugOut(const char *msg, bool error=false);
 		bool append(char value); 						// Appends a byte at the end of the list
 		bool write(uint32_t wichIndex, char value); 				// Writes a byte on a specific index of the list
 		char read(uint32_t index); 						// Reads a byte of an specific index of the list

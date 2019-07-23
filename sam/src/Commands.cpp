@@ -6,7 +6,7 @@ void AllCommands::in(SckBase* base, String strIn)
 {
 
 	if (strIn.length() <= 0) return;
-	if (strIn.startsWith("zz")) { 
+	if (strIn.startsWith("zz")) {
 		strIn.replace("zz", "");
 		strIn.trim();
 		wildCard(base, strIn);
@@ -171,8 +171,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 				// Enable extra sensors for PM
 				bool extraPrint = false;
 				if (sensorToChange == SENSOR_PM_1 || sensorToChange == SENSOR_PM_25 || sensorToChange == SENSOR_PM_10) {
-					base->sensors[SENSOR_PM_1].enabled = true; 
-					base->sensors[SENSOR_PM_25].enabled = true; 
+					base->sensors[SENSOR_PM_1].enabled = true;
+					base->sensors[SENSOR_PM_25].enabled = true;
 					base->sensors[SENSOR_PM_10].enabled = true;
 					base->sensors[SENSOR_PN_03].enabled = true;
 					base->sensors[SENSOR_PN_05].enabled = true;
@@ -182,8 +182,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_PN_10].enabled = true;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_PM_1 || sensorToChange == SENSOR_EXT_PM_25 || sensorToChange == SENSOR_EXT_PM_10) {
-					base->sensors[SENSOR_EXT_PM_1].enabled = true; 
-					base->sensors[SENSOR_EXT_PM_25].enabled = true; 
+					base->sensors[SENSOR_EXT_PM_1].enabled = true;
+					base->sensors[SENSOR_EXT_PM_25].enabled = true;
 					base->sensors[SENSOR_EXT_PM_10].enabled = true;
 					base->sensors[SENSOR_EXT_PN_03].enabled = true;
 					base->sensors[SENSOR_EXT_PN_05].enabled = true;
@@ -193,8 +193,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_PN_10].enabled = true;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_A_PM_1 || sensorToChange == SENSOR_EXT_A_PM_25 || sensorToChange == SENSOR_EXT_A_PM_10) {
-					base->sensors[SENSOR_EXT_A_PM_1].enabled = true; 
-					base->sensors[SENSOR_EXT_A_PM_25].enabled = true; 
+					base->sensors[SENSOR_EXT_A_PM_1].enabled = true;
+					base->sensors[SENSOR_EXT_A_PM_25].enabled = true;
 					base->sensors[SENSOR_EXT_A_PM_10].enabled = true;
 					base->sensors[SENSOR_EXT_A_PN_03].enabled = true;
 					base->sensors[SENSOR_EXT_A_PN_05].enabled = true;
@@ -204,8 +204,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_A_PN_10].enabled = true;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_B_PM_1 || sensorToChange == SENSOR_EXT_B_PM_25 || sensorToChange == SENSOR_EXT_B_PM_10) {
-					base->sensors[SENSOR_EXT_B_PM_1].enabled = true; 
-					base->sensors[SENSOR_EXT_B_PM_25].enabled = true; 
+					base->sensors[SENSOR_EXT_B_PM_1].enabled = true;
+					base->sensors[SENSOR_EXT_B_PM_25].enabled = true;
 					base->sensors[SENSOR_EXT_B_PM_10].enabled = true;
 					base->sensors[SENSOR_EXT_B_PN_03].enabled = true;
 					base->sensors[SENSOR_EXT_B_PN_05].enabled = true;
@@ -226,8 +226,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 				// Enable extra sensors for PM
 				bool extraPrint = false;
 				if (sensorToChange == SENSOR_PM_1 || sensorToChange == SENSOR_PM_25 || sensorToChange == SENSOR_PM_10) {
-					base->sensors[SENSOR_PM_1].enabled = false; 
-					base->sensors[SENSOR_PM_25].enabled = false; 
+					base->sensors[SENSOR_PM_1].enabled = false;
+					base->sensors[SENSOR_PM_25].enabled = false;
 					base->sensors[SENSOR_PM_10].enabled = false;
 					base->sensors[SENSOR_PN_03].enabled = false;
 					base->sensors[SENSOR_PN_05].enabled = false;
@@ -237,8 +237,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_PN_10].enabled = false;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_PM_1 || sensorToChange == SENSOR_EXT_PM_25 || sensorToChange == SENSOR_EXT_PM_10) {
-					base->sensors[SENSOR_EXT_PM_1].enabled = false; 
-					base->sensors[SENSOR_EXT_PM_25].enabled = false; 
+					base->sensors[SENSOR_EXT_PM_1].enabled = false;
+					base->sensors[SENSOR_EXT_PM_25].enabled = false;
 					base->sensors[SENSOR_EXT_PM_10].enabled = false;
 					base->sensors[SENSOR_EXT_PN_03].enabled = false;
 					base->sensors[SENSOR_EXT_PN_05].enabled = false;
@@ -248,8 +248,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_PN_10].enabled = false;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_A_PM_1 || sensorToChange == SENSOR_EXT_A_PM_25 || sensorToChange == SENSOR_EXT_A_PM_10) {
-					base->sensors[SENSOR_EXT_A_PM_1].enabled = false; 
-					base->sensors[SENSOR_EXT_A_PM_25].enabled = false; 
+					base->sensors[SENSOR_EXT_A_PM_1].enabled = false;
+					base->sensors[SENSOR_EXT_A_PM_25].enabled = false;
 					base->sensors[SENSOR_EXT_A_PM_10].enabled = false;
 					base->sensors[SENSOR_EXT_A_PN_03].enabled = false;
 					base->sensors[SENSOR_EXT_A_PN_05].enabled = false;
@@ -259,8 +259,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sensors[SENSOR_EXT_A_PN_10].enabled = false;
 					extraPrint = true;
 				} else if (sensorToChange == SENSOR_EXT_B_PM_1 || sensorToChange == SENSOR_EXT_B_PM_25 || sensorToChange == SENSOR_EXT_B_PM_10) {
-					base->sensors[SENSOR_EXT_B_PM_1].enabled = false; 
-					base->sensors[SENSOR_EXT_B_PM_25].enabled = false; 
+					base->sensors[SENSOR_EXT_B_PM_1].enabled = false;
+					base->sensors[SENSOR_EXT_B_PM_25].enabled = false;
 					base->sensors[SENSOR_EXT_B_PM_10].enabled = false;
 					base->sensors[SENSOR_EXT_B_PN_03].enabled = false;
 					base->sensors[SENSOR_EXT_B_PN_05].enabled = false;
@@ -309,7 +309,7 @@ void readSensor_com(SckBase* base, String parameters)
 }
 void controlSensor_com(SckBase* base, String parameters)
 {
-  	SensorType wichSensor = base->sensors.getTypeFromString(parameters);
+	SensorType wichSensor = base->sensors.getTypeFromString(parameters);
 
 	if (parameters.length() < 1) {
 		base->sckOut("ERROR No command received!! please try again...");
@@ -420,7 +420,7 @@ void readings_com(SckBase* base, String parameters)
 	uint32_t savedGroups = base->readingsList.countGroups();
 
 	if (savedGroups <= 0) {
-		base->sckOut("No readings stored on memory"); 
+		base->sckOut("No readings stored on memory");
 		return;
 	}
 
@@ -447,6 +447,27 @@ void readings_com(SckBase* base, String parameters)
 
 	// TODO code for -publish option
 	/* base->publish(); */
+}
+void flash_com(SckBase* base, String parameters)
+{
+	if (parameters.indexOf("-format") >=0) {
+		base->sckOut("Formating... be patient, don't tuen off your kit!");
+		if (base->readingsList.flashFormat()) {
+			base->sckOut("Flash memory formated OK");
+		} else {
+			base->sckOut("ERROR: Something went wrong!!!");
+			return;
+		}
+	}
+
+	sprintf(base->outBuff, "Flash memory capacity: %u kB (%u reserved)", base->readingsList.getFlashCapacity()/1024, SCKLIST_RESERVED_SECTOR_COUNT*SECTOR_SIZE);
+	base->sckOut();
+	sprintf(base->outBuff, "%u kB used", base->readingsList.fstatus.fullSecCount*4);
+	base->sckOut();
+	sprintf(base->outBuff, "%u kB free", base->readingsList.fstatus.freeSecCount*4);
+	base->sckOut();
+	sprintf(base->outBuff, "%u kB filled with published readings", base->readingsList.fstatus.trashSecCount*4);
+	base->sckOut();
 }
 extern "C" char *sbrk(int i);
 void freeRAM_com(SckBase* base, String parameters)
@@ -527,10 +548,10 @@ void charger_com(SckBase* base, String parameters)
 
 		sprintf(base->outBuff, "Battery lower than %0.2f: %s", base->charger.sysMinVolt(), base->charger.getBatLowerSysMin() ? "true" : "false");
 		base->sckOut();
-		
+
 	// Set
 	} else {
-	
+
 		uint16_t chargeI = parameters.indexOf("-charge");
 		if (chargeI >=0) {
 			String chargeC = parameters.substring(chargeI+8);
@@ -655,7 +676,7 @@ void time_com(SckBase* base, String parameters)
 			base->sendMessage(ESPMES_GET_TIME, "");
 		}
 	}
-	
+
 	// Force sync
 	if (parameters.equals("-sync")) {
 		if (!base->st.espON) {
@@ -700,7 +721,7 @@ void debug_com(SckBase* base, String parameters)
 			base->sckOut();
 		}
 
-	// Get	
+	// Get
 	} else {
 		sprintf(base->outBuff, "SD card debug: %s", base->config.sdDebug ? "true" : "false");
 		base->sckOut();
@@ -719,7 +740,7 @@ void shell_com(SckBase* base, String parameters)
 			base->led.update(base->led.YELLOW, base->led.PULSE_STATIC);
 		} else if (parameters.equals("-off")) {
 			base->st.onShell = false;
-		}	
+		}
 	}
 	sprintf(base->outBuff, "Shell mode: %s", base->st.onShell ? "on" : "off");
 	base->sckOut();

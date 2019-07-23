@@ -21,6 +21,7 @@ enum CommandType {
 	COM_CONTROL_SENSOR,
 	COM_MONITOR_SENSOR,
 	COM_READINGS,
+	COM_FLASH,
 	COM_GET_FREERAM,
 	COM_I2C_DETECT,
 	COM_CHARGER,
@@ -49,6 +50,7 @@ void readSensor_com(SckBase* base, String parameters);
 void controlSensor_com(SckBase* base, String parameters);
 void monitorSensor_com(SckBase* base, String parameters);
 void readings_com(SckBase* base, String parameters);
+void flash_com(SckBase* base, String parameters);
 void freeRAM_com(SckBase* base, String parameters);
 void i2cDetect_com(SckBase* base, String parameters);
 void charger_com(SckBase* base, String parameters);
@@ -98,7 +100,8 @@ class AllCommands {
 			OneCom {90,	COM_READ_SENSOR,	"read",		"Reads sensor [sensorName]",														readSensor_com},
 			OneCom {90,	COM_CONTROL_SENSOR,	"control",	"Control sensor [sensorName] [command]",												controlSensor_com},
 			OneCom {90,	COM_MONITOR_SENSOR,	"monitor",	"Continously read sensor [-sd] [-notime] [-noms] [sensorName[,sensorNameN]]",								monitorSensor_com},
-			OneCom {90,	COM_READINGS,		"saved",	"Shows locally stored sensor readings [-details] [-publish]",											readings_com},
+			OneCom {90,	COM_READINGS,		"saved",	"Shows locally stored sensor readings [-details] [-publish]",										readings_com},
+			OneCom {90,	COM_FLASH,		"flash",	"Manage and report flash memory state [-format (be carefull)]",											flash_com},
 			OneCom {90,	COM_GET_FREERAM,	"free",		"Shows the amount of free RAM memory",													freeRAM_com},
 			OneCom {90,	COM_I2C_DETECT,		"i2c",		"Search the I2C bus for devices",													i2cDetect_com},
 			OneCom {90,	COM_CHARGER,		"charger",	"Controls or shows charger configuration [-otg on/off] [-charge on/off]",								charger_com},

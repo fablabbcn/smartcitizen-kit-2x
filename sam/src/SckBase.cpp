@@ -74,12 +74,13 @@ void SckBase::setup()
 	pinMode(pinCARD_DETECT, INPUT_PULLUP);
 
 	// SD card
-	SerialUSB.println("Setting up SDcard interrupt");
+	sckOut("Setting up SDcard interrupt");
 	attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
 	sdDetect();
 
 	// Flash storage
-	/* readingsList.flashStart(); */
+	sckOut("Starting flash memory...");
+	readingsList.flashStart();
 
 /* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
 
@@ -1237,7 +1238,7 @@ bool SckBase::sdInit()
 		st.cardPresent = true;
 		st.cardPresentError = false;
 
-		// Check if there is a info file on sdcard 
+		// Check if there is a info file on sdcard
 		if (!sd.exists(infoFile.name)) {
 			infoSaved = false;
 			saveInfo();
@@ -1421,7 +1422,7 @@ void SckBase::updatePower()
 				// Ignore last user event and go to sleep
 				lastUserEvent = millis() - waitAfterLastEvent;
 
-				sleepTime = 60000; 			
+				sleepTime = 60000;
 				// Wake up every minute to check if USB power is back
 				while (!charger.onUSB) {
 					goToSleep();

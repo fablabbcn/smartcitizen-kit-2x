@@ -3,33 +3,17 @@
 bool SckList::append(char value)
 {
 	// Writes value and updates de index
-	if (write(index, value)) index++;
+	if (write(index_RAM, value)) index_RAM++;
 	else return false;
 
 	return true;
 }
 bool SckList::write(uint32_t wichIndex, char value)
 {
-	if (wichIndex < SCKLIST_RAM_SIZE && !usingFlash)  {
-
-		// Use ram to store the value
-		ramBuff[wichIndex] = value;
-
-	} else {
-
-		return false;
-
-		// TODO finish flash support and enable this
-
-		// If we haven't yet, move RAM readings to flash and update the index
-		/* if (!usingFlash) migrateToFlash(); */
-
-		// Use flash to store the value
-		/* flashSelect(); */
-		/* if (!flash.writeByte(wichIndex, value)) return false; */
-
-		// TODO
-		// Whe migrating to flash do a sector scan to see where to start putting readings
+	if (wichIndex < SCKLIST_RAM_SIZE)  ramBuff[wichIndex] = value;
+	else {
+		// This will move al closed groups to flash and release RAM space
+		if (!usingFlash) migrateToFlash();
 	}
 	return true;
 }
@@ -50,7 +34,7 @@ char SckList::read(uint32_t wichIndex)
 }
 uint32_t SckList::getGroupRightIndex(uint32_t wichGroup)
 {
-	if (wichGroup > totalGroups) return 0;
+	if (wichGroup > totalGroups_RAM) return 0;
 
 	uint32_t groupCounter = 0;
 	uint32_t thisIndex = lastGroupRightIndex;
@@ -71,7 +55,7 @@ uint32_t SckList::getGroupRightIndex(uint32_t wichGroup)
 }
 uint32_t SckList::getGroupLeftIndex(uint32_t wichGroup)
 {
-	if (wichGroup > totalGroups) return 0;
+	if (wichGroup > totalGroups_RAM) return 0;
 
 	// Get end index of the group
 	uint32_t rightIndex = getGroupRightIndex(wichGroup);
@@ -92,7 +76,7 @@ uint32_t SckList::getGroupLeftIndex(uint32_t wichGroup)
 }
 uint16_t SckList::readGroupSize(uint32_t rightGroupIndex)
 {
-	if (rightGroupIndex > index) return 0;
+	if (rightGroupIndex > index_RAM) return 0;
 
 	// Read and join the first two bytes (group size)
 	uGroupSize.b[1] = read(rightGroupIndex - 2);
@@ -112,7 +96,7 @@ bool SckList::createGroup(uint32_t timeStamp)
 	// Check if there is an open group and delete it
 	if (lastGroupIsOpen()) saveLastGroup();
 
-	uint32_t preErrorIndex = index;
+	uint32_t preErrorIndex = index_RAM;
 
 	// Store timeStamp in current index
 	if (!append((char)SENSOR_COUNT)) error = true; 	// Sensor type (using max sensor number for timestamp)
@@ -121,7 +105,7 @@ bool SckList::createGroup(uint32_t timeStamp)
 	for (int8_t i=3; i>=0; i--) if (!append(uTimeStamp.b[i])) error = true; // The timestamp byte per byte
 
 	if (error) {
-		index = preErrorIndex;
+		index_RAM = preErrorIndex;
 		return false;
 	}
 
@@ -132,18 +116,19 @@ bool SckList::saveLastGroup()
 	debugOut("Saving last group");
 
 	// If last created group has no readings return false
-	if (lastGroupRightIndex + 6 == index) return false;
+	if (lastGroupRightIndex + 6 == index_RAM) return false;
 
 	// Init tags in 1 for all
 	byte byteFlags = 0xFF;
+	// TODO check this in case we are using flash i think we dont need to do anything since the sector is already erased to FF
 	if (!append(byteFlags)) return false;
 
 	// Save group size
-	uGroupSize.i = index - lastGroupRightIndex + 2; // Group size in bytes (including this last two bytes that are going to be filled now)
+	uGroupSize.i = index_RAM - lastGroupRightIndex + 2; // Group size in bytes (including this last two bytes that are going to be filled now)
 
 	if (debug) {
 		SerialUSB.print("Current index: ");
-		SerialUSB.println(index);
+		SerialUSB.println(index_RAM);
 		SerialUSB.print("last Group Right index: ");
 		SerialUSB.println(lastGroupRightIndex);
 		SerialUSB.print("Saved group size is: ");
@@ -153,25 +138,27 @@ bool SckList::saveLastGroup()
 	if (!append(uGroupSize.b[1])) return false;
 	if (!append(uGroupSize.b[0])) return false;
 
-	totalGroups++;
+	totalGroups_RAM++;
 
 	if (debug) {
 		SerialUSB.print("Total groups: ");
-		SerialUSB.println(totalGroups);
+		SerialUSB.println(totalGroups_RAM);
 	}
 
-	lastGroupRightIndex = index;
+	lastGroupRightIndex = index_RAM;
+
+	if (usingFlash) flashSaveLastGroup();
 
 	return true;
 }
 bool SckList::lastGroupIsOpen()
 {
-	if (lastGroupRightIndex < index) return true;
+	if (lastGroupRightIndex < index_RAM) return true;
 	return false;
 }
 bool SckList::delLastGroup()
 {
-	if (totalGroups == 0) return false;
+	if (totalGroups_RAM == 0) return false;
 
 
 	// If last group is open we need to move it to the new end
@@ -182,14 +169,14 @@ bool SckList::delLastGroup()
 
 		debugOut("The last group is open!!");
 
-		openGroupEndIndex = index;
+		openGroupEndIndex = index_RAM;
 		openGroupStartIndex = lastGroupRightIndex;
 
 		// The new index should be were deleted group started
-		index =  lastGroupRightIndex - readGroupSize(lastGroupRightIndex);
+		index_RAM =  lastGroupRightIndex - readGroupSize(lastGroupRightIndex);
 
 		// And if there are groups before they end in the same place were we start.
-		lastGroupRightIndex = index;
+		lastGroupRightIndex = index_RAM;
 
 		// Copy the open group to the place where deleted group was
 		for (uint32_t i=openGroupStartIndex; i<openGroupEndIndex; i++) append(read(i));
@@ -197,24 +184,26 @@ bool SckList::delLastGroup()
 	} else {
 
 		// Change index to remove last Group
-		index =  lastGroupRightIndex - readGroupSize(lastGroupRightIndex);
-		lastGroupRightIndex = index;
+		index_RAM =  lastGroupRightIndex - readGroupSize(lastGroupRightIndex);
+		lastGroupRightIndex = index_RAM;
 	}
 
-	totalGroups--;
+	totalGroups_RAM--;
 
 	// After deleting the last group if we are using flash we should return to RAM
-	if (totalGroups == 0 && usingFlash) usingFlash = false;
+	if (totalGroups_RAM == 0 && usingFlash) usingFlash = false;
 
 	return true;
 }
 uint32_t SckList::countGroups()
 {
 	if (debug) {
-		SerialUSB.print("Counting groups: ");
-		SerialUSB.println(totalGroups);
+		SerialUSB.print("RAM groups: ");
+		SerialUSB.println(totalGroups_RAM);
+		SerialUSB.print("Flash groups: ");
+		SerialUSB.println(totalGroups_flash);
 	}
-	return totalGroups;
+	return totalGroups_RAM + totalGroups_flash;
 }
 uint32_t SckList::getTime(uint32_t wichGroup)
 {
@@ -223,13 +212,13 @@ uint32_t SckList::getTime(uint32_t wichGroup)
 		SerialUSB.println(wichGroup);
 	}
 
-	if (wichGroup > totalGroups) return 0;
+	if (wichGroup > totalGroups_RAM) return 0;
 
 	// Get the index where the timeStamp starts
 	uint32_t leftIndex = getGroupLeftIndex(wichGroup);
 
 	// Return error in case of wrong left index
-	if (wichGroup != totalGroups-1 && leftIndex == 0) return 0;
+	if (wichGroup != totalGroups_RAM-1 && leftIndex == 0) return 0;
 
 
 	uint32_t timeIndex = leftIndex + 2;
@@ -254,14 +243,14 @@ uint16_t SckList::countReadings(uint32_t wichGroup)
 		SerialUSB.println(wichGroup);
 	}
 
-	if (wichGroup > totalGroups) return 0;
+	if (wichGroup > totalGroups_RAM) return 0;
 
 	// TODO optimize getting indexes, now there is too much duplicated work done.
 	uint32_t rightIndex = getGroupRightIndex(wichGroup);
 	uint32_t leftIndex = getGroupLeftIndex(wichGroup);
 
 	// Return error in case of wrong left index
-	if (wichGroup != totalGroups-1 && leftIndex == 0) return 0;
+	if (wichGroup != totalGroups_RAM-1 && leftIndex == 0) return 0;
 
 	uint16_t counter = 0;
 
@@ -298,14 +287,14 @@ OneReading SckList::readReading(uint32_t wichGroup, uint8_t wichReading)
 	thisReading.type = SENSOR_COUNT;
 	thisReading.value = "null";
 
-	if (wichGroup > totalGroups) return thisReading;
+	if (wichGroup > totalGroups_RAM) return thisReading;
 	if (countReadings(wichGroup) < wichReading) return thisReading;
 
 	// Get first reading index
 	uint32_t leftIndex = getGroupLeftIndex(wichGroup);
 
 	// Return error in case of wrong left index
-	if (wichGroup != totalGroups-1 && leftIndex == 0) return thisReading;
+	if (wichGroup != totalGroups_RAM-1 && leftIndex == 0) return thisReading;
 
 	uint16_t counter = 0;
 
@@ -353,7 +342,7 @@ void SckList::setFlag(uint32_t wichGroup, GroupFlags wichFlag, bool value)
 }
 int8_t SckList::getFlag(uint32_t wichGroup, GroupFlags wichFlag)
 {
-	if (wichGroup > totalGroups) return -1;
+	if (wichGroup > totalGroups_RAM) return -1;
 	if (wichFlag > 7) return -1;
 
 	// Get group Index
@@ -371,18 +360,57 @@ void SckList::flashStart()
 	digitalWrite(pinCS_FLASH, LOW);
 	flash.begin();
 	flash.setClock(133000);
+
+	// Scan sector state
+	for (uint16_t i=0; i<SCKLIST_SECTOR_NUM; i++) {
+		switch(getSectorState(i))
+	{
+			case SECTOR_FREE: fstatus.freeSecCount++; break;
+			case SECTOR_FULL: fstatus.fullSecCount++; break;
+			case SECTOR_TRASH: fstatus.trashSecCount++; break;
+			case SECTOR_CURRENT: currSector = i; break;
+	}
+	}
+
+	// If no current sector found, we format the flash and start from scratch
+	if (currSector == -1) {
+		if (fstatus.fullSecCount == 0) {
+			flashFormat();
+			return;
+		}
+		// TODO we can try a more in deep scan to recover data in case it exists and for some reason we loose the currsector index
+	}
+
+	// Check if we have any valid readings in flash
+	uint16_t currSectorGroupNum = countSectorGroups(currSector);
+	if (fstatus.fullSecCount > 0 || currSectorGroupNum > 0) {
+		usingFlash = true;
+	}
+
+	// Update flash_index
+	uint32_t currSectorAddress = getSectorAddress(currSector);
+	if (currSectorGroupNum > 0) {
+		index_flash = flash.readULong(SECTOR_SIZE - (currSectorGroupNum * 4));
+	} else {
+		index_flash = currSectorAddress + 1;
+	}
+
+	// Update flash index to store the address of groups
+	index_flash_groupAddr = currSectorAddress + (SECTOR_SIZE - (currSectorGroupNum * 4)) - 4;
+
 	flashStarted = true;
 }
 void SckList::flashSelect()
 {
 	digitalWrite(pinCS_SDCARD, HIGH);	// disables SDcard
 	digitalWrite(pinCS_FLASH, LOW);
+
 	if (!flashStarted) flashStart();
 }
 void SckList::migrateToFlash()
 {
 	flashSelect();
-	for (uint32_t i=0; i<index; i++) flash.writeByte(i, ramBuff[i]);
+	while (totalGroups_RAM > 0) flashSaveLastGroup();
 	usingFlash = true;
 }
 void SckList::debugOut(const char *text)
@@ -409,5 +437,94 @@ bool SckList::testFlash()
 	flash.readStr(fAddress, readSTR);
 
 	if (!readSTR.equals(writeSRT)) return false;
+	return true;
+}
+bool SckList::flashWrite(uint32_t wichIndex, char value)
+{
+	return flash.writeChar(wichIndex, value);
+}
+bool SckList::flashAppend(char value)
+{
+	if (flashWrite(index_flash, value)) index_flash++;
+	else return false;
+
+	return true;
+}
+char SckList::flashRead(uint32_t wichIndex)
+{
+
+}
+bool SckList::flashFormat()
+{
+	flashSelect();
+
+	if (!flash.eraseChip()) return false;
+
+	if (!flash.writeByte(0, SECTOR_CURRENT)) return false;
+
+	fstatus.freeSecCount = SCKLIST_SECTOR_NUM;
+	fstatus.fullSecCount = 0;
+	fstatus.trashSecCount = 0;
+	currSector = 0;
+	index_flash = 1;
+	index_flash_groupAddr = SECTOR_SIZE - 4;
+
+	return true;
+}
+uint32_t SckList::getSectorAddress(uint16_t wichSector)
+{
+	return wichSector * SECTOR_SIZE;
+}
+SectorState SckList::getSectorState(uint16_t wichSector)
+{
+	SectorState wichState = static_cast<SectorState>(flash.readByte(getSectorAddress(wichSector)));
+	return wichState;
+}
+uint16_t SckList::countSectorGroups(uint16_t wichSector)
+{
+	uint32_t startAddr = getSectorAddress(wichSector);
+	uint32_t endAddr = startAddr + 4096;
+
+	uint16_t counter = 0;
+	for (uint16_t i=endAddr-4; i>1; i-=4) {
+		uint32_t address = flash.readULong(i);
+		if (address == 0xFFFFFFFF) break;
+		counter ++;
+	}
+	return counter;
+}
+bool SckList::flashSaveLastGroup()
+{
+	if (lastGroupIsOpen()) saveLastGroup();
+
+	uint16_t groupSize = readGroupSize(totalGroups_RAM);
+
+	uint32_t currSectorAddress = getSectorAddress(currSector);
+	uint16_t currSectorGroupNum = countSectorGroups(currSector);
+
+	// Get current sector free space
+	uint16_t freeSpace = SECTOR_SIZE -
+		((currSectorAddress - index_flash)  	// The space used by saved data in current sector
+		 + (currSectorGroupNum * 4)); 		// The space used by the addresses of each group in current sector
+
+	// Check if new group fits in current sector
+	if (freeSpace - 4 < groupSize) {
+		// Close current sector and start a new one
+		flash.writeByte(currSectorAddress, SECTOR_FULL);
+		currSector ++;
+		flash.writeByte(currSectorAddress, SECTOR_CURRENT);
+	}
+
+	// Copy RAM data to flash
+	for (uint32_t i=lastGroupRightIndex-groupSize; i<lastGroupRightIndex; i++) {
+		flashAppend(read(i));
+	}
+
+	// Save flash groupIndex at the end of the sector
+	flash.writeULong(index_flash_groupAddr, index_flash);
+
+	// Update RAM index
+	delLastGroup();
+
 	return true;
 }

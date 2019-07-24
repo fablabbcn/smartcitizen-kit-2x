@@ -382,7 +382,7 @@ void SckList::flashStart()
 
 	// If no current sector found, we format the flash and start from scratch
 	if (currSector == -1) {
-		debugOut("Memory is not formated or damaged!!", true)
+		debugOut("Memory is not formated or damaged!!", true);
 		if (fstatus.fullSecCount == 0) {
 			flashFormat();
 			return;
@@ -424,10 +424,11 @@ void SckList::migrateToFlash()
 	while (totalGroups_RAM > 0) flashSaveLastGroup();
 	usingFlash = true;
 }
-void SckList::debugOut(const char *text)
+void SckList::debugOut(const char *text, bool error)
 {
 	if (debug) {
 		SerialUSB.print("FLASH: ");
+		if (error) SerialUSB.print("ERROR ");
 		SerialUSB.println(text);
 	}
 }

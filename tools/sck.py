@@ -109,7 +109,10 @@ class sck:
                     self.err_out('Timeout waiting for serial port')
                     sys.exit()
             time.sleep(0.1)
-            if self.serialPort.is_open: return
+            try:
+                if self.serialPort.write("\r\n"): return
+            except:
+                pass
 
     def checkConsole(self):
         timeout = time.time() + 15

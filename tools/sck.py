@@ -232,7 +232,8 @@ class sck:
     def flashESP(self, speed=921600, out=sys.__stdout__):
         os.chdir(self.paths['base'])
         if not self.getBridge(speed): return False
-        flashedESP = subprocess.call([self.paths['esptool'], '-cp', self.serialPort_name, '-cb', str(speed), '-ca', '0x000000', '-cf', os.path.join(self.paths['binFolder'], self.files['espBin'])], stdout=out, stderr=subprocess.STDOUT)
+        flashedESP = subprocess.call(['tools/esptool.py', '--before', 'no_reset', '--port', self.serialPort_name, '--baud', str(speed), 'write_flash', '0x000000', os.path.join(self.paths['binFolder'], self.files['espBin'])], stdout=out, stderr=subprocess.STDOUT)
+        # flashedESP = subprocess.call([self.paths['esptool'], '-cp', self.serialPort_name, '-cb', str(speed), '-ca', '0x000000', '-cf', os.path.join(self.paths['binFolder'], self.files['espBin'])], stdout=out, stderr=subprocess.STDOUT)
         if flashedESP == 0:
             time.sleep(1)
             return True

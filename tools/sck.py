@@ -129,6 +129,9 @@ class sck:
     def getInfo(self):
         if self.infoReady: return
         self.updateSerial()
+        self.serialPort.write('\r\nshell -on\r\n')
+        time.sleep(3)
+        self.serialPort.read(self.serialPort.in_waiting).split()
         self.serialPort.write('\r\nversion\r\n')
         time.sleep(0.5)
         m = self.serialPort.read(self.serialPort.in_waiting).split()

@@ -156,7 +156,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 		}
 
 	} else {
-		uint16_t sensorIndex = parameters.indexOf(" ", parameters.indexOf("-"));
+		int16_t sensorIndex = parameters.indexOf(" ", parameters.indexOf("-"));
 		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(sensorIndex));
 		bool saveNeeded = false;
 
@@ -277,7 +277,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 			String msg;
 			msg = "Changing interval of ";
 			sensorIndex = parameters.indexOf(" ", parameters.indexOf("-interval"));
-			uint16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
+			int16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
 			String strInterval = parameters.substring(intervalIndex);
 			uint32_t intervalInt = strInterval.toInt();
 			uint8_t everyNint_pre = intervalInt / base->config.readInterval;
@@ -351,7 +351,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 	}
 	if (parameters.length() > 0) {
 		while (parameters.length() > 0) {
-			uint8_t sep = parameters.indexOf(",");
+			int16_t sep = parameters.indexOf(",");
 			if (sep == 0) sep = parameters.length();
 			String thisSensor = parameters.substring(0, sep);
 			parameters.remove(0, sep+1);
@@ -531,14 +531,14 @@ void charger_com(SckBase* base, String parameters)
 	// Set
 	} else {
 	
-		uint16_t chargeI = parameters.indexOf("-charge");
+		int16_t chargeI = parameters.indexOf("-charge");
 		if (chargeI >=0) {
 			String chargeC = parameters.substring(chargeI+8);
 			if (chargeC.startsWith("on")) base->charger.chargeState(1);
 			if (chargeC.startsWith("off")) base->charger.chargeState(0);
 		}
 
-		uint16_t otgI = parameters.indexOf("-otg");
+		int16_t otgI = parameters.indexOf("-otg");
 		if (otgI >=0) {
 			String otgC = parameters.substring(otgI+5);
 			if (otgC.startsWith("on")) base->charger.OTG(1);
@@ -556,31 +556,32 @@ void config_com(SckBase* base, String parameters)
 			base->saveConfig(true);
 		} else {
 			// Shows or sets configuration [-defaults -mode sdcard/network -pubint publish-interval -wifi \"ssid/null\" [\"pass\"] -token token/null]
-			uint16_t modeI = parameters.indexOf("-mode");
+			int16_t modeI = parameters.indexOf("-mode");
 			if (modeI >= 0) {
 				String modeC = parameters.substring(modeI+6);
 				modeC.toLowerCase();
 				if (modeC.startsWith("sd")) base->config.mode = MODE_SD;
 				else if (modeC.startsWith("net")) base->config.mode = MODE_NET;
 			}
-			uint16_t pubIntI = parameters.indexOf("-pubint");
+			int16_t pubIntI = parameters.indexOf("-pubint");
 			if (pubIntI >= 0) {
 				String pubIntC = parameters.substring(pubIntI+8);
 				uint32_t pubIntV = pubIntC.toInt();
 				if (pubIntV >= minimal_publish_interval && pubIntV <= max_publish_interval) base->config.publishInterval = pubIntV;
 			}
-			uint16_t readIntI = parameters.indexOf("-readint");
+			int16_t readIntI = parameters.indexOf("-readint");
 			if (readIntI >= 0) {
 				String readIntC = parameters.substring(readIntI+8);
 				uint32_t readIntV = readIntC.toInt();
 				if (readIntV >= minimal_publish_interval && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
 			}
-			uint16_t credI = parameters.indexOf("-wifi");
+			int16_t credI = parameters.indexOf("-wifi");
+			SerialUSB.println(credI);
 			if (credI >= 0) {
-				uint8_t first = parameters.indexOf("\"", credI+6);
-				uint8_t second = parameters.indexOf("\"", first + 1);
-				uint8_t third = parameters.indexOf("\"", second + 1);
-				uint8_t fourth = parameters.indexOf("\"", third + 1);
+				int16_t first = parameters.indexOf("\"", credI+6);
+				int16_t second = parameters.indexOf("\"", first + 1);
+				int16_t third = parameters.indexOf("\"", second + 1);
+				int16_t fourth = parameters.indexOf("\"", third + 1);
 				if (parameters.substring(first + 1, second).length() > 0) {
 					parameters.substring(first + 1, second).toCharArray(base->config.credentials.ssid, 64);
 					base->config.credentials.set = true;
@@ -591,7 +592,7 @@ void config_com(SckBase* base, String parameters)
 					strncpy(base->config.credentials.pass, "", 64);
 				}
 			}
-			uint16_t tokenI = parameters.indexOf("-token");
+			int16_t tokenI = parameters.indexOf("-token");
 			if (tokenI >= 0) {
 				String tokenC = parameters.substring(tokenI+7);
 				if (tokenC.length() >= 6) {
@@ -726,9 +727,9 @@ void shell_com(SckBase* base, String parameters)
 }
 void custom_mqtt_com(SckBase* base, String parameters)
 {
-	uint8_t mfirst = parameters.indexOf("'", 0);
-	uint8_t msecond = parameters.indexOf("'", mfirst + 1);
-	uint8_t mthird = parameters.indexOf("'", msecond + 1);
-	uint8_t mfourth = parameters.indexOf("'", mthird + 1);
+	int16_t mfirst = parameters.indexOf("'", 0);
+	int16_t msecond = parameters.indexOf("'", mfirst + 1);
+	int16_t mthird = parameters.indexOf("'", msecond + 1);
+	int16_t mfourth = parameters.indexOf("'", mthird + 1);
 	base->mqttCustom(parameters.substring(mfirst + 1, msecond).c_str(), parameters.substring(mthird + 1, mfourth).c_str());
 }

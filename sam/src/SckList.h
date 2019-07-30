@@ -39,8 +39,8 @@ class SckList
 		char ramBuff[SCKLIST_RAM_SIZE];
 
 		uint32_t index_RAM = 0;
-		uint32_t totalGroups_RAM = 0;
-		uint32_t lastGroupRightIndex = 0;  	// The last position of a group that means were group starts (reading from right to left)
+		uint32_t totalGroups_RAM = 0; 		// This counts the number of groups already completed (saved)
+		uint32_t lastGroupRightIndex = 0;  	// The last position of a group, that means were group starts (reading from right to left)
 
 		// Flash memory
 		uint32_t index_flash = 1;
@@ -57,6 +57,8 @@ class SckList
 		uint32_t getSectorAddress(uint16_t wichSector);
 		SectorState getSectorState(uint16_t wichSector);
 		uint16_t countSectorGroups(uint16_t wichSector);
+		bool flashDelLastGroup();
+		bool ramDelLastGroup();
 		bool flashSaveLastGroup();
 
 		union u_TimeStamp {

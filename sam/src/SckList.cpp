@@ -13,25 +13,17 @@ bool SckList::append(char value)
 }
 bool SckList::write(uint32_t wichIndex, char value)
 {
-	// aqui hay un problema:
-	// cuando el ram este lleno mandamos migrate to flash pero el grupo que se esta salvando justo ahora esta incompleto...
-	//
-	//
-	
+	// TODO esta funcion siempre retorna true, no tiene sentido que sea bool y tampoco append
 
 	if (wichIndex == SCKLIST_RAM_SIZE) {
-
-		// Aqui tengo que conservar temporalmente el grupo que no se ha terminado para poder hacer la migracion a flash
-
+		
+		// If there is no ram space left, migrate to flash
 		if (!usingFlash) migrateToFlash();
 
-	} else ramBuff[wichIndex] = value;
+		// Since the index in RAM has changed we need to append it again based on new index
+		append(value);
 
-	/* if (wichIndex < SCKLIST_RAM_SIZE) ramBuff[wichIndex] = value; */
-	/* else { */
-	/* 	// This will move all closed groups to flash and release RAM space */
-	/* 	if (!usingFlash) migrateToFlash(); */
-	/* } */
+	} else ramBuff[wichIndex] = value;
 
 	return true;
 }
@@ -124,7 +116,7 @@ bool SckList::createGroup(uint32_t timeStamp)
 	for (int8_t i=3; i>=0; i--) if (!append(uTimeStamp.b[i])) error = true; // The timestamp byte per byte
 
 	if (error) {
-		debugOut("Failed creting reading group", true);
+		debugOut("Failed creating reading group", true);
 		index_RAM = preErrorIndex;
 		return false;
 	}
@@ -135,15 +127,16 @@ bool SckList::saveLastGroup()
 {
 	debugOut("Saving last group");
 
-	// If last created group has no readings return false
-	if (lastGroupRightIndex + 6 == index_RAM) {
+	// If last created group has no readings we delete it (this function is only called from createGroup())
+	if (lastGroupRightIndex + 6 == index_RAM) { 	// 6 bytes is always the size of the first reading: the timestamp. (0:type, 1:size: 2-6:epoch time)
 		debugOut("No readings found", true);
+		index_RAM = lastGroupRightIndex;
 		return false;
 	}
 
 	// Init tags in 1 for all
 	byte byteFlags = 0xFF;
-	// TODO check this in case we are using flash i think we dont need to do anything since the sector is already erased to FF
+
 	if (!append(byteFlags)) return false;
 
 	// Save group size
@@ -167,6 +160,11 @@ bool SckList::lastGroupIsOpen()
 }
 bool SckList::delLastGroup()
 {
+	// TODO cuando se llama esto y estamos usando flash que pasa????
+	
+	// deberiamos tener una funcion para ram y otra para flash separadas
+	// y ademas una generica que decida a cual llamar cuando nos es idiferente a cual se llame.
+
 	debugOut("Deleting last group");
 
 	if (totalGroups_RAM == 0) return false;
@@ -200,11 +198,12 @@ bool SckList::delLastGroup()
 
 	totalGroups_RAM--;
 
+	// TODO esto no parece tener sentido...
 	// After deleting the last group if we are using flash we should return to RAM
-	if (totalGroups_RAM == 0 && usingFlash) {
-		debugOut("Memory is empty, returning to RAM");
-		usingFlash = false;
-	}
+	/* if (totalGroups_RAM == 0 && usingFlash) { */
+	/* 	debugOut("Memory is empty, returning to RAM"); */
+	/* 	usingFlash = false; */
+	/* } */
 
 	return true;
 }
@@ -273,8 +272,10 @@ uint16_t SckList::countReadings(uint32_t wichGroup)
 }
 bool SckList::appendReading(SensorType wichSensor, String value)
 {
+	debugOut("Appending reading");
+
 	// Be sure a group has been already created
-	if (!lastGroupIsOpen()) return false;
+	if (!lastGroupIsOpen()) createGroup();
 
 	// Write Sensor Type
 	if (!append(wichSensor)) return false;
@@ -518,7 +519,6 @@ uint16_t SckList::countSectorGroups(uint16_t wichSector)
 bool SckList::flashSaveLastGroup()
 {
 	debugOut("Saving last group to flash");
-	if (lastGroupIsOpen()) saveLastGroup();
 
 	uint16_t groupSize = readGroupSize(totalGroups_RAM);
 

@@ -532,6 +532,7 @@ void SckBase::reviewState()
 
 				if (!sdPublish()) {
 					sckOut("ERROR failed publishing to SD card");
+					// TODO if this error happens the error blink gets interrupted by the one that is just out of sleep mode
 					led.update(led.PINK, led.PULSE_HARD_FAST);
 				} else {
 					timeToPublish = false;

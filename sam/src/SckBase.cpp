@@ -319,6 +319,9 @@ void SckBase::reviewState()
 
 					lastPublishTime = rtc.getEpoch();
 					st.wifiStat.reset(); 		// Restart wifi retry count
+
+					updateSensors(); 	// Keep getting readings, we can keep them in flash
+					infoPublished = true; 	// Will try to publish info on next boot, in the meantime this will allow us to sleep between readings.
 				}
 
 			} else {
@@ -366,6 +369,7 @@ void SckBase::reviewState()
 					} else if (st.infoStat.error){
 
 						sckOut("ERROR sending kit info to platform!!!");
+						infoPublished = true; 		// We will try on next reset
 						st.infoStat.reset();
 
 					}
@@ -554,18 +558,22 @@ void SckBase::enterSetup()
 }
 void SckBase::printState()
 {
+	// TODO fix bug: after configuring wrong wifi, restart kit, wait for error and sdcard publish and type "state" command.
+	// it will enter setup mode !?!? and if you type "state" command again it will reboot.
 	char t[] = "true";
 	char f[] = "false";
 
-	sprintf(outBuff, "%sonSetup: %s\r\n", outBuff, st.onSetup  ? t : f);
+	sprintf(outBuff, "%s\r\nonSetup: %s\r\n", outBuff, st.onSetup  ? t : f);
 	sprintf(outBuff, "%stokenSet: %s\r\n", outBuff, st.tokenSet  ? t : f);
 	sprintf(outBuff, "%shelloPending: %s\r\n", outBuff, st.helloPending  ? t : f);
 	sprintf(outBuff, "%smode: %s\r\n", outBuff, modeTitles[st.mode]);
 	sprintf(outBuff, "%scardPresent: %s\r\n", outBuff, st.cardPresent  ? t : f);
 	sprintf(outBuff, "%ssleeping: %s\r\n", outBuff, st.sleeping  ? t : f);
+	sprintf(outBuff, "%sinfoPublished: %s\r\n", outBuff, infoPublished  ? t : f);
+	sckOut(PRIO_HIGH, false);
 
 	sprintf(outBuff, "%s\r\nespON: %s\r\n", outBuff, st.espON  ? t : f);
-	sprintf(outBuff, "%s\r\nespBooting: %s\r\n", outBuff, st.espBooting  ? t : f);
+	sprintf(outBuff, "%sespBooting: %s\r\n", outBuff, st.espBooting  ? t : f);
 	sprintf(outBuff, "%swifiSet: %s\r\n", outBuff, st.wifiSet  ? t : f);
 	sprintf(outBuff, "%swifiOK: %s\r\n", outBuff, st.wifiStat.ok ? t : f);
 	sprintf(outBuff, "%swifiError: %s\r\n", outBuff, st.wifiStat.error ? t : f);
@@ -573,12 +581,12 @@ void SckBase::printState()
 
 	sprintf(outBuff, "\r\ntimeOK: %s\r\n", st.timeStat.ok ? t : f);
 	sprintf(outBuff, "%stimeError: %s\r\n", outBuff, st.timeStat.error ? t : f);
+	sckOut(PRIO_HIGH, false);
 
 	sprintf(outBuff, "%s\r\npublishOK: %s\r\n", outBuff, st.publishStat.ok ? t : f);
 	sprintf(outBuff, "%spublishError: %s\r\n", outBuff, st.publishStat.error ? t : f);
-	sprintf(outBuff, "%s\r\ntime to next publish: %li\r\n", outBuff, config.publishInterval - (rtc.getEpoch() - lastPublishTime));
-	sprintf(outBuff, "%s\r\ntimeToPublish: %s\r\n", outBuff, timeToPublish ? t : f);
-
+	sprintf(outBuff, "%stime to next publish: %li\r\n", outBuff, config.publishInterval - (rtc.getEpoch() - lastPublishTime));
+	sprintf(outBuff, "%stimeToPublish: %s\r\n", outBuff, timeToPublish ? t : f);
 	sckOut(PRIO_HIGH, false);
 }
 
@@ -1237,7 +1245,7 @@ bool SckBase::sdInit()
 		st.cardPresent = true;
 		st.cardPresentError = false;
 
-		// Check if there is a info file on sdcard 
+		// Check if there is a info file on sdcard
 		if (!sd.exists(infoFile.name)) {
 			infoSaved = false;
 			saveInfo();
@@ -1358,6 +1366,8 @@ void SckBase::goToSleep()
 		LowPower.deepSleep(sleepTime);
 	}
 
+	st.sleeping = false;
+
 	// Re enable Sanity cyclic reset
 	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
 	rtc.enableAlarm(rtc.MATCH_HHMMSS);
@@ -1421,7 +1431,7 @@ void SckBase::updatePower()
 				// Ignore last user event and go to sleep
 				lastUserEvent = millis() - waitAfterLastEvent;
 
-				sleepTime = 60000; 			
+				sleepTime = 60000;
 				// Wake up every minute to check if USB power is back
 				while (!charger.onUSB) {
 					goToSleep();
@@ -1450,9 +1460,9 @@ void SckBase::updatePower()
 void SckBase::updateSensors()
 {
 	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) st.timeStat.reset();
-	if (!st.timeStat.ok || st.helloPending) return;
+	if (!st.timeStat.ok) return;
 	if (st.onSetup) return;
-	if (st.mode == MODE_SD && !st.cardPresent) return;
+	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented
 
 	// Main reading loop
 	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {

@@ -215,7 +215,7 @@ void SckBase::reviewState()
 				ESPcontrol(ESP_REBOOT);
 				sendConfigCounter = 0;
 			} else if (st.espON) {
-				if (!st.espBooting) sendConfig();
+	if (!st.espBooting) sendConfig();
 				sendConfigCounter++;
 			} else {
 				ESPcontrol(ESP_ON);
@@ -381,7 +381,7 @@ void SckBase::reviewState()
 						// Publish to sdcard
 						sdPublish();
 
-						epoch2iso(readingsList.getTime(0), ISOtimeBuff);
+						epoch2iso(readingsList.getGroupTime(0), ISOtimeBuff);
 						sprintf(outBuff, "(%s) Published OK, erasing from memory", ISOtimeBuff);
 						sckOut();
 						readingsList.delLastGroup();
@@ -1715,7 +1715,7 @@ bool SckBase::netPublish()
 			sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
 
 			// Save time
-			epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
+			epoch2iso(readingsList.getGroupTime(thisGroup), ISOtimeBuff);
 			sprintf(netBuff, "%s{t:%s", netBuff, ISOtimeBuff);
 
 			uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
@@ -1739,7 +1739,7 @@ bool SckBase::netPublish()
 		} else {
 
 			// If the group is already published delete it from saved ones
-			epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
+			epoch2iso(readingsList.getGroupTime(thisGroup), ISOtimeBuff);
 			sprintf(outBuff, "(%s) Published OK, erasing from memory", ISOtimeBuff);
 			sckOut();
 			readingsList.delLastGroup();
@@ -1827,7 +1827,7 @@ bool SckBase::sdPublish()
 				uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
 
 				// Save time
-				epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
+				epoch2iso(readingsList.getGroupTime(thisGroup), ISOtimeBuff);
 				postFile.file.print(ISOtimeBuff);
 
 
@@ -1865,7 +1865,7 @@ bool SckBase::sdPublish()
 
 				counter++;
 
-				epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
+				epoch2iso(readingsList.getGroupTime(thisGroup), ISOtimeBuff);
 				sprintf(outBuff, "(%s) Readings saved to sdcard.", ISOtimeBuff);
 				sckOut();
 			}

@@ -428,7 +428,7 @@ void readings_com(SckBase* base, String parameters)
 
 		uint16_t readingsOnThisGroup = base->readingsList.countReadings(thisGroup);
 		char thisTime[25];
-		base->epoch2iso(base->readingsList.getTime(thisGroup), thisTime);
+		base->epoch2iso(base->readingsList.getGroupTime(thisGroup), thisTime);
 		base->sckOut("-----------");
 		sprintf(base->outBuff, "%lu - %s - %i readings on Memory.", thisGroup+1, thisTime, readingsOnThisGroup);
 		base->sckOut();

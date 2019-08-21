@@ -353,7 +353,6 @@ class Atlas
 class Moisture {
 	private:
 		// TODO save this in flash so we can change the address and remember it.
-		// TODO create command to recover I2C addres to default (0x20)
 		byte deviceAddress = 0x20;
 		I2CSoilMoistureSensor chirp = I2CSoilMoistureSensor(deviceAddress);
 		bool alreadyStarted = false;
@@ -367,8 +366,8 @@ class Moisture {
 		bool start();
 		bool stop();
 		float getReading(typeOfReading wichReading);
-		bool changeAddress(byte newAddress);
 		uint8_t getVersion(); 
+		void resetAddress(int currentAddress);
 		
 		// TODO 
 		// * Measure sensor consumption 

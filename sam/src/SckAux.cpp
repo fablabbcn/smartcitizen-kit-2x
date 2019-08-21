@@ -368,7 +368,18 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				return String(moistureChirp.getVersion());
 
-			} else if (command.startsWith("help")) return F("Available commands for this sensor:\n\r* get ver");
+			} else if (command.startsWith("reset")) {
+
+				command.replace("reset", "");
+				command.trim();
+
+				int currentAddress = command.toInt();
+				if (currentAddress == 0) return F("ERROR: please provide current chirp I2C address");
+
+				moistureChirp.resetAddress(currentAddress);
+				return (String("Changed moisture sensor address to " + currentAddress));
+
+			} else if (command.startsWith("help")) return F("Available commands for this sensor:\n\r* get ver\n\r* reset current-i2c-addres");
 			else return F("Unrecognized command!! please try again...");
 			break;
 
@@ -953,6 +964,14 @@ void Moisture::sleep()
 {
 
 	chirp.sleep();
+}
+
+void Moisture::resetAddress(int currentAddress)
+{
+	Wire.beginTransmission(currentAddress);
+	Wire.write(1);
+	Wire.write(0x20);
+	Wire.endTransmission();
 }
 
 bool PMsensor::start()

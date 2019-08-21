@@ -5,6 +5,8 @@
 
 void SckTest::test_full()
 {
+	testBase->led.update(testBase->led.WHITE, testBase->led.PULSE_STATIC);
+
 	// Enable sensors for test
 	testBase->enableSensor(SENSOR_TEMPERATURE);
 	testBase->enableSensor(SENSOR_HUMIDITY);
@@ -27,7 +29,22 @@ void SckTest::test_full()
 
 	delay(2000);
 	testBase->st.onShell = true;
-	testBase->ESPcontrol(testBase->ESP_OFF);
+	
+	testBase->ESPcontrol(testBase->ESP_REBOOT);
+	SerialUSB.println("Waiting for ESP first boot...");
+	SerialUSB.println("May take some time due to flash formating");
+	SerialUSB.println("Please don't disconnect the SCK");
+	uint32_t startWaiting = millis();
+	while (testBase->st.espBooting) {
+		if (millis() % 1000 == 0) SerialUSB.print('.'); delay(1);
+		if (millis() - startWaiting > 120000) {
+			SerialUSB.println("ESP is taking too long to wakeup");
+			SerialUSB.println("Please reflash ESP chip and try again");
+		}
+		testBase->inputUpdate();
+	}
+
+	/* testBase->ESPcontrol(testBase->ESP_OFF); */
 	SerialUSB.println("\r\n********************************");
 	SerialUSB.println("Starting SmartCitizenKit test...");
 
@@ -485,21 +502,6 @@ bool SckTest::connect_ESP()
 	uint32_t started = millis();
 	testBase->outputLevel = OUT_VERBOSE;
 	while (!testBase->st.wifiStat.ok) {
-
-		if (testBase->pendingSyncConfig) {
-			if (millis() - testBase->sendConfigTimer > 1000) {
-				testBase->sendConfigTimer = millis();
-				if (testBase->sendConfigCounter > 3) {
-					testBase->ESPcontrol(testBase->ESP_REBOOT);
-					testBase->sendConfigCounter = 0;
-				} else if (testBase->st.espON) {
-					if (!testBase->st.espBooting) testBase->sendConfig();
-					testBase->sendConfigCounter++;
-				} else {
-					testBase->ESPcontrol(testBase->ESP_ON);
-				}
-			}
-		}
 
 		testBase->update();
 		testBase->inputUpdate();

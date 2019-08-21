@@ -377,9 +377,11 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				if (currentAddress == 0) return F("ERROR: please provide current chirp I2C address");
 
 				moistureChirp.resetAddress(currentAddress);
-				return (String("Changed moisture sensor address to " + currentAddress));
 
-			} else if (command.startsWith("help")) return F("Available commands for this sensor:\n\r* get ver\n\r* reset current-i2c-addres");
+				String response = "Changed address to " + String(currentAddress);
+				return (response);
+
+			} else if (command.startsWith("help")) return F("Available commands:\r\n* get ver\r\n* reset current-i2c-address");
 			else return F("Unrecognized command!! please try again...");
 			break;
 

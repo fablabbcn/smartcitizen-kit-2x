@@ -1334,9 +1334,6 @@ void SckBase::goToSleep()
 	// Stop PM sensor
 	if (urban.sck_pm.started) urban.sck_pm.stop();
 
-	// Turn off USB led
-	digitalWrite(pinLED_USB, HIGH);
-
 	if (sckOFF) {
 
 		sprintf(outBuff, "Sleeping forever!!! (until a button click)");
@@ -1352,9 +1349,8 @@ void SckBase::goToSleep()
 		// Detach sdcard interrupt to avoid spurious wakeup
 		detachInterrupt(pinCARD_DETECT);
 
-		// Atach button wake Up interrupt
-		pinMode(pinBUTTON, INPUT_PULLUP);
-		LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
+		// Turn off USB led
+		digitalWrite(pinLED_USB, HIGH);
 
 		LowPower.deepSleep();
 	} else {
@@ -1363,6 +1359,9 @@ void SckBase::goToSleep()
 		sckOut();
 
 		st.sleeping = true;
+
+		// Turn off USB led
+		digitalWrite(pinLED_USB, HIGH);
 
 		LowPower.deepSleep(sleepTime);
 	}

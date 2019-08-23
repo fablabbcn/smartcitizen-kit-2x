@@ -367,7 +367,7 @@ class Moisture {
 		bool stop();
 		float getReading(typeOfReading wichReading);
 		uint8_t getVersion(); 
-		void resetAddress(int currentAddress);
+		bool resetAddress(int currentAddress);
 		
 		// TODO 
 		// * Measure sensor consumption 

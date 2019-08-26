@@ -132,6 +132,12 @@ void SckBase::setup()
 			saveConfig();
 		}
 
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			if (wichSensor->enabled) urban.start(wichSensor->type);
+			else urban.stop(wichSensor->type);
+		}
+
 	} else {
 		sckOut("No urban board detected!!");
 		urbanPresent = false;

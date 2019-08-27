@@ -132,6 +132,12 @@ void SckBase::setup()
 			saveConfig();
 		}
 
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			if (wichSensor->enabled) urban.start(wichSensor->type);
+			else urban.stop(wichSensor->type);
+		}
+
 	} else {
 		sckOut("No urban board detected!!");
 		urbanPresent = false;
@@ -532,6 +538,7 @@ void SckBase::reviewState()
 
 				if (!sdPublish()) {
 					sckOut("ERROR failed publishing to SD card");
+					// TODO if this error happens the error blink gets interrupted by the one that is just out of sleep mode
 					led.update(led.PINK, led.PULSE_HARD_FAST);
 				} else {
 					timeToPublish = false;
@@ -1645,7 +1652,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
 		}
 		case BOARD_AUX:
 		{
-				auxBoards.getReading(wichSensor, this);
+				auxBoards.getReading(wichSensor);
 				break;
 		}
 	}

@@ -1652,7 +1652,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
 		}
 		case BOARD_AUX:
 		{
-				auxBoards.getReading(wichSensor, this);
+				auxBoards.getReading(wichSensor);
 				break;
 		}
 	}

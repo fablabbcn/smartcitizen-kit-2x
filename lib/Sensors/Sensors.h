@@ -24,7 +24,7 @@ enum SensorType
 	SENSOR_NOISE_DBA,
 	SENSOR_NOISE_DBC,
 	SENSOR_NOISE_DBZ,
-	SENSOR_NOISE_FFT, 
+	SENSOR_NOISE_FFT,
 	SENSOR_ALTITUDE,
 	SENSOR_PRESSURE,
 	SENSOR_PRESSURE_TEMP,
@@ -65,8 +65,10 @@ enum SensorType
 	SENSOR_ATLAS_DO,
 	SENSOR_ATLAS_DO_SAT,
 
+	SENSOR_CHIRP_MOISTURE_RAW,
 	SENSOR_CHIRP_MOISTURE,
 	SENSOR_CHIRP_TEMPERATURE,
+	SENSOR_CHIRP_LIGHT,
 
 	SENSOR_EXT_PM_1,
 	SENSOR_EXT_PM_25,
@@ -98,7 +100,7 @@ enum SensorType
 
 	SENSOR_PM_DALLAS_TEMP,
 	SENSOR_DALLAS_TEMP,
-	
+
 	SENSOR_SHT31_TEMP,
 	SENSOR_SHT31_HUM,
 
@@ -219,8 +221,10 @@ class AllSensors
 
 			// I2C Moisture Sensor (chirp)
 			// https://github.com/Miceuz/i2c-moisture-sensor
-			OneSensor { BOARD_AUX, 		100,	SENSOR_CHIRP_MOISTURE, 			"CHRP_MOIS", 		"Soil Moisture", 				50, 		false, 		true, 		1,			},
+			OneSensor { BOARD_AUX, 		100,	SENSOR_CHIRP_MOISTURE_RAW, 		"CHRP_MOIS_RAW",	"Soil Moisture Raw", 				0, 		false, 		true, 		1,			},
+			OneSensor { BOARD_AUX, 		100,	SENSOR_CHIRP_MOISTURE, 			"CHRP_MOIS", 		"Soil Moisture Percent",			50, 		false, 		true, 		1,			"%"},
 			OneSensor { BOARD_AUX, 		100,	SENSOR_CHIRP_TEMPERATURE, 		"CHRP_TEMP", 		"Soil Temperature", 				0, 		false, 		true, 		1,			"C"},
+			OneSensor { BOARD_AUX, 		100,	SENSOR_CHIRP_LIGHT, 	 		"CHRP_LIGHT", 		"Soil Light", 					0, 		false, 		true, 		1,			},
 
 			OneSensor { BOARD_AUX,		200,	SENSOR_EXT_PM_1,			"EXT_PM_1",		"Ext PM 1.0",					89,		false,		false,		1,			"ug/m3"},
 			OneSensor { BOARD_AUX,		200,	SENSOR_EXT_PM_25,			"EXT_PM_25",		"Ext PM 2.5",					87,		false,		false,		1,			"ug/m3"},

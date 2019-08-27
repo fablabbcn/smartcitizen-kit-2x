@@ -5,6 +5,7 @@
 
 // Include the necessary libraries for the auxiliary sensor to be used
 #include <Wire.h>
+#include <FlashStorage.h>
 
 // INA219 libs
 #include <Adafruit_INA219.h>
@@ -36,6 +37,18 @@
 
 extern TwoWire auxWire;
 
+
+struct Calibration {
+	bool  moistureCalDataValid = false;
+	int32_t dryPoint;
+	int32_t wetPoint;
+};
+
+struct EepromAuxData {
+	bool valid = false;
+	Calibration calibration;
+};
+
 bool I2Cdetect(byte address);
 
 class AuxBoards
@@ -45,46 +58,91 @@ class AuxBoards
 
 		// List for storing Auxiliary sensors I2C address (SENSOR_COUNT - (BASE AND URBAN SENSORS))
 		// TODO: store this in epprom, load it on boot, make a function to change the addresses by console command
-		byte devAddress[SENSOR_COUNT - 18] {
-				0x02,		// SENSOR_EXT_PM_1
-				0x02,		// SENSOR_EXT_PM_25
-				0x02,		// SENSOR_EXT_PM_10
-				0x55,		// SENSOR_GASESBOARD_AE1,
-				0x55,		// SENSOR_GASESBOARD_WE1,
-				0x56,		// SENSOR_GASESBOARD_AE2,
-				0x56,		// SENSOR_GASESBOARD_WE2,
-				0x54,		// SENSOR_GASESBOARD_AE3,
-				0x54,		// SENSOR_GASESBOARD_WE3,
-				0x44,		// SENSOR_GASESBOARD_TEMPERATURE,
-				0x44,		// SENSOR_GASESBOARD_HUMIDITY,
-				0x59,		// SENSOR_GROOVE_I2C_ADC,
-				0x41,		// SENSOR_INA219_BUSVOLT,
-				0x41,		// SENSOR_INA219_SHUNT,
-				0x41,		// SENSOR_INA219_CURRENT,
-				0x41,		// SENSOR_INA219_LOADVOLT,
-				0x18,		// SENSOR_WATER_TEMP_DS18B20,
-				0x3c,		// SENSOR_GROOVE_OLED,
-				0x63,		// SENSOR_ATLAS_PH,
-				0x64,		// SENSOR_ATLAS_EC,
-				0x64,		// SENSOR_ATLAS_EC_SG,
-				0x61,		// SENSOR_ATLAS_DO,
-				0x61,		// SENSOR_ATLAS_DO_SAT,
-				0x77, 		// SENSOR_BME680_TEMPERATURE,
-				0x77, 		// SENSOR_BME680_HUMIDITY,
-				0x77, 		// SENSOR_BME680_PRESSURE,
-				0x77, 		// SENSOR_BME680_VOCS,
-				0x5b, 		// SENSOR_CCS811_VOCS,
-				0x5b, 		// SENSOR_CCS811_ECO2,
+		byte devAddress[SENSOR_COUNT - 24] {
+			0x55,			// SENSOR_GASESBOARD_SLOT_1A,
+			0x55,			// SENSOR_GASESBOARD_SLOT_1W,
+			0x56,			// SENSOR_GASESBOARD_SLOT_2A,
+			0x56,			// SENSOR_GASESBOARD_SLOT_2W,
+			0x54,			// SENSOR_GASESBOARD_SLOT_3A,
+			0x54,			// SENSOR_GASESBOARD_SLOT_3W,
+			0x44,			// SENSOR_GASESBOARD_TEMPERATURE,
+			0x44,			// SENSOR_GASESBOARD_HUMIDITY,
+
+			0x59,			// SENSOR_GROOVE_I2C_ADC,
+
+			0x41,			// SENSOR_INA219_BUSVOLT,
+			0x41,			// SENSOR_INA219_SHUNT,
+			0x41,			// SENSOR_INA219_CURRENT,
+			0x41,			// SENSOR_INA219_LOADVOLT,
+
+			0x18, 			// SENSOR_WATER_TEMP_DS18B20,
+			0x66,			// SENSOR_ATLAS_TEMPERATURE,
+			0x63,			// SENSOR_ATLAS_PH,
+			0x64,			// SENSOR_ATLAS_EC,
+			0x64,			// SENSOR_ATLAS_EC_SG,
+			0x61,			// SENSOR_ATLAS_DO,
+			0x61,			// SENSOR_ATLAS_DO_SAT,
+
+			0x20,			// SENSOR_CHIRP_MOISTURE_RAW,
+			0x20,			// SENSOR_CHIRP_MOISTURE,
+			0x20,			// SENSOR_CHIRP_TEMPERATURE,
+			0x20,			// SENSOR_CHIRP_LIGHT,
+
+			0x02,			// SENSOR_EXT_PM_1,
+			0x02,			// SENSOR_EXT_PM_25,
+			0x02,			// SENSOR_EXT_PM_10,
+			0x02,			// SENSOR_EXT_PN_03,
+			0x02,			// SENSOR_EXT_PN_05,
+			0x02,			// SENSOR_EXT_PN_1,
+			0x02,			// SENSOR_EXT_PN_25,
+			0x02,			// SENSOR_EXT_PN_5,
+			0x02,			// SENSOR_EXT_PN_10,
+			0x02,			// SENSOR_EXT_A_PM_1,
+			0x02,			// SENSOR_EXT_A_PM_25,
+			0x02,			// SENSOR_EXT_A_PM_10,
+			0x02,			// SENSOR_EXT_A_PN_03,
+			0x02,			// SENSOR_EXT_A_PN_05,
+			0x02,			// SENSOR_EXT_A_PN_1,
+			0x02,			// SENSOR_EXT_A_PN_25,
+			0x02,			// SENSOR_EXT_A_PN_5,
+			0x02,			// SENSOR_EXT_A_PN_10,
+			0x02,			// SENSOR_EXT_B_PM_1,
+			0x02,			// SENSOR_EXT_B_PM_25,
+			0x02,			// SENSOR_EXT_B_PM_10,
+			0x02,			// SENSOR_EXT_B_PN_03,
+			0x02,			// SENSOR_EXT_B_PN_05,
+			0x02,			// SENSOR_EXT_B_PN_1,
+			0x02,			// SENSOR_EXT_B_PN_25,
+			0x02,			// SENSOR_EXT_B_PN_5,
+			0x02,			// SENSOR_EXT_B_PN_10,
+
+			0x02,			// SENSOR_PM_DALLAS_TEMP,
+			0x00,			// SENSOR_DALLAS_TEMP, 		-- 2 wire (no I2C address)
+
+			0x44,			// SENSOR_SHT31_TEMP,
+			0x44,			// SENSOR_SHT31_HUM,
+
+			0x29,			// SENSOR_RANGE_LIGHT,
+			0x29,			// SENSOR_RANGE_DISTANCE,
+
+			0x77,			// SENSOR_BME680_TEMPERATURE,
+			0x77,			// SENSOR_BME680_HUMIDITY,
+			0x77,			// SENSOR_BME680_PRESSURE,
+			0x77,			// SENSOR_BME680_VOCS,
+
+			0x3c		// SENSOR_GROOVE_OLED,
 		};
 
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
-		void getReading(OneSensor *wichSensor, SckBase *base);
+		void getReading(OneSensor *wichSensor);
 		bool getBusyState(SensorType wichSensor);
 		String control(SensorType wichSensor, String command);
 		void print(SensorType wichSensor, String payload);
 		void displayReading(String title, String reading, String unit, String time);
 
+		EepromAuxData data;
+		bool dataLoaded = false;
 	private:
 };
 
@@ -97,7 +155,7 @@ class GrooveI2C_ADC
 		float getReading();
 
 		const byte deviceAddress 	= 0x59;
-		const float V_REF 			= 3.30;
+		const float V_REF 		= 3.30;
 		const byte REG_ADDR_RESULT	= 0x00;
 		const byte REG_ADDR_ALERT	= 0x01;
 		const byte REG_ADDR_CONFIG	= 0x02;
@@ -300,21 +358,21 @@ class Atlas
 
 			switch(atlasType) {
 				case SENSOR_ATLAS_PH: {
-						
+
 						deviceAddress = 0x63;
 						PH = true;
 						break;
 
 					} case SENSOR_ATLAS_EC:
 					case SENSOR_ATLAS_EC_SG: {
-						
+
 						deviceAddress = 0x64;
 						EC = true;
 						break;
 
 					} case SENSOR_ATLAS_DO:
 					case SENSOR_ATLAS_DO_SAT: {
-					
+
 						deviceAddress = 0x61;
 						DO = true;
 						break;
@@ -350,27 +408,32 @@ class Atlas
 	private:
 };
 
-class Moisture {
+class Moisture
+{
 	private:
-		// TODO save this in flash so we can change the address and remember it.
 		byte deviceAddress = 0x20;
 		I2CSoilMoistureSensor chirp = I2CSoilMoistureSensor(deviceAddress);
 		bool alreadyStarted = false;
 
 	public:
-
-		enum typeOfReading { CHIRP_MOISTURE, CHIRP_TEMPERATURE, CHIRP_LIGHT };
-
 		bool detected = false;
+		bool calibrated = false;
+		int32_t dryPoint;
+		int32_t wetPoint;
 
 		bool start();
 		bool stop();
-		float getReading(typeOfReading wichReading);
-		uint8_t getVersion(); 
+		bool getReading(SensorType wichSensor);
+		uint8_t getVersion();
 		bool resetAddress(int currentAddress);
-		
-		// TODO 
-		// * Measure sensor consumption 
+
+		uint32_t raw;
+		float moisture;
+		int16_t temperature;
+		int32_t light;
+
+		// TODO
+		// * Measure sensor consumption
 		// * Send sensor to sleep between readings (needs FIX, it hangs)
 		void sleep();
 };
@@ -415,7 +478,7 @@ class PMsensor
 		uint8_t values[valuesSize];
 
 		// 24 bytes:
-		// 0:1->pm1, 2:3->pm25, 4:5->pm10, 
+		// 0:1->pm1, 2:3->pm25, 4:5->pm10,
 		// Number of particles with diameter beyond X um in 0.1 L of air.
 		// 6:7 -> 0.3 um
 		// 8:9 -> 0.5 um
@@ -434,7 +497,7 @@ class PM_DallasTemp
 		const byte deviceAddress = 0x02;
 		bool start();
 		bool stop();
-		float getReading();		
+		float getReading();
 	private:
 		union u_reading {
 			byte b[4];

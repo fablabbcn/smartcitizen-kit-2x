@@ -512,7 +512,7 @@ bool INA219::start()
 
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-	ada_ina219.begin();
+	ada_ina219.begin(&auxWire);
 
 	// By default the initialization will use the largest range (32V, 2A).  However
 	// To use a slightly lower 32V, 1A range (higher precision on amps):

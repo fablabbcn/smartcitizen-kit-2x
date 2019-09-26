@@ -42,6 +42,7 @@ if 'register' in sys.argv:
     kit.platform_name = kit.platform_name + ' #' + kit.esp_macAddress[-5:].replace(':', '')
     kit.register()
 
+    enablePrint()
     print("\r\nSerial number: " + kit.sam_serialNum)
     print("Mac address: " + kit.esp_macAddress)
     print("Device token: " + kit.token)

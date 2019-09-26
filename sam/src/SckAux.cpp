@@ -514,12 +514,10 @@ bool INA219::start()
 
 	ada_ina219.begin(&auxWire);
 
-	// By default the initialization will use the largest range (32V, 2A).  However
-	// To use a slightly lower 32V, 1A range (higher precision on amps):
-	//ada_ina219.setCalibration_32V_1A();
+	// By default the initialization will use the largest range (32V, 2A).
+	ada_ina219.setCalibration_32V_1A();
+	// ada_ina219.setCalibration_16V_400mA();
 
-	// Or to use a lower 16V, 400mA range (higher precision on volts and amps):
-	ada_ina219.setCalibration_16V_400mA();
 	return true;
 }
 

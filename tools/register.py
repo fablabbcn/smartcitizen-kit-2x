@@ -19,7 +19,7 @@ if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv:
     print('USAGE:\n\nresgister.py [options] action[s]')
     print('\noptions: -v: verbose')
     print('actions: register, inventory')
-    print('register options: -n platform_name')
+    print('register options: -n platform_name -i kit_blueprint_id (default: 26)')
     print('inventory -d "description"')
     sys.exit()
 
@@ -35,10 +35,21 @@ if '-v' in sys.argv:
 
 if 'register' in sys.argv:
     kit.getInfo()
+
     if '-n' not in sys.argv:
         kit.platform_name = 'test #'
     else:
         kit.platform_name = sys.argv[sys.argv.index('-n')+1]
+
+    if '-i' in sys.argv:
+        try:
+            bid = int(sys.argv[sys.argv.index('-i')+1])
+        except:
+            enablePrint()
+            print('Failed parsing blueprint ID, please try again.')
+            sys.exit()
+        kit.blueprint_id = bid
+
     kit.platform_name = kit.platform_name + ' #' + kit.esp_macAddress[-5:].replace(':', '')
     kit.register()
 

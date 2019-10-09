@@ -210,6 +210,7 @@ class Sck_PM
 		bool stop();
 		bool update();
 		int16_t oneShot(uint16_t period);
+		bool getReading();		
 		bool reset();
 };
 

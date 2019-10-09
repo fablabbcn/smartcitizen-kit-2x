@@ -872,9 +872,6 @@ bool Sck_PM::update()
 	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
 	if (millis() - lastFail < 1000) return false; 		// We need at least one second after las fail
 
-	// Empty serial buffer
-	while(SerialPM.available()) SerialPM.read();
-
 	// Wait for new readings
 	uint32_t startPoint = millis();
 	while(SerialPM.available() < (buffLong + 2)) {
@@ -989,6 +986,13 @@ int16_t Sck_PM::oneShot(uint16_t period)
 	}
 
 	return (int16_t)pendingSeconds;
+}
+bool Sck_PM::getReading()
+{
+	if (!started) start();
+	if (millis() - lastReading < 1000) return false; 	// Only return new values (PM updates once per second)
+	if (!update()) return false;
+	return true;
 }
 bool Sck_PM::reset()
 {

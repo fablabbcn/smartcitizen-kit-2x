@@ -397,26 +397,46 @@ void monitorSensor_com(SckBase* base, String parameters)
 	base->sckOut();
 
 	// Readings
-	strncpy(base->outBuff, "", 240);
 	uint32_t lastMillis = millis();
 	while (!SerialUSB.available()) {
-		sprintf(base->outBuff, "%s", "");
+		strncpy(base->outBuff, "", 240);
 		base->ISOtime();
-		if (printTime) sprintf(base->outBuff, "%s%s\t", base->outBuff, base->ISOtimeBuff);
-		if (printMs) sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
-		lastMillis = millis();
+		if (printTime) sprintf(base->outBuff, "%s\t", base->ISOtimeBuff);
+		if (printMs) sprintf(base->outBuff, "%s%lu", base->outBuff, millis() - lastMillis);
+		uint32_t provLastMillis = millis();
+		uint8_t printit = 0;
+		bool PMreadingReady = false;
 		for (uint8_t i=0; i<index; i++) {
-			// TODO check what will happen here when one shot PM is implemented
+			// Exception for PM sensor (avoid 15 sec of wait for each reading)
+			// TODO
+			// 1. mejorar la velocidad del pm, se deberia poder 
 			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
-			base->getReading(&wichSensor);
-			if (wichSensor.state == 0) sprintf(base->outBuff, "%s%s", base->outBuff, wichSensor.reading.c_str());
-			else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
-			if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
+			if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) {
+				if (PMreadingReady || base->urban.sck_pm.getReading()) {
+					String thisReading;
+					if (wichSensor.type == SENSOR_PM_1) thisReading = String(base->urban.sck_pm.pm1);
+					else if (wichSensor.type == SENSOR_PM_25) thisReading = String(base->urban.sck_pm.pm25);
+					else if (wichSensor.type == SENSOR_PM_10) thisReading = String(base->urban.sck_pm.pm10);
+					sprintf(base->outBuff, "%s\t%s", base->outBuff, thisReading.c_str());
+					PMreadingReady = true;
+					printit++;
+				}
+			} else {
+				base->getReading(&wichSensor);
+				if (wichSensor.state == 0) {
+					sprintf(base->outBuff, "%s\t%s", base->outBuff, wichSensor.reading.c_str());
+					printit++;
+				}
+			}
 		}
-		if (sdSave) base->monitorFile.file.println(base->outBuff);
-		base->sckOut();
+		// If we are missing sensors we don't print the output
+		if (printit == index) {
+			lastMillis = provLastMillis;
+			if (sdSave) base->monitorFile.file.println(base->outBuff);
+			base->sckOut();
+		}
 	}
-	base->monitorFile.file.close();
+	if (sdSave) base->monitorFile.file.close();
 }
 void readings_com(SckBase* base, String parameters)
 {

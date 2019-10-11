@@ -131,9 +131,39 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 		case SENSOR_CCS811_ECO2:
 		{
 				if (command.startsWith("compensate")) {
+				
 					sck_ccs811.compensate = !sck_ccs811.compensate;
 					return (sck_ccs811.compensate ? "True" : "False");
+				
+				} else if (command.startsWith("mode")) {
+				
+					command.replace("mode", "");
+					command.trim();
+
+					if (command.length() == 0) {
+						sprintf(base->outBuff, "Current drive mode: %u", sck_ccs811.driveMode);
+						base->sckOut();
+						return "\r\n";
+					}
+
+					uint8_t newDriveMode = command.toInt();
+					if ((newDriveMode == 0 and !command.equals("0")) || newDriveMode > 4 || newDriveMode < 0) return F("Wrong drive mode value received, try again");
+
+					//Mode 0 = Idle
+					//Mode 1 = read every 1s
+					//Mode 2 = every 10s
+					//Mode 3 = every 60s
+					//Mode 4 = RAW mode
+					if (sck_ccs811.setDriveMode(newDriveMode) != CCS811Core::SENSOR_SUCCESS) return F("Failed to set new drive mode");
+					else return String F("Drivemode set to ") + String(sck_ccs811.driveMode);
+					
+				} else if (command.startsWith("help") || command.length() == 0) {
+				
+					sprintf(base->outBuff, "Available commands:\r\n* compensate (toggles temp/hum compensation)\r\n* mode [0-4] (0-idle, 1-1s, 2-10s, 3-60s, 4-raw)");
+					base->sckOut();
+					return "\r\n";
 				}
+
 		}
 		default: break;
 	}
@@ -1105,7 +1135,8 @@ bool Sck_CCS811::setBaseline(uint16_t wichBaseline)
 }
 bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
 {
-	if (ccs.setDriveMode(wichDrivemode) != CCS811Core::SENSOR_SUCCESS) return false;
+	driveMode = wichDrivemode;
+	if (ccs.setDriveMode(driveMode) != CCS811Core::SENSOR_SUCCESS) return false;
 	return true;
 }
 

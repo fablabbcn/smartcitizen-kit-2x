@@ -101,7 +101,7 @@ public:
 		"enabled",
 	};
 
-	void setup();
+	void setup(SckBase *base);
 	bool resetConfig();
 	uint16_t inputCurrentLimit(int16_t current=-1);
 	uint16_t chargerCurrentLimit(int16_t current=-1);

@@ -48,10 +48,6 @@ void SckBase::setup()
 	pinMode(pinBUTTON, INPUT_PULLUP);
 	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
 
-	// Power management configuration
-	charger.setup();
-	battery.setup();
-
 	// RTC setup
 	rtc.begin();
 	if (rtc.isConfigured() && (rtc.getEpoch() > 1514764800)) st.timeStat.setOk();	// If greater than 01/01/2018
@@ -105,6 +101,10 @@ void SckBase::setup()
 	ESPcontrol(ESP_REBOOT);
 	loadConfig();
 	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
+
+	// Power management configuration
+	charger.setup(this);
+	battery.setup();
 
 	bool saveNeeded = false;
 

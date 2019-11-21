@@ -101,7 +101,7 @@ class AllCommands {
 			OneCom {90,	COM_READINGS,		"saved",	"Shows locally stored sensor readings [-details] [-publish]",											readings_com},
 			OneCom {90,	COM_GET_FREERAM,	"free",		"Shows the amount of free RAM memory",													freeRAM_com},
 			OneCom {90,	COM_I2C_DETECT,		"i2c",		"Search the I2C bus for devices",													i2cDetect_com},
-			OneCom {90,	COM_CHARGER,		"charger",	"Controls or shows charger configuration [-otg on/off] [-charge on/off]",								charger_com},
+			OneCom {90,	COM_CHARGER,		"charger",	"Controls or shows charger configuration [-batcap capacitiy-mAh] [-otg on/off] [-charge on/off]",								charger_com},
 			OneCom {90,	COM_CONFIG,		"config",	"Shows/sets configuration [-defaults] [-mode sdcard/network] [-pubint seconds] [-readint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token]", config_com},
 			OneCom {100,	COM_ESP_CONTROL,	"esp",		"Controls or shows info from ESP [-on -off -sleep -wake -reboot -flash]",								esp_com},
 			OneCom {100,	COM_NETINFO,		"netinfo",	"Shows network information",														netInfo_com},

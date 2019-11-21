@@ -528,6 +528,9 @@ void charger_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "Battery: %s", base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
 		base->sckOut();
 
+		sprintf(base->outBuff, "Battery capacity: %u", base->config.battConf.battCapacity);
+		base->sckOut();
+
 		sprintf(base->outBuff, "USB: %s", base->charger.VBUSStatusTitles[base->charger.getVBUSstatus()]);
 		base->sckOut();
 
@@ -573,6 +576,21 @@ void charger_com(SckBase* base, String parameters)
 			String otgC = parameters.substring(otgI+5);
 			if (otgC.startsWith("on")) base->charger.OTG(1);
 			if (otgC.startsWith("off")) base->charger.OTG(0);
+		}
+
+		int16_t batcapI = parameters.indexOf("-batcap");
+		if ( batcapI>=0) {
+			String batcapC = parameters.substring(batcapI+8);
+			int32_t batcapInt = batcapC.toInt();
+			if (batcapInt == 2000 || batcapInt == 6000) {
+				base->config.battConf.battCapacity == batcapInt;
+				base->saveConfig();
+				sprintf(base->outBuff, "New battery capacity: %u", base->config.battConf.battCapacity);
+				// TODO wait for a key press and reset
+			} else {
+				sprintf(base->outBuff, "Wrong battery capacity");
+			}
+			base->sckOut();
 		}
 	}
 }

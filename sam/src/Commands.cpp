@@ -528,7 +528,7 @@ void charger_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "Battery: %s", base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
 		base->sckOut();
 
-		sprintf(base->outBuff, "Battery capacity: %u", base->config.battConf.battCapacity);
+		sprintf(base->outBuff, "Battery capacity: %u mAh", base->config.battConf.battCapacity);
 		base->sckOut();
 
 		sprintf(base->outBuff, "USB: %s", base->charger.VBUSStatusTitles[base->charger.getVBUSstatus()]);
@@ -583,9 +583,9 @@ void charger_com(SckBase* base, String parameters)
 			String batcapC = parameters.substring(batcapI+8);
 			int32_t batcapInt = batcapC.toInt();
 			if (batcapInt == 2000 || batcapInt == 6000) {
-				base->config.battConf.battCapacity == batcapInt;
+				base->config.battConf.battCapacity = batcapInt;
 				base->saveConfig();
-				sprintf(base->outBuff, "New battery capacity: %u", base->config.battConf.battCapacity);
+				sprintf(base->outBuff, "New battery capacity: %u\r\nPlease reset your kit!!", base->config.battConf.battCapacity);
 				// TODO wait for a key press and reset
 			} else {
 				sprintf(base->outBuff, "Wrong battery capacity");

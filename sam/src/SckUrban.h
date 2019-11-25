@@ -42,7 +42,7 @@ class Sck_BH1730FVC
 
 	private:
 		bool updateValues();
-		
+
 		// Config values
 		uint8_t ITIME; 			// Integration Time (datasheet page 9)
 		float ITIME_ms;
@@ -154,34 +154,43 @@ class Sck_PM
 		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
 
-		static const uint8_t buffLong = 30; 	// Excluding both start chars
+		static const uint8_t buffLength = 28; 		// Excluding both start chars
+		static const uint8_t buffLengthST = 36; 	// Excluding both start chars
 
 		// Serial transmission from PMS
 		// 0: Start char 1 0x42 (fixed)
 		// 1: Start char 2 0x4d (fixed)
 		// 2-3 : Frame length = 2x13 + 2 (data + parity)
 
-		// 4-5: PM1.0 concentration (CF = 1, standard particles) Unit ug/m^3
-		// 6-7: PM2.5 concentration (CF = 1, standard particulates) Unit ug/m^3
-		// 8-9: PM10 concentration (CF = 1, standard particulate matter) Unit ug/m^3
+		// 4-5: (0-1) PM1.0 concentration (CF = 1, standard particles) Unit ug/m^3
+		// 6-7: (2-3) PM2.5 concentration (CF = 1, standard particulates) Unit ug/m^3
+		// 8-9: (4-5) PM10 concentration (CF = 1, standard particulate matter) Unit ug/m^3
 
-		// 10-11: PM1.0 concentration (in the atmosphere) Unit ug/m^3
-		// 12-13: PM2.5 concentration (in the atmosphere) Unit ug/m^3
-		// 14-15: PM10 concentration (in the atmosphere) Unit ug/m^3
+		// 10-11: (6-7) PM1.0 concentration (in the atmosphere) Unit ug/m^3
+		// 12-13: (8-9) PM2.5 concentration (in the atmosphere) Unit ug/m^3
+		// 14-15: (10-11) PM10 concentration (in the atmosphere) Unit ug/m^3
 
-		// 16-17: Particles in 0.1 liter of air > 0.3um 
-		// 18-19: Particles in 0.1 liter of air > 0.5um 
-		// 20-21: Particles in 0.1 liter of air > 1.0um 
-		// 22-23: Particles in 0.1 liter of air > 2.5um 
-		// 24-25: Particles in 0.1 liter of air > 5.0um 
-		// 26-27: Particles in 0.1 liter of air > 10um 
+		// 16-17: (12-13) Particles in 0.1 liter of air > 0.3um
+		// 18-19: (14-15) Particles in 0.1 liter of air > 0.5um
+		// 20-21: (16-17) Particles in 0.1 liter of air > 1.0um
+		// 22-23: (18-19) Particles in 0.1 liter of air > 2.5um
+		// 24-25: (20-21) Particles in 0.1 liter of air > 5.0um
+		// 26-27: (22-23) Particles in 0.1 liter of air > 10um
 
-		// 28: Version number
-		// 29: Error code
+		// ------ PMS5003 only ------------------------------
+		// 28: (24) Version number?
+		// 29: (25) Error code?
+		// 30-31: (26-27) Sum of each byte from start_1 ... error_code
 
-		// 30-31: Sum of each byte from start_1 ... error_code 
+		// ------ PMS5003ST only ------------------------------
+		// 28-29: (24-25) Formaldehyde concentration (unit/1000) ug/m^3
+		// 30-31: (26-27) Temperature Value (unit/10) C
+		// 32-33: (28-29) Humidity (unit/10) %
+		// 34-35: (30-31) Reserved
+		// 36: (32) Firmware Version
+		// 37: (33) Error code
+		// 38-39: (34-35) Sum of each byte from start_1 ... error_code
 
-		unsigned char buff[buffLong];
 		uint32_t rtcStarted = 0;
 		uint32_t rtcStopped = 0;
 		uint32_t rtcReading = 0;
@@ -201,16 +210,23 @@ class Sck_PM
 		uint16_t pn25;
 		uint16_t pn5;
 		uint16_t pn10;
+		float formaldehyde;
+		float temperature;
+		float humidity;
+
 
 		bool started = false;
 		bool active = false;
 		uint16_t oneShotPeriod = 15;
 
+		enum PmModel { PMS5003, PMS5003ST };
+		PmModel model = PMS5003; 		// Default
+
 		bool start();
 		bool stop();
 		bool update();
 		int16_t oneShot(uint16_t period);
-		bool getReading();		
+		bool getReading();
 		bool reset();
 };
 
@@ -264,7 +280,7 @@ class SckUrban
 			rtc = myrtc;
 		}
 
-		bool setup();
+		bool setup(SckBase *base);
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
 

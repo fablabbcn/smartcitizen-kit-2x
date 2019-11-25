@@ -7,17 +7,62 @@ void SERCOM5_Handler() {
 	SerialPM.IrqHandler();
 }
 
-bool SckUrban::setup()
+bool SckUrban::setup(SckBase *base)
 {
-	if (!sck_bh1730fvc.start()) return false;
-	if (!sck_sht31.start()) return false;
-	if (!sck_noise.start()) return false;
-	if (!sck_mpl3115A2.start()) return false;
-	if (!sck_ccs811.start()) return false;
-	sck_pm.start(); // This sensor is independent of the urban board. That's way we don't declare error if it's not there.
 
-	return true;
-};
+	if (!base->config.urbanPresent) {
+
+		bool founded = false;
+
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			if (base->sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) {
+				if (start(base->sensors[static_cast<SensorType>(i)].type)) {
+					base->sensors[static_cast<SensorType>(i)].enabled = true;
+					founded = true;
+				}
+			}
+		}
+
+
+		if (founded) {
+			base->config.urbanPresent = true;
+			base->saveConfig();
+			return true;
+		}
+
+	} else {
+
+		uint8_t sensorCount = 0;
+		bool someFail = false;
+
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			if ((base->sensors[static_cast<SensorType>(i)].location == BOARD_URBAN && base->sensors[static_cast<SensorType>(i)].enabled) ||
+			static_cast<SensorType>(i) == SENSOR_PM_FORMALDEHYDE ||
+			static_cast<SensorType>(i) == SENSOR_PM_TEMPERATURE ||
+			static_cast<SensorType>(i) == SENSOR_PM_HUMIDITY) {
+
+				sensorCount++;
+
+				if (!start(base->sensors[static_cast<SensorType>(i)].type)) {
+					sensorCount--;
+					someFail = true;
+					base->sensors[static_cast<SensorType>(i)].enabled = false;
+				}
+			}
+		}
+
+		if (someFail) base->saveConfig();
+
+		if (sensorCount == 0) {
+			base->config.urbanPresent = false;
+			return false;
+		}
+
+		return true;
+	}
+
+	return false;
+}
 bool SckUrban::start(SensorType wichSensor)
 {
 	switch(wichSensor) {
@@ -42,6 +87,9 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_PN_25:
 		case SENSOR_PN_5:
 		case SENSOR_PN_10: 				if (sck_pm.start()) return true; break;
+		case SENSOR_PM_FORMALDEHYDE:
+		case SENSOR_PM_TEMPERATURE:
+		case SENSOR_PM_HUMIDITY: 			if (sck_pm.start() && sck_pm.model == sck_pm.PMS5003ST) return true; break;
 		default: break;
 	}
 
@@ -107,6 +155,9 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_PN_25: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn25); return;
 		case SENSOR_PN_5: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn5); return;
 		case SENSOR_PN_10: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn10); return;
+		case SENSOR_PM_FORMALDEHYDE: 		wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.formaldehyde); return;
+		case SENSOR_PM_TEMPERATURE: 		wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.temperature); return;
+		case SENSOR_PM_HUMIDITY: 		wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.humidity); return;
 		default: break;
 	}
 	wichSensor->reading = "null";
@@ -131,12 +182,12 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 		case SENSOR_CCS811_ECO2:
 		{
 				if (command.startsWith("compensate")) {
-				
+
 					sck_ccs811.compensate = !sck_ccs811.compensate;
 					return (sck_ccs811.compensate ? "True" : "False");
-				
+
 				} else if (command.startsWith("mode")) {
-				
+
 					command.replace("mode", "");
 					command.trim();
 
@@ -156,9 +207,9 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					//Mode 4 = RAW mode
 					if (sck_ccs811.setDriveMode(newDriveMode) != CCS811Core::SENSOR_SUCCESS) return F("Failed to set new drive mode");
 					else return String F("Drivemode set to ") + String(sck_ccs811.driveMode);
-					
+
 				} else if (command.startsWith("help") || command.length() == 0) {
-				
+
 					sprintf(base->outBuff, "Available commands:\r\n* compensate (toggles temp/hum compensation)\r\n* mode [0-4] (0-idle, 1-1s, 2-10s, 3-60s, 4-raw)");
 					base->sckOut();
 					return "\r\n";
@@ -880,6 +931,7 @@ bool Sck_PM::start()
 		if (SerialPM.available()) {
 			started = true;
 			rtcStarted = rtc->getEpoch();
+			update();
 			return true;
 		}
 	}
@@ -904,7 +956,7 @@ bool Sck_PM::update()
 
 	// Wait for new readings
 	uint32_t startPoint = millis();
-	while(SerialPM.available() < (buffLong + 2)) {
+	while(SerialPM.available() < (buffLength + 2)) {
 		if (millis() - startPoint > 1500) {
 			// Timeout
 			lastFail = millis();
@@ -932,38 +984,51 @@ bool Sck_PM::update()
 	// Confirm we receive start char 2
 	byte sc2 = 0;
 	sc2 = SerialPM.read();
+	sum += sc2;
 
 	if (sc2 == 0x4d) {
 
 		rtcReading = rtc->getEpoch();
 
-		sum += sc2;
+		byte ds1 = SerialPM.read();
+		sum += ds1;
+		byte ds2 = SerialPM.read();
+		sum += ds2;
+		uint16_t dataSize = (ds1<<8) + ds2;
 
-		unsigned char buff[buffLong];
-		byte howMany =  SerialPM.readBytes(buff, buffLong);
+		// Wich model do we have?
+		if (dataSize == 28) model = PMS5003;
+		else if (dataSize == 36) model = PMS5003ST;
+
+		unsigned char buff[dataSize];
+		byte howMany =  SerialPM.readBytes(buff, dataSize);
 
 		// Is buffer complete?
-		if (howMany < 30) {
+		if (howMany < dataSize) {
 			return false;
 		}
 
 		// Checksum
-		uint16_t checkSum = (buff[28]<<8) + buff[29];
-		for(int i=0; i<(buffLong - 2); i++) sum += buff[i];
-		if(sum != checkSum) {
-			return false;
-		}
+		uint16_t checkSum = (buff[dataSize-2]<<8) + buff[dataSize-1];
+		for(int i=0; i<(dataSize - 2); i++) sum += buff[i];
+		if(sum != checkSum) return false;
 
 		// Get the values
-		pm1 = (buff[2]<<8) + buff[3];
-		pm25 = (buff[4]<<8) + buff[5];
-		pm10 = (buff[6]<<8) + buff[7];
-		pn03 = (buff[14]<<8) + buff[15];
-		pn05 = (buff[16]<<8) + buff[17];
-		pn1 = (buff[18]<<8) + buff[19];
-		pn25 = (buff[20]<<8) + buff[21];
-		pn5 = (buff[22]<<8) + buff[23];
-		pn10 = (buff[24]<<8) + buff[25];
+		pm1 = (buff[0]<<8) + buff[1];
+		pm25 = (buff[2]<<8) + buff[3];
+		pm10 = (buff[4]<<8) + buff[5];
+		pn03 = (buff[12]<<8) + buff[13];
+		pn05 = (buff[14]<<8) + buff[15];
+		pn1 = (buff[16]<<8) + buff[17];
+		pn25 = (buff[18]<<8) + buff[19];
+		pn5 = (buff[20]<<8) + buff[21];
+		pn10 = (buff[22]<<8) + buff[23];
+
+		if (model == PMS5003ST) {
+			formaldehyde = ((buff[24]<<8) + buff[25]) / 10.0;
+			temperature = ((buff[26]<<8) + buff[27]) / 10.0;
+			humidity = ((buff[28]<<8) + buff[29]) / 10.0;
+		}
 
 		lastReading = millis();
 		lastFail = 0;

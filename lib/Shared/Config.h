@@ -34,6 +34,7 @@ struct Configuration {
 	MAC mac; 							// Stored here after first boot
 	Credentials credentials;
 	Token token;
+	bool urbanPresent = true;
 	SensorConfig sensors[SENSOR_COUNT];
 	bool sdDebug = false;
 	BattConf battConf;

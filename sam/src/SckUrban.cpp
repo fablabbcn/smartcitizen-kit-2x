@@ -16,9 +16,13 @@ bool SckUrban::setup(SckBase *base)
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			if (base->sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) {
-				if (start(base->sensors[static_cast<SensorType>(i)].type)) {
-					base->sensors[static_cast<SensorType>(i)].enabled = true;
-					founded = true;
+
+				AllSensors defaultSensors;
+				if (defaultSensors[static_cast<SensorType>(i)].enabled) {
+					if (start(base->sensors[static_cast<SensorType>(i)].type)) {
+						base->sensors[static_cast<SensorType>(i)].enabled = true;
+						founded = true;
+					}
 				}
 			}
 		}
@@ -36,22 +40,38 @@ bool SckUrban::setup(SckBase *base)
 		bool someFail = false;
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			if ((base->sensors[static_cast<SensorType>(i)].location == BOARD_URBAN && base->sensors[static_cast<SensorType>(i)].enabled) ||
-			static_cast<SensorType>(i) == SENSOR_PM_FORMALDEHYDE ||
-			static_cast<SensorType>(i) == SENSOR_PM_TEMPERATURE ||
-			static_cast<SensorType>(i) == SENSOR_PM_HUMIDITY) {
 
-				sensorCount++;
+			if (base->sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) {
 
-				if (!start(base->sensors[static_cast<SensorType>(i)].type)) {
-					sensorCount--;
-					someFail = true;
-					base->sensors[static_cast<SensorType>(i)].enabled = false;
+				if ( 	static_cast<SensorType>(i) == SENSOR_PM_1 ||
+					static_cast<SensorType>(i) == SENSOR_PM_25 ||
+					static_cast<SensorType>(i) == SENSOR_PM_10 ||
+					static_cast<SensorType>(i) == SENSOR_PM_FORMALDEHYDE ||
+					static_cast<SensorType>(i) == SENSOR_PM_TEMPERATURE ||
+					static_cast<SensorType>(i) == SENSOR_PM_HUMIDITY) {
+
+						base->sensors[static_cast<SensorType>(i)].enabled = true;
+				}
+
+				if (base->sensors[static_cast<SensorType>(i)].enabled) {
+
+					Serial.println(base->sensors[static_cast<SensorType>(i)].title);
+
+					sensorCount++;
+
+					if (!start(base->sensors[static_cast<SensorType>(i)].type)) {
+						sensorCount--;
+						Serial.println("Last sensor is not present!!!!");
+						someFail = true;
+						base->sensors[static_cast<SensorType>(i)].enabled = false;
+					}
 				}
 			}
 		}
 
 		if (someFail) base->saveConfig();
+
+		SerialUSB.println(sensorCount);
 
 		if (sensorCount == 0) {
 			base->config.urbanPresent = false;
@@ -557,6 +577,8 @@ bool Sck_Noise::start()
 
 	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
 	while (GCLK->STATUS.bit.SYNCBUSY);
+
+	if (!getReading(SENSOR_NOISE_DBA)) return false;
 
 	alreadyStarted = true;
 	return true;

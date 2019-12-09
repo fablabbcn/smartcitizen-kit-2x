@@ -14,22 +14,28 @@ bool SckUrban::setup(SckBase *base)
 
 		bool founded = false;
 
+		// Check for ANY sensor on the urban board
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			if (base->sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) {
-
-				AllSensors defaultSensors;
-				if (defaultSensors[static_cast<SensorType>(i)].enabled) {
-					if (start(base->sensors[static_cast<SensorType>(i)].type)) {
-						base->sensors[static_cast<SensorType>(i)].enabled = true;
-						founded = true;
-					}
-				}
+				if (start(base->sensors[static_cast<SensorType>(i)].type)) founded = true;
 			}
 		}
 
 
 		if (founded) {
+
 			base->config.urbanPresent = true;
+
+			// Enable default sensors
+			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+				if (base->sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) {
+					AllSensors defaultSensors;
+					if (defaultSensors[static_cast<SensorType>(i)].enabled) {
+						if (start(base->sensors[static_cast<SensorType>(i)].type)) base->sensors[static_cast<SensorType>(i)].enabled = true;
+					}
+				}
+			}
+
 			base->saveConfig();
 			return true;
 		}
@@ -37,12 +43,12 @@ bool SckUrban::setup(SckBase *base)
 	} else {
 
 		uint8_t sensorCount = 0;
-		bool someFail = false;
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 			if (base->sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) {
 
+				// Always enable PM sensors
 				if ( 	static_cast<SensorType>(i) == SENSOR_PM_1 ||
 					static_cast<SensorType>(i) == SENSOR_PM_25 ||
 					static_cast<SensorType>(i) == SENSOR_PM_10 ||
@@ -53,25 +59,16 @@ bool SckUrban::setup(SckBase *base)
 						base->sensors[static_cast<SensorType>(i)].enabled = true;
 				}
 
-				if (base->sensors[static_cast<SensorType>(i)].enabled) {
 
-					Serial.println(base->sensors[static_cast<SensorType>(i)].title);
-
+				if (start(base->sensors[static_cast<SensorType>(i)].type)) {
 					sensorCount++;
+					if (!base->sensors[static_cast<SensorType>(i)].enabled) stop(base->sensors[static_cast<SensorType>(i)].type);
 
-					if (!start(base->sensors[static_cast<SensorType>(i)].type)) {
-						sensorCount--;
-						Serial.println("Last sensor is not present!!!!");
-						someFail = true;
-						base->sensors[static_cast<SensorType>(i)].enabled = false;
-					}
-				}
+				} else base->sensors[static_cast<SensorType>(i)].enabled = false;
 			}
 		}
 
-		if (someFail) base->saveConfig();
-
-		SerialUSB.println(sensorCount);
+		base->saveConfig();
 
 		if (sensorCount == 0) {
 			base->config.urbanPresent = false;

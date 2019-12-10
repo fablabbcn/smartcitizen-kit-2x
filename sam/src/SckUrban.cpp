@@ -9,7 +9,6 @@ void SERCOM5_Handler() {
 
 bool SckUrban::setup(SckBase *base)
 {
-
 	if (!base->config.urbanPresent) {
 
 		bool founded = false;
@@ -27,9 +26,9 @@ bool SckUrban::setup(SckBase *base)
 			base->config.urbanPresent = true;
 
 			// Enable default sensors
+			AllSensors defaultSensors;
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				if (base->sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) {
-					AllSensors defaultSensors;
 					if (defaultSensors[static_cast<SensorType>(i)].enabled) {
 						if (start(base->sensors[static_cast<SensorType>(i)].type)) base->sensors[static_cast<SensorType>(i)].enabled = true;
 					}
@@ -68,13 +67,13 @@ bool SckUrban::setup(SckBase *base)
 			}
 		}
 
-		base->saveConfig();
-
 		if (sensorCount == 0) {
 			base->config.urbanPresent = false;
+			base->saveConfig();
 			return false;
 		}
 
+		base->saveConfig();
 		return true;
 	}
 

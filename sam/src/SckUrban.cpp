@@ -998,6 +998,9 @@ bool Sck_PM::start()
 			started = true;
 			rtcStarted = rtc->getEpoch();
 			update();
+
+			if (passive) sendComm(cmd_modePassive, 8);
+
 			return true;
 		}
 	}
@@ -1019,6 +1022,8 @@ bool Sck_PM::update()
 {
 	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
 	if (millis() - lastFail < 1000) return false; 		// We need at least one second after las fail
+
+	if (passive) sendComm(cmd_reqRead);
 
 	// Wait for new readings
 	uint32_t startPoint = millis();
@@ -1167,9 +1172,19 @@ bool Sck_PM::reset()
 	digitalWrite(pinPM_ENABLE, HIGH);
 	return true;
 }
-bool Sck_PM::sendComm(uint8_t *wichCmd)
+bool Sck_PM::sendComm(uint8_t *wichCmd, uint8_t flushBytes)
 {
 	if (SerialPM.write(wichCmd, cmdSize) != cmdSize) return false;
+
+	if (flushBytes) {
+		uint32_t startPoint = millis();
+		while(SerialPM.available() < flushBytes) {
+			delay(1);
+			if (millis() - startPoint > 1500) return false;
+		}
+		for (uint8_t i=0; i<flushBytes; i++) SerialPM.read();
+	}
+
 	return true;
 }
 

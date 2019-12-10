@@ -150,6 +150,8 @@ class Sck_MPL3115A2
 class Sck_PM
 {
 	private:
+		bool passive = false;
+
 		bool detectionFailed = false;
 		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
@@ -199,12 +201,12 @@ class Sck_PM
 		// Datasheet last page
 		static const uint8_t cmdSize = 7;
 		uint8_t cmd_sleep[cmdSize] = { 0x42, 0x4D, 0xE4, 0x00, 0x00, 0x01, 0x73 };
-		uint8_t cmd_wakeUp[cmdSize] = { 0x42, 0x4D, 0xE4, 0x00, 0x01, 0x01, 0x74 };
+		uint8_t cmd_wakeUp[cmdSize] = { 0x42, 0x4D, 0xE4, 0x00, 0x01, 0x01, 0x74 }; 		// No need to flush this command
 		uint8_t cmd_modeActive[cmdSize] = { 0x42, 0x4D, 0xE1, 0x00, 0x01, 0x01, 0x71 };
 		uint8_t cmd_modePassive[cmdSize] = { 0x42, 0x4D, 0xE1, 0x00, 0x00, 0x01, 0x70 };
-		uint8_t cmd_reqRead[cmdSize] = { 0x42, 0x4D, 0xE2, 0x00, 0x00, 0x01, 0x71 };
+		uint8_t cmd_reqRead[cmdSize] = { 0x42, 0x4D, 0xE2, 0x00, 0x00, 0x01, 0x71 }; 		// No need to flush this command
 
-		bool sendComm(uint8_t *wichCmd);
+		bool sendComm(uint8_t *wichCmd, uint8_t flushBytes=0);
 
 	public:
 		Sck_PM(RTCZero* myrtc) {

@@ -242,7 +242,43 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					base->sckOut();
 					return "\r\n";
 				}
+		} case SENSOR_PM_1:
+		case SENSOR_PM_25:
+		case SENSOR_PM_10:
+		case SENSOR_PM_FORMALDEHYDE:
+		case SENSOR_PM_TEMPERATURE:
+		case SENSOR_PM_HUMIDITY:
+		{
+				if (command.startsWith("mode")) {
 
+					command.replace("mode", "");
+					command.trim();
+
+					if (command.length() == 0) {
+						sprintf(base->outBuff, "Current PM mode: %s", sck_pm.continousMode ? "Continous" : "One Shot");
+						base->sckOut();
+						return "\r\n";
+					}
+
+					if (command.startsWith("one")) sck_pm.continousMode = false;
+					else if (command.startsWith("cont")) sck_pm.continousMode = true;
+					else {
+						sprintf(base->outBuff, "Unrecognized mode!!!");
+						base->sckOut();
+						return "\r\n";
+					}
+
+					sprintf(base->outBuff, "New PM mode: %s", sck_pm.continousMode  ? "Continous" : "One Shot");
+					base->sckOut();
+					base->config.extra.pmContinousMode = sck_pm.continousMode;
+					base->saveConfig();
+					return "\r\n";
+				} else {
+					sprintf(base->outBuff, "Available commands:\r\n* mode [one/continous] (One shot or continous reading)");
+					base->sckOut();
+					return "\r\n";
+				
+				}
 		}
 		default: break;
 	}
@@ -1070,6 +1106,11 @@ bool Sck_PM::update()
 }
 int16_t Sck_PM::oneShot(uint16_t period)
 {
+	if (continousMode) {
+		if(getReading()) return 0;
+		else return 1;
+	}
+
 	int16_t pendingSeconds = period;
 	uint32_t rtcNow = rtc->getEpoch();
 

@@ -222,6 +222,8 @@ class Sck_PM
 		enum PmModel { PMS5003, PMS5003ST };
 		PmModel model = PMS5003; 		// Default
 
+		bool continousMode = false;
+
 		bool start();
 		bool stop();
 		bool update();

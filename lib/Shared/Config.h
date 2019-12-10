@@ -24,7 +24,7 @@ struct Credentials { bool set=false; char ssid[64]="null"; char pass[64]="null";
 struct Token { bool set=false; char token[7]="null"; };
 struct MAC { bool valid=false; char address[18]="not synced"; };
 struct BattConf { int16_t chargeCurrent=768; uint32_t battCapacity=2000; };
-struct Extra { bool ccsBaselineValid=false; uint16_t ccsBaseline; }; 			// Here we save variables that don't have an specific place
+struct Extra { bool ccsBaselineValid=false; uint16_t ccsBaseline; bool pmContinousMode=false; }; 			// Here we save variables that don't have an specific place
 
 struct Configuration {
 	bool valid = true;

@@ -408,8 +408,6 @@ void monitorSensor_com(SckBase* base, String parameters)
 		bool PMreadingReady = false;
 		for (uint8_t i=0; i<index; i++) {
 			// Exception for PM sensor (avoid 15 sec of wait for each reading)
-			// TODO
-			// 1. mejorar la velocidad del pm, se deberia poder 
 			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 			if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) {
 				if (PMreadingReady || base->urban.sck_pm.getReading()) {

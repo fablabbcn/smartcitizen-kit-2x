@@ -111,6 +111,8 @@ void SckBase::setup()
 	if (urban.setup(this)) sckOut("Urban board detected");
 	else sckOut("No urban board detected!!");
 
+	if ((config.urbanPresent) && (!urban.sck_pm.continousMode || st.mode == MODE_NOT_CONFIGURED)) urban.stop(SENSOR_PM_1); 	// Turn off PM sensor if not needed
+
 	// Detect and enable auxiliary boards
 	bool saveNeeded = false;
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -693,6 +695,13 @@ void SckBase::loadConfig()
 		sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
 		sckOut();
 		urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
+	}
+
+	// PM continous or one shot mode
+	if (config.extra.pmContinousMode) {
+		sprintf(outBuff, "Activating PM continous mode");
+		sckOut();
+		urban.sck_pm.continousMode = true;
 	}
 }
 void SckBase::saveConfig(bool defaults)

@@ -61,7 +61,19 @@ bool SckUrban::setup(SckBase *base)
 
 				if (start(base->sensors[static_cast<SensorType>(i)].type)) {
 					sensorCount++;
-					if (!base->sensors[static_cast<SensorType>(i)].enabled) stop(base->sensors[static_cast<SensorType>(i)].type);
+					
+					if (!base->sensors[static_cast<SensorType>(i)].enabled) {
+
+						if (	static_cast<SensorType>(i) != SENSOR_PN_03 &&
+							static_cast<SensorType>(i) != SENSOR_PN_05 &&
+							static_cast<SensorType>(i) != SENSOR_PN_1 &&
+							static_cast<SensorType>(i) != SENSOR_PN_25 &&
+							static_cast<SensorType>(i) != SENSOR_PN_5 &&
+							static_cast<SensorType>(i) != SENSOR_PN_10) {
+
+								stop(base->sensors[static_cast<SensorType>(i)].type);
+						}
+					}
 
 				} else base->sensors[static_cast<SensorType>(i)].enabled = false;
 			}

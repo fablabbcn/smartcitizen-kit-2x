@@ -1167,6 +1167,11 @@ bool Sck_PM::reset()
 	digitalWrite(pinPM_ENABLE, HIGH);
 	return true;
 }
+bool Sck_PM::sendComm(uint8_t *wichCmd)
+{
+	if (SerialPM.write(wichCmd, cmdSize) != cmdSize) return false;
+	return true;
+}
 
 // VOC and ECO2
 bool Sck_CCS811::start()

@@ -1112,7 +1112,7 @@ bool Sck_PM::update()
 int16_t Sck_PM::oneShot(uint16_t period)
 {
 	if (continousMode) {
-		if(getReading()) return 0;
+		if (getReading()) return 0;
 		else return 1;
 	}
 
@@ -1161,7 +1161,6 @@ int16_t Sck_PM::oneShot(uint16_t period)
 bool Sck_PM::getReading()
 {
 	if (!started) start();
-	if (millis() - lastReading < 1000) return false; 	// Only return new values (PM updates once per second)
 	if (!update()) return false;
 	return true;
 }

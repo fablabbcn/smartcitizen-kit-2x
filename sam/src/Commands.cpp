@@ -409,12 +409,15 @@ void monitorSensor_com(SckBase* base, String parameters)
 		for (uint8_t i=0; i<index; i++) {
 			// Exception for PM sensor (avoid 15 sec of wait for each reading)
 			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
-			if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) {
+			if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25 || wichSensor.type == SENSOR_PM_TEMPERATURE || wichSensor.type == SENSOR_PM_HUMIDITY || wichSensor.type == SENSOR_PM_FORMALDEHYDE) {
 				if (PMreadingReady || base->urban.sck_pm.getReading()) {
 					String thisReading;
 					if (wichSensor.type == SENSOR_PM_1) thisReading = String(base->urban.sck_pm.pm1);
 					else if (wichSensor.type == SENSOR_PM_25) thisReading = String(base->urban.sck_pm.pm25);
 					else if (wichSensor.type == SENSOR_PM_10) thisReading = String(base->urban.sck_pm.pm10);
+					else if (wichSensor.type == SENSOR_PM_TEMPERATURE) thisReading = String(base->urban.sck_pm.temperature);
+					else if (wichSensor.type == SENSOR_PM_HUMIDITY) thisReading = String(base->urban.sck_pm.humidity);
+					else if (wichSensor.type == SENSOR_PM_FORMALDEHYDE) thisReading = String(base->urban.sck_pm.formaldehyde);
 					sprintf(base->outBuff, "%s\t%s", base->outBuff, thisReading.c_str());
 					PMreadingReady = true;
 					printit++;

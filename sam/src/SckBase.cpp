@@ -176,7 +176,7 @@ void SckBase::reviewState()
 				if (!st.espBooting) sendConfig();
 				sendConfigCounter++;
 			} else {
-				ESPcontrol(ESP_ON);
+				if (st.mode != MODE_SD) ESPcontrol(ESP_ON);
 			}
 		}
 	}

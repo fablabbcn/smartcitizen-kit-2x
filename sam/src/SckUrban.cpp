@@ -1096,7 +1096,7 @@ bool Sck_PM::update()
 		pn10 = (buff[22]<<8) + buff[23];
 
 		if (model == PMS5003ST) {
-			formaldehyde = ((buff[24]<<8) + buff[25]) / 10.0;
+			formaldehyde = ((buff[24]<<8) + buff[25]) / 1000.0;
 			temperature = ((buff[26]<<8) + buff[27]) / 10.0;
 			humidity = ((buff[28]<<8) + buff[29]) / 10.0;
 		}

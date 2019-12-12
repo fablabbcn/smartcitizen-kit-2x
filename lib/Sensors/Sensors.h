@@ -193,9 +193,9 @@ class AllSensors
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_25,				"PN_25",		"PN 2.5",					0,		false,		false,		1, 			"#/0.1l"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_5,				"PN_5",			"PN 5.0",					0,		false,		false,		1, 			"#/0.1l"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_10,				"PN_10",		"PN 10.0",					0,		false,		false,		1, 			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_FORMALDEHYDE,			"PM_FORM",		"PM Formaldehyde",				0,		true,		true,		1, 			"ug/m3"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_TEMPERATURE,			"PM_TEMP",		"PM Temperature",				0,		true,		true,		1, 			"C"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_HUMIDITY,			"PM_HUM",		"PM Humidity",					0,		true,		true,		1, 			"%"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_FORMALDEHYDE,			"PM_FORM",		"PM Formaldehyde",				120,		true,		true,		1, 			"ug/m3"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_TEMPERATURE,			"PM_TEMP",		"PM Temperature",				118,		true,		true,		1, 			"C"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_HUMIDITY,			"PM_HUM",		"PM Humidity",					119,		true,		true,		1, 			"%"},
 
 			// I2C Auxiliary Sensors
 			// SCK Gases Board for Alphasense (3 Gas sensor Slots, + SHT31 Temp-Humidity)

@@ -4,6 +4,7 @@ npm-debug.log
 bin/
 inventory.csv
 inventory.csv.BAK
+*/.pio
 
 # MAC stuff
 */.DS_Store

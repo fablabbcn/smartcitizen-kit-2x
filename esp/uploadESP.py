@@ -8,20 +8,20 @@ import serial, time, sys, glob
 portName = False
 
 def before_upload(source, target, env):
-	print "\n\nSearching for a Smartcitizen kit..."
+	print("\n\nSearching for a Smartcitizen kit...")
 	myPort = selectPort(serialPorts())
 	if myPort:
 		print("Asking for upload bridge...")
 		myPort.write("")
 		myPort.write("esp -flash\n")
-	env.Replace(UPLOAD_PORT=portName)
-        time.sleep(1)
+		env.Replace(UPLOAD_PORT=portName)
+		time.sleep(1)
 
 def after_upload(source, target, env):
-	print "All good!!!"
+	print("All good!!!")
 	global portName
 
-print "Current build targets", map(str, BUILD_TARGETS)
+print("Current build targets", map(str, BUILD_TARGETS))
 
 env.AddPreAction("upload", before_upload)
 env.AddPostAction("upload", after_upload)
@@ -93,7 +93,7 @@ def selectPort(ports):
 				time.sleep(0.2)
 				response = s.read(s.in_waiting)
 				if 'SCK' in response or 'Sdcard' in response:
-					print 'Smartcitizen kit found on ' + port
+					print('Smartcitizen kit found on ' + port)
 					global portName
 					portName = port
 					return s
@@ -101,5 +101,5 @@ def selectPort(ports):
 		except (OSError, serial.SerialException):
 			pass
 
-	print 'No Smartcitizen kit found, please check your USB connection'
+	print('No Smartcitizen kit found, please check your USB connection')
 	sys.exit(-1)

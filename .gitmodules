@@ -1,3 +1,6 @@
 [submodule "bootloader/uf2-samdx1"]
 	path = bootloader/uf2-samdx1
 	url = https://github.com/fablabbcn/uf2-samdx1
+[submodule "tools"]
+	path = tools
+	url = git@github.com:fablabbcn/smartcitizen-tools.git

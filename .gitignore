@@ -9,4 +9,5 @@ inventory.csv.BAK
 # MAC stuff
 */.DS_Store
 .DS_Store
-
+.env
+secret.py

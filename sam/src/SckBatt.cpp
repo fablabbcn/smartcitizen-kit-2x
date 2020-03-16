@@ -17,7 +17,7 @@ void SckCharger::setup(SckBase *base)
 	inputCurrentLimit(1500);
 
 	// Limit charge current.
-	chargerCurrentLimit(768);
+	chargerCurrentLimit(base->config.battConf.chargeCurrent);
 
 	// 5, 8, 12 or 20 hours depending on battery size.
 	uint32_t newHours = (base->config.battConf.battCapacity / base->config.battConf.chargeCurrent);
@@ -181,6 +181,7 @@ uint8_t SckCharger::chargeTimer(int8_t rhours)
 		if (rhours > 0) {
 
 			if (rhours < 5) rhours = 5;
+			else if (rhours > 20) rhours = 20;
 
 			chgTimer &= ~(0b11 << CHG_TIMER); 	// Clear bits
 

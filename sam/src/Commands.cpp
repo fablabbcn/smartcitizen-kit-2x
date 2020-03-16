@@ -508,7 +508,7 @@ void charger_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "Battery: %s", base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
 		base->sckOut();
 
-		sprintf(base->outBuff, "Battery capacity: %u", base->config.battConf.battCapacity);
+		sprintf(base->outBuff, "Battery capacity: %u mAh", base->config.battConf.battCapacity);
 		base->sckOut();
 
 		sprintf(base->outBuff, "USB: %s", base->charger.VBUSStatusTitles[base->charger.getVBUSstatus()]);

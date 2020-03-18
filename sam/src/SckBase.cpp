@@ -1491,24 +1491,25 @@ void SckBase::updateSensors()
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 			// Get next sensor based on priority
-			OneSensor wichSensor = sensors[sensors.sensorsPriorized(i)];
+			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 
 			// Check if it is enabled
-			if (wichSensor.enabled) {
+			if (wichSensor->enabled) {
 
 				// Is time to read it?
-				if ((lastSensorUpdate - wichSensor.lastReadingTime) >= (wichSensor.everyNint * config.readInterval)) {
+				if ((lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval)) {
 
-					if (!getReading(&wichSensor)) {
+					wichSensor->lastReadingTime = lastSensorUpdate;
 
-						pendingSensorsList[pendingSensors] = wichSensor.type;
+					if (!getReading(wichSensor)) {
+
+						pendingSensorsList[pendingSensors] = wichSensor->type;
 						pendingSensors++;
 
 					} else {
 						// Save reading
-						if (!readingsList.appendReading(wichSensor.type, wichSensor.reading)) sckOut("Failed saving reading!!!");
-						wichSensor.lastReadingTime = lastSensorUpdate;
-						sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
+						if (!readingsList.appendReading(wichSensor->type, wichSensor->reading)) sckOut("Failed saving reading!!!");
+						sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
 						sckOut();
 					}
 				}
@@ -1526,19 +1527,18 @@ void SckBase::updateSensors()
 
 		for (uint8_t i=0; i<pendingSensors; i++) {
 
-			OneSensor wichSensor = sensors[pendingSensorsList[i]];
+			OneSensor *wichSensor = &sensors[pendingSensorsList[i]];
 
-			if (!getReading(&wichSensor)) {
+			if (!getReading(wichSensor)) {
 
 				// Reappend the sensor to the pending list
-				tmpPendingSensorList[i] = wichSensor.type;
+				tmpPendingSensorList[i] = wichSensor->type;
 				tmpPendingSensors ++;
 
 			} else  {
 				// Save reading
-				if (!readingsList.appendReading(wichSensor.type, wichSensor.reading)) sckOut("Failed saving reading!!!");
-				wichSensor.lastReadingTime = lastSensorUpdate;
-				sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
+				if (!readingsList.appendReading(wichSensor->type, wichSensor->reading)) sckOut("Failed saving reading!!!");
+				sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
 				sckOut();
 			}
 		}

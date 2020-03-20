@@ -500,46 +500,58 @@ void i2cDetect_com(SckBase* base, String parameters)
 		base->sckOut();
 	}
 }
-void charger_com(SckBase* base, String parameters)
+void power_com(SckBase* base, String parameters)
 {
 	// Get
-	if (parameters.length() <= 0) {
+	
+	int16_t extraI = parameters.indexOf("-info");
+	if (parameters.length() <= 0 || extraI >= 0) {
 
-		sprintf(base->outBuff, "Battery: %s", base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
+		if (base->config.sleepTimer == 0) sprintf (base->outBuff, "Sleep disabled");
+		else sprintf(base->outBuff, "Sleep after: %u min", base->config.sleepTimer);
 		base->sckOut();
 
-		sprintf(base->outBuff, "Battery capacity: %lu mAh", base->config.battConf.battCapacity);
+		if (base->battery.present) {
+			sprintf(base->outBuff, "Battery: %u%% (%lumAh) - %0.2fv (%s)", base->battery.percent(&base->charger), base->config.battConf.battCapacity, base->battery.voltage(), base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
+		} else {
+			sprintf(base->outBuff, "Battery: NOT present");
+		}
 		base->sckOut();
 
 		sprintf(base->outBuff, "USB: %s", base->charger.VBUSStatusTitles[base->charger.getVBUSstatus()]);
 		base->sckOut();
 
-		sprintf(base->outBuff, "OTG: %s", base->charger.enTitles[base->charger.OTG()]);
-		base->sckOut();
+		if (extraI >= 0) {
 
-		sprintf(base->outBuff, "Charge: %s", base->charger.enTitles[base->charger.chargeState()]);
-		base->sckOut();
+			sprintf(base->outBuff, "OTG: %s", base->charger.enTitles[base->charger.OTG()]);
+			base->sckOut();
 
-		sprintf(base->outBuff, "Batfet: %s", base->charger.enTitles[base->charger.batfetState()]);
-		base->sckOut();
+			sprintf(base->outBuff, "Charge: %s", base->charger.enTitles[base->charger.chargeState()]);
+			base->sckOut();
 
-		sprintf(base->outBuff, "Charger current limit: %u mA", base->charger.chargerCurrentLimit());
-		base->sckOut();
+			sprintf(base->outBuff, "Batfet: %s", base->charger.enTitles[base->charger.batfetState()]);
+			base->sckOut();
 
-		sprintf(base->outBuff, "Input current limit: %u mA", base->charger.inputCurrentLimit());
-		base->sckOut();
+			sprintf(base->outBuff, "Charger current limit: %u mA", base->charger.chargerCurrentLimit());
+			base->sckOut();
 
-		sprintf(base->outBuff, "I2c watchdog timer: %u sec (0: disabled)", base->charger.I2Cwatchdog());
-		base->sckOut();
+			sprintf(base->outBuff, "Input current limit: %u mA", base->charger.inputCurrentLimit());
+			base->sckOut();
 
-		sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
-		base->sckOut();
+			sprintf(base->outBuff, "I2c watchdog timer: %u sec (0: disabled)", base->charger.I2Cwatchdog());
+			base->sckOut();
 
-		sprintf(base->outBuff, "Min system voltage: %0.2f volts", base->charger.sysMinVolt());
-		base->sckOut();
+			sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
+			base->sckOut();
 
-		sprintf(base->outBuff, "Battery lower than %0.2f: %s", base->charger.sysMinVolt(), base->charger.getBatLowerSysMin() ? "true" : "false");
-		base->sckOut();
+			sprintf(base->outBuff, "Min system voltage: %0.2f volts", base->charger.sysMinVolt());
+			base->sckOut();
+
+			sprintf(base->outBuff, "Battery lower than %0.2f: %s", base->charger.sysMinVolt(), base->charger.getBatLowerSysMin() ? "true" : "false");
+			base->sckOut();
+
+		}
+
 
 	// Set
 	} else {
@@ -576,6 +588,22 @@ void charger_com(SckBase* base, String parameters)
 			}
 			base->sckOut();
 		}
+
+		int16_t sleepI = parameters.indexOf("-sleep");
+		if (sleepI>=0) {
+			String sleepC = parameters.substring(sleepI+7);
+			sleepC.trim();
+			int32_t sleepInt = sleepC.toInt();
+			if (sleepInt >= 0 && sleepInt < 480) { 	// Max 8 hours
+				base->config.sleepTimer = sleepInt;
+				base->saveConfig();
+				sprintf(base->outBuff, "New sleep timer period: %u.", base->config.sleepTimer);
+			} else {
+				sprintf(base->outBuff, "Wrong sleep timer period (0-480)");
+			}
+			base->sckOut();
+		}
+
 	}
 }
 void config_com(SckBase* base, String parameters)
@@ -599,7 +627,10 @@ void config_com(SckBase* base, String parameters)
 			if (pubIntI >= 0) {
 				String pubIntC = parameters.substring(pubIntI+8);
 				uint32_t pubIntV = pubIntC.toInt();
-				if (pubIntV >= minimal_publish_interval && pubIntV <= max_publish_interval) base->config.publishInterval = pubIntV;
+				// TODO remove this when flash storage is ready
+				if (pubIntV > 180) {
+					base->sckOut("For now we can only store safely 3 set of readings on RAM memory, sorry.");
+				} else if (pubIntV >= minimal_publish_interval && pubIntV <= max_publish_interval) base->config.publishInterval = pubIntV;
 			}
 			int16_t readIntI = parameters.indexOf("-readint");
 			if (readIntI >= 0) {
@@ -608,7 +639,6 @@ void config_com(SckBase* base, String parameters)
 				if (readIntV >= minimal_publish_interval && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
 			}
 			int16_t credI = parameters.indexOf("-wifi");
-			SerialUSB.println(credI);
 			if (credI >= 0) {
 				int16_t first = parameters.indexOf("\"", credI+6);
 				int16_t second = parameters.indexOf("\"", first + 1);

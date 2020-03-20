@@ -153,12 +153,9 @@ class SckBase
 		bool infoSaved = false;
 
 		// Power
-		uint16_t sleepTime = 3000; 	// ms between micro led flashes
-		const uint16_t waitAfterLastEvent = 60000; // Time to avoid sleep after user interaction in ms
-
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
-		void goToSleep();
+		void goToSleep(uint16_t sleepPeriod=3000); 	// sleepPeriod in ms
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 	// seconds
@@ -261,6 +258,7 @@ class SckBase
 		uint8_t wakeUP_H = 3;
 		uint8_t wakeUP_M = 0;
 		uint8_t wakeUP_S = 0;
+		uint32_t deltaSanityReset = 0;
 		void sck_reset();
 		SckBatt battery;
 		SckCharger charger;

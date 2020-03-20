@@ -6,7 +6,7 @@ static const uint32_t default_reading_interval = 60;
 static const uint32_t max_reading_interval = 86400;		// One day
 
 static const uint32_t minimal_publish_interval = 30;
-static const uint32_t default_publish_interval = 60;
+static const uint32_t default_publish_interval = 60 * 3;
 static const uint32_t max_publish_interval = 3600;		// One hour
 
 enum SCKmodes {
@@ -38,4 +38,5 @@ struct Configuration {
 	bool sdDebug = false;
 	BattConf battConf;
 	Extra extra;
+	uint16_t sleepTimer = 30; 					// Sleep after this amount of minutes, 480 minutes max (0 to disable sleep)
 };

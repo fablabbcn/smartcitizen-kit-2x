@@ -132,6 +132,7 @@ class OneSensor
 		bool controllable;
 		uint8_t id;
 		uint8_t everyNint; 	 	// Read this sensor every N intervals (default 1)
+		uint8_t defaultEveryNint;
 		bool enabled;
 		bool defaultEnabled;
 		int16_t state; 		// -1:error on reading, 0:reading OK, >0:number of seconds until the reading is OK
@@ -148,6 +149,7 @@ class OneSensor
 			controllable = nControllable;
 			id = nId;
 			everyNint = nEveryNint;
+			defaultEveryNint = nEveryNint;
 			enabled = nEnabled;
 			defaultEnabled = nEnabled;
 			state = -1;
@@ -181,9 +183,9 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 	100,	SENSOR_PRESSURE_TEMP,			"PRESS_TEMP",		"Pressure internal temperature", 		0,		false,		false,		1, 			"C"},
 			OneSensor { BOARD_URBAN,	100,	SENSOR_CCS811_VOCS,			"CCS811_VOCS",		"VOC Gas CCS811",				113,		true,		true,		1, 			"ppb"},
 			OneSensor { BOARD_URBAN,	100,	SENSOR_CCS811_ECO2,			"CCS811_ECO2",		"eCO2 Gas CCS811",				112,		true,		true,		1, 			"ppm"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		false,		1, 			"ug/m3"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		false,		1, 			"ug/m3"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		false,		1, 			"ug/m3"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		false,		5, 			"ug/m3"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		false,		5, 			"ug/m3"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		false,		5, 			"ug/m3"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_03,				"PN_03",		"PN 0.3",					0,		false,		false,		1, 			"#/0.1l"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_05,				"PN_05",		"PN 0.5",					0,		false,		false,		1, 			"#/0.1l"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_1,				"PN_1",			"PN 1.0",					0,		false,		false,		1, 			"#/0.1l"},

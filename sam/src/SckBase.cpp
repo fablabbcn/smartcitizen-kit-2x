@@ -435,11 +435,12 @@ void SckBase::reviewState()
 				}
 			}
 		} else {
-			uint16_t sleepPeriod = 3;
+			uint16_t sleepPeriod = 3; 										// Only sleep if
 			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
-					pendingSensors <= 0 && 									// No sensor to wait to
-					st.timeStat.ok && 									// RTC is synced and working
-					millis() - lastUserEvent + deltaSanityReset > (config.sleepTimer * 60000)) { 		// No recent user interaction (button, sdcard or USB events)
+					(pendingSensors <= 0) && 								// No sensor to wait to
+					(st.timeStat.ok) && 									// RTC is synced and working
+					((millis() - lastUserEvent + deltaSanityReset) > (config.sleepTimer * 60000)) && 	// No recent user interaction (button, sdcard or USB events)
+					(config.sleepTimer > 0)) { 								// sleep is enabled
 
 				goToSleep(sleepPeriod * 1000);
 
@@ -513,11 +514,12 @@ void SckBase::reviewState()
 			}
 
 		} else {
-			uint16_t sleepPeriod = 3;
+			uint16_t sleepPeriod = 3; 										// Only sleep if
 			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
-					pendingSensors <= 0 && 									// No sensor to wait to
-					st.timeStat.ok && 									// RTC is synced and working
-					millis() - lastUserEvent + deltaSanityReset > (config.sleepTimer * 60000)) { 		// No recent user interaction (button, sdcard or USB events)
+					(pendingSensors <= 0) && 								// No sensor to wait to
+					(st.timeStat.ok) && 									// RTC is synced and working
+					((millis() - lastUserEvent + deltaSanityReset) > (config.sleepTimer * 60000)) && 	// No recent user interaction (button, sdcard or USB events)
+					(config.sleepTimer > 0)) { 								// sleep is enabled
 
 				goToSleep(sleepPeriod * 1000);
 
@@ -1509,7 +1511,7 @@ void SckBase::updateSensors()
 				}
 			}
 		}
-		if (pendingSensors == 0) {
+		if (pendingSensors == 0 && readingsList.countReadings(readingsList.countGroups()) > 0) {
 			if (!readingsList.saveLastGroup()) sckOut("Failed saving reading Group!!");
 			sckOut("-----------", PRIO_LOW);
 		}
@@ -1548,7 +1550,7 @@ void SckBase::updateSensors()
 
 	if (readingsList.countGroups() > 0) { 								// Only make sense to publish if there is readings available
 		if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) timeToPublish = true; 	// Time to publish
-		else if (millis() - lastUserEvent < (config.sleepTimer * 60000)) timeToPublish = true; 		// If there is recent user interaction we want to publish as often as posible.
+		else if ((millis() - lastUserEvent < (config.sleepTimer * 60000)) || config.sleepTimer == 0) timeToPublish = true; 	// If there is recent user interaction we want to publish as often as posible.
 	}
 }
 bool SckBase::enableSensor(SensorType wichSensor)

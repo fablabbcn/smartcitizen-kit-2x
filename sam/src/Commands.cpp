@@ -597,6 +597,7 @@ void power_com(SckBase* base, String parameters)
 			if (sleepInt >= 0 && sleepInt < 480) { 	// Max 8 hours
 				base->config.sleepTimer = sleepInt;
 				base->saveConfig();
+				base->lastUserEvent = millis();
 				sprintf(base->outBuff, "New sleep timer period: %u.", base->config.sleepTimer);
 			} else {
 				sprintf(base->outBuff, "Wrong sleep timer period (0-480)");

@@ -17,7 +17,7 @@ import serial, time, os, subprocess
 	# myPort = serial.Serial("/dev/" + env.get("UPLOAD_PORT"))
 	# myPort.write("\r\nconfig -defaults\r\n")
 
-print "Current build targets", map(str, BUILD_TARGETS)
+print("Current build targets", map(str, BUILD_TARGETS))
 
 # env.AddPreAction("upload", before_upload)
 # env.AddPostAction("upload", after_upload)

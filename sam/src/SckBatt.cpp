@@ -1,7 +1,7 @@
 #include "SckBatt.h"
 #include "SckBase.h"
 
-void SckCharger::setup()
+void SckCharger::setup(SckBase *base)
 {
 	pinMode(pinCHARGER_INT, INPUT_PULLUP);
 
@@ -17,10 +17,11 @@ void SckCharger::setup()
 	inputCurrentLimit(1500);
 
 	// Limit charge current.
-	chargerCurrentLimit(768);
+	chargerCurrentLimit(base->config.battConf.chargeCurrent);
 
-	// Set charger timer to 5 hours (It will be recalculated based on battery capacity and current limit)
-	chargeTimer(5);
+	// 5, 8, 12 or 20 hours depending on battery size.
+	uint32_t newHours = (base->config.battConf.battCapacity / base->config.battConf.chargeCurrent);
+	chargeTimer(newHours);
 
 	OTG(true);
 
@@ -180,6 +181,7 @@ uint8_t SckCharger::chargeTimer(int8_t rhours)
 		if (rhours > 0) {
 
 			if (rhours < 5) rhours = 5;
+			else if (rhours > 20) rhours = 20;
 
 			chgTimer &= ~(0b11 << CHG_TIMER); 	// Clear bits
 

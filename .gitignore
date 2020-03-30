@@ -2,8 +2,12 @@
 mock-api/*.png
 npm-debug.log
 bin/
+inventory.csv
+inventory.csv.BAK
+*/.pio
 
 # MAC stuff
 */.DS_Store
 .DS_Store
-
+.env
+secret.py

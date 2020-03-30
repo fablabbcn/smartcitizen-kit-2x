@@ -1,6 +1,6 @@
 
 # Frontend + api setup
-You can see the (master branch) mobile UI setup [here](https://fablabbcn.github.io/smartcitizen-kit-21/esp/build_data/)
+You can see the (master branch) mobile UI setup [here](https://fablabbcn.github.io/smartcitizen-kit-21/esp/build_data/index.html)
 
 The technology used here is:
 * HTML, CSS, JavaScript

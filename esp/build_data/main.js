@@ -38,6 +38,7 @@ var app = new Vue({
     showSdCard: false,
     theApi: window.location.protocol + '//' + window.location.host + '/',
     usertoken: '',
+    usertokenError: '',
     version: 'SCK 2.0 / SAM V0.0.2 / ESP V0.0.2',
     vueVersion: Vue.version,
     weHaveTriedConnecting: false,
@@ -193,6 +194,13 @@ var app = new Vue({
 
     },
 
+    checkIfTokenIsValid(){
+      if (this.usertoken.length === 6) {
+        this.gotoPage();
+      }else{
+        this.usertokenError = 'You need exactly 6 characters'
+      }
+    },
     gotoPage: function(num){
 
       // Keep lastPage in memory

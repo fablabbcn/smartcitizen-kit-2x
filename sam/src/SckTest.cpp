@@ -5,6 +5,8 @@
 
 void SckTest::test_full()
 {
+	testBase->led.update(testBase->led.WHITE, testBase->led.PULSE_STATIC);
+
 	// Enable sensors for test
 	testBase->enableSensor(SENSOR_TEMPERATURE);
 	testBase->enableSensor(SENSOR_HUMIDITY);
@@ -27,7 +29,22 @@ void SckTest::test_full()
 
 	delay(2000);
 	testBase->st.onShell = true;
-	testBase->ESPcontrol(testBase->ESP_OFF);
+	
+	testBase->ESPcontrol(testBase->ESP_REBOOT);
+	SerialUSB.println("Waiting for ESP first boot...");
+	SerialUSB.println("May take some time due to flash formating");
+	SerialUSB.println("Please don't disconnect the SCK");
+	uint32_t startWaiting = millis();
+	while (testBase->st.espBooting) {
+		if (millis() % 1000 == 0) SerialUSB.print('.'); delay(1);
+		if (millis() - startWaiting > 120000) {
+			SerialUSB.println("ESP is taking too long to wakeup");
+			SerialUSB.println("Please reflash ESP chip and try again");
+		}
+		testBase->inputUpdate();
+	}
+
+	/* testBase->ESPcontrol(testBase->ESP_OFF); */
 	SerialUSB.println("\r\n********************************");
 	SerialUSB.println("Starting SmartCitizenKit test...");
 
@@ -67,7 +84,7 @@ void SckTest::test_full()
 		SerialUSB.println("Retrying...");
 		delay(500);
 		title = false;
-		errors += test_flash();	
+		errors += test_flash();
 	}
 
 	// Test SHT temp and hum
@@ -129,7 +146,11 @@ void SckTest::test_full()
 	// Test wifi connection
 	if (!connect_ESP()) errors++;
 	else {
-		publishResult();
+		if (!publishResult()) {
+			SerialUSB.println("Retrying...");
+			delay(500);
+			if (!publishResult()) errors++;
+		}
 	}
 
 	SerialUSB.println("\r\n********************************");
@@ -198,15 +219,16 @@ uint8_t SckTest::test_battery()
 
 	// One pause to check for battery
 	uint32_t startPoint = millis();
-	delay(100);
-	while (millis() - startPoint < 2000) {
+	delay(1000);
+	while (millis() - startPoint < 10000) {
 		testBase->updatePower();
+		delay(500);
 		if (testBase->battery.present) break;
 	}
 
 	if (!testBase->battery.present) {
 		SerialUSB.println("ERROR no battery detected!!");
-		return 2; // No point on doing tests if no battery present
+		return 1; // No point on doing tests if no battery present
 	} else {
 		// Turn on charger and wait to be sure charging has started
 		testBase->charger.chargeState(1);
@@ -331,7 +353,7 @@ uint8_t SckTest::test_SHT()
 	if (!testBase->getReading(&testBase->sensors[SENSOR_HUMIDITY])) {
 		SerialUSB.println("ERROR reading SHT31 humidity sensor");
 		shtErrors ++;
-	} else { 
+	} else {
 		test_report.tests[TEST_HUM] = testBase->sensors[SENSOR_HUMIDITY].reading.toFloat();
 		sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_HUMIDITY].title, test_report.tests[TEST_HUM], testBase->sensors[SENSOR_HUMIDITY].unit);
 		SerialUSB.println(testBase->outBuff);
@@ -349,7 +371,6 @@ uint8_t SckTest::test_Light()
 	if (!testBase->getReading(&testBase->sensors[SENSOR_LIGHT])) {
 		SerialUSB.println("ERROR reading Light sensor");
 		return 1;
-	
 	} else {
 		test_report.tests[TEST_LIGHT] = testBase->sensors[SENSOR_LIGHT].reading.toFloat();
 		sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_LIGHT].title, test_report.tests[TEST_LIGHT], testBase->sensors[SENSOR_LIGHT].unit);
@@ -400,7 +421,7 @@ uint8_t SckTest::test_PM()
 	if (title) SerialUSB.println("\r\nTesting PM sensor...");
 
 	if (testBase->urban.sck_pm.update()) {
-		
+
 		test_report.tests[TEST_PM_1] = (float)testBase->urban.sck_pm.pm1;
 		test_report.tests[TEST_PM_25] = (float)testBase->urban.sck_pm.pm25;
 		test_report.tests[TEST_PM_10] = (float)testBase->urban.sck_pm.pm10;
@@ -479,21 +500,18 @@ bool SckTest::connect_ESP()
 
 	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_HARD_SLOW);
 	uint32_t started = millis();
-	while (testBase->pendingSyncConfig || !testBase->st.wifiStat.ok) {
-
-		if (millis() % 20000 == 0 || millis() - started == 1000) {
-			delay(1);
-			testBase->ESPcontrol(testBase->ESP_REBOOT);
-		}
+	testBase->outputLevel = OUT_VERBOSE;
+	while (!testBase->st.wifiStat.ok) {
 
 		testBase->update();
 		testBase->inputUpdate();
 		delay(1);
-		if (millis() - started > 60000) {
+		if (millis() - started > 80000) {
 			SerialUSB.println("ERROR timeout on wifi connection");
 			return false;
 		}
 	}
+	testBase->outputLevel = OUT_SILENT;
 
 	SerialUSB.println("Wifi connection OK");
 	test_report.tests[TEST_WIFI_TIME] = (millis() - started) / 1000;
@@ -569,19 +587,21 @@ bool SckTest::publishResult()
 	json.printTo(&testBase->netBuff[1], json.measureLength() + 1);
 
 	uint32_t started = millis();
+	testBase->st.publishStat.reset();
 	while (!testBase->sendMessage()) {
 		if (millis() - started > 15000) {
 			SerialUSB.println("ERROR sending test report to ESP");
 			return false;
 		}
-		delay(100);
+		delay(500);
 	}
 
+	delay(500);
+
 	while (!testBase->st.publishStat.ok) {
-		testBase->st.publishStat.retry();
 		if (testBase->st.publishStat.error) {
 			SerialUSB.println("ERROR on publishing test results");
-			return true;
+			return false;
 		}
 		testBase->update();
 		testBase->inputUpdate();

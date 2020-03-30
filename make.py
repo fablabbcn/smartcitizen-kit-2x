@@ -110,7 +110,7 @@ if 'flash' in sys.argv:
     if 'esp' in sys.argv or 'all' in sys.argv:
         oneLine('Flashing ESP firmware')
         for i in range(4):
-            mySpeed = 921600 / pow(2, i)
+            mySpeed = 115200 / pow(2, i)
             oneLine(' at ' + str(mySpeed) + '...')
             if kit.flashESP(mySpeed, sys.stdout): 
                 OK()

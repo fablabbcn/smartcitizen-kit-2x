@@ -233,19 +233,18 @@ class Sck_CCS811
 		bool setBaseline(uint16_t wichBaseline);
 		bool setDriveMode(uint8_t wichDrivemode);
 
-		bool debug = false;
-		bool compensate = true; 	// Compensation is for both sensors or none
-		float VOCgas;
-		float ECO2gas;
-	private:
-
 		//Mode 0 = Idle
 		//Mode 1 = read every 1s
 		//Mode 2 = every 10s
 		//Mode 3 = every 60s
 		//Mode 4 = RAW mode
-		const uint8_t driveMode = 3;
+		uint8_t driveMode = 3;
 
+		bool debug = false;
+		bool compensate = true; 	// Compensation is for both sensors or none
+		float VOCgas;
+		float ECO2gas;
+	private:
 		uint32_t startTime = 0;
 		uint32_t lastReadingMill = 0;
 		const uint32_t warmingTime = 300; 	// Minimal time for sensor stabilization in seconds(the kit will not return readings during this period) 5 minutes as default

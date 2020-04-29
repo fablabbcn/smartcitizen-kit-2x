@@ -404,11 +404,12 @@ void SckBase::reviewState()
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
 
+						sprintf(outBuff, "Network publish OK!! (%u readings)", readingNum);
+						sckOut();
+
 						// Mark reading as published
 						uint8_t readingNum = readingsList.setPublished(wichGroupPublishing, readingsList.PUB_NET);
 						wichGroupPublishing.group = -1;
-						sprintf(outBuff, "Network publish OK!! (%u readings)", readingNum);
-						sckOut();
 
 						// Continue as fast as posible with remaining readings, or go to sleep
 						if (st.publishStat.retry()) netPublish();

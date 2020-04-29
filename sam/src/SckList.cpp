@@ -58,8 +58,6 @@ bool SckList::_append(char value)
 // Group functions
 uint32_t SckList::_getGrpAddr(GroupIndex wichGroup)
 {
-	// TODO borrar esatos prints, son solo para debug temporal
-	//
 	uint32_t startAddr = _getSectAddr(wichGroup.sector);
 	uint32_t endAddr = startAddr + SECTOR_SIZE;
 	uint32_t address = startAddr + 3; 	// First two bytes used for sector state and flags
@@ -243,7 +241,7 @@ int16_t SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
 	debug_print(wichFlag == PUB_NET ? " published to network" : " saved to sdcard");
 	debug_print(" on sector ");
 	debug_print(wichSector);
-	debug_print(":  ");
+	debug_print(": ");
 
 	uint32_t startAddr = _getSectAddr(wichSector);
 
@@ -265,8 +263,8 @@ int16_t SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
 
 		// Find out groupSize
 		uint16_t groupSize = flash.readWord(address);
-		if (groupSize == 0xFFFF || address == endAddr) {
-			debug_println(" None found!!");
+		if (groupSize == 0xFFFF || (address + groupSize) >= endAddr) {
+			debug_println("None found!!");
 			
 			// If this setor is not marked as fully published markt it!
 			if (_getSectState(wichSector) == SECTOR_USED && !_isSectPublished(wichSector, wichFlag)) _setSectPublished(wichSector, wichFlag);
@@ -282,7 +280,7 @@ int16_t SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
 		thisGroup++;
 	}
 
-	debug_print(" Found group  with index: ");
+	debug_print("Found group  with index: ");
 	debug_println(thisGroup);
 	return thisGroup;
 }

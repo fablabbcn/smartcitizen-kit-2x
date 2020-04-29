@@ -751,6 +751,7 @@ SckList::SectorInfo SckList::sectorInfo(uint16_t wichSector)
 	if (wichSector > SCKLIST_SECTOR_NUM) return info;
 
 	info.used = _getSectState(wichSector) == SECTOR_USED ? true : false;
+	info.current = wichSector == _currSector ? true : false;
 	info.pubNet = _isSectPublished(wichSector, PUB_NET);
 	info.pubSd = _isSectPublished(wichSector, PUB_SD);
 	info.grpUnPubNet = _countSectGroups(wichSector, PUB_NET, NOT_PUBLISHED);

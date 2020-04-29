@@ -45,6 +45,7 @@ class SckList
 
 		struct SectorInfo {
 			bool used;
+			bool current;
 			bool pubNet;
 			bool pubSd;
 			uint16_t grpUnPubNet = 0;

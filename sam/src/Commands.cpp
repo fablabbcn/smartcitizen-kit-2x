@@ -513,7 +513,7 @@ void flash_com(SckBase* base, String parameters)
 				return;
 			}
 			SckList::SectorInfo info = base->readingsList.sectorInfo(sectV);
-			sprintf(base->outBuff, "\r\nSector %u in address %u is: %s", sectV, info.addr, info.used ? "Used" : "Free");
+			sprintf(base->outBuff, "\r\nSector %u in address %u is: %s", sectV, info.addr, info.used ? "Used" : (info.current ? "In use" : "Free"));
 			base->sckOut();
 			sprintf(base->outBuff, "Sector %u fully published to network: %s", sectV, info.pubNet ? "true" : "false" );
 			base->sckOut();

@@ -6,6 +6,8 @@ The technology used here is:
 * HTML, CSS, JavaScript
 * Vue.js
 
+[Here](process.md) you can read about why we chose Vue.js and what the thought process was like.
+
 And the files are under *esp/build_data*
 
 ## Starting frontend development

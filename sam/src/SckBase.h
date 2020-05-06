@@ -133,11 +133,6 @@ class SckBase
 		bool espInfoUpdated = false;
 		bool infoPublished = false;
 
-		// Urban board
-		bool urbanPresent = false;
-		friend class urban;
-		SckUrban urban = SckUrban(&rtc);
-
 		// STORAGE
 		// files
 		struct SckFile {char name[13]; File file;};
@@ -205,6 +200,11 @@ class SckBase
 		bool enableSensor(SensorType wichSensor);
 		bool disableSensor(SensorType wichSensor);
 		bool writeHeader = false;
+
+		// Urban board
+		bool urbanPresent = false;
+		friend class urban;
+		SckUrban urban = SckUrban(&rtc);
 
 		// RAM readings store
 		SckList readingsList;

@@ -14,6 +14,7 @@
 #include <RH_Serial.h>
 #include <FlashStorage.h>
 #include <ArduinoJson.h>
+#include <LinkedList.h>
 
 #include "Pins.h"
 #include "SckLed.h"
@@ -78,14 +79,14 @@ struct SckState
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup
-			&& a.espON == espON
-			&& a.wifiSet == wifiSet
-			&& a.tokenSet == tokenSet
-			&& a.helloPending == helloPending
-			&& a.mode == mode
-			&& a.cardPresent == cardPresent
-			&& a.sleeping == sleeping
-		   ) return true;
+				&& a.espON == espON
+				&& a.wifiSet == wifiSet
+				&& a.tokenSet == tokenSet
+				&& a.helloPending == helloPending
+				&& a.mode == mode
+				&& a.cardPresent == cardPresent
+				&& a.sleeping == sleeping
+		) return true;
 		else return false;
 	}
 };
@@ -153,14 +154,15 @@ class SckBase
 		void goToSleep(uint16_t sleepPeriod=3000); 	// sleepPeriod in ms
 
 		// **** Sensors
-		uint32_t lastPublishTime = 0; 	// seconds
+		uint32_t lastPublishTime = 0; 			// seconds
 		uint32_t lastSensorUpdate = 0;
 		bool timeToPublish = false;
 		void updateSensors();
 		bool netPublish();
-		bool sdPublish();
-		uint8_t pendingSensors = 0;
-		SensorType pendingSensorsList[SENSOR_COUNT];
+		bool sdPublish(); 				//  Publishes the provided group of readings to sdcard (if available)
+		LinkedList<SensorType> pendingSensorsLinkedList;
+
+		SckList::GroupIndex wichGroupPublishing; 	// Index of the group beaing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
 
 		// Timers
 		bool alarmRunning_TC3 = false;
@@ -207,7 +209,8 @@ class SckBase
 		SckUrban urban = SckUrban(&rtc);
 
 		// RAM readings store
-		SckList readingsList;
+		friend class SckList;
+		SckList readingsList = SckList(this);
 
 		// Configuration
 		Configuration config;

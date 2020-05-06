@@ -3,4 +3,4 @@
 	url = https://github.com/fablabbcn/uf2-samdx1
 [submodule "tools"]
 	path = tools
-	url = https://github.com/fablabbcn/smartcitizen-tools.git
+	url = git@github.com:fablabbcn/smartcitizen-tools.git

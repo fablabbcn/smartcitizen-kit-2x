@@ -309,7 +309,7 @@ void readSensor_com(SckBase* base, String parameters)
 }
 void controlSensor_com(SckBase* base, String parameters)
 {
-  	SensorType wichSensor = base->sensors.getTypeFromString(parameters);
+	SensorType wichSensor = base->sensors.getTypeFromString(parameters);
 
 	if (parameters.length() < 1) {
 		base->sckOut("ERROR No command received!! please try again...");
@@ -438,45 +438,119 @@ void monitorSensor_com(SckBase* base, String parameters)
 	}
 	if (sdSave) base->monitorFile.file.close();
 }
-void readings_com(SckBase* base, String parameters)
+void flash_com(SckBase* base, String parameters)
 {
-	bool details = false;
-	if (parameters.indexOf("-details") >=0) {
-		details = true;
-		parameters.replace("-details", "");
-		parameters.trim();
-	}
+	if (parameters.length() <= 0) {
 
-	uint32_t savedGroups = base->readingsList.countGroups();
-
-	if (savedGroups <= 0) {
-		base->sckOut("No readings stored on memory");
-		return;
-	}
-
-	for (uint32_t thisGroup=0; thisGroup<savedGroups; thisGroup++) {
-
-		uint16_t readingsOnThisGroup = base->readingsList.countReadings(thisGroup);
-		char thisTime[25];
-		base->epoch2iso(base->readingsList.getTime(thisGroup), thisTime);
-		base->sckOut("-----------");
-		sprintf(base->outBuff, "%lu - %s - %i readings on Memory.", thisGroup+1, thisTime, readingsOnThisGroup);
+		SckList::FlashInfo info = base->readingsList.flashInfo();
+		sprintf(base->outBuff, "\r\n%u sectors in total, %u used and %u free.", SCKLIST_SECTOR_NUM, info.sectUsed, info.sectFree);
 		base->sckOut();
-		if (details) {
-			sprintf(base->outBuff, "Published to the platform: %s\r\nPublished to sdcard: %s", base->readingsList.getFlag(thisGroup, base->readingsList.NET_PUBLISHED) ? "true" : "false", base->readingsList.getFlag(thisGroup, base->readingsList.SD_PUBLISHED) ? "true" : "false");
-			base->sckOut();
-			for (uint16_t re=0; re<readingsOnThisGroup; re++) {
-				OneReading thisReading = base->readingsList.readReading(thisGroup, re);
-				sprintf(base->outBuff, "%s: %s %s", base->sensors[thisReading.type].title, thisReading.value.c_str(), base->sensors[thisReading.type].unit);
-				base->sckOut();
+		sprintf(base->outBuff, "%u groups in total.\r\nNetwork: %u published and %u not published.\r\nSd-card: %u published and %u not published.\r\n", info.grpTotal, info.grpPubNet, info.grpUnPubNet, info.grpPubSd, info.grpUnPubSd);
+		base->sckOut();
+
+	} else {
+		// Format: flash -format
+		if (parameters.indexOf("-format") >=0) {
+			base->sckOut("Formating... be patient, don't turn off your kit!");
+			if (base->readingsList.flashFormat()) {
+				base->sckOut("Flash memory formated OK, please power cycle your kit. (not just reset)");
+			} else {
+				base->sckOut("ERROR: Something went wrong!!!");
+				return;
 			}
 		}
-		base->sckOut("-----------");
-	}
-	base->sckOut(" ");
 
-	// TODO code for -publish option
-	/* base->publish(); */
+		// Recover readings: flash -recover sector-num/all sd/net
+		// 'all' will do sector by sector until the endo of the memory
+		// sd/net save the recovered readings to sd or publish them to the network
+		int16_t recoI = parameters.indexOf("-recover");
+		if (recoI >= 0) {
+			
+
+			// Enter sheel mode to avoid interferences
+			bool alreadyOnShell = base->st.onShell;
+			if (!alreadyOnShell) {
+				base->st.onShell = true;
+				base->st.onSetup = false;
+				base->led.update(base->led.YELLOW, base->led.PULSE_STATIC);
+			}
+
+			String sectC = parameters.substring(recoI+9);
+
+			// Get sector number or all
+			uint16_t sectV;
+			bool all = false;
+			if (sectC.startsWith("all")) all = true;
+			else {
+				sectV = sectC.toInt();
+				if (sectV < 0 || sectV > SCKLIST_SECTOR_NUM) {
+					base->sckOut("Wrong sector number (0-2048)");
+					return;
+				}
+			}
+
+			// Get flag
+			uint8_t spaceI = sectC.indexOf(" ");
+			String flagC = sectC.substring(spaceI+1);
+			SckList::PubFlags thisFlag = SckList::PUB_SD;
+			if (flagC.startsWith("net")) thisFlag = SckList::PUB_NET;
+
+			// Save or publish groups
+			uint32_t totalRecovered = 0;
+			if (all) {
+				for (uint16_t i=0; i<SCKLIST_SECTOR_NUM; i++)  {
+					totalRecovered += base->readingsList.recover(i, thisFlag);
+				}
+			} else totalRecovered = base->readingsList.recover(sectV, thisFlag);
+			sprintf(base->outBuff, "Recovered %u groups.", totalRecovered);
+			base->sckOut();
+
+			// Exit shell mode
+			if (!alreadyOnShell) base->st.onShell = false;
+		}
+
+		// Sector dump: flash -dump sector-num
+		int16_t dumpI = parameters.indexOf("-dump");
+		if (dumpI >= 0) {
+			String dumpC = parameters.substring(dumpI+6);
+			uint16_t dumpV = dumpC.toInt();
+			if (dumpV < 0 || dumpV > SCKLIST_SECTOR_NUM) {
+				base->sckOut("Wrong sector number (0-2048)");
+				return;
+			}
+			base->readingsList.dumpSector(dumpV);
+		}
+
+		// Sector info: flash -sector sector-num/all
+		int16_t sectI = parameters.indexOf("-sector");
+		if (sectI >= 0) {
+			String sectC = parameters.substring(sectI+8);
+
+			// Info for one specified sector
+			uint16_t sectV = sectC.toInt();
+			if (sectV < 0 || sectV > 2048) {
+				base->sckOut("Wrong sector number (0-2048)");
+				return;
+			}
+			SckList::SectorInfo info = base->readingsList.sectorInfo(sectV);
+			sprintf(base->outBuff, "\r\nSector %u in address %u is: %s", sectV, info.addr, info.used ? "Used" : (info.current ? "In use" : "Free"));
+			base->sckOut();
+			sprintf(base->outBuff, "Sector %u fully published to network: %s", sectV, info.pubNet ? "true" : "false" );
+			base->sckOut();
+			sprintf(base->outBuff, "Sector %u fully published to sd-card: %s", sectV, info.pubSd ? "true" : "false" );
+			base->sckOut();
+			sprintf(base->outBuff, "Net published groups: %u", info.grpPubNet);
+			base->sckOut();
+			sprintf(base->outBuff, "Net un-published groups: %u", info.grpUnPubNet);
+			base->sckOut();
+			sprintf(base->outBuff, "Sd saved groups: %u", info.grpPubSd);
+			base->sckOut();
+			sprintf(base->outBuff, "Sd not saved groups: %u", info.grpUnPubSd);
+			base->sckOut();
+			sprintf(base->outBuff, "Freespace: %u bytes\r\n", info.freeSpace);
+			base->sckOut();
+		}
+	}
 }
 extern "C" char *sbrk(int i);
 void freeRAM_com(SckBase* base, String parameters)
@@ -523,7 +597,7 @@ void i2cDetect_com(SckBase* base, String parameters)
 void power_com(SckBase* base, String parameters)
 {
 	// Get
-	
+
 	int16_t extraI = parameters.indexOf("-info");
 	if (parameters.length() <= 0 || extraI >= 0) {
 
@@ -572,7 +646,6 @@ void power_com(SckBase* base, String parameters)
 
 		}
 
-
 	// Set
 	} else {
 
@@ -589,7 +662,7 @@ void power_com(SckBase* base, String parameters)
 			if (otgC.startsWith("on")) base->charger.OTG(1);
 			if (otgC.startsWith("off")) base->charger.OTG(0);
 		}
-		
+
 		int16_t batcapI = parameters.indexOf("-batcap");
 		if ( batcapI>=0) {
 			String batcapC = parameters.substring(batcapI+8);
@@ -648,10 +721,7 @@ void config_com(SckBase* base, String parameters)
 			if (pubIntI >= 0) {
 				String pubIntC = parameters.substring(pubIntI+8);
 				uint32_t pubIntV = pubIntC.toInt();
-				// TODO remove this when flash storage is ready
-				if (pubIntV > 180) {
-					base->sckOut("For now we can only store safely 3 set of readings on RAM memory, sorry.");
-				} else if (pubIntV >= minimal_publish_interval && pubIntV <= max_publish_interval) base->config.publishInterval = pubIntV;
+				if (pubIntV >= minimal_publish_interval && pubIntV <= max_publish_interval) base->config.publishInterval = pubIntV;
 			}
 			int16_t readIntI = parameters.indexOf("-readint");
 			if (readIntI >= 0) {
@@ -774,13 +844,13 @@ void debug_com(SckBase* base, String parameters)
 			base->saveConfig();
 		}
 		if (parameters.indexOf("-espcom") >= 0) {
-			base->debugESPcom = ! base->debugESPcom;
+			base->debugESPcom = !base->debugESPcom;
 			sprintf(base->outBuff, "ESP comm debug: %s", base->debugESPcom ? "true" : "false");
 			base->sckOut();
 		}
-		if (parameters.indexOf("-list") >= 0) {
-			base->readingsList.debug = ! base->readingsList.debug;
-			sprintf(base->outBuff, "Reading list debug: %s", base->readingsList.debug ? "true" : "false");
+		if (parameters.indexOf("-flash") >= 0) {
+			base->readingsList.debug = !base->readingsList.debug;
+			sprintf(base->outBuff, "Flash memory debug: %s", base->readingsList.debug ? "true" : "false");
 			base->sckOut();
 		}
 
@@ -790,7 +860,7 @@ void debug_com(SckBase* base, String parameters)
 		base->sckOut();
 		sprintf(base->outBuff, "ESP comm debug: %s", base->debugESPcom ? "true" : "false");
 		base->sckOut();
-		sprintf(base->outBuff, "Readings list debug: %s", base->readingsList.debug ? "true" : "false");
+		sprintf(base->outBuff, "Flash memory debug: %s", base->readingsList.debug ? "true" : "false");
 		base->sckOut();
 	}
 }

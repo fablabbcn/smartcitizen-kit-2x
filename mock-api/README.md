@@ -8,6 +8,8 @@ The technology used here is:
 
 And the files are under *esp/build_data*
 
+[Here](process.md) you can read about why we chose Vue.js and what the thought process was like.
+
 ## Starting frontend development
 
 Inside the ./mock-api folder do:

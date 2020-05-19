@@ -54,6 +54,8 @@ class SckList
 			uint16_t grpPubSd = 0;
 			uint16_t freeSpace = 0;
 			uint32_t addr;
+			uint32_t firstTime = 0;
+			uint32_t lastTime = 0;
 		};
 
 		struct FlashInfo {
@@ -64,6 +66,7 @@ class SckList
 			uint16_t grpUnPubSd = 0;
 			uint16_t grpPubSd = 0;
 			int16_t grpTotal = 0;
+			uint16_t currSector = 0;
 		};
 
 		SckList(SckBase* nBase) {

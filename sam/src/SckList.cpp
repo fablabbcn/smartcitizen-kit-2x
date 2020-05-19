@@ -265,7 +265,7 @@ int16_t SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
 		uint16_t groupSize = flash.readWord(address);
 		if (groupSize == 0xFFFF || (address + groupSize) >= endAddr) {
 			debug_println("None found!!");
-			
+
 			// If this setor is not marked as fully published markt it!
 			if (_getSectState(wichSector) == SECTOR_USED && !_isSectPublished(wichSector, wichFlag)) _setSectPublished(wichSector, wichFlag);
 
@@ -286,6 +286,7 @@ int16_t SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
 }
 void SckList::_scanSectors()
 {
+
 	_currSector = _dataAvailableSect[PUB_NET] = _dataAvailableSect[PUB_SD] = -1;
 
 	debug_print("F: Scanning sectors (used/empty):  ");
@@ -308,8 +309,8 @@ void SckList::_scanSectors()
 			}
 			case SECTOR_EMPTY:
 			{
-
-				debug_println(" << current sector");
+				debug_print(" << current sector found: ");
+				debug_println(i);
 
 				_currSector = i;
 
@@ -327,7 +328,6 @@ void SckList::_scanSectors()
 
 				// Find starting point to continue writing
 				_addr = _getSectAddr(_currSector) + SECTOR_SIZE - freeSpace;
-
 				return;
 			}
 			default:
@@ -402,7 +402,7 @@ void SckList::flashUpdate()
 }
 uint8_t SckList::saveGroup()
 {
-	debug_println("F: Saving group");
+	debug_print("F: Saving group (");
 
 	// First prepare the group to be saved (on ram buffer)
 	// Variable to store the buffer index position
@@ -420,6 +420,10 @@ uint8_t SckList::saveGroup()
 	memcpy(&flashBuff, &stype, 1); pos+=1; 				// Write SensorType (1 byte)
 	memcpy(&flashBuff[pos], &base->lastSensorUpdate, 4); pos+=4; 	// Write timeStamp (4 bytes)
 
+	base->epoch2iso(base->lastSensorUpdate, base->ISOtimeBuff);
+	debug_print(base->ISOtimeBuff);
+	debug_print(") -> ");
+
 	// Store sensor readings
 	uint8_t enabledSensors = 0;
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -431,11 +435,11 @@ uint8_t SckList::saveGroup()
 			stype = static_cast<SensorType>(i);
 			memcpy(&flashBuff[pos], &stype, 1); pos+=1;				// SensorType (1 byte)
 
-			debug_print("F: ");
 			debug_print(base->sensors[stype].title);
-			debug_print(" -> ");
+			debug_print(" ");
 			debug_print(value);
-			debug_println(base->sensors[stype].unit);
+			debug_print(base->sensors[stype].unit);
+			debug_print(", ")
 
 			for (uint8_t c=0; c<value.length(); c++) {
 				char thischar = value.charAt(c);
@@ -446,6 +450,7 @@ uint8_t SckList::saveGroup()
 		}
 		if (enabledSensors == 0) return enabledSensors;
 	}
+	debug_println("<-");
 
 	// Save group size at the begining of the group
 	memcpy(&flashBuff[0], &pos, 2);
@@ -455,7 +460,7 @@ uint8_t SckList::saveGroup()
 
 		debug_print("F: Sector");
 		debug_print(_currSector);
-		debug_println(" doesn't have enough free space, starting a new one.");
+		debug_println(" doesn't have enough free space, will search for a new one.");
 
 		// Mark current sector as full
 		flash.writeByte(_getSectAddr(_currSector), SECTOR_USED);
@@ -475,17 +480,22 @@ uint8_t SckList::saveGroup()
 
 		// Jump sector state and flag bytes
 		_addr += 3;
+		debug_print("Using sector ");
+		debug_print(_currSector);
+		debug_print(" in address ");
+		debug_println(_addr);
 	}
 
 	// Copy buffer to flash memory
 	for (uint16_t i=0; i<pos; i++) _append(flashBuff[i]);
-	
+
 	availableReadings[PUB_NET] = true;
 	availableReadings[PUB_SD] = true;
 
 	debug_print("F: Saved ");
 	debug_print(enabledSensors);
-	debug_println(" sensors on flash memory");
+	debug_print(" sensors on sector ");
+	debug_println(_currSector);
 
 	return enabledSensors;
 }
@@ -516,7 +526,7 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 
 		thisGroup = forceIndex;
 	}
-	
+
 	// prepare group data depending on provided flag
 	uint8_t readingNum = _countReadings(thisGroup);
 
@@ -536,20 +546,21 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 
 			debug_println("F: Preparing group data for sdcard saving");
 
-			base->epoch2iso(flash.readULong(grpAddr + 6), flashBuff); 	// print time stamp to buffer
+			uint32_t thisTime = flash.readULong(grpAddr + 6);
+			base->epoch2iso(thisTime, flashBuff); 		// print time stamp to buffer
+			base->epoch2iso(thisTime, base->ISOtimeBuff); 	// Update base time buffer for console message.
 			grpAddr += 10;  // Jump to first reading (2 size + 2 flags + 6 timestamp = 10)
 
+			debug_print("F: Reading group (");
 			for (uint8_t i=0; i<19; i++) {
 				debug_print(flashBuff[i]);
 			}
+			debug_print(") -> ");
 
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensorType = base->sensors.sensorsPriorized(i);
 
 				if (base->sensors[wichSensorType].enabled) {
-
-					/* debug_print("F: Looking for "); */
-					/* debug_println(base->sensors[wichSensorType].title); */
 
 					bool found = false;
 					uint32_t tempAddr = grpAddr;
@@ -558,24 +569,18 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 						SensorType thisType = static_cast<SensorType>(flash.readByte(tempAddr + 1)); 	// Get sensorType
 						uint8_t readSize = flash.readByte(tempAddr); // Get reading size
 
-						/* debug_print("F: "); */
-						/* debug_print(base->sensors[thisType].title); */
-						/* debug_print(" with reading size of "); */
-						/* debug_print(readSize); */
-						/* debug_println(" bytes."); */
-
 						if (thisType == wichSensorType) {
-
 
 							// Get the reading value
 							String thisReading;
 							for (uint32_t r=tempAddr+2; r<=tempAddr+readSize; r++) thisReading.concat((char)flash.readByte(r));
 
-							debug_print("F: ");
 							debug_print(base->sensors[thisType].title);
-							debug_print(": ");
+							debug_print(" ");
 							debug_print(thisReading);
-							debug_println(base->sensors[thisType].unit);
+							debug_print(" ");
+							debug_print(base->sensors[thisType].unit);
+							debug_print(", ");
 
 							sprintf(flashBuff + strlen(flashBuff)-1, ",%s", thisReading.c_str());
 							found = true;
@@ -587,6 +592,8 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 				}
 			}
 			sprintf(flashBuff + strlen(flashBuff)-1, "\r\n"); 	// print newline to flashBuff
+
+			debug_println("<-");
 
 		} else if (wichFlag == PUB_NET) {
 
@@ -609,6 +616,10 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 			sprintf(base->netBuff + strlen(base->netBuff), "{t:%s", base->ISOtimeBuff);
 			grpAddr += 10;  // Jump to first reading (2 size + 2 flags + 6 timestamp = 10)
 
+			debug_print("F: Reading group (");
+			debug_print(base->ISOtimeBuff);
+			debug_print(") ->");
+
 			// Write sensor readings
 			for (uint8_t i=0; i<readingNum; i++) {
 
@@ -621,11 +632,12 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 
 				if (base->sensors[thisType].id > 0 && !thisReading.startsWith("null")) {
 
-					debug_print("F: ");
 					debug_print(base->sensors[thisType].title);
-					debug_print(": ");
+					debug_print(" ");
 					debug_print(thisReading);
-					debug_println(base->sensors[thisType].unit);
+					debug_print(" ");
+					debug_print(base->sensors[thisType].unit);
+					debug_print(", ");
 
 					sprintf(base->netBuff + strlen(base->netBuff), ",%u:%s", base->sensors[thisType].id, thisReading.c_str());
 				}
@@ -633,6 +645,8 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 				grpAddr += readSize;
 			}
 			sprintf(base->netBuff + strlen(base->netBuff), "}");
+
+			debug_println("<-");
 		}
 
 		return thisGroup;
@@ -761,6 +775,14 @@ SckList::SectorInfo SckList::sectorInfo(uint16_t wichSector)
 	info.grpPubSd = _countSectGroups(wichSector, PUB_SD, PUBLISHED);
 	info.freeSpace = _getSectFreeSpace(wichSector);
 	info.addr = _getSectAddr(wichSector);
+	uint16_t totalGroups = _countSectGroups(wichSector, PUB_NET, PUBLISHED, true);
+	if (totalGroups > 0) {
+		info.firstTime = flash.readULong(_getSectAddr(wichSector) + 9);
+		GroupIndex lastGroup;
+		lastGroup.sector = wichSector;
+		lastGroup.group = totalGroups - 1;
+		info.lastTime = flash.readULong(_getGrpAddr(lastGroup) + 6);
+	}
 
 	return info;
 }
@@ -808,6 +830,8 @@ SckList::FlashInfo SckList::flashInfo()
 
 		} else if (state == SECTOR_EMPTY) info.sectFree++;
 	}
+
+	info.currSector = _currSector;
 
 	return info;
 }

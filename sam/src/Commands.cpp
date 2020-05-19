@@ -445,7 +445,9 @@ void flash_com(SckBase* base, String parameters)
 		SckList::FlashInfo info = base->readingsList.flashInfo();
 		sprintf(base->outBuff, "\r\n%u sectors in total, %u used and %u free.", SCKLIST_SECTOR_NUM, info.sectUsed, info.sectFree);
 		base->sckOut();
-		sprintf(base->outBuff, "%u groups in total.\r\nNetwork: %u published and %u not published.\r\nSd-card: %u published and %u not published.\r\n", info.grpTotal, info.grpPubNet, info.grpUnPubNet, info.grpPubSd, info.grpUnPubSd);
+		sprintf(base->outBuff, "%u groups in total.\r\nNetwork: %u published and %u not published.\r\nSd-card: %u published and %u not published.", info.grpTotal, info.grpPubNet, info.grpUnPubNet, info.grpPubSd, info.grpUnPubSd);
+		base->sckOut();
+		sprintf(base->outBuff, "Using sector number: %u\r\n", info.currSector);
 		base->sckOut();
 
 	} else {
@@ -547,7 +549,13 @@ void flash_com(SckBase* base, String parameters)
 			base->sckOut();
 			sprintf(base->outBuff, "Sd not saved groups: %u", info.grpUnPubSd);
 			base->sckOut();
-			sprintf(base->outBuff, "Freespace: %u bytes\r\n", info.freeSpace);
+			sprintf(base->outBuff, "Freespace: %u bytes", info.freeSpace);
+			base->sckOut();
+			base->epoch2iso(info.firstTime, base->ISOtimeBuff);
+			sprintf(base->outBuff, "First group: %s", base->ISOtimeBuff);
+			base->sckOut();
+			base->epoch2iso(info.lastTime, base->ISOtimeBuff);
+			sprintf(base->outBuff, "Last group:  %s\r\n", base->ISOtimeBuff);
 			base->sckOut();
 		}
 	}

@@ -389,6 +389,7 @@ int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte p
 // Public fnctions
 int8_t SckList::setup()
 {
+	debug = base->config.debug.flash;
 	return _flashStart();
 }
 bool SckList::flashFormat()

@@ -838,29 +838,30 @@ void debug_com(SckBase* base, String parameters)
 	// Set
 	if (parameters.length() > 0) {
 		if (parameters.indexOf("-sdcard") >= 0) {
-			base->config.sdDebug = !base->config.sdDebug;
-			sprintf(base->outBuff, "SD card debug: %s", base->config.sdDebug ? "true" : "false");
+			base->config.debug.sdcard = !base->config.debug.sdcard;
+			sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
 			base->sckOut();
 			base->saveConfig();
 		}
 		if (parameters.indexOf("-espcom") >= 0) {
-			base->debugESPcom = !base->debugESPcom;
-			sprintf(base->outBuff, "ESP comm debug: %s", base->debugESPcom ? "true" : "false");
+			base->config.debug.esp = !base->config.debug.esp;
+			sprintf(base->outBuff, "ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
 			base->sckOut();
 		}
 		if (parameters.indexOf("-flash") >= 0) {
 			base->readingsList.debug = !base->readingsList.debug;
-			sprintf(base->outBuff, "Flash memory debug: %s", base->readingsList.debug ? "true" : "false");
+			base->config.debug.flash = !base->config.debug.flash;
+			sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
 			base->sckOut();
 		}
 
 	// Get
 	} else {
-		sprintf(base->outBuff, "SD card debug: %s", base->config.sdDebug ? "true" : "false");
+		sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
 		base->sckOut();
-		sprintf(base->outBuff, "ESP comm debug: %s", base->debugESPcom ? "true" : "false");
+		sprintf(base->outBuff, "ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
 		base->sckOut();
-		sprintf(base->outBuff, "Flash memory debug: %s", base->readingsList.debug ? "true" : "false");
+		sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
 		base->sckOut();
 	}
 }

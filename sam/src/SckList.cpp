@@ -588,6 +588,8 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 
 			debug_println("F: Preparing group data for sdcard saving");
 
+			memset(flashBuff, 0, sizeof(flashBuff)); 	// Clear flashBuff
+
 			uint32_t thisTime = flash.readULong(grpAddr + 6);
 			base->epoch2iso(thisTime, flashBuff); 		// print time stamp to buffer
 			base->epoch2iso(thisTime, base->ISOtimeBuff); 	// Update base time buffer for console message.
@@ -615,7 +617,7 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 
 							// Get the reading value
 							String thisReading;
-							for (uint32_t r=tempAddr+2; r<=tempAddr+readSize; r++) thisReading.concat((char)flash.readByte(r));
+							for (uint32_t r=tempAddr+2; r<tempAddr+readSize; r++) thisReading.concat((char)flash.readByte(r));
 
 							debug_print(base->sensors[thisType].title);
 							debug_print(" ");
@@ -624,13 +626,13 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 							debug_print(base->sensors[thisType].unit);
 							debug_print(", ");
 
-							sprintf(flashBuff + strlen(flashBuff)-1, ",%s", thisReading.c_str());
+							sprintf(flashBuff + strlen(flashBuff), ",%s", thisReading.c_str());
 							found = true;
 							break;
 						}
 						tempAddr += readSize;
 					}
-					if (!found) sprintf(flashBuff + strlen(flashBuff)-1, ",null");
+					if (!found) sprintf(flashBuff + strlen(flashBuff), ",null");
 				}
 			}
 			sprintf(flashBuff + strlen(flashBuff)-1, "\r\n"); 	// print newline to flashBuff

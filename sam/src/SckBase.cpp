@@ -1507,7 +1507,7 @@ void SckBase::updateSensors()
 	if (sensorsReady) {
 		sckOut("-----------", PRIO_LOW);
 		uint8_t readingNum = readingsList.saveGroup(); 	// If all sensors are ready, save the group
-		sprintf(outBuff, "(%s) %s readings saved to flash memory.", ISOtimeBuff, readingNum);
+		sprintf(outBuff, "(%s) %u readings saved to flash memory.", ISOtimeBuff, readingNum);
 		sckOut();
 
 		if (st.cardPresent) {

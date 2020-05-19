@@ -217,6 +217,17 @@ int8_t SckList::_setSectPublished(uint16_t wichSector, PubFlags wichFlag)
 
 	return 1;
 }
+int8_t SckList::_closeSector(uint16_t wichSector)
+{
+	// Mark sector as full
+	flash.writeByte(_getSectAddr(wichSector), SECTOR_USED);
+
+	// If no readings left, mark sector as published
+	if (_countSectGroups(wichSector, PUB_NET, NOT_PUBLISHED) == 0) _setSectPublished(_currSector, PUB_NET);
+	if (_countSectGroups(wichSector, PUB_SD, NOT_PUBLISHED) == 0) _setSectPublished(_currSector, PUB_SD);
+
+	return 1;
+}
 int8_t SckList::_isSectPublished(uint16_t wichSector, PubFlags wichFlag)
 {
 	// Choose byte position depending on requesed flag
@@ -302,9 +313,30 @@ void SckList::_scanSectors()
 
 			case SECTOR_USED:
 			{
-
-				if (_dataAvailableSect[PUB_NET] < 0) if (!_isSectPublished(i, PUB_NET)) _dataAvailableSect[PUB_NET] = i;
-				if (_dataAvailableSect[PUB_SD] < 0) if (!_isSectPublished(i, PUB_SD)) _dataAvailableSect[PUB_SD] = i;
+				// If we still don't have any sector with available data, we check if this one has any
+				if (_dataAvailableSect[PUB_NET] < 0) {
+					// If sector is not marked as published, search for available groups
+					if (!_isSectPublished(i, PUB_NET)) {
+						debug_println("");
+						if (_getUnpubGrpIdx(i, PUB_NET) >= 0) {
+							debug_print("Network unpublished data founded on sector: ");
+							debug_println(i);
+							_dataAvailableSect[PUB_NET] = i;
+						// If there is no unpublished data, mark sector as published.
+						} else _setSectPublished(i, PUB_NET);
+					}
+				}
+				// The same but for sdcard
+				if (_dataAvailableSect[PUB_SD] < 0) {
+					if (!_isSectPublished(i, PUB_SD)) {
+						debug_println("");
+						if (_getUnpubGrpIdx(i, PUB_SD) >= 0) {
+							debug_print("Data not saved to sdcard founded on sector: ");
+							debug_println(i);
+							_dataAvailableSect[PUB_SD] = i;
+						} else _setSectPublished(i, PUB_SD);
+					}
+				}
 				break;
 			}
 			case SECTOR_EMPTY:
@@ -322,7 +354,10 @@ void SckList::_scanSectors()
 					debug_print("<ERROR (");
 					debug_print(i);
 					debug_println(") ");
-					_currSector = -1;
+
+					// Reuse sector
+					flash.eraseSector(_getSectAddr(_currSector));
+					freeSpace = SECTOR_SIZE - 3;
 					return;
 				}
 
@@ -331,15 +366,27 @@ void SckList::_scanSectors()
 				return;
 			}
 			default:
-
-				// Something went wrong!
+			{
+				// This sector has an error, lets reuse it
 				debug_print("<ERROR (");
 				debug_print(i);
 				debug_println(") ");
-				_currSector = -1;
+
+				_currSector = i;
+				flash.eraseSector(_getSectAddr(_currSector));
+				_addr = _getSectAddr(_currSector) + 3;
 				return;
+			}
 		}
 	}
+
+	// If we didn't find a empty sector that means the flash memory is full
+	// TODO We should find and start using the sector after the one with the most recent timestamp, but to do this we need a very in deep scanning
+	// Start from first sector
+	_currSector = 0;
+	flash.eraseSector(_getSectAddr(_currSector));
+	_addr = _getSectAddr(_currSector) + 3;
+
 }
 int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte publishedState, bool getAll)
 {
@@ -462,24 +509,19 @@ uint8_t SckList::saveGroup()
 		debug_print(_currSector);
 		debug_println(" doesn't have enough free space, will search for a new one.");
 
-		// Mark current sector as full
-		flash.writeByte(_getSectAddr(_currSector), SECTOR_USED);
+		// Close full sector
+		_closeSector(_currSector);
 
-		// If no readings left mark sector as published
-		if (_countSectGroups(_currSector, PUB_NET, NOT_PUBLISHED) == 0) _setSectPublished(_currSector, PUB_NET);
-		if (_countSectGroups(_currSector, PUB_SD, NOT_PUBLISHED) == 0) _setSectPublished(_currSector, PUB_SD);
+		// _scanSectors will find the next availablew sector to be used
+		_scanSectors();
 
-		// Start a new sector
-		if (_currSector == SCKLIST_SECTOR_NUM) _currSector = 0; // Flash is full... start again.
-		else _currSector++;
 
-		_addr = _getSectAddr(_currSector);
+		// If selected sector doesn't have enough space, close it and keep scanning until we found a sector that fits the data
+		while (_getSectFreeSpace(_currSector) < pos) {
+			_closeSector(_currSector);
+			_scanSectors();
+		}
 
-		// If sector is not empty, erase it
-		if (_getSectState(_currSector) == SECTOR_USED) flash.eraseSector(_addr);
-
-		// Jump sector state and flag bytes
-		_addr += 3;
 		debug_print("Using sector ");
 		debug_print(_currSector);
 		debug_print(" in address ");

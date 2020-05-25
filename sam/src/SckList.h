@@ -130,5 +130,4 @@ class SckList
 		int8_t _setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag);
 		int8_t _isGrpPublished(GroupIndex wichGroup, PubFlags wichFlag);
 		uint8_t _countReadings(GroupIndex wichGroup); 				// Returns the number of readings inside a group
-
 };

@@ -728,10 +728,6 @@ bool Atlas::start()
 	// This actions are only for conductivity (EC) sensor
 	if (EC) {
 
-		// Set probe
-		if (!sendCommand((char*)"K,1.0")) return false;
-		delay(shortWait);
-
 		// ----  Set parameters
 		if (sendCommand((char*)"O,?")) {
 			delay(shortWait);

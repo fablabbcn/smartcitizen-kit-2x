@@ -194,12 +194,12 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_INA219_CURRENT: 		wichSensor->reading = String(ina219.getReading(ina219.CURRENT)); return;
 		case SENSOR_INA219_LOADVOLT: 		wichSensor->reading = String(ina219.getReading(ina219.LOAD_VOLT)); return;
 		case SENSOR_WATER_TEMP_DS18B20:		wichSensor->reading = String(waterTemp_DS18B20.getReading()); return;
-		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()) 	{ wichSensor->reading = String(atlasTEMP.newReading); return; } break;
-		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) 	{ wichSensor->reading = String(atlasPH.newReading); return; } break;
-		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading); return; } break;
-		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReadingB); return; } break;
-		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading); return; } break;
-		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReadingB); return; } break;
+		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()) 	{ wichSensor->reading = String(atlasTEMP.newReading[0]); return; } break;
+		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) 	{ wichSensor->reading = String(atlasPH.newReading[0]); return; } break;
+		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[0]); return; } break;
+		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[3]); return; } break;
+		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[0]); return; } break;
+		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[1]); return; } break;
 		case SENSOR_CHIRP_MOISTURE_RAW:		if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE_RAW)) { wichSensor->reading = String(moistureChirp.raw); return; } break;
 		case SENSOR_CHIRP_MOISTURE:		if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE)) { wichSensor->reading = String(moistureChirp.moisture); return; } break;
 		case SENSOR_CHIRP_TEMPERATURE:		if (moistureChirp.getReading(SENSOR_CHIRP_TEMPERATURE)) { wichSensor->reading = String(moistureChirp.temperature); return; } break;
@@ -729,10 +729,12 @@ bool Atlas::start()
 	if (EC) {
 
 		// ----  Set parameters
-		if (sendCommand((char*)"O,?")) {
+		if (sendCommand((char*)"O,?")) { 	// Ask info about enabled parameters
 			delay(shortWait);
-			if (!atlasResponse.equals("?O,EC,SG")) {
-				const char *parameters[4] = PROGMEM {"O,EC,1", "O,TDS,0", "O,S,0", "O,SG,1"};
+			getResponse();
+			if (!atlasResponse.equals("?O,EC,TDS,S,SG")) {
+				SerialUSB.println("Enabling all metrics for EC Atlas");
+				const char *parameters[4] = PROGMEM {"O,EC,1", "O,TDS,1", "O,S,1", "O,SG,1"};
 				for (int i = 0; i<4; ++i) {
 					if (!sendCommand((char*)parameters[i])) return false;
 					delay(longWait);
@@ -745,6 +747,7 @@ bool Atlas::start()
 		// ---- Set parameters
 		if (sendCommand((char*)"O,?")) {
 			delay(shortWait);
+			getResponse();
 			if (!atlasResponse.equals((char*)"?O,%,mg")) {
 				if (!sendCommand((char*)"O,%,1")) return false;
 				delay(shortWait);
@@ -820,12 +823,26 @@ bool Atlas::getBusyState()
 					// Reading OK
 					state = REST;
 
-					if (PH || TEMP)	newReading = atlasResponse.toFloat();
+					if (PH || TEMP)	newReading[0] = atlasResponse.toFloat();
 					if (EC || DO) {
-						String first = atlasResponse.substring(0, atlasResponse.indexOf(","));
-						String second = atlasResponse.substring(atlasResponse.indexOf(",")+1);
-						newReading = first.toFloat();
-						newReadingB = second.toFloat();
+
+						uint8_t readingNum = 2;
+						if (EC) readingNum = 4;
+
+						for (uint8_t i=0; i<readingNum; i++) {
+
+							uint8_t endIdx = atlasResponse.indexOf(",");
+
+							String newReadingStr;
+							if (endIdx > 0) {
+								newReadingStr = atlasResponse.substring(0, endIdx);
+								atlasResponse.remove(0, endIdx+1);
+							} else {
+								newReadingStr = atlasResponse.substring(0);
+							}
+							
+							newReading[i] = newReadingStr.toFloat();
+						}
 					}
 					goToSleep();
 					return false;
@@ -835,7 +852,7 @@ bool Atlas::getBusyState()
 
 					// Error
 					state = REST;
-					newReading = 0;
+					newReading[0] = 0;
 					goToSleep();
 					return false;
 					break;
@@ -894,7 +911,7 @@ bool Atlas::tempCompensation()
 			while (atlasTEMP.getBusyState()) delay(2);
 		}
 
-		temperature = atlasTEMP.newReading;
+		temperature = atlasTEMP.newReading[0];
 	} else {
 
 		// No available sensor for temp compensation

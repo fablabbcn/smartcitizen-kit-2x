@@ -340,8 +340,7 @@ class Atlas
 		bool EC = false;
 		bool DO = false;
 		bool TEMP = false;
-		float newReading;
-		float newReadingB;
+		float newReading[4];
 		String atlasResponse;
 		uint32_t lastCommandSent = 0;
 		uint32_t lastUpdate = 0;

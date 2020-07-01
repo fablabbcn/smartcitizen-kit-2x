@@ -910,10 +910,8 @@ bool Atlas::sendCommand(char* command)
 
 bool Atlas::tempCompensation()
 {
-	String stringData;
-	char data[10];
-	float temperature = 0;
-
+	// Temperature comepnsation for PH, EC, and DO
+	float temperature;
 	if (waterTemp_DS18B20.detected) temperature = waterTemp_DS18B20.getReading();
 	else if (atlasTEMP.detected) {
 
@@ -921,21 +919,28 @@ bool Atlas::tempCompensation()
 			while (atlasTEMP.getBusyState()) delay(2);
 		}
 
+		char data[10];
 		temperature = atlasTEMP.newReading[0];
-	} else {
+		sprintf(data,"T,%.2f",temperature);
 
-		// No available sensor for temp compensation
-		// Still we want the readings
-		return true;
+		if (!sendCommand(data)) return false;
 	}
 
-	// Error on reading temperature
-	if (temperature == 0) return false;
+	// Salinity compensation only for DO
+	if (DO && atlasEC.detected) {
 
-	sprintf(data,"T,%.2f",temperature);
-	if (sendCommand(data)) return true;
+		if (millis() - atlasEC.lastUpdate > 10000) {
+			while (atlasEC.getBusyState()) delay(2);
+		}
 
-	return false;
+		char salData[20];
+		float salinity = atlasEC.newReading[2];
+		sprintf(salData,"S,%.2f,ppt",salinity);
+
+		if (!sendCommand(salData)) return false;
+	}
+
+	return true;
 }
 
 uint8_t Atlas::getResponse()

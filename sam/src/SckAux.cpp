@@ -360,17 +360,23 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
 
 			// 	 Calibration command options:
-			// 		Atlas PH: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/pH_EZO_datasheet.pdf) page 50
-			// 			* set cal,[mid,low,high] 7.00
-			// 			* set cal,clear
-			// 		Atlas EC: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/EC_EZO_Datasheet.pdf) page 52
-			// 			* set cal,[dry,clear,84]
-			// 			* set cal,low,1413
-			// 			* set cal,high,12,880
-			// 		Atlas DO: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/DO_EZO_Datasheet.pdf) page 50
-			// 			* set cal
-			// 			* set cal,0
-			// 			* set cal,clear
+			// 		Atlas PH: (https://www.atlas-scientific.com/files/pH_EZO_Datasheet.pdf) page 52
+			// 			* com cal,mid,7
+			// 			* com cal,low,4
+			// 			* com cal,high,10
+			// 			* com cal,clear
+			// 			* com cal,?
+			// 		Atlas EC: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/EC_EZO_Datasheet.pdf) page 55
+			// 			* com cal,dry
+			// 			* com cal,low,12880
+			// 			* com cal,high,80000
+			// 			* com cal,clear
+			// 			* com cal,?
+			// 		Atlas DO: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/DO_EZO_Datasheet.pdf) page 52
+			// 			* com cal
+			// 			* com cal,0
+			// 			* com cal,clear
+			// 			* com cal,?
 			if (command.startsWith("com")) {
 
 				command.replace("com", "");

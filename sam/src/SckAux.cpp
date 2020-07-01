@@ -53,6 +53,8 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.start(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.start();
 		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.start(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.start(); break;
@@ -128,6 +130,8 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.stop(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.stop();
 		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.stop(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.stop(); break;
@@ -194,12 +198,14 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_INA219_CURRENT: 		wichSensor->reading = String(ina219.getReading(ina219.CURRENT)); return;
 		case SENSOR_INA219_LOADVOLT: 		wichSensor->reading = String(ina219.getReading(ina219.LOAD_VOLT)); return;
 		case SENSOR_WATER_TEMP_DS18B20:		wichSensor->reading = String(waterTemp_DS18B20.getReading()); return;
-		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()) 	{ wichSensor->reading = String(atlasTEMP.newReading); return; } break;
-		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) 	{ wichSensor->reading = String(atlasPH.newReading); return; } break;
-		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading); return; } break;
-		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReadingB); return; } break;
-		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading); return; } break;
-		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReadingB); return; } break;
+		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()) 	{ wichSensor->reading = String(atlasTEMP.newReading[0]); return; } break;
+		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) 	{ wichSensor->reading = String(atlasPH.newReading[0]); return; } break;
+		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[0]); return; } break;
+		case SENSOR_ATLAS_EC_TDS:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[1]); return; } break;
+		case SENSOR_ATLAS_EC_SAL:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[2]); return; } break;
+		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[3]); return; } break;
+		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[0]); return; } break;
+		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[1]); return; } break;
 		case SENSOR_CHIRP_MOISTURE_RAW:		if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE_RAW)) { wichSensor->reading = String(moistureChirp.raw); return; } break;
 		case SENSOR_CHIRP_MOISTURE:		if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE)) { wichSensor->reading = String(moistureChirp.moisture); return; } break;
 		case SENSOR_CHIRP_TEMPERATURE:		if (moistureChirp.getReading(SENSOR_CHIRP_TEMPERATURE)) { wichSensor->reading = String(moistureChirp.temperature); return; } break;
@@ -256,6 +262,8 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 		case SENSOR_ATLAS_TEMPERATURE:  return atlasTEMP.getBusyState(); break;
 		case SENSOR_ATLAS_PH: 		return atlasPH.getBusyState(); break;
 		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG: 	return atlasEC.getBusyState(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 	return atlasDO.getBusyState(); break;
@@ -341,6 +349,8 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		}
 		case SENSOR_ATLAS_PH:
 		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG:
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: {
@@ -350,17 +360,23 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
 
 			// 	 Calibration command options:
-			// 		Atlas PH: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/pH_EZO_datasheet.pdf) page 50
-			// 			* set cal,[mid,low,high] 7.00
-			// 			* set cal,clear
-			// 		Atlas EC: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/EC_EZO_Datasheet.pdf) page 52
-			// 			* set cal,[dry,clear,84]
-			// 			* set cal,low,1413
-			// 			* set cal,high,12,880
-			// 		Atlas DO: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/DO_EZO_Datasheet.pdf) page 50
-			// 			* set cal
-			// 			* set cal,0
-			// 			* set cal,clear
+			// 		Atlas PH: (https://www.atlas-scientific.com/files/pH_EZO_Datasheet.pdf) page 52
+			// 			* com cal,mid,7
+			// 			* com cal,low,4
+			// 			* com cal,high,10
+			// 			* com cal,clear
+			// 			* com cal,?
+			// 		Atlas EC: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/EC_EZO_Datasheet.pdf) page 55
+			// 			* com cal,dry
+			// 			* com cal,low,12880
+			// 			* com cal,high,80000
+			// 			* com cal,clear
+			// 			* com cal,?
+			// 		Atlas DO: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/DO_EZO_Datasheet.pdf) page 52
+			// 			* com cal
+			// 			* com cal,0
+			// 			* com cal,clear
+			// 			* com cal,?
 			if (command.startsWith("com")) {
 
 				command.replace("com", "");
@@ -728,15 +744,13 @@ bool Atlas::start()
 	// This actions are only for conductivity (EC) sensor
 	if (EC) {
 
-		// Set probe
-		if (!sendCommand((char*)"K,1.0")) return false;
-		delay(shortWait);
-
 		// ----  Set parameters
-		if (sendCommand((char*)"O,?")) {
+		if (sendCommand((char*)"O,?")) { 	// Ask info about enabled parameters
 			delay(shortWait);
-			if (!atlasResponse.equals("?O,EC,SG")) {
-				const char *parameters[4] = PROGMEM {"O,EC,1", "O,TDS,0", "O,S,0", "O,SG,1"};
+			getResponse();
+			if (!atlasResponse.equals("?O,EC,TDS,S,SG")) {
+				SerialUSB.println("Enabling all metrics for EC Atlas");
+				const char *parameters[4] = PROGMEM {"O,EC,1", "O,TDS,1", "O,S,1", "O,SG,1"};
 				for (int i = 0; i<4; ++i) {
 					if (!sendCommand((char*)parameters[i])) return false;
 					delay(longWait);
@@ -749,6 +763,7 @@ bool Atlas::start()
 		// ---- Set parameters
 		if (sendCommand((char*)"O,?")) {
 			delay(shortWait);
+			getResponse();
 			if (!atlasResponse.equals((char*)"?O,%,mg")) {
 				if (!sendCommand((char*)"O,%,1")) return false;
 				delay(shortWait);
@@ -824,12 +839,26 @@ bool Atlas::getBusyState()
 					// Reading OK
 					state = REST;
 
-					if (PH || TEMP)	newReading = atlasResponse.toFloat();
+					if (PH || TEMP)	newReading[0] = atlasResponse.toFloat();
 					if (EC || DO) {
-						String first = atlasResponse.substring(0, atlasResponse.indexOf(","));
-						String second = atlasResponse.substring(atlasResponse.indexOf(",")+1);
-						newReading = first.toFloat();
-						newReadingB = second.toFloat();
+
+						uint8_t readingNum = 2;
+						if (EC) readingNum = 4;
+
+						for (uint8_t i=0; i<readingNum; i++) {
+
+							uint8_t endIdx = atlasResponse.indexOf(",");
+
+							String newReadingStr;
+							if (endIdx > 0) {
+								newReadingStr = atlasResponse.substring(0, endIdx);
+								atlasResponse.remove(0, endIdx+1);
+							} else {
+								newReadingStr = atlasResponse.substring(0);
+							}
+							
+							newReading[i] = newReadingStr.toFloat();
+						}
 					}
 					goToSleep();
 					return false;
@@ -839,7 +868,7 @@ bool Atlas::getBusyState()
 
 					// Error
 					state = REST;
-					newReading = 0;
+					newReading[0] = 0;
 					goToSleep();
 					return false;
 					break;
@@ -887,10 +916,8 @@ bool Atlas::sendCommand(char* command)
 
 bool Atlas::tempCompensation()
 {
-	String stringData;
-	char data[10];
-	float temperature = 0;
-
+	// Temperature comepnsation for PH, EC, and DO
+	float temperature;
 	if (waterTemp_DS18B20.detected) temperature = waterTemp_DS18B20.getReading();
 	else if (atlasTEMP.detected) {
 
@@ -898,21 +925,28 @@ bool Atlas::tempCompensation()
 			while (atlasTEMP.getBusyState()) delay(2);
 		}
 
-		temperature = atlasTEMP.newReading;
-	} else {
+		char data[10];
+		temperature = atlasTEMP.newReading[0];
+		sprintf(data,"T,%.2f",temperature);
 
-		// No available sensor for temp compensation
-		// Still we want the readings
-		return true;
+		if (!sendCommand(data)) return false;
 	}
 
-	// Error on reading temperature
-	if (temperature == 0) return false;
+	// Salinity compensation only for DO
+	if (DO && atlasEC.detected) {
 
-	sprintf(data,"T,%.2f",temperature);
-	if (sendCommand(data)) return true;
+		if (millis() - atlasEC.lastUpdate > 10000) {
+			while (atlasEC.getBusyState()) delay(2);
+		}
 
-	return false;
+		char salData[20];
+		float salinity = atlasEC.newReading[2];
+		sprintf(salData,"S,%.2f,ppt",salinity);
+
+		if (!sendCommand(salData)) return false;
+	}
+
+	return true;
 }
 
 uint8_t Atlas::getResponse()

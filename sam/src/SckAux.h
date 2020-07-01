@@ -364,6 +364,7 @@ class Atlas
 
 					} case SENSOR_ATLAS_EC:
 					case SENSOR_ATLAS_EC_TDS:
+					case SENSOR_ATLAS_EC_SAL:
 					case SENSOR_ATLAS_EC_SG: {
 
 						deviceAddress = 0x64;

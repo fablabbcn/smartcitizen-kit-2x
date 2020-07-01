@@ -54,6 +54,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_ATLAS_PH:			return atlasPH.start();
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.start(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.start(); break;
@@ -130,6 +131,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_ATLAS_PH:			return atlasPH.stop();
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.stop(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.stop(); break;
@@ -200,6 +202,7 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) 	{ wichSensor->reading = String(atlasPH.newReading[0]); return; } break;
 		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[0]); return; } break;
 		case SENSOR_ATLAS_EC_TDS:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[1]); return; } break;
+		case SENSOR_ATLAS_EC_SAL:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[2]); return; } break;
 		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[3]); return; } break;
 		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[0]); return; } break;
 		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[1]); return; } break;
@@ -260,6 +263,7 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 		case SENSOR_ATLAS_PH: 		return atlasPH.getBusyState(); break;
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG: 	return atlasEC.getBusyState(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 	return atlasDO.getBusyState(); break;
@@ -346,6 +350,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_ATLAS_PH:
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG:
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: {

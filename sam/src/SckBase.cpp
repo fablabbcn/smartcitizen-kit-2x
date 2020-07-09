@@ -1497,7 +1497,18 @@ void SckBase::updatePower()
 // **** Sensors
 void SckBase::updateSensors()
 {
-	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) st.timeStat.reset();
+	SerialUSB.print("RTC config: ");
+	SerialUSB.println(rtc.isConfigured());
+
+	SerialUSB.print("getEpoch: ");
+	SerialUSB.println(rtc.getEpoch());
+
+	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) {
+		sckOut("Error de RTC en updateSensors!!!!");
+		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
+		sprintf(outBuff, "Wrong timestamp: %s", ISOtimeBuff);
+		st.timeStat.reset();
+	}
 	if (!st.timeStat.ok) return;
 	if (st.onSetup) return;
 	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented

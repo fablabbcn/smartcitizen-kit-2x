@@ -38,5 +38,5 @@ struct Configuration {
 	bool sdDebug = false;
 	BattConf battConf;
 	Extra extra;
-	uint16_t sleepTimer = 1; 					// Sleep after this amount of minutes, 480 minutes max (0 to disable sleep)
+	uint16_t sleepTimer = 30; 					// Sleep after this amount of minutes, 480 minutes max (0 to disable sleep)
 };

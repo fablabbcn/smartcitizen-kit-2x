@@ -53,12 +53,13 @@ void SckBase::setup()
 
 	// RTC setup
 	rtc.begin();
-	if (rtc.isConfigured() && (rtc.getEpoch() > 1514764800)) st.timeStat.setOk();	// If greater than 01/01/2018
+	uint32_t now = rtc.getEpoch();
+	if (rtc.isConfigured() && (now > 1514764800)) st.timeStat.setOk();	// If greater than 01/01/2018
 	else {
 		rtc.setTime(0, 0, 0);
 		rtc.setDate(1, 1, 15);
 	}
-	espStarted = rtc.getEpoch();
+	espStarted = now;
 
 	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
 	/* rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S); */
@@ -786,8 +787,9 @@ void SckBase::saveConfig(bool defaults)
 	st.tokenSet = config.token.set;
 	st.tokenError = false;
 	st.wifiStat.reset();
-	lastPublishTime = rtc.getEpoch() - config.publishInterval;
-	lastSensorUpdate = rtc.getEpoch() - config.readInterval;
+	uint32_t now = rtc.getEpoch();
+	lastPublishTime = now - config.publishInterval;
+	lastSensorUpdate = now - config.readInterval;
 
 	if (st.wifiSet || st.tokenSet) pendingSyncConfig = true;
 
@@ -1952,9 +1954,9 @@ bool SckBase::sdPublish()
 bool SckBase::setTime(String epoch)
 {
 	// Keep track of time passed before updating clock
-	uint32_t timeSinceLastUpdate = rtc.getEpoch() - lastSensorUpdate;
-	uint32_t timeSinceLastPublish = rtc.getEpoch() - lastPublishTime;
-	uint32_t timeSinceEspStarted = rtc.getEpoch() - espStarted;
+	uint32_t timeSinceLastUpdate = now - lastSensorUpdate;
+	uint32_t timeSinceLastPublish = now - lastPublishTime;
+	uint32_t timeSinceEspStarted = now - espStarted;
 
 	rtc.setEpoch(epoch.toInt());
 	int32_t diff = rtc.getEpoch() - epoch.toInt();
@@ -1963,9 +1965,10 @@ bool SckBase::setTime(String epoch)
 		st.timeStat.setOk();
 
 		// Adjust variables after updating clock
-		lastSensorUpdate = rtc.getEpoch() - timeSinceLastUpdate;
-		lastPublishTime = rtc.getEpoch() - timeSinceLastPublish;
-		espStarted = rtc.getEpoch() - timeSinceEspStarted;
+		uint32_t now = rtc.getEpoch();
+		lastSensorUpdate = now - timeSinceLastUpdate;
+		lastPublishTime = now - timeSinceLastPublish;
+		espStarted = now - timeSinceEspStarted;
 
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);

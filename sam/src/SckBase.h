@@ -6,7 +6,6 @@
 #include <RTCZero.h>
 #include <time.h>
 #include <SPI.h>
-/* #include "ArduinoLowPower.h" */
 #include "SdFat.h"
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
@@ -156,6 +155,7 @@ class SckBase
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
 		void goToSleep(uint16_t sleepPeriod=3000); 	// sleepPeriod in ms
+		void configGCLK6(); 			// Taken from https://github.com/arduino-libraries/ArduinoLowPower
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 	// seconds

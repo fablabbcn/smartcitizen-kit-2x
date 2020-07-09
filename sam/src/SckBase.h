@@ -6,7 +6,7 @@
 #include <RTCZero.h>
 #include <time.h>
 #include <SPI.h>
-#include "ArduinoLowPower.h"
+/* #include "ArduinoLowPower.h" */
 #include "SdFat.h"
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"

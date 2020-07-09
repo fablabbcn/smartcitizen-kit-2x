@@ -46,7 +46,25 @@ void SckBase::setup()
 
 	// Button
 	pinMode(pinBUTTON, INPUT_PULLUP);
-	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
+
+	// ---------------------------------
+	attachInterrupt(pinBUTTON, ISR_button, CHANGE);
+	EExt_Interrupts in = g_APinDescription[pinBUTTON].ulExtInt;
+
+	// enable EIC clock
+	GCLK->CLKCTRL.bit.CLKEN = 0; //disable GCLK module
+	while (GCLK->STATUS.bit.SYNCBUSY);
+	GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK6 | GCLK_CLKCTRL_ID( GCM_EIC )) ;  //EIC clock switched on GCLK6
+	while (GCLK->STATUS.bit.SYNCBUSY);
+	GCLK->GENCTRL.reg = (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_ID(6));  //source for GCLK6 is OSCULP32K
+	while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY);
+	GCLK->GENCTRL.bit.RUNSTDBY = 1;  //GCLK6 run standby
+	while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY);
+	NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
+
+	EIC->WAKEUP.reg |= (1 << in);
+	//--------------------------------------- todo esto reemplaza la siguiente linea
+	/* LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE); */
 
 	// RTC setup
 	rtc.begin();
@@ -58,9 +76,9 @@ void SckBase::setup()
 	espStarted = rtc.getEpoch();
 
 	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
-	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
-	rtc.enableAlarm(rtc.MATCH_HHMMSS);
-	rtc.attachInterrupt(ext_reset);
+	/* rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S); */
+	/* rtc.enableAlarm(rtc.MATCH_HHMMSS); */
+	/* rtc.attachInterrupt(ext_reset); */
 
 	// SDcard and flash select pins
 	pinMode(pinCS_SDCARD, OUTPUT);
@@ -1350,16 +1368,23 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 		urban.stop(SENSOR_CCS811_VOCS);
 
 		// Disable the Sanity cyclic reset so it doesn't wake us up
-		rtc.disableAlarm();
-		rtc.detachInterrupt();
+		/* rtc.disableAlarm(); */
+		/* rtc.detachInterrupt(); */
 
-		// Detach sdcard interrupt to avoid spurious wakeup
+		// Detach sdcard interrupt to avoid spurious wakeup 
+		// There is no need to reattach since after this sleep there is always a reset
 		detachInterrupt(pinCARD_DETECT);
 
 		// Turn off USB led
 		digitalWrite(pinLED_USB, HIGH);
 
-		LowPower.deepSleep();
+		/* LowPower.deepSleep(); */
+		USBDevice.standby();
+		SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;	
+		SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+		__DSB();
+		__WFI();
+		SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 	} else {
 
 		sprintf(outBuff, "Sleeping for %.2f seconds", (sleepPeriod) / 1000.0);
@@ -1370,13 +1395,23 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 		// Turn off USB led
 		digitalWrite(pinLED_USB, HIGH);
 
-		LowPower.deepSleep(sleepPeriod);
+		/* LowPower.deepSleep(sleepPeriod); */
+		rtc.attachInterrupt(NULL);
+		uint32_t now = rtc.getEpoch();
+		rtc.setAlarmEpoch(now + sleepPeriod/1000);
+		rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
+		USBDevice.standby();
+		SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;	
+		SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+		__DSB();
+		__WFI();
+		SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 	}
 
 	// Re enable Sanity cyclic reset
-	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
-	rtc.enableAlarm(rtc.MATCH_HHMMSS);
-	rtc.attachInterrupt(ext_reset);
+	/* rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S); */
+	/* rtc.enableAlarm(rtc.MATCH_HHMMSS); */
+	/* rtc.attachInterrupt(ext_reset); */
 
 	// Recover Noise sensor timer
 	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4

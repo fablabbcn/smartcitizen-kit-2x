@@ -107,13 +107,6 @@ void SckBase::setup()
 	charger.setup(this);
 	battery.setup();
 
-	// After sanity reset go directly to sleep
-	if (st.timeStat.ok) {
-		time_t tc = rtc.getEpoch();
-		struct tm* tmp = gmtime(&tc);
-		if (tmp->tm_hour == wakeUP_H && tmp->tm_min == wakeUP_M) deltaSanityReset = config.sleepTimer * 60000;
-	}
-
 	// Urban board
 	analogReadResolution(12);
 	if (urban.setup()) {
@@ -188,6 +181,9 @@ void SckBase::setup()
 
 	// Update battery parcent for power management stuff
 	battery.percent(&charger);
+
+	// After sanity reset go directly to sleep
+	if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) lastUserEvent = 0;
 
 	if (saveNeeded) saveConfig();
 }
@@ -268,7 +264,6 @@ void SckBase::reviewState()
 		}
 	}
 
-
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
 	/* bool espON */
@@ -288,12 +283,9 @@ void SckBase::reviewState()
 
 	if (st.onShell) {
 
-
 	} else if (st.onSetup) {
 
-
 	} else if (sckOFF) {
-
 
 	} else if (st.mode == MODE_NOT_CONFIGURED) {
 
@@ -447,7 +439,7 @@ void SckBase::reviewState()
 			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
 					(pendingSensors <= 0) && 								// No sensor to wait to
 					(st.timeStat.ok) && 									// RTC is synced and working
-					((millis() - lastUserEvent + deltaSanityReset) > (config.sleepTimer * 60000)) && 	// No recent user interaction (button, sdcard or USB events)
+					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
 					(config.sleepTimer > 0)) { 								// sleep is enabled
 
 				goToSleep(sleepPeriod * 1000);
@@ -524,7 +516,7 @@ void SckBase::reviewState()
 			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
 					(pendingSensors <= 0) && 								// No sensor to wait to
 					(st.timeStat.ok) && 									// RTC is synced and working
-					((millis() - lastUserEvent + deltaSanityReset) > (config.sleepTimer * 60000)) && 	// No recent user interaction (button, sdcard or USB events)
+					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
 					(config.sleepTimer > 0)) { 								// sleep is enabled
 
 				goToSleep(sleepPeriod * 1000);

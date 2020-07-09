@@ -155,7 +155,6 @@ class SckBase
 		#define MS_23_HOURS 82800000
 		uint8_t wakeUP_H = 3;
 		uint8_t wakeUP_M = 0;
-		uint32_t deltaSanityReset = 0;
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
 		void goToSleep(uint16_t sleepPeriod=3000); 	// sleepPeriod in ms

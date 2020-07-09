@@ -61,11 +61,6 @@ void SckBase::setup()
 	}
 	espStarted = now;
 
-	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
-	/* rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S); */
-	/* rtc.enableAlarm(rtc.MATCH_HHMMSS); */
-	/* rtc.attachInterrupt(ext_reset); */
-
 	// SDcard and flash select pins
 	pinMode(pinCS_SDCARD, OUTPUT);
 	pinMode(pinCS_FLASH, OUTPUT);
@@ -213,6 +208,15 @@ void SckBase::update()
 		butOldState = butState;
 		while(!butState) buttonStillDown();
 	}
+
+ 	// if more than 23 hours have passed since last reset and we are in the right hour-minute then reset
+	if (millis() > MS_23_HOURS) {
+		if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
+			sckOut("Sanity reset, bye!!");
+			sck_reset();
+		}
+	}
+
 }
 
 // **** Mode Control
@@ -1352,10 +1356,6 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 		// Stop CCS811 VOCS sensor
 		urban.stop(SENSOR_CCS811_VOCS);
 
-		// Disable the Sanity cyclic reset so it doesn't wake us up
-		/* rtc.disableAlarm(); */
-		/* rtc.detachInterrupt(); */
-
 		// Detach sdcard interrupt to avoid spurious wakeup 
 		// There is no need to reattach since after this sleep there is always a reset
 		detachInterrupt(pinCARD_DETECT);
@@ -1387,11 +1387,6 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 	__DSB();
 	__WFI();
 	SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
-
-	// Re enable Sanity cyclic reset
-	/* rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S); */
-	/* rtc.enableAlarm(rtc.MATCH_HHMMSS); */
-	/* rtc.attachInterrupt(ext_reset); */
 
 	// Recover Noise sensor timer
 	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4

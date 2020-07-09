@@ -152,6 +152,10 @@ class SckBase
 		bool infoSaved = false;
 
 		// Power
+		#define MS_23_HOURS 82800000
+		uint8_t wakeUP_H = 3;
+		uint8_t wakeUP_M = 0;
+		uint32_t deltaSanityReset = 0;
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
 		void goToSleep(uint16_t sleepPeriod=3000); 	// sleepPeriod in ms
@@ -166,9 +170,6 @@ class SckBase
 		bool sdPublish();
 		uint8_t pendingSensors = 0;
 		SensorType pendingSensorsList[SENSOR_COUNT];
-
-		// Timers
-		bool alarmRunning_TC3 = false;
 
 	public:
 		const String hardwareVer = "2.1";
@@ -255,10 +256,6 @@ class SckBase
 		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
-		uint8_t wakeUP_H = 3;
-		uint8_t wakeUP_M = 0;
-		uint8_t wakeUP_S = 0;
-		uint32_t deltaSanityReset = 0;
 		void sck_reset();
 		SckBatt battery;
 		SckCharger charger;

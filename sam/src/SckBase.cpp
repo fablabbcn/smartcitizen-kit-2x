@@ -462,8 +462,6 @@ void SckBase::reviewState()
 			if (readingsList.countGroups() > 0) sdPublish();
 
 		}
-
-
 	} else if  (st.mode == MODE_SD) {
 
 		if (!st.cardPresent) {
@@ -1954,6 +1952,7 @@ bool SckBase::sdPublish()
 bool SckBase::setTime(String epoch)
 {
 	// Keep track of time passed before updating clock
+	uint32_t now = rtc.getEpoch();
 	uint32_t timeSinceLastUpdate = now - lastSensorUpdate;
 	uint32_t timeSinceLastPublish = now - lastPublishTime;
 	uint32_t timeSinceEspStarted = now - espStarted;

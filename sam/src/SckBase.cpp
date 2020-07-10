@@ -1485,16 +1485,9 @@ void SckBase::configGCLK6()
 // **** Sensors
 void SckBase::updateSensors()
 {
-	SerialUSB.print("RTC config: ");
-	SerialUSB.println(rtc.isConfigured());
-
-	SerialUSB.print("getEpoch: ");
-	SerialUSB.println(rtc.getEpoch());
-
 	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) {
-		sckOut("Error de RTC en updateSensors!!!!");
+		sckOut("RTC ERROR when updating sensors!!!");
 		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
-		sprintf(outBuff, "Wrong timestamp: %s", ISOtimeBuff);
 		st.timeStat.reset();
 	}
 	if (!st.timeStat.ok) return;

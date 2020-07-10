@@ -130,6 +130,8 @@ class AuxBoards
 			0x77,			// SENSOR_BME680_PRESSURE,
 			0x77,			// SENSOR_BME680_VOCS,
 
+			0x02, 			// SENSOR_GROVE_GPS_LAT, (on PM board)
+
 			0x3c		// SENSOR_GROOVE_OLED,
 		};
 
@@ -449,7 +451,10 @@ enum PMcommands
 	PM_STOP,         // Stop both PMS
 	DALLASTEMP_START,
 	DALLASTEMP_STOP,
-	GET_DALLASTEMP
+	GET_DALLASTEMP,
+	GROVEGPS_START,
+	GROVEGPS_STOP,
+	GROVEGPS_GET
  };
 
 class PMsensor
@@ -506,6 +511,43 @@ class PM_DallasTemp
 		} uRead;
 
 		float reading;
+};
+
+class PM_Grove_GPS
+{
+	public:
+		const byte deviceAddress = 0x02;
+
+		// Data (34 bytes)
+		// Fix Quality -> uint8 - 1
+		// 	0 = Invalid
+		// 	1 = GPS fix (SPS)
+		// 	2 = DGPS fix
+		// 	3 = PPS fix
+		// 	4 = Real Time Kinematic
+		// 	5 = Float RTK
+		// 	6 = estimated (dead reckoning) (2.3 feature)
+		// 	7 = Manual input mode
+		// 	8 = Simulation mode
+		// Latitude DDD.DDDDDD (negative is south) -> double - 8
+		// Longitude DDD.DDDDDD (negative is west) -> double - 8
+		// Altitude in meters -> float - 4
+		// Time (epoch) -> uint32 - 4
+		// Speed (meters per second) -> float - 4
+		// Horizontal dilution of position -> float - 4
+		// Number of Satellites being traked -> uint8 - 1
+
+		uint8_t fixQuality = 0;
+		double latitude;
+
+		bool start();
+		bool stop();
+		bool getReading(SensorType wichSensor);
+
+	private:
+		static const uint8_t DATA_LEN = 34;
+		byte data[DATA_LEN];
+		uint32_t lastReading = 0;
 };
 
 class Sck_DallasTemp

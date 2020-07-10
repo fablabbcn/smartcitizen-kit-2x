@@ -114,6 +114,8 @@ enum SensorType
 	SENSOR_BME680_PRESSURE,
 	SENSOR_BME680_VOCS,
 
+	SENSOR_PM_GROVE_GPS_LAT,
+
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
 
@@ -275,6 +277,8 @@ class AllSensors
 			OneSensor { BOARD_AUX,		0,	SENSOR_BME680_HUMIDITY,			"BME680_HUM",		"Humidity BME680",				0,		false,		false,		1,			"%"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_PRESSURE,			"BME680_PRESS",		"Barometric pressure BME680",			0,		false,		false,		1,			"kPa"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_VOCS,			"BME680_VOCS",		"VOC Gas BME680",				0,		false,		false,		1,			"Ohms"},
+
+			OneSensor { BOARD_AUX,		100,	SENSOR_PM_GROVE_GPS_LAT,		"PM_GRV_GPS_LAT",	"Latitude",					0,		false,		false,		1,			"Deg"},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

@@ -16,6 +16,7 @@ Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 Sck_Range 		range;
 Sck_BME680 		bme680;
+PM_Grove_GPS 		pmGroveGps;
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
@@ -102,6 +103,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
 		case SENSOR_BME680_VOCS:		return bme680.start(); break;
+		case SENSOR_PM_GROVE_GPS_LAT: 		return pmGroveGps.start(); break;
 		default: break;
 	}
 
@@ -174,6 +176,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
 		case SENSOR_BME680_VOCS:		return bme680.stop(); break;
+		case SENSOR_PM_GROVE_GPS_LAT: 		return pmGroveGps.stop(); break;
 		default: break;
 	}
 
@@ -247,6 +250,7 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
 		case SENSOR_BME680_VOCS:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.VOCgas); return; } break;
+		case SENSOR_PM_GROVE_GPS_LAT: 		if (pmGroveGps.getReading(SENSOR_PM_GROVE_GPS_LAT)) { wichSensor->reading = String(pmGroveGps.latitude); return; } break;
 		default: break;
 	}
 
@@ -856,7 +860,7 @@ bool Atlas::getBusyState()
 							} else {
 								newReadingStr = atlasResponse.substring(0);
 							}
-							
+
 							newReading[i] = newReadingStr.toFloat();
 						}
 					}
@@ -1212,6 +1216,64 @@ float PM_DallasTemp::getReading()
 	while (!auxWire.available()) if ((millis() - start)>500) return -9999;
 	for (uint8_t i=0; i<4; i++) uRead.b[i] = auxWire.read();
 	return uRead.fval;
+}
+
+bool PM_Grove_GPS::start()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(GROVEGPS_START);
+	auxWire.endTransmission();
+	auxWire.requestFrom(deviceAddress, 1);
+
+	bool result = auxWire.read();
+
+	return result;
+}
+
+bool PM_Grove_GPS::stop()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(GROVEGPS_STOP);
+	auxWire.endTransmission();
+
+	return true;
+}
+
+bool PM_Grove_GPS::getReading(SensorType wichSensor)
+{
+	//  Only ask for readings if last one is older than
+	if (millis() - lastReading < 500 && fixQuality > 0) return true;
+
+	// Ask for reading
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(GROVEGPS_GET);
+	auxWire.endTransmission();
+
+	// Get the reading
+	auxWire.requestFrom(deviceAddress, DATA_LEN);
+	uint32_t time = millis();
+	while (!auxWire.available()) if ((millis() - time)>500) return false;
+
+	for (uint8_t i=0; i<DATA_LEN; i++) data[i] = auxWire.read();
+
+	fixQuality = data[0];
+	if (fixQuality < 1) {
+		SerialUSB.println("No GPS fix yet");
+		for (uint8_t i=0; i<DATA_LEN; i++) SerialUSB.print(data[i]);
+		return false;
+	}
+
+	// Latitude
+	memcpy(&latitude, &data[1], 8);
+	SerialUSB.print("lat: ");
+	SerialUSB.println(latitude);
+
+
+	lastReading = millis();
 }
 
 bool Sck_DallasTemp::start()

@@ -114,7 +114,13 @@ enum SensorType
 	SENSOR_BME680_PRESSURE,
 	SENSOR_BME680_VOCS,
 
-	SENSOR_PM_GROVE_GPS_LAT,
+	SENSOR_GPS_FIX_QUALITY,
+	SENSOR_GPS_LATITUDE,
+	SENSOR_GPS_LONGITUDE,
+	SENSOR_GPS_ALTITUDE,
+	SENSOR_GPS_SPEED,
+	SENSOR_GPS_HDOP,
+	SENSOR_GPS_SATNUM,
 
 	// Actuators (This is temp)
 	SENSOR_GROOVE_OLED,
@@ -278,7 +284,13 @@ class AllSensors
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_PRESSURE,			"BME680_PRESS",		"Barometric pressure BME680",			0,		false,		false,		1,			"kPa"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_VOCS,			"BME680_VOCS",		"VOC Gas BME680",				0,		false,		false,		1,			"Ohms"},
 
-			OneSensor { BOARD_AUX,		100,	SENSOR_PM_GROVE_GPS_LAT,		"PM_GRV_GPS_LAT",	"Latitude",					0,		false,		false,		1,			"Deg"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_FIX_QUALITY,			"GPS_FIX",		"GPS Fix Quality",				0,		false,		false,		1,			},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_LATITUDE,			"GPS_LAT",		"GPS Latitude",					0,		false,		false,		1,			"Deg"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_LONGITUDE,			"GPS_LONG",		"GPS Longitude",				0,		false,		false,		1,			"Deg"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_ALTITUDE,			"GPS_ALT",		"GPS Altitude",					0,		false,		false,		1,			"m"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_SPEED,			"GPS_SPEED",		"GPS Speed",					0,		false,		false,		1,			"m/s"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_HDOP,			"GPS_HDOP",		"GPS Horizontal Dilution of Position",		0,		false,		false,		1,			},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_SATNUM,			"GPS_SATNUM",		"GPS Traked Satellites",			0,		false,		false,		1,			},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

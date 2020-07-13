@@ -513,6 +513,27 @@ class PM_DallasTemp
 		float reading;
 };
 
+class Sck_GPS
+{
+	public:
+		uint8_t fixQuality = 0;
+		double latitude;
+		double longitude;
+		float altitude;
+		float speed;
+		float hdop;
+		uint8_t satellites;
+
+		uint32_t epochTime = 0;
+
+		bool start();
+		bool stop();
+		bool getReading(SensorType wichSensor);
+	private:
+		uint32_t lastReading = 0;
+
+};
+
 class PM_Grove_GPS
 {
 	public:
@@ -539,6 +560,13 @@ class PM_Grove_GPS
 
 		uint8_t fixQuality = 0;
 		double latitude;
+		double longitude;
+		float altitude;
+		float speed;
+		float hdop;
+		uint8_t satellites;
+
+		uint32_t epochTime = 0;
 
 		bool start();
 		bool stop();

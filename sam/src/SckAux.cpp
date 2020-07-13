@@ -16,6 +16,7 @@ Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 Sck_Range 		range;
 Sck_BME680 		bme680;
+Sck_GPS 		gps;
 PM_Grove_GPS 		pmGroveGps;
 
 // Eeprom flash emulation to store I2C address
@@ -103,7 +104,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
 		case SENSOR_BME680_VOCS:		return bme680.start(); break;
-		case SENSOR_PM_GROVE_GPS_LAT: 		return pmGroveGps.start(); break;
+		case SENSOR_GPS_LATITUDE: 		return gps.start(); break;
 		default: break;
 	}
 
@@ -176,7 +177,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
 		case SENSOR_BME680_VOCS:		return bme680.stop(); break;
-		case SENSOR_PM_GROVE_GPS_LAT: 		return pmGroveGps.stop(); break;
+		case SENSOR_GPS_LATITUDE: 		return gps.stop(); break;
 		default: break;
 	}
 
@@ -250,7 +251,7 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
 		case SENSOR_BME680_VOCS:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.VOCgas); return; } break;
-		case SENSOR_PM_GROVE_GPS_LAT: 		if (pmGroveGps.getReading(SENSOR_PM_GROVE_GPS_LAT)) { wichSensor->reading = String(pmGroveGps.latitude); return; } break;
+		case SENSOR_GPS_LATITUDE: 		if (gps.getReading(SENSOR_GPS_LATITUDE)) 	{ wichSensor->reading = String(gps.latitude, 6); return; } break;
 		default: break;
 	}
 
@@ -1218,6 +1219,23 @@ float PM_DallasTemp::getReading()
 	return uRead.fval;
 }
 
+bool Sck_GPS::start()
+{
+	return true;
+}
+
+bool Sck_GPS::stop()
+{
+
+	return true;
+}
+
+bool Sck_GPS::getReading(SensorType wichSensor)
+{
+
+	return true;
+}
+
 bool PM_Grove_GPS::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -1260,18 +1278,33 @@ bool PM_Grove_GPS::getReading(SensorType wichSensor)
 
 	for (uint8_t i=0; i<DATA_LEN; i++) data[i] = auxWire.read();
 
-	fixQuality = data[0];
+	// Fix quality
+	memcpy(&fixQuality, &data[0], 1);
 	if (fixQuality < 1) {
 		SerialUSB.println("No GPS fix yet");
-		for (uint8_t i=0; i<DATA_LEN; i++) SerialUSB.print(data[i]);
 		return false;
 	}
 
 	// Latitude
 	memcpy(&latitude, &data[1], 8);
-	SerialUSB.print("lat: ");
-	SerialUSB.println(latitude);
 
+	// Logitude
+	memcpy(&longitude, &data[9], 8);
+
+	// Altitude
+	memcpy(&altitude, &data[17], 4);
+
+	// Time
+	memcpy(&epochTime, &data[21], 4);
+
+	// Speed
+	memcpy(&speed, &data[25], 4);
+
+	// Horizontal dilution of position
+	memcpy(&hdop, &data[29], 4);
+
+	// Satellites
+	memcpy(&satellites, &data[33], 1);
 
 	lastReading = millis();
 }

@@ -513,32 +513,9 @@ class PM_DallasTemp
 		float reading;
 };
 
-class Sck_GPS
+class GPS_Source
 {
 	public:
-		uint8_t fixQuality = 0;
-		double latitude;
-		double longitude;
-		float altitude;
-		float speed;
-		float hdop;
-		uint8_t satellites;
-
-		uint32_t epochTime = 0;
-
-		bool start();
-		bool stop();
-		bool getReading(SensorType wichSensor);
-	private:
-		uint32_t lastReading = 0;
-
-};
-
-class PM_Grove_GPS
-{
-	public:
-		const byte deviceAddress = 0x02;
-
 		// Data (34 bytes)
 		// Fix Quality -> uint8 - 1
 		// 	0 = Invalid
@@ -565,18 +542,47 @@ class PM_Grove_GPS
 		float speed;
 		float hdop;
 		uint8_t satellites;
-
 		uint32_t epochTime = 0;
+
+		virtual bool stop();
+		virtual bool getReading(SensorType wichSensor);
+};
+
+class Sck_GPS
+{
+	public:
+		uint8_t &fixQuality{ gps_source->fixQuality };
+		double &latitude{ gps_source->latitude };
+		double &longitude{ gps_source->longitude };
+		float &altitude{ gps_source->altitude };
+		float &speed{ gps_source->speed };
+		float &hdop{ gps_source->hdop };
+		uint8_t &satellites{ gps_source->satellites };
+		uint32_t &epochTime{ gps_source->epochTime };
 
 		bool start();
 		bool stop();
 		bool getReading(SensorType wichSensor);
+	private:
+		bool started = false;
+		GPS_Source *gps_source;
+};
+
+class PM_Grove_GPS: public GPS_Source
+{
+	public:
+		const byte deviceAddress = 0x02;
+
+		bool start();
+		virtual bool stop();
+		virtual bool getReading(SensorType wichSensor);
 
 	private:
 		static const uint8_t DATA_LEN = 34;
 		byte data[DATA_LEN];
 		uint32_t lastReading = 0;
 };
+
 
 class Sck_DallasTemp
 {

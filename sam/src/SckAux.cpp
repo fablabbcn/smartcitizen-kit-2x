@@ -104,7 +104,13 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
 		case SENSOR_BME680_VOCS:		return bme680.start(); break;
+		case SENSOR_GPS_FIX_QUALITY: 		return gps.start(); break;
 		case SENSOR_GPS_LATITUDE: 		return gps.start(); break;
+		case SENSOR_GPS_LONGITUDE: 		return gps.start(); break;
+		case SENSOR_GPS_ALTITUDE: 		return gps.start(); break;
+		case SENSOR_GPS_SPEED: 			return gps.start(); break;
+		case SENSOR_GPS_HDOP: 			return gps.start(); break;
+		case SENSOR_GPS_SATNUM:			return gps.start(); break;
 		default: break;
 	}
 
@@ -177,7 +183,13 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
 		case SENSOR_BME680_VOCS:		return bme680.stop(); break;
+		case SENSOR_GPS_FIX_QUALITY: 		return gps.stop(); break;
 		case SENSOR_GPS_LATITUDE: 		return gps.stop(); break;
+		case SENSOR_GPS_LONGITUDE: 		return gps.stop(); break;
+		case SENSOR_GPS_ALTITUDE: 		return gps.stop(); break;
+		case SENSOR_GPS_SPEED: 			return gps.stop(); break;
+		case SENSOR_GPS_HDOP: 			return gps.stop(); break;
+		case SENSOR_GPS_SATNUM:			return gps.stop(); break;
 		default: break;
 	}
 
@@ -251,7 +263,13 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
 		case SENSOR_BME680_VOCS:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.VOCgas); return; } break;
-		case SENSOR_GPS_LATITUDE: 		if (gps.getReading(SENSOR_GPS_LATITUDE)) 	{ wichSensor->reading = String(gps.latitude, 6); return; } break;
+		case SENSOR_GPS_FIX_QUALITY: 		if (gps.getReading(SENSOR_GPS_FIX_QUALITY)) 	{ wichSensor->reading = String(gps.fixQuality); return; } break;
+		case SENSOR_GPS_LATITUDE: 		if (gps.getReading(SENSOR_GPS_LATITUDE)) 	{ wichSensor->reading = String(gps.latitude, 6); return; } break;	
+		case SENSOR_GPS_LONGITUDE: 		if (gps.getReading(SENSOR_GPS_LONGITUDE)) 	{ wichSensor->reading = String(gps.longitude, 6); return; } break;	
+		case SENSOR_GPS_ALTITUDE: 		if (gps.getReading(SENSOR_GPS_ALTITUDE)) 	{ wichSensor->reading = String(gps.altitude, 2); return; } break;	
+		case SENSOR_GPS_SPEED: 			if (gps.getReading(SENSOR_GPS_SPEED)) 		{ wichSensor->reading = String(gps.speed, 2); return; } break;	
+		case SENSOR_GPS_HDOP: 			if (gps.getReading(SENSOR_GPS_HDOP)) 		{ wichSensor->reading = String(gps.hdop, 2); return; } break;	
+		case SENSOR_GPS_SATNUM:			if (gps.getReading(SENSOR_GPS_SATNUM)) 		{ wichSensor->reading = String(gps.satellites); return; } break;	
 		default: break;
 	}
 
@@ -1221,19 +1239,30 @@ float PM_DallasTemp::getReading()
 
 bool Sck_GPS::start()
 {
-	return true;
+	if (started) return true;
+
+	if (pmGroveGps.start()) {
+		gps_source = &pmGroveGps;
+		started = true;
+		return true;
+	}
+
+	return false;
 }
 
 bool Sck_GPS::stop()
 {
+	if (!started) return true;
+
+	gps_source->stop();
+	started = false;
 
 	return true;
 }
 
 bool Sck_GPS::getReading(SensorType wichSensor)
 {
-
-	return true;
+	return gps_source->getReading(wichSensor);
 }
 
 bool PM_Grove_GPS::start()

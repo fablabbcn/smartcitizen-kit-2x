@@ -196,7 +196,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 	return false;
 }
 
-void AuxBoards::getReading(OneSensor *wichSensor)
+void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 {
 	wichSensor->state = 0;
 	switch (wichSensor->type) {
@@ -263,13 +263,13 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
 		case SENSOR_BME680_VOCS:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.VOCgas); return; } break;
-		case SENSOR_GPS_FIX_QUALITY: 		if (gps.getReading(SENSOR_GPS_FIX_QUALITY)) 	{ wichSensor->reading = String(gps.fixQuality); return; } break;
-		case SENSOR_GPS_LATITUDE: 		if (gps.getReading(SENSOR_GPS_LATITUDE)) 	{ wichSensor->reading = String(gps.latitude, 6); return; } break;	
-		case SENSOR_GPS_LONGITUDE: 		if (gps.getReading(SENSOR_GPS_LONGITUDE)) 	{ wichSensor->reading = String(gps.longitude, 6); return; } break;	
-		case SENSOR_GPS_ALTITUDE: 		if (gps.getReading(SENSOR_GPS_ALTITUDE)) 	{ wichSensor->reading = String(gps.altitude, 2); return; } break;	
-		case SENSOR_GPS_SPEED: 			if (gps.getReading(SENSOR_GPS_SPEED)) 		{ wichSensor->reading = String(gps.speed, 2); return; } break;	
-		case SENSOR_GPS_HDOP: 			if (gps.getReading(SENSOR_GPS_HDOP)) 		{ wichSensor->reading = String(gps.hdop, 2); return; } break;	
-		case SENSOR_GPS_SATNUM:			if (gps.getReading(SENSOR_GPS_SATNUM)) 		{ wichSensor->reading = String(gps.satellites); return; } break;	
+		case SENSOR_GPS_FIX_QUALITY: 		if (gps.getReading(base, SENSOR_GPS_FIX_QUALITY)) 	{ SerialUSB.println(gps.r.fixQuality); wichSensor->reading = String(gps.r.fixQuality); return; } break;
+		case SENSOR_GPS_LATITUDE: 		if (gps.getReading(base, SENSOR_GPS_LATITUDE)) 		{ wichSensor->reading = String(gps.r.latitude, 6); return; } break;	
+		case SENSOR_GPS_LONGITUDE: 		if (gps.getReading(base, SENSOR_GPS_LONGITUDE)) 	{ wichSensor->reading = String(gps.r.longitude, 6); return; } break;	
+		case SENSOR_GPS_ALTITUDE: 		if (gps.getReading(base, SENSOR_GPS_ALTITUDE)) 		{ wichSensor->reading = String(gps.r.altitude, 2); return; } break;	
+		case SENSOR_GPS_SPEED: 			if (gps.getReading(base, SENSOR_GPS_SPEED)) 		{ wichSensor->reading = String(gps.r.speed, 2); return; } break;	
+		case SENSOR_GPS_HDOP: 			if (gps.getReading(base, SENSOR_GPS_HDOP)) 		{ wichSensor->reading = String(gps.r.hdop, 2); return; } break;	
+		case SENSOR_GPS_SATNUM:			if (gps.getReading(base, SENSOR_GPS_SATNUM)) 		{ wichSensor->reading = String(gps.r.satellites); return; } break;	
 		default: break;
 	}
 
@@ -1260,9 +1260,14 @@ bool Sck_GPS::stop()
 	return true;
 }
 
-bool Sck_GPS::getReading(SensorType wichSensor)
+bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 {
-	return gps_source->getReading(wichSensor);
+	if (!gps_source->getReading(wichSensor, r)) {
+		if (r.fixQuality < 1) base->sckOut("ERROR No GPS ix yet!!!");
+		return false;
+	}
+
+	return true;
 }
 
 bool PM_Grove_GPS::start()
@@ -1290,10 +1295,10 @@ bool PM_Grove_GPS::stop()
 	return true;
 }
 
-bool PM_Grove_GPS::getReading(SensorType wichSensor)
+bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
 {
 	//  Only ask for readings if last one is older than
-	if (millis() - lastReading < 500 && fixQuality > 0) return true;
+	if (millis() - lastReading < 500 && r.fixQuality > 0) return true;
 
 	// Ask for reading
 	auxWire.beginTransmission(deviceAddress);
@@ -1308,32 +1313,31 @@ bool PM_Grove_GPS::getReading(SensorType wichSensor)
 	for (uint8_t i=0; i<DATA_LEN; i++) data[i] = auxWire.read();
 
 	// Fix quality
-	memcpy(&fixQuality, &data[0], 1);
-	if (fixQuality < 1) {
-		SerialUSB.println("No GPS fix yet");
-		return false;
-	}
+	memcpy(&r.fixQuality, &data[0], 1);
+	if (r.fixQuality < 1 && wichSensor != SENSOR_GPS_FIX_QUALITY) return false;
+	SerialUSB.println(r.fixQuality);
+	SerialUSB.println(String(r.fixQuality));
 
 	// Latitude
-	memcpy(&latitude, &data[1], 8);
+	memcpy(&r.latitude, &data[1], 8);
 
 	// Logitude
-	memcpy(&longitude, &data[9], 8);
+	memcpy(&r.longitude, &data[9], 8);
 
 	// Altitude
-	memcpy(&altitude, &data[17], 4);
+	memcpy(&r.altitude, &data[17], 4);
 
 	// Time
-	memcpy(&epochTime, &data[21], 4);
+	memcpy(&r.epochTime, &data[21], 4);
 
 	// Speed
-	memcpy(&speed, &data[25], 4);
+	memcpy(&r.speed, &data[25], 4);
 
 	// Horizontal dilution of position
-	memcpy(&hdop, &data[29], 4);
+	memcpy(&r.hdop, &data[29], 4);
 
 	// Satellites
-	memcpy(&satellites, &data[33], 1);
+	memcpy(&r.satellites, &data[33], 1);
 
 	lastReading = millis();
 }

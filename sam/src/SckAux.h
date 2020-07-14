@@ -37,6 +37,8 @@
 
 extern TwoWire auxWire;
 
+class SckBase;
+
 
 struct Calibration {
 	bool  moistureCalDataValid = false;
@@ -130,14 +132,14 @@ class AuxBoards
 			0x77,			// SENSOR_BME680_PRESSURE,
 			0x77,			// SENSOR_BME680_VOCS,
 
-			0x02, 			// SENSOR_GROVE_GPS_LAT, (on PM board)
+			0x02, 			// SENSOR_GROVE_GPS_*, (on PM board)
 
 			0x3c		// SENSOR_GROOVE_OLED,
 		};
 
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
-		void getReading(OneSensor *wichSensor);
+		void getReading(SckBase *base, OneSensor *wichSensor);
 		bool getBusyState(SensorType wichSensor);
 		String control(SensorType wichSensor, String command);
 		void print(SensorType wichSensor, String payload);
@@ -513,59 +515,56 @@ class PM_DallasTemp
 		float reading;
 };
 
+struct GpsReadings
+{
+	// Data (34 bytes)
+	// Fix Quality -> uint8 - 1
+	// 	0 = Invalid
+	// 	1 = GPS fix (SPS)
+	// 	2 = DGPS fix
+	// 	3 = PPS fix
+	// 	4 = Real Time Kinematic
+	// 	5 = Float RTK
+	// 	6 = estimated (dead reckoning) (2.3 feature)
+	// 	7 = Manual input mode
+	// 	8 = Simulation mode
+	// Latitude DDD.DDDDDD (negative is south) -> double - 8
+	// Longitude DDD.DDDDDD (negative is west) -> double - 8
+	// Altitude in meters -> float - 4
+	// Time (epoch) -> uint32 - 4
+	// Speed (meters per second) -> float - 4
+	// Horizontal dilution of position -> float - 4
+	// Number of Satellites being traked -> uint8 - 1
+
+	uint8_t fixQuality = 0;
+	double latitude;
+	double longitude;
+	float altitude;
+	float speed;
+	float hdop;
+	uint8_t satellites;
+	uint32_t epochTime = 0;
+};
+
 class GPS_Source
 {
 	public:
-		// Data (34 bytes)
-		// Fix Quality -> uint8 - 1
-		// 	0 = Invalid
-		// 	1 = GPS fix (SPS)
-		// 	2 = DGPS fix
-		// 	3 = PPS fix
-		// 	4 = Real Time Kinematic
-		// 	5 = Float RTK
-		// 	6 = estimated (dead reckoning) (2.3 feature)
-		// 	7 = Manual input mode
-		// 	8 = Simulation mode
-		// Latitude DDD.DDDDDD (negative is south) -> double - 8
-		// Longitude DDD.DDDDDD (negative is west) -> double - 8
-		// Altitude in meters -> float - 4
-		// Time (epoch) -> uint32 - 4
-		// Speed (meters per second) -> float - 4
-		// Horizontal dilution of position -> float - 4
-		// Number of Satellites being traked -> uint8 - 1
-
-		uint8_t fixQuality = 0;
-		double latitude;
-		double longitude;
-		float altitude;
-		float speed;
-		float hdop;
-		uint8_t satellites;
-		uint32_t epochTime = 0;
-
 		virtual bool stop();
-		virtual bool getReading(SensorType wichSensor);
+		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
 };
+
 
 class Sck_GPS
 {
-	public:
-		uint8_t &fixQuality{ gps_source->fixQuality };
-		double &latitude{ gps_source->latitude };
-		double &longitude{ gps_source->longitude };
-		float &altitude{ gps_source->altitude };
-		float &speed{ gps_source->speed };
-		float &hdop{ gps_source->hdop };
-		uint8_t &satellites{ gps_source->satellites };
-		uint32_t &epochTime{ gps_source->epochTime };
-
-		bool start();
-		bool stop();
-		bool getReading(SensorType wichSensor);
 	private:
 		bool started = false;
 		GPS_Source *gps_source;
+	public:
+		GpsReadings r;
+
+		bool start();
+		bool stop();
+		bool getReading(SckBase *base, SensorType wichSensor);
 };
 
 class PM_Grove_GPS: public GPS_Source
@@ -575,7 +574,7 @@ class PM_Grove_GPS: public GPS_Source
 
 		bool start();
 		virtual bool stop();
-		virtual bool getReading(SensorType wichSensor);
+		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
 
 	private:
 		static const uint8_t DATA_LEN = 34;

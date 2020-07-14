@@ -1315,8 +1315,6 @@ bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	// Fix quality
 	memcpy(&r.fixQuality, &data[0], 1);
 	if (r.fixQuality < 1 && wichSensor != SENSOR_GPS_FIX_QUALITY) return false;
-	SerialUSB.println(r.fixQuality);
-	SerialUSB.println(String(r.fixQuality));
 
 	// Latitude
 	memcpy(&r.latitude, &data[1], 8);

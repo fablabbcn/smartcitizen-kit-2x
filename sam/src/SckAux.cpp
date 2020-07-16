@@ -104,12 +104,12 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
 		case SENSOR_BME680_VOCS:		return bme680.start(); break;
-		case SENSOR_GPS_FIX_QUALITY: 		return gps.start(); break;
-		case SENSOR_GPS_LATITUDE: 		return gps.start(); break;
-		case SENSOR_GPS_LONGITUDE: 		return gps.start(); break;
-		case SENSOR_GPS_ALTITUDE: 		return gps.start(); break;
-		case SENSOR_GPS_SPEED: 			return gps.start(); break;
-		case SENSOR_GPS_HDOP: 			return gps.start(); break;
+		case SENSOR_GPS_FIX_QUALITY:
+		case SENSOR_GPS_LATITUDE:
+		case SENSOR_GPS_LONGITUDE:
+		case SENSOR_GPS_ALTITUDE:
+		case SENSOR_GPS_SPEED:
+		case SENSOR_GPS_HDOP:
 		case SENSOR_GPS_SATNUM:			return gps.start(); break;
 		default: break;
 	}
@@ -183,12 +183,12 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
 		case SENSOR_BME680_VOCS:		return bme680.stop(); break;
-		case SENSOR_GPS_FIX_QUALITY: 		return gps.stop(); break;
-		case SENSOR_GPS_LATITUDE: 		return gps.stop(); break;
-		case SENSOR_GPS_LONGITUDE: 		return gps.stop(); break;
-		case SENSOR_GPS_ALTITUDE: 		return gps.stop(); break;
-		case SENSOR_GPS_SPEED: 			return gps.stop(); break;
-		case SENSOR_GPS_HDOP: 			return gps.stop(); break;
+		case SENSOR_GPS_FIX_QUALITY:
+		case SENSOR_GPS_LATITUDE:
+		case SENSOR_GPS_LONGITUDE:
+		case SENSOR_GPS_ALTITUDE:
+		case SENSOR_GPS_SPEED:
+		case SENSOR_GPS_HDOP:
 		case SENSOR_GPS_SATNUM:			return gps.stop(); break;
 		default: break;
 	}
@@ -263,13 +263,13 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
 		case SENSOR_BME680_VOCS:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.VOCgas); return; } break;
-		case SENSOR_GPS_FIX_QUALITY: 		if (gps.getReading(base, SENSOR_GPS_FIX_QUALITY)) 	{ SerialUSB.println(gps.r.fixQuality); wichSensor->reading = String(gps.r.fixQuality); return; } break;
-		case SENSOR_GPS_LATITUDE: 		if (gps.getReading(base, SENSOR_GPS_LATITUDE)) 		{ wichSensor->reading = String(gps.r.latitude, 6); return; } break;	
-		case SENSOR_GPS_LONGITUDE: 		if (gps.getReading(base, SENSOR_GPS_LONGITUDE)) 	{ wichSensor->reading = String(gps.r.longitude, 6); return; } break;	
-		case SENSOR_GPS_ALTITUDE: 		if (gps.getReading(base, SENSOR_GPS_ALTITUDE)) 		{ wichSensor->reading = String(gps.r.altitude, 2); return; } break;	
-		case SENSOR_GPS_SPEED: 			if (gps.getReading(base, SENSOR_GPS_SPEED)) 		{ wichSensor->reading = String(gps.r.speed, 2); return; } break;	
-		case SENSOR_GPS_HDOP: 			if (gps.getReading(base, SENSOR_GPS_HDOP)) 		{ wichSensor->reading = String(gps.r.hdop, 2); return; } break;	
-		case SENSOR_GPS_SATNUM:			if (gps.getReading(base, SENSOR_GPS_SATNUM)) 		{ wichSensor->reading = String(gps.r.satellites); return; } break;	
+		case SENSOR_GPS_FIX_QUALITY: 		if (gps.getReading(base, SENSOR_GPS_FIX_QUALITY)) 	{ wichSensor->reading = String(gps.r.fixQuality); return; } break;
+		case SENSOR_GPS_LATITUDE: 		if (gps.getReading(base, SENSOR_GPS_LATITUDE)) 		{ wichSensor->reading = String(gps.r.latitude, 6); return; } break;
+		case SENSOR_GPS_LONGITUDE: 		if (gps.getReading(base, SENSOR_GPS_LONGITUDE)) 	{ wichSensor->reading = String(gps.r.longitude, 6); return; } break;
+		case SENSOR_GPS_ALTITUDE: 		if (gps.getReading(base, SENSOR_GPS_ALTITUDE)) 		{ wichSensor->reading = String(gps.r.altitude, 2); return; } break;
+		case SENSOR_GPS_SPEED: 			if (gps.getReading(base, SENSOR_GPS_SPEED)) 		{ wichSensor->reading = String(gps.r.speed, 2); return; } break;
+		case SENSOR_GPS_HDOP: 			if (gps.getReading(base, SENSOR_GPS_HDOP)) 		{ wichSensor->reading = String(gps.r.hdop, 2); return; } break;
+		case SENSOR_GPS_SATNUM:			if (gps.getReading(base, SENSOR_GPS_SATNUM)) 		{ wichSensor->reading = String(gps.r.satellites); return; } break;
 		default: break;
 	}
 
@@ -1263,7 +1263,7 @@ bool Sck_GPS::stop()
 bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 {
 	if (!gps_source->getReading(wichSensor, r)) {
-		if (r.fixQuality < 1) base->sckOut("ERROR No GPS ix yet!!!");
+		if (r.fixQuality == 0) base->sckOut("ERROR No GPS fix yet!!!");
 		return false;
 	}
 

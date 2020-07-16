@@ -1267,6 +1267,16 @@ bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 		return false;
 	}
 
+	// Use time from gps to set RTC if time is not set or older than 10 minutes
+	if (((millis() - base->lastTimeSync) > 600000 || base->lastTimeSync == 0) && r.fixQuality > 0) {
+		// Wait for some GPS readings after sync to be sure time is accurate
+		if (fixCounter > 5) base->setTime(String(r.epochTime));
+		else fixCounter++;
+	} else {
+		fixCounter = 0;
+	}
+
+
 	return true;
 }
 

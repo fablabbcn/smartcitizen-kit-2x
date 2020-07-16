@@ -260,6 +260,8 @@ void SckBase::reviewState()
 		}
 	}
 
+	// If we have a GPS get time if needed
+	if (!st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
@@ -1919,6 +1921,8 @@ bool SckBase::setTime(String epoch)
 		lastSensorUpdate = rtc.getEpoch() - timeSinceLastUpdate;
 		lastPublishTime = rtc.getEpoch() - timeSinceLastPublish;
 		espStarted = rtc.getEpoch() - timeSinceEspStarted;
+
+		lastTimeSync = millis();
 
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);

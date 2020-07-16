@@ -558,6 +558,7 @@ class Sck_GPS
 {
 	private:
 		bool started = false;
+		uint8_t fixCounter = 0;
 		GPS_Source *gps_source;
 	public:
 		GpsReadings r;

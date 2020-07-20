@@ -1307,6 +1307,8 @@ bool PM_Grove_GPS::stop()
 
 bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
 {
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
 	//  Only ask for readings if last one is older than
 	if (millis() - lastReading < 500 && r.fixQuality > 0) return true;
 

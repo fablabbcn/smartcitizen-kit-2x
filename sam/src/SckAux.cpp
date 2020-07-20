@@ -18,6 +18,7 @@ Sck_Range 		range;
 Sck_BME680 		bme680;
 Sck_GPS 		gps;
 PM_Grove_GPS 		pmGroveGps;
+XA111GPS 		xa1110gps;
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
@@ -1237,9 +1238,18 @@ float PM_DallasTemp::getReading()
 	return uRead.fval;
 }
 
+TinyGPSPlus tinyGps;
+TinyGPSCustom fixQuality(tinyGps, "GPGGA", 6);
+
 bool Sck_GPS::start()
 {
 	if (started) return true;
+
+	if (xa1110gps.start()) {
+		gps_source = &xa1110gps;
+		started = true;
+		return true;
+	}
 
 	if (pmGroveGps.start()) {
 		gps_source = &pmGroveGps;
@@ -1267,9 +1277,9 @@ bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 		return false;
 	}
 
-	// Use time from gps to set RTC if time is not set or older than 10 minutes
-	if (((millis() - base->lastTimeSync) > 600000 || base->lastTimeSync == 0) && r.fixQuality > 0) {
-		// Wait for some GPS readings after sync to be sure time is accurate
+	// Use time from gps to set RTC if time is not set or older than 10 minutesdate
+	if (((millis() - base->lastTimeSync) > 600000 || base->lastTimeSync == 0) && r.timeValid) {
+		// Wait for some GPS readings after sync to be sure time is accurate FIXME this can be removed if groveGPS time.isValid() works
 		if (fixCounter > 5) base->setTime(String(r.epochTime));
 		else fixCounter++;
 	} else {
@@ -1350,6 +1360,87 @@ bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	memcpy(&r.satellites, &data[33], 1);
 
 	lastReading = millis();
+}
+
+bool XA111GPS::start()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	if (!i2cGps.begin(auxWire)) return false;
+
+	return true;
+}
+
+bool XA111GPS::stop()
+{
+	return true;
+}
+
+bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	while (i2cGps.available()) tinyGps.encode(i2cGps.read());
+
+	//  Only ask for readings if last one is older than
+	if (millis() - lastReading < 500) return true;
+
+	// Fix Quality
+	String fixQual = fixQuality.value();
+	r.fixQuality = fixQual.toInt();
+
+	r.locationValid = tinyGps.location.isValid();
+	if (r.locationValid) {
+		// Latitude DDD.DDDDDD (negative is south) -> double - 8
+		r.latitude = tinyGps.location.lat();
+
+		// Longitude DDD.DDDDDD (negative is west) -> double - 8
+		r.longitude = tinyGps.location.lng();
+	}
+
+	r.altitudeValid = tinyGps.altitude.isValid();
+	if (r.altitudeValid) {
+		// Altitude in meters -> float - 4
+		r.altitude = tinyGps.altitude.meters();
+	}
+
+	r.timeValid = tinyGps.time.isValid();
+	if (r.timeValid) {
+		// Time (epoch) -> uint32 - 4
+		struct tm tm; 				// http://www.nongnu.org/avr-libc/user-manual/structtm.html
+		tm.tm_isdst = -1; 			// -1 means no data available
+		tm.tm_yday = 0;
+		tm.tm_wday = 0;
+		tm.tm_year = tinyGps.date.year() - 1900; 	// tm struct expects years since 1900
+		tm.tm_mon = tinyGps.date.month() - 1; 	// tm struct uses 0-11 months
+		tm.tm_mday = tinyGps.date.day();
+		tm.tm_hour = tinyGps.time.hour();
+		tm.tm_min = tinyGps.time.minute();
+		tm.tm_sec = tinyGps.time.second();
+		r.epochTime = mktime(&tm);
+	}
+
+	r.speedValid = tinyGps.speed.isValid();
+	if (r.speedValid) {
+		// Speed (meters per second) -> float - 4
+		r.speed = tinyGps.speed.mps();
+	}
+
+	r.hdopValid = tinyGps.hdop.isValid();
+	if (r.hdopValid) {
+		// Horizontal dilution of position -> float - 4
+		r.hdop = tinyGps.hdop.value();
+	}
+
+	r.satellitesValid = tinyGps.satellites.isValid();
+	if (r.satellitesValid) {
+		// Number of Satellites being traked -> uint8 - 1
+		r.satellites = tinyGps.satellites.value();
+	}
+
+	lastReading = millis();
+
+	return true;
 }
 
 bool Sck_DallasTemp::start()

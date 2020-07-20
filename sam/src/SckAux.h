@@ -35,6 +35,12 @@
 // Adafruit BME608 library
 #include <Adafruit_BME680.h>
 
+// Library for GPS data parsing
+#include "TinyGPS++.h"
+
+// Librtary for XA1110 Sparkfun i2c GPS
+#include <SparkFun_I2C_GPS_Arduino_Library.h>
+
 extern TwoWire auxWire;
 
 class SckBase;
@@ -134,7 +140,7 @@ class AuxBoards
 
 			0x02, 			// SENSOR_GROVE_GPS_*, (on PM board)
 
-			0x3c		// SENSOR_GROOVE_OLED,
+			0x3c			// SENSOR_GROOVE_OLED,
 		};
 
 		bool start(SensorType wichSensor);
@@ -537,12 +543,18 @@ struct GpsReadings
 	// Number of Satellites being traked -> uint8 - 1
 
 	uint8_t fixQuality = 0;
+	bool locationValid = false;
 	double latitude;
 	double longitude;
+	bool altitudeValid = false;
 	float altitude;
+	bool speedValid = false;
 	float speed;
+	bool hdopValid = false;
 	float hdop;
+	bool satellitesValid = false;
 	uint8_t satellites;
+	bool timeValid = false;
 	uint32_t epochTime = 0;
 };
 
@@ -552,7 +564,6 @@ class GPS_Source
 		virtual bool stop();
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
 };
-
 
 class Sck_GPS
 {
@@ -583,6 +594,20 @@ class PM_Grove_GPS: public GPS_Source
 		uint32_t lastReading = 0;
 };
 
+class XA111GPS: public GPS_Source
+{
+	public:
+		const byte deviceAddress = 0x10;
+
+		bool start();
+		virtual bool stop();
+		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+
+	private:
+		I2CGPS i2cGps;
+		uint32_t lastReading = 0;
+
+};
 
 class Sck_DallasTemp
 {

@@ -523,7 +523,7 @@ class PM_DallasTemp
 
 struct GpsReadings
 {
-	// Data (34 bytes)
+	// Data (40 bytes)
 	// Fix Quality -> uint8 - 1
 	// 	0 = Invalid
 	// 	1 = GPS fix (SPS)
@@ -534,12 +534,18 @@ struct GpsReadings
 	// 	6 = estimated (dead reckoning) (2.3 feature)
 	// 	7 = Manual input mode
 	// 	8 = Simulation mode
+	// locationValid -> bool - 1
 	// Latitude DDD.DDDDDD (negative is south) -> double - 8
 	// Longitude DDD.DDDDDD (negative is west) -> double - 8
+	// altitudeValid -> bool - 1
 	// Altitude in meters -> float - 4
+	// timeValid -> bool - 1
 	// Time (epoch) -> uint32 - 4
+	// speedValid -> bool - 1
 	// Speed (meters per second) -> float - 4
+	// hdopValid -> bool - 1
 	// Horizontal dilution of position -> float - 4
+	// satellitesValid -> bool - 1
 	// Number of Satellites being traked -> uint8 - 1
 
 	uint8_t fixQuality = 0;
@@ -589,7 +595,7 @@ class PM_Grove_GPS: public GPS_Source
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
 
 	private:
-		static const uint8_t DATA_LEN = 34;
+		static const uint8_t DATA_LEN = 40;
 		byte data[DATA_LEN];
 		uint32_t lastReading = 0;
 };

@@ -1333,30 +1333,49 @@ bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
 
 	// Fix quality
 	memcpy(&r.fixQuality, &data[0], 1);
-	if (r.fixQuality < 1 && wichSensor != SENSOR_GPS_FIX_QUALITY) return false;
-
-	// Latitude
-	memcpy(&r.latitude, &data[1], 8);
-
-	// Logitude
-	memcpy(&r.longitude, &data[9], 8);
-
-	// Altitude
-	memcpy(&r.altitude, &data[17], 4);
 
 	// Time
-	memcpy(&r.epochTime, &data[21], 4);
+	memcpy(&r.timeValid, &data[23], 1);
+	if (r.timeValid) memcpy(&r.epochTime, &data[24], 4);
+	// With this GPS wrong time is reported as Valid when no GPS fix
+	// So if no fix we mark time as invalid
+	if (r.fixQuality == 0) r.timeValid = false;
+
+	// Location
+	memcpy(&r.locationValid, &data[1], 1);
+	if (r.locationValid) {
+
+		// Latitude
+		memcpy(&r.latitude, &data[2], 8);
+
+		// Longitude
+		memcpy(&r.longitude, &data[10], 8);
+
+	} else if (wichSensor == SENSOR_GPS_LATITUDE ||	wichSensor == SENSOR_GPS_LONGITUDE) return false;
+
+	// Altitude
+	memcpy(&r.altitudeValid, &data[18], 1);
+	if (r.altitudeValid) memcpy(&r.altitude, &data[19], 4);
+	else if (wichSensor == SENSOR_GPS_ALTITUDE) return false;
 
 	// Speed
-	memcpy(&r.speed, &data[25], 4);
+	memcpy(&r.speedValid, &data[28], 1);
+	if (r.speedValid) memcpy(&r.speed, &data[29], 4);
+	else if (wichSensor == SENSOR_GPS_SPEED) return false;
 
 	// Horizontal dilution of position
-	memcpy(&r.hdop, &data[29], 4);
+	memcpy(&r.hdopValid, &data[33], 1);
+	if (r.hdopValid) memcpy(&r.hdop, &data[34], 4);
+	else if (wichSensor == SENSOR_GPS_HDOP) return false;
 
 	// Satellites
-	memcpy(&r.satellites, &data[33], 1);
+	memcpy(&r.satellitesValid, &data[38], 1);
+	if (r.satellitesValid) memcpy(&r.satellites, &data[39], 1);
+	else if (wichSensor == SENSOR_GPS_SATNUM) return false;
 
 	lastReading = millis();
+
+	return true;
 }
 
 bool XA111GPS::start()

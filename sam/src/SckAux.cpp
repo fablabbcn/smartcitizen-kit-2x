@@ -1240,6 +1240,7 @@ float PM_DallasTemp::getReading()
 
 TinyGPSPlus tinyGps;
 TinyGPSCustom fixQuality(tinyGps, "GPGGA", 6);
+TinyGPSCustom nfixQuality(tinyGps, "GNGGA", 6);
 
 bool Sck_GPS::start()
 {
@@ -1382,9 +1383,12 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	if (millis() - lastReading < 500) return true;
 
 	// Fix Quality
-	// FIXME it always return 0, do we need this?
 	String fixQual = fixQuality.value();
 	r.fixQuality = fixQual.toInt();
+	if (r.fixQuality == 0) {
+		fixQual = nfixQuality.value();
+		r.fixQuality = fixQual.toInt();
+	}
 
 	r.locationValid = tinyGps.location.isValid();
 	if (r.locationValid) {

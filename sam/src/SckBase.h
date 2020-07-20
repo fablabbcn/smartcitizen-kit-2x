@@ -70,6 +70,7 @@ struct SckState
 	bool cardPresentError = false;
 	bool sleeping = false;
 	bool publishPending = false;
+	bool dynamic = false;
 	Status wifiStat = Status(1, 60000);
 	Status timeStat = Status(2, 3000);
 	Status helloStat = Status(3, 5000);

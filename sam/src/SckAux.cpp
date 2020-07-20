@@ -1275,7 +1275,7 @@ bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 {
 	// Use time from gps to set RTC if time is not set or older than 10 minutesdate
 	if (((millis() - base->lastTimeSync) > 600000 || base->lastTimeSync == 0) && r.timeValid) {
-		// Wait for some GPS readings after sync to be sure time is accurate FIXME this can be removed if groveGPS time.isValid() works
+		// Wait for some GPS readings after sync to be sure time is accurate 
 		if (fixCounter > 5) base->setTime(String(r.epochTime));
 		else fixCounter++;
 	} else {
@@ -1396,36 +1396,12 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-	while (i2cGps.available()) tinyGps.encode(i2cGps.read());
-
 	//  Only ask for readings if last one is older than
 	if (millis() - lastReading < 500) return true;
 
-	// Fix Quality
-	String fixQual = fixQuality.value();
-	r.fixQuality = fixQual.toInt();
-	if (r.fixQuality == 0) {
-		fixQual = nfixQuality.value();
-		r.fixQuality = fixQual.toInt();
-	}
+	while (i2cGps.available()) tinyGps.encode(i2cGps.read());
 
-	r.locationValid = tinyGps.location.isValid();
-	if (r.locationValid) {
-
-		// Latitude DDD.DDDDDD (negative is south) -> double - 8
-		r.latitude = tinyGps.location.lat();
-
-		// Longitude DDD.DDDDDD (negative is west) -> double - 8
-		r.longitude = tinyGps.location.lng();
-
-	} else if (wichSensor == SENSOR_GPS_LATITUDE ||	wichSensor == SENSOR_GPS_LONGITUDE) return false;
-
-	r.altitudeValid = tinyGps.altitude.isValid();
-	if (r.altitudeValid) {
-		// Altitude in meters -> float - 4
-		r.altitude = tinyGps.altitude.meters();
-	} else if (wichSensor == SENSOR_GPS_ALTITUDE) return false;
-
+	// Time
 	r.timeValid = tinyGps.time.isValid();
 	if (r.timeValid) {
 		// Time (epoch) -> uint32 - 4
@@ -1442,23 +1418,45 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 		r.epochTime = mktime(&tm);
 	}
 
+	// Fix Quality
+	String fixQual = fixQuality.value();
+	r.fixQuality = fixQual.toInt();
+	if (r.fixQuality == 0) {
+		fixQual = nfixQuality.value();
+		r.fixQuality = fixQual.toInt();
+	}
+
+	// Location
+	r.locationValid = tinyGps.location.isValid();
+	if (r.locationValid) {
+
+		// Latitude
+		r.latitude = tinyGps.location.lat();
+
+		// Longitude
+		r.longitude = tinyGps.location.lng();
+
+	} else if (wichSensor == SENSOR_GPS_LATITUDE ||	wichSensor == SENSOR_GPS_LONGITUDE) return false;
+
+	// Altitude
+	r.altitudeValid = tinyGps.altitude.isValid();
+	if (r.altitudeValid) r.altitude = tinyGps.altitude.meters();
+	else if (wichSensor == SENSOR_GPS_ALTITUDE) return false;
+
+	// Speed
 	r.speedValid = tinyGps.speed.isValid();
-	if (r.speedValid) {
-		// Speed (meters per second) -> float - 4
-		r.speed = tinyGps.speed.mps();
-	} else if (wichSensor == SENSOR_GPS_SPEED) return false;
+	if (r.speedValid) r.speed = tinyGps.speed.mps();
+	else if (wichSensor == SENSOR_GPS_SPEED) return false;
 
+	// Horizontal dilution of position
 	r.hdopValid = tinyGps.hdop.isValid();
-	if (r.hdopValid) {
-		// Horizontal dilution of position -> float - 4
-		r.hdop = tinyGps.hdop.value();
-	} else if (wichSensor == SENSOR_GPS_HDOP) return false;
+	if (r.hdopValid) r.hdop = tinyGps.hdop.value();
+	else if (wichSensor == SENSOR_GPS_HDOP) return false;
 
+	// Satellites
 	r.satellitesValid = tinyGps.satellites.isValid();
-	if (r.satellitesValid) {
-		// Number of Satellites being traked -> uint8 - 1
-		r.satellites = tinyGps.satellites.value();
-	} else if (SENSOR_GPS_SATNUM) return false;
+	if (r.satellitesValid) r.satellites = tinyGps.satellites.value();
+	else if (SENSOR_GPS_SATNUM) return false;
 
 	lastReading = millis();
 

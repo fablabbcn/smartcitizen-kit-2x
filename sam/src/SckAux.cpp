@@ -1272,11 +1272,6 @@ bool Sck_GPS::stop()
 
 bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 {
-	if (!gps_source->getReading(wichSensor, r)) {
-		if (r.fixQuality == 0) base->sckOut("ERROR No GPS fix yet!!!");
-		return false;
-	}
-
 	// Use time from gps to set RTC if time is not set or older than 10 minutesdate
 	if (((millis() - base->lastTimeSync) > 600000 || base->lastTimeSync == 0) && r.timeValid) {
 		// Wait for some GPS readings after sync to be sure time is accurate FIXME this can be removed if groveGPS time.isValid() works
@@ -1286,6 +1281,7 @@ bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 		fixCounter = 0;
 	}
 
+	if (!gps_source->getReading(wichSensor, r)) return false;
 
 	return true;
 }
@@ -1386,23 +1382,26 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	if (millis() - lastReading < 500) return true;
 
 	// Fix Quality
+	// FIXME it always return 0, do we need this?
 	String fixQual = fixQuality.value();
 	r.fixQuality = fixQual.toInt();
 
 	r.locationValid = tinyGps.location.isValid();
 	if (r.locationValid) {
+
 		// Latitude DDD.DDDDDD (negative is south) -> double - 8
 		r.latitude = tinyGps.location.lat();
 
 		// Longitude DDD.DDDDDD (negative is west) -> double - 8
 		r.longitude = tinyGps.location.lng();
-	}
+
+	} else if (wichSensor == SENSOR_GPS_LATITUDE ||	wichSensor == SENSOR_GPS_LONGITUDE) return false;
 
 	r.altitudeValid = tinyGps.altitude.isValid();
 	if (r.altitudeValid) {
 		// Altitude in meters -> float - 4
 		r.altitude = tinyGps.altitude.meters();
-	}
+	} else if (wichSensor == SENSOR_GPS_ALTITUDE) return false;
 
 	r.timeValid = tinyGps.time.isValid();
 	if (r.timeValid) {
@@ -1424,19 +1423,19 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	if (r.speedValid) {
 		// Speed (meters per second) -> float - 4
 		r.speed = tinyGps.speed.mps();
-	}
+	} else if (wichSensor == SENSOR_GPS_SPEED) return false;
 
 	r.hdopValid = tinyGps.hdop.isValid();
 	if (r.hdopValid) {
 		// Horizontal dilution of position -> float - 4
 		r.hdop = tinyGps.hdop.value();
-	}
+	} else if (wichSensor == SENSOR_GPS_HDOP) return false;
 
 	r.satellitesValid = tinyGps.satellites.isValid();
 	if (r.satellitesValid) {
 		// Number of Satellites being traked -> uint8 - 1
 		r.satellites = tinyGps.satellites.value();
-	}
+	} else if (SENSOR_GPS_SATNUM) return false;
 
 	lastReading = millis();
 

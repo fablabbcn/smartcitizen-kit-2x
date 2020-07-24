@@ -156,8 +156,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 		}
 
 	} else {
-		int16_t sensorIndex = parameters.indexOf(" ", parameters.indexOf("-"));
-		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(sensorIndex));
+		int16_t sensorEndIndex = parameters.indexOf("-") - 1;
+		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(0, sensorEndIndex));
 		bool saveNeeded = false;
 
 		if (sensorToChange == SENSOR_COUNT) {
@@ -274,16 +274,20 @@ void sensorConfig_com(SckBase* base, String parameters)
 				saveNeeded = true;
 			}
 		} else if (parameters.indexOf("-interval") >=0) {
-			String msg;
-			msg = "Changing interval of ";
-			sensorIndex = parameters.indexOf(" ", parameters.indexOf("-interval"));
-			int16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
+
+			// Get the number of seconds user asked for as new interval
+			int16_t intervalIndex = parameters.indexOf("-interval") + 10;
 			String strInterval = parameters.substring(intervalIndex);
 			uint32_t intervalInt = strInterval.toInt();
-			uint8_t everyNint_pre = intervalInt / base->config.readInterval;
-			if (everyNint_pre > 0 && everyNint_pre < 255) {
-				base->sensors[sensorToChange].everyNint = everyNint_pre;
-				base->sckOut(msg + String(base->sensors[sensorToChange].title));
+
+			// Calculate how many general intervals between sensor readings
+			uint8_t newEveryNint = intervalInt / base->config.readInterval;
+			if (newEveryNint < 1) newEveryNint = 1;
+
+			base->sckOut("The sensor read interval is calculated as a multiple of general read interval (" + String(base->config.readInterval) + ")");
+			if (newEveryNint < 255) {
+				base->sensors[sensorToChange].everyNint = newEveryNint;
+				base->sckOut("Changing interval of " + String(base->sensors[sensorToChange].title) + " to " + String(base->sensors[sensorToChange].everyNint * base->config.readInterval) + " seconds");
 			} else {
 				base->sckOut("Wrong new interval!!!");
 			}
@@ -790,9 +794,9 @@ void shell_com(SckBase* base, String parameters)
 }
 void custom_mqtt_com(SckBase* base, String parameters)
 {
-	int16_t mfirst = parameters.indexOf("'", 0);
-	int16_t msecond = parameters.indexOf("'", mfirst + 1);
-	int16_t mthird = parameters.indexOf("'", msecond + 1);
-	int16_t mfourth = parameters.indexOf("'", mthird + 1);
+	int16_t mfirst = parameters.indexOf("\"", 0);
+	int16_t msecond = parameters.indexOf("\"", mfirst + 1);
+	int16_t mthird = parameters.indexOf("\"", msecond + 1);
+	int16_t mfourth = parameters.indexOf("\"", mthird + 1);
 	base->mqttCustom(parameters.substring(mfirst + 1, msecond).c_str(), parameters.substring(mthird + 1, mfourth).c_str());
 }

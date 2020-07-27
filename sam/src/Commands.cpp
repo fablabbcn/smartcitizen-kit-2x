@@ -156,9 +156,30 @@ void sensorConfig_com(SckBase* base, String parameters)
 		}
 
 	} else {
-		int16_t sensorIndex = parameters.indexOf(" ", parameters.indexOf("-"));
-		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(sensorIndex));
+
+		int16_t sensorEndIndex = parameters.indexOf("-") - 1;
+		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(0, sensorEndIndex));
 		bool saveNeeded = false;
+
+		// PM and PN sensors are grouped to make changes to the full group
+		SensorType urban_pm[] = { SENSOR_PM_1, SENSOR_PM_25, SENSOR_PM_10 };
+		SensorType urban_pn[] = { SENSOR_PN_03, SENSOR_PN_05, SENSOR_PN_1, SENSOR_PN_25, SENSOR_PN_5, SENSOR_PN_10 };
+		SensorType ext_pm[] = { SENSOR_EXT_PM_1, SENSOR_EXT_PM_25, SENSOR_EXT_PM_10, SENSOR_EXT_A_PM_1, SENSOR_EXT_A_PM_25, SENSOR_EXT_A_PM_10, SENSOR_EXT_B_PM_1, SENSOR_EXT_B_PM_25, SENSOR_EXT_B_PM_10 };
+		SensorType ext_pn[] = { SENSOR_EXT_PN_03, SENSOR_EXT_PN_05, SENSOR_EXT_PN_1, SENSOR_EXT_PN_25, SENSOR_EXT_PN_5, SENSOR_EXT_PN_10, SENSOR_EXT_A_PN_03, SENSOR_EXT_A_PN_05, SENSOR_EXT_A_PN_1, SENSOR_EXT_A_PN_25, SENSOR_EXT_A_PN_5, SENSOR_EXT_A_PN_10, SENSOR_EXT_B_PN_03, SENSOR_EXT_B_PN_05, SENSOR_EXT_B_PN_1, SENSOR_EXT_B_PN_25, SENSOR_EXT_B_PN_5, SENSOR_EXT_B_PN_10 };
+		SensorType *pm_sensors[] = { urban_pm, urban_pn, ext_pm, ext_pn };
+		uint8_t group_size[] = { 3, 6, 9, 18 };
+
+		// Find out if sensor belongs to a PM group
+		SensorType *groupToChange;
+		uint8_t groupToChange_size = 0;
+		for (uint8_t i=0; i<4; i++) {
+			for(uint8_t ii=0; ii<group_size[i]; ii++) {
+				if(pm_sensors[i][ii] == sensorToChange) { 
+					groupToChange = pm_sensors[i]; 
+					groupToChange_size = group_size[i];
+				}
+			}
+		}
 
 		if (sensorToChange == SENSOR_COUNT) {
 			base->sckOut("ERROR sensor not found");
@@ -168,54 +189,12 @@ void sensorConfig_com(SckBase* base, String parameters)
 				sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
 				base->sckOut();
 			} else {
-				// Enable extra sensors for PM
-				bool extraPrint = false;
-				if (sensorToChange == SENSOR_PM_1 || sensorToChange == SENSOR_PM_25 || sensorToChange == SENSOR_PM_10) {
-					base->sensors[SENSOR_PM_1].enabled = true;
-					base->sensors[SENSOR_PM_25].enabled = true;
-					base->sensors[SENSOR_PM_10].enabled = true;
-					base->sensors[SENSOR_PN_03].enabled = true;
-					base->sensors[SENSOR_PN_05].enabled = true;
-					base->sensors[SENSOR_PN_1].enabled = true;
-					base->sensors[SENSOR_PN_25].enabled = true;
-					base->sensors[SENSOR_PN_5].enabled = true;
-					base->sensors[SENSOR_PN_10].enabled = true;
-					extraPrint = true;
-				} else if (sensorToChange == SENSOR_EXT_PM_1 || sensorToChange == SENSOR_EXT_PM_25 || sensorToChange == SENSOR_EXT_PM_10) {
-					base->sensors[SENSOR_EXT_PM_1].enabled = true;
-					base->sensors[SENSOR_EXT_PM_25].enabled = true;
-					base->sensors[SENSOR_EXT_PM_10].enabled = true;
-					base->sensors[SENSOR_EXT_PN_03].enabled = true;
-					base->sensors[SENSOR_EXT_PN_05].enabled = true;
-					base->sensors[SENSOR_EXT_PN_1].enabled = true;
-					base->sensors[SENSOR_EXT_PN_25].enabled = true;
-					base->sensors[SENSOR_EXT_PN_5].enabled = true;
-					base->sensors[SENSOR_EXT_PN_10].enabled = true;
-					extraPrint = true;
-				} else if (sensorToChange == SENSOR_EXT_A_PM_1 || sensorToChange == SENSOR_EXT_A_PM_25 || sensorToChange == SENSOR_EXT_A_PM_10) {
-					base->sensors[SENSOR_EXT_A_PM_1].enabled = true;
-					base->sensors[SENSOR_EXT_A_PM_25].enabled = true;
-					base->sensors[SENSOR_EXT_A_PM_10].enabled = true;
-					base->sensors[SENSOR_EXT_A_PN_03].enabled = true;
-					base->sensors[SENSOR_EXT_A_PN_05].enabled = true;
-					base->sensors[SENSOR_EXT_A_PN_1].enabled = true;
-					base->sensors[SENSOR_EXT_A_PN_25].enabled = true;
-					base->sensors[SENSOR_EXT_A_PN_5].enabled = true;
-					base->sensors[SENSOR_EXT_A_PN_10].enabled = true;
-					extraPrint = true;
-				} else if (sensorToChange == SENSOR_EXT_B_PM_1 || sensorToChange == SENSOR_EXT_B_PM_25 || sensorToChange == SENSOR_EXT_B_PM_10) {
-					base->sensors[SENSOR_EXT_B_PM_1].enabled = true;
-					base->sensors[SENSOR_EXT_B_PM_25].enabled = true;
-					base->sensors[SENSOR_EXT_B_PM_10].enabled = true;
-					base->sensors[SENSOR_EXT_B_PN_03].enabled = true;
-					base->sensors[SENSOR_EXT_B_PN_05].enabled = true;
-					base->sensors[SENSOR_EXT_B_PN_1].enabled = true;
-					base->sensors[SENSOR_EXT_B_PN_25].enabled = true;
-					base->sensors[SENSOR_EXT_B_PN_5].enabled = true;
-					base->sensors[SENSOR_EXT_B_PN_10].enabled = true;
-					extraPrint = true;
+				// Just for PM/PN enable the rest of sensors in the same group
+				for (uint8_t i=0; i<groupToChange_size; i++) {
+					base->sensors[groupToChange[i]].enabled = true;
+					sprintf(base->outBuff, "Enabling %s", base->sensors[groupToChange[i]].title);
+					base->sckOut();
 				}
-				if (extraPrint) base->sckOut("Also enabled the rest of PM metrics");
 				saveNeeded = true;
 			}
 		} else if (parameters.indexOf("-disable") >=0) {
@@ -223,67 +202,40 @@ void sensorConfig_com(SckBase* base, String parameters)
 				sprintf(base->outBuff, "Failed disabling %s", base->sensors[sensorToChange].title);
 				base->sckOut();
 			} else {
-				// Enable extra sensors for PM
-				bool extraPrint = false;
-				if (sensorToChange == SENSOR_PM_1 || sensorToChange == SENSOR_PM_25 || sensorToChange == SENSOR_PM_10) {
-					base->sensors[SENSOR_PM_1].enabled = false;
-					base->sensors[SENSOR_PM_25].enabled = false;
-					base->sensors[SENSOR_PM_10].enabled = false;
-					base->sensors[SENSOR_PN_03].enabled = false;
-					base->sensors[SENSOR_PN_05].enabled = false;
-					base->sensors[SENSOR_PN_1].enabled = false;
-					base->sensors[SENSOR_PN_25].enabled = false;
-					base->sensors[SENSOR_PN_5].enabled = false;
-					base->sensors[SENSOR_PN_10].enabled = false;
-					extraPrint = true;
-				} else if (sensorToChange == SENSOR_EXT_PM_1 || sensorToChange == SENSOR_EXT_PM_25 || sensorToChange == SENSOR_EXT_PM_10) {
-					base->sensors[SENSOR_EXT_PM_1].enabled = false;
-					base->sensors[SENSOR_EXT_PM_25].enabled = false;
-					base->sensors[SENSOR_EXT_PM_10].enabled = false;
-					base->sensors[SENSOR_EXT_PN_03].enabled = false;
-					base->sensors[SENSOR_EXT_PN_05].enabled = false;
-					base->sensors[SENSOR_EXT_PN_1].enabled = false;
-					base->sensors[SENSOR_EXT_PN_25].enabled = false;
-					base->sensors[SENSOR_EXT_PN_5].enabled = false;
-					base->sensors[SENSOR_EXT_PN_10].enabled = false;
-					extraPrint = true;
-				} else if (sensorToChange == SENSOR_EXT_A_PM_1 || sensorToChange == SENSOR_EXT_A_PM_25 || sensorToChange == SENSOR_EXT_A_PM_10) {
-					base->sensors[SENSOR_EXT_A_PM_1].enabled = false;
-					base->sensors[SENSOR_EXT_A_PM_25].enabled = false;
-					base->sensors[SENSOR_EXT_A_PM_10].enabled = false;
-					base->sensors[SENSOR_EXT_A_PN_03].enabled = false;
-					base->sensors[SENSOR_EXT_A_PN_05].enabled = false;
-					base->sensors[SENSOR_EXT_A_PN_1].enabled = false;
-					base->sensors[SENSOR_EXT_A_PN_25].enabled = false;
-					base->sensors[SENSOR_EXT_A_PN_5].enabled = false;
-					base->sensors[SENSOR_EXT_A_PN_10].enabled = false;
-					extraPrint = true;
-				} else if (sensorToChange == SENSOR_EXT_B_PM_1 || sensorToChange == SENSOR_EXT_B_PM_25 || sensorToChange == SENSOR_EXT_B_PM_10) {
-					base->sensors[SENSOR_EXT_B_PM_1].enabled = false;
-					base->sensors[SENSOR_EXT_B_PM_25].enabled = false;
-					base->sensors[SENSOR_EXT_B_PM_10].enabled = false;
-					base->sensors[SENSOR_EXT_B_PN_03].enabled = false;
-					base->sensors[SENSOR_EXT_B_PN_05].enabled = false;
-					base->sensors[SENSOR_EXT_B_PN_1].enabled = false;
-					base->sensors[SENSOR_EXT_B_PN_25].enabled = false;
-					base->sensors[SENSOR_EXT_B_PN_5].enabled = false;
-					base->sensors[SENSOR_EXT_B_PN_10].enabled = false;
-					extraPrint = true;
+				// Just for PM/PN disable the rest of sensors in the same group
+				for (uint8_t i=0; i<groupToChange_size; i++) {
+					base->sensors[groupToChange[i]].enabled = false;
+					sprintf(base->outBuff, "Disabling %s", base->sensors[groupToChange[i]].title);
+					base->sckOut();
 				}
-				if (extraPrint) base->sckOut("Also disabled the the rest of PM metrics");
 				saveNeeded = true;
 			}
 		} else if (parameters.indexOf("-interval") >=0) {
-			String msg;
-			msg = "Changing interval of ";
-			sensorIndex = parameters.indexOf(" ", parameters.indexOf("-interval"));
-			int16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
+
+			// Get the number of seconds user asked for as new interval
+			int16_t intervalIndex = parameters.indexOf("-interval") + 10;
 			String strInterval = parameters.substring(intervalIndex);
 			uint32_t intervalInt = strInterval.toInt();
-			uint8_t everyNint_pre = intervalInt / base->config.readInterval;
-			if (everyNint_pre > 0 && everyNint_pre < 255) {
-				base->sensors[sensorToChange].everyNint = everyNint_pre;
-				base->sckOut(msg + String(base->sensors[sensorToChange].title));
+
+			// Calculate how many general intervals between sensor readings
+			uint8_t newEveryNint = intervalInt / base->config.readInterval;
+			if (newEveryNint < 1) newEveryNint = 1;
+
+			base->sckOut("The sensor read interval is calculated as a multiple of general read interval (" + String(base->config.readInterval) + ")");
+			if (newEveryNint < 255) {
+				if (groupToChange_size > 0) {
+					// Just for PM/PN change all the sensors in the same group
+					for (uint8_t i=0; i<groupToChange_size; i++) {
+						base->sensors[groupToChange[i]].everyNint = newEveryNint;
+						sprintf(base->outBuff, "Changing interval of %s to %u", base->sensors[groupToChange[i]].title, base->sensors[groupToChange[i]].everyNint * base->config.readInterval);
+						base->sckOut();
+					}
+				} else {
+					base->sensors[sensorToChange].everyNint = newEveryNint;
+					sprintf(base->outBuff, "Changing interval of %s to %u", base->sensors[sensorToChange].title, base->sensors[sensorToChange].everyNint * base->config.readInterval);
+					base->sckOut();
+				}
+				saveNeeded = true;
 			} else {
 				base->sckOut("Wrong new interval!!!");
 			}
@@ -790,9 +742,9 @@ void shell_com(SckBase* base, String parameters)
 }
 void custom_mqtt_com(SckBase* base, String parameters)
 {
-	int16_t mfirst = parameters.indexOf("'", 0);
-	int16_t msecond = parameters.indexOf("'", mfirst + 1);
-	int16_t mthird = parameters.indexOf("'", msecond + 1);
-	int16_t mfourth = parameters.indexOf("'", mthird + 1);
+	int16_t mfirst = parameters.indexOf("\"", 0);
+	int16_t msecond = parameters.indexOf("\"", mfirst + 1);
+	int16_t mthird = parameters.indexOf("\"", msecond + 1);
+	int16_t mfourth = parameters.indexOf("\"", mthird + 1);
 	base->mqttCustom(parameters.substring(mfirst + 1, msecond).c_str(), parameters.substring(mthird + 1, mfourth).c_str());
 }

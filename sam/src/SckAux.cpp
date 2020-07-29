@@ -16,6 +16,10 @@ Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 Sck_Range 		range;
 Sck_BME680 		bme680;
+Sck_ADS1X15 		ads48;
+Sck_ADS1X15 		ads49;
+Sck_ADS1X15 		ads4A;
+Sck_ADS1X15 		ads4B;
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
@@ -102,6 +106,22 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
 		case SENSOR_BME680_VOCS:		return bme680.start(); break;
+		case SENSOR_ADS1X15_48_0:
+		case SENSOR_ADS1X15_48_1:
+		case SENSOR_ADS1X15_48_2:
+		case SENSOR_ADS1X15_48_3: 		return ads48.start(0x48); break;
+		case SENSOR_ADS1X15_49_0:
+		case SENSOR_ADS1X15_49_1:
+		case SENSOR_ADS1X15_49_2:
+		case SENSOR_ADS1X15_49_3: 		return ads49.start(0x49); break;
+		case SENSOR_ADS1X15_4A_0:
+		case SENSOR_ADS1X15_4A_1:
+		case SENSOR_ADS1X15_4A_2:
+		case SENSOR_ADS1X15_4A_3: 		return ads4A.start(0x4A); break;
+		case SENSOR_ADS1X15_4B_0:
+		case SENSOR_ADS1X15_4B_1:
+		case SENSOR_ADS1X15_4B_2:
+		case SENSOR_ADS1X15_4B_3: 		return ads4B.start(0x4B); break;
 		default: break;
 	}
 
@@ -174,6 +194,22 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
 		case SENSOR_BME680_VOCS:		return bme680.stop(); break;
+		case SENSOR_ADS1X15_48_0:
+		case SENSOR_ADS1X15_48_1:
+		case SENSOR_ADS1X15_48_2:
+		case SENSOR_ADS1X15_48_3: 		return ads48.stop(); break;
+		case SENSOR_ADS1X15_49_0:
+		case SENSOR_ADS1X15_49_1:
+		case SENSOR_ADS1X15_49_2:
+		case SENSOR_ADS1X15_49_3: 		return ads49.stop(); break;
+		case SENSOR_ADS1X15_4A_0:
+		case SENSOR_ADS1X15_4A_1:
+		case SENSOR_ADS1X15_4A_2:
+		case SENSOR_ADS1X15_4A_3: 		return ads4A.stop(); break;
+		case SENSOR_ADS1X15_4B_0:
+		case SENSOR_ADS1X15_4B_1:
+		case SENSOR_ADS1X15_4B_2:
+		case SENSOR_ADS1X15_4B_3: 		return ads4B.stop(); break;
 		default: break;
 	}
 
@@ -247,6 +283,22 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
 		case SENSOR_BME680_VOCS:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.VOCgas); return; } break;
+		case SENSOR_ADS1X15_48_0: 		if (ads48.getReading(0)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		case SENSOR_ADS1X15_48_1: 		if (ads48.getReading(1)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		case SENSOR_ADS1X15_48_2: 		if (ads48.getReading(2)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		case SENSOR_ADS1X15_48_3: 		if (ads48.getReading(3)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		case SENSOR_ADS1X15_49_0: 		if (ads49.getReading(0)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		case SENSOR_ADS1X15_49_1: 		if (ads49.getReading(1)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		case SENSOR_ADS1X15_49_2: 		if (ads49.getReading(2)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		case SENSOR_ADS1X15_49_3: 		if (ads49.getReading(3)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4A_0: 		if (ads4A.getReading(0)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4A_1: 		if (ads4A.getReading(1)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4A_2: 		if (ads4A.getReading(2)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4A_3: 		if (ads4A.getReading(3)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4B_0: 		if (ads4B.getReading(0)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4B_1: 		if (ads4B.getReading(1)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4B_2: 		if (ads4B.getReading(2)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4B_3: 		if (ads4B.getReading(3)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
 		default: break;
 	}
 
@@ -1319,6 +1371,73 @@ bool Sck_BME680::getReading()
 	pressure = bme.pressure / 1000;  // Converted to kPa
 	VOCgas = bme.gas_resistance;
 
+	return true;
+}
+
+bool Sck_ADS1X15::start(uint8_t address)
+{
+	if (!I2Cdetect(&auxWire, address)) return false;
+
+	if (started) return true;
+
+	ads.begin(address);
+	started = true;
+	return true;
+}
+
+bool Sck_ADS1X15::stop()
+{
+	started = false;
+	return true;
+}
+
+bool Sck_ADS1X15::getReading(uint8_t wichChannel)
+{
+	// Reset gain
+	ads.setGain(GAIN_TWOTHIRDS);
+	double voltage_range = 6.144;
+
+	// Get value with full range
+	int16_t value = ads.readADC_SingleEnded(wichChannel);
+
+	// If value is under 4.096v increase the gain depending on voltage
+	if (value < 21845) {
+		if (value > 10922) { 
+
+			// 1x gain, 4.096V
+			ads.setGain(GAIN_ONE);
+			voltage_range = 4.096;
+
+		} else if (value > 5461) { 
+
+			// 2x gain, 2.048V
+			ads.setGain(GAIN_TWO);
+			voltage_range = 2.048;
+
+		} else if (value > 2730) { 
+
+			// 4x gain, 1.024V
+			ads.setGain(GAIN_FOUR);
+			voltage_range = 1.024;
+
+		} else if (value > 1365) { 
+
+			// 8x gain, 0.25V
+			ads.setGain(GAIN_EIGHT);
+			voltage_range = 0.25;
+
+		} else { 
+
+			// 16x gain, 0.125V
+			ads.setGain(GAIN_SIXTEEN);
+			voltage_range = 0.125;
+		}
+	
+		// Get the value again
+		value = ads.readADC_SingleEnded(wichChannel);
+	}
+
+	reading = (float)value / 32768 * voltage_range;
 	return true;
 }
 

@@ -41,6 +41,9 @@
 // Librtary for XA1110 Sparkfun i2c GPS
 #include <SparkFun_I2C_GPS_Arduino_Library.h>
 
+// Library for SparkFun u-Blox NEO-M8U GPS
+#include "SparkFun_Ublox_Arduino_Library.h"
+
 // Adafruit library for ADS1x15 12/16 bits ADC
 #include <Adafruit_ADS1015.h>
 
@@ -142,7 +145,9 @@ class AuxBoards
 			0x77,			// SENSOR_BME680_PRESSURE,
 			0x77,			// SENSOR_BME680_VOCS,
 
-			0x02, 			// SENSOR_GROVE_GPS_*, (on PM board)
+			0x02, 			// SENSOR_GPS_* Grove Gps (on PM board)
+			0x10, 			// SENSOR_GPS_* XA111 Gps
+			0x42, 			// SENSOR_GPS_* NEO-M8U Gps
 
 			0x3c,			// SENSOR_GROOVE_OLED,
 
@@ -620,6 +625,21 @@ class XA111GPS: public GPS_Source
 
 	private:
 		I2CGPS i2cGps;
+		uint32_t lastReading = 0;
+
+};
+
+class NEOM8UGPS: public GPS_Source
+{
+	public:
+		const byte deviceAddress = 0x42;
+
+		bool start();
+		virtual bool stop();
+		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+
+	private:
+		SFE_UBLOX_GPS ubloxGps;
 		uint32_t lastReading = 0;
 
 };

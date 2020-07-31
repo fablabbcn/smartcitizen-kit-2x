@@ -19,6 +19,7 @@ Sck_BME680 		bme680;
 Sck_GPS 		gps;
 PM_Grove_GPS 		pmGroveGps;
 XA111GPS 		xa1110gps;
+NEOM8UGPS 		neoM8uGps;
 Sck_ADS1X15 		ads48;
 Sck_ADS1X15 		ads49;
 Sck_ADS1X15 		ads4A;
@@ -1298,6 +1299,12 @@ bool Sck_GPS::start()
 {
 	if (started) return true;
 
+	if (neoM8uGps.start()) {
+		gps_source = &neoM8uGps;
+		started = true;
+		return true;
+	}
+
 	if (xa1110gps.start()) {
 		gps_source = &xa1110gps;
 		started = true;
@@ -1509,6 +1516,86 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	r.satellitesValid = tinyGps.satellites.isValid();
 	if (r.satellitesValid) r.satellites = tinyGps.satellites.value();
 	else if (SENSOR_GPS_SATNUM) return false;
+
+bool NEOM8UGPS::start()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	if (!ubloxGps.begin(auxWire)) return false;
+
+	ubloxGps.setI2COutput(COM_TYPE_UBX); 	// Set the I2C port to output UBX only (turn off NMEA noise)
+	ubloxGps.setNavigationFrequency(1);
+	ubloxGps.setAutoPVT(true); 		// Tell the GPS to "send" each solution
+	ubloxGps.saveConfiguration(); 		// Save the current settings to flash and BBR
+
+	return true;
+}
+
+bool NEOM8UGPS::stop()
+{
+	// TODO
+	// Lowpower mode
+	return true;
+}
+
+bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	//  Only ask for readings if last one is older than
+	if (millis() - lastReading < 500) return true;
+
+	if (ubloxGps.getPVT()) {
+
+		// Time
+		if (ubloxGps.getDateValid() && ubloxGps.getTimeValid()) {
+			// Time (epoch) -> uint32 - 4
+			struct tm tm; 					// http://www.nongnu.org/avr-libc/user-manual/structtm.html
+			tm.tm_isdst = -1; 				// -1 means no data available
+			tm.tm_yday = 0;
+			tm.tm_wday = 0;
+			tm.tm_year = ubloxGps.getYear() - 1900; 	// tm struct expects years since 1900
+			tm.tm_mon = ubloxGps.getMonth() - 1; 		// tm struct uses 0-11 months
+			tm.tm_mday = ubloxGps.getDay();
+			tm.tm_hour = ubloxGps.getHour();
+			tm.tm_min = ubloxGps.getMinute();
+			tm.tm_sec = ubloxGps.getSecond();
+			r.timeValid = true;
+			r.epochTime = mktime(&tm);
+		}
+
+		uint8_t fixQual = ubloxGps.getFixType(); 		// Type of fix: 0=no, 3=3D, 4=GNSS+Deadreckoning */
+		// TODO
+		// Translate fix quality to NMEA standard
+		r.fixQuality = fixQual;
+
+		if (r.fixQuality < 1) return false;
+
+		// Location
+		r.locationValid = true;
+		// Latitude
+		r.latitude = (float)ubloxGps.getLatitude() / 10000000.0;
+		// Longitude
+		r.longitude = (float)ubloxGps.getLongitude() / 10000000.0;
+
+		// Altitude
+		// TODO check if main sea level option (getAltitudeMSL()) is better for us
+		r.altitudeValid = true;
+		r.altitude = (float)ubloxGps.getAltitude() / 1000.0;
+
+		// Speed
+		r.speedValid = true;
+		r.speed = (float)ubloxGps.getGroundSpeed() / 1000.0;
+
+		// Horizontal dilution of position
+		//FIXME this is PDOP not HDOP!!
+		r.hdopValid = true;
+		r.hdop = ubloxGps.getPDOP();
+
+		// Satellites
+		r.satellitesValid = true;
+		r.satellites = ubloxGps.getSIV();
+	}
 
 	lastReading = millis();
 

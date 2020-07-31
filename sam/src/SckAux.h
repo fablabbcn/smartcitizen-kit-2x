@@ -41,6 +41,10 @@
 // Librtary for XA1110 Sparkfun i2c GPS
 #include <SparkFun_I2C_GPS_Arduino_Library.h>
 
+// Adafruit library for ADS1x15 12/16 bits ADC
+#include <Adafruit_ADS1015.h>
+
+
 extern TwoWire auxWire;
 
 class SckBase;
@@ -140,7 +144,12 @@ class AuxBoards
 
 			0x02, 			// SENSOR_GROVE_GPS_*, (on PM board)
 
-			0x3c			// SENSOR_GROOVE_OLED,
+			0x3c,			// SENSOR_GROOVE_OLED,
+
+			0x48, 			// SENSOR_ADS1X15_XX_X
+			0x49, 			// SENSOR_ADS1X15_XX_X
+			0x4a, 			// SENSOR_ADS1X15_XX_X
+			0x4b 			// SENSOR_ADS1X15_XX_X
 		};
 
 		bool start(SensorType wichSensor);
@@ -661,6 +670,24 @@ class Sck_BME680
 		uint32_t minTime = 1000; 	// Avoid taking readings more often than this value (ms)
 		bool alreadyStarted = false;
 		Adafruit_BME680 bme;
+};
+
+class Sck_ADS1X15
+{
+	public:
+		const byte deviceAddress = 0x48;
+		bool start(uint8_t address);
+		bool stop();
+		bool getReading(uint8_t wichChannel);
+
+		float reading;
+	private:
+		float VOLTAGE = 3.3;
+		bool started = false;
+		Adafruit_ADS1115 ads = Adafruit_ADS1115(&auxWire);
+
+	// TODO
+	// Test ADS1015
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

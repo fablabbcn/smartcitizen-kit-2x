@@ -761,17 +761,16 @@ bool WaterTemp_DS18B20::stop()
 float WaterTemp_DS18B20::getReading()
 {
 
- 	while ( !DS_bridge.wireSearch(addr)) {
+	while ( !DS_bridge.wireSearch(addr)) {
 
 		DS_bridge.wireResetSearch();
 		DS_bridge.wireReset();
 		DS_bridge.selectChannel(0); 			// After reset need to set channel 0 because we are using the version with single channel (DS2482_100)
 		DS_bridge.configure(conf);
- 		DS_bridge.wireSkip();
- 		DS_bridge.configure(conf); 				// Set bus on strong pull-up after next write, not only LSB nibble is required
- 		DS_bridge.wireWriteByte(0x44); 			// Convert temperature on all devices
- 		DS_bridge.configure(0x01);
-
+		DS_bridge.wireSkip();
+		DS_bridge.configure(conf); 				// Set bus on strong pull-up after next write, not only LSB nibble is required
+		DS_bridge.wireWriteByte(0x44); 			// Convert temperature on all devices
+		DS_bridge.configure(0x01);
 	}
 
 	//	Test if device is in reality the DS18B20 Water Temperature
@@ -899,7 +898,7 @@ bool Atlas::getBusyState()
 
 		} case ASKED_READING: {
 
-		   	uint16_t customWait = longWait;
+			uint16_t customWait = longWait;
 			if (TEMP) customWait = mediumWait;
 
 			if (millis() - lastCommandSent >= customWait) {
@@ -1061,7 +1060,7 @@ uint8_t Atlas::getResponse()
 
 			return 2;
 		}
-    }
+	}
 }
 
 bool Moisture::start()
@@ -1334,7 +1333,7 @@ bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 {
 	// Use time from gps to set RTC if time is not set or older than 10 minutesdate
 	if (((millis() - base->lastTimeSync) > 600000 || base->lastTimeSync == 0) && r.timeValid) {
-		// Wait for some GPS readings after sync to be sure time is accurate 
+		// Wait for some GPS readings after sync to be sure time is accurate
 		if (fixCounter > 5) base->setTime(String(r.epochTime));
 		else fixCounter++;
 	} else {
@@ -1743,37 +1742,37 @@ bool Sck_ADS1X15::getReading(uint8_t wichChannel)
 
 	// If value is under 4.096v increase the gain depending on voltage
 	if (value < 21845) {
-		if (value > 10922) { 
+		if (value > 10922) {
 
 			// 1x gain, 4.096V
 			ads.setGain(GAIN_ONE);
 			voltage_range = 4.096;
 
-		} else if (value > 5461) { 
+		} else if (value > 5461) {
 
 			// 2x gain, 2.048V
 			ads.setGain(GAIN_TWO);
 			voltage_range = 2.048;
 
-		} else if (value > 2730) { 
+		} else if (value > 2730) {
 
 			// 4x gain, 1.024V
 			ads.setGain(GAIN_FOUR);
 			voltage_range = 1.024;
 
-		} else if (value > 1365) { 
+		} else if (value > 1365) {
 
 			// 8x gain, 0.25V
 			ads.setGain(GAIN_EIGHT);
 			voltage_range = 0.25;
 
-		} else { 
+		} else {
 
 			// 16x gain, 0.125V
 			ads.setGain(GAIN_SIXTEEN);
 			voltage_range = 0.125;
 		}
-	
+
 		// Get the value again
 		value = ads.readADC_SingleEnded(wichChannel);
 	}
@@ -1784,21 +1783,21 @@ bool Sck_ADS1X15::getReading(uint8_t wichChannel)
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )
 {
-  auxWire.beginTransmission(deviceaddress);
-  auxWire.write(instruction);
-  auxWire.write(data);
-  auxWire.endTransmission();
+	auxWire.beginTransmission(deviceaddress);
+	auxWire.write(instruction);
+	auxWire.write(data);
+	auxWire.endTransmission();
 }
 
 byte readI2C(byte deviceaddress, byte instruction)
 {
-  byte  data = 0x0000;
-  auxWire.beginTransmission(deviceaddress);
-  auxWire.write(instruction);
-  auxWire.endTransmission();
-  auxWire.requestFrom(deviceaddress,1);
-  unsigned long time = millis();
-  while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
-  data = auxWire.read();
-  return data;
+	byte  data = 0x0000;
+	auxWire.beginTransmission(deviceaddress);
+	auxWire.write(instruction);
+	auxWire.endTransmission();
+	auxWire.requestFrom(deviceaddress,1);
+	unsigned long time = millis();
+	while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
+	data = auxWire.read();
+	return data;
 }

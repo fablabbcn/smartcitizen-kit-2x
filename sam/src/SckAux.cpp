@@ -1515,7 +1515,12 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	// Satellites
 	r.satellitesValid = tinyGps.satellites.isValid();
 	if (r.satellitesValid) r.satellites = tinyGps.satellites.value();
-	else if (SENSOR_GPS_SATNUM) return false;
+	else if (wichSensor == SENSOR_GPS_SATNUM) return false;
+
+	lastReading = millis();
+
+	return true;
+}
 
 bool NEOM8UGPS::start()
 {

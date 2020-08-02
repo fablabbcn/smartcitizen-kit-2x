@@ -299,7 +299,7 @@ class Groove_OLED
 
 		const byte deviceAddress = 0x3c;
 
-		U8G2_SSD1327_SEEED_96X96_F_HW_I2C U8g2_oled = U8G2_SSD1327_SEEED_96X96_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL, SDA);
+		U8G2_SH1107_SEEED_128X128_F_SW_I2C u8g2_oled = U8G2_SH1107_SEEED_128X128_F_SW_I2C(U8G2_R0, /* clock=*/ pinAUX_WIRE_SCL, /* data=*/ pinAUX_WIRE_SDA, /* reset=*/ U8X8_PIN_NONE);
 
 		bool start();
 		bool stop();

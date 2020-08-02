@@ -52,7 +52,6 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_INA219_SHUNT:
 		case SENSOR_INA219_CURRENT:
 		case SENSOR_INA219_LOADVOLT: 		return ina219.start(); break;
-		case SENSOR_GROOVE_OLED: 		return groove_OLED.start(); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.start(); break;
 		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.start(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.start();
@@ -122,6 +121,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_ADS1X15_4B_1:
 		case SENSOR_ADS1X15_4B_2:
 		case SENSOR_ADS1X15_4B_3: 		return ads4B.start(0x4B); break;
+		case SENSOR_GROOVE_OLED: 		return groove_OLED.start(); break;
 		default: break;
 	}
 
@@ -145,7 +145,6 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_INA219_SHUNT:
 		case SENSOR_INA219_CURRENT:
 		case SENSOR_INA219_LOADVOLT: 		return ina219.stop(); break;
-		case SENSOR_GROOVE_OLED: 		return groove_OLED.stop(); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.stop(); break;
 		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.stop(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.stop();
@@ -210,6 +209,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_ADS1X15_4B_1:
 		case SENSOR_ADS1X15_4B_2:
 		case SENSOR_ADS1X15_4B_3: 		return ads4B.stop(); break;
+		case SENSOR_GROOVE_OLED: 		return groove_OLED.stop(); break;
 		default: break;
 	}
 
@@ -310,7 +310,6 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 {
 
 	switch(wichSensor) {
-		case SENSOR_GROOVE_OLED:	return true; break;
 		case SENSOR_ATLAS_TEMPERATURE:  return atlasTEMP.getBusyState(); break;
 		case SENSOR_ATLAS_PH: 		return atlasPH.getBusyState(); break;
 		case SENSOR_ATLAS_EC:
@@ -632,11 +631,10 @@ bool Groove_OLED::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-	U8g2_oled.begin();
-	U8g2_oled.clearDisplay();
-
-	U8g2_oled.firstPage();
-	do { U8g2_oled.drawXBM( 0, 0, 96, 96, scLogo); } while (U8g2_oled.nextPage());
+	u8g2_oled.begin();
+	u8g2_oled.drawXBM( 16, 16, 96, 96, scLogo);
+	u8g2_oled.sendBuffer();
+	delay(1000);
 
 	return true;;
 }

@@ -121,7 +121,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_ADS1X15_4B_1:
 		case SENSOR_ADS1X15_4B_2:
 		case SENSOR_ADS1X15_4B_3: 		return ads4B.start(0x4B); break;
-		case SENSOR_GROOVE_OLED: 		return groove_OLED.start(); break;
+		case SENSOR_GROVE_OLED: 		return groove_OLED.start(); break;
 		default: break;
 	}
 
@@ -209,7 +209,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_ADS1X15_4B_1:
 		case SENSOR_ADS1X15_4B_2:
 		case SENSOR_ADS1X15_4B_3: 		return ads4B.stop(); break;
-		case SENSOR_GROOVE_OLED: 		return groove_OLED.stop(); break;
+		case SENSOR_GROVE_OLED: 		return groove_OLED.stop(); break;
 		default: break;
 	}
 

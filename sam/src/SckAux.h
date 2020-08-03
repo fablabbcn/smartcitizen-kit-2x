@@ -134,7 +134,7 @@ class AuxBoards
 			0x77,			// SENSOR_BME680_PRESSURE,
 			0x77,			// SENSOR_BME680_VOCS,
 
-			0x3c,			// SENSOR_GROOVE_OLED,
+			0x3c,			// SENSOR_GROVE_OLED,
 
 			0x48, 			// SENSOR_ADS1X15_XX_X
 			0x49, 			// SENSOR_ADS1X15_XX_X

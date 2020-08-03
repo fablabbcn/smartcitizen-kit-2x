@@ -238,7 +238,7 @@ void SckBase::reviewState()
 	if (sdInitPending) sdInit();
 
 	// SD card debug check file size and backup big files.
-	if (config.sdDebug) {
+	if (config.debug.sdcard) {
 		// Just do this every hour
 		if (rtc.getEpoch() % 3600 == 0) {
 			if (sdSelect()) {
@@ -695,7 +695,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 	}
 
 	// Debug output to sdcard
-	if (config.sdDebug) {
+	if (config.debug.sdcard) {
 		if (!sdSelect()) return;
 		debugFile.file = sd.open(debugFile.name, FILE_WRITE);
 		if (debugFile.file) {
@@ -737,6 +737,7 @@ void SckBase::loadConfig()
 	st.tokenSet = config.token.set;
 	st.tokenError = false;
 	st.mode = config.mode;
+	readingsList.debug = config.debug.flash;
 
 	// CSS vocs sensor baseline loading
 	if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
@@ -773,6 +774,7 @@ void SckBase::saveConfig(bool defaults)
 			config.sensors[i].enabled = wichSensor->enabled;
 			config.sensors[i].everyNint = wichSensor->everyNint;
 		}
+		config.debug.flash = readingsList.debug;
 	}
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
@@ -1000,7 +1002,7 @@ void SckBase::ESPbusUpdate()
 
 		if (manager.recvfromAck(netPack, &len)) {
 
-			if (debugESPcom) {
+			if (config.debug.esp) {
 				sprintf(outBuff, "Receiving msg from ESP in %i parts", netPack[0]);
 				sckOut();
 			}
@@ -1020,7 +1022,7 @@ void SckBase::ESPbusUpdate()
 				else return;
 			}
 
-			if (debugESPcom) sckOut(netBuff);
+			if (config.debug.esp) sckOut(netBuff);
 
 			// Process message
 			receiveMessage(wichMessage);
@@ -1043,14 +1045,14 @@ bool SckBase::sendMessage()
 	// This function is used when netbuff is already filled with command and content
 
 	if (!st.espON || st.espBooting) {
-		if (debugESPcom) sckOut("Can't send message, ESP is off or still booting...");
+		if (config.debug.esp) sckOut("Can't send message, ESP is off or still booting...");
 		return false;
 	}
 
 	uint16_t totalSize = strlen(netBuff);
 	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
 
-	if (debugESPcom) {
+	if (config.debug.esp) {
 		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bytes", totalParts, totalSize);
 		sckOut();
 		SerialUSB.println(netBuff);
@@ -1063,7 +1065,7 @@ bool SckBase::sendMessage()
 			sckOut("ERROR sending mesg to ESP!!!");
 			return false;
 		}
-		if (debugESPcom) {
+		if (config.debug.esp) {
 			sprintf(outBuff, "Sent part num %i", i);
 			sckOut();
 		}

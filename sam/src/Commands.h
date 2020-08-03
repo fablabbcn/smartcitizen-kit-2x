@@ -108,7 +108,7 @@ class AllCommands {
 			OneCom {100,	COM_TIME,		"time",		"Shows/sets date and time: time [epoch time] [-sync]",													time_com},
 			OneCom {100,	COM_STATE,		"state",	"Shows state flags",															state_com},
 			OneCom {100,	COM_HELLO,		"hello",	"Sends MQTT hello to platform",														hello_com},
-			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages: debug [-sdcard] [-espcom] [-list]", 											debug_com},
+			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages: debug [-sdcard] [-esp] [-oled] [-flash]", 											debug_com},
 			OneCom {100,	COM_SHELL, 		"shell", 	"Shows or sets shell mode: shell [-on] [-off]",												shell_com},
 			OneCom {100,	COM_CUSTOM_MQTT,	"mqtt", 	"Publish custom mqtt message: mqtt [\"topic\" \"message\"]",											custom_mqtt_com},
 		};

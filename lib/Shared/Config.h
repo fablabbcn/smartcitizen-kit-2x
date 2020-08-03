@@ -25,6 +25,7 @@ struct Token { bool set=false; char token[7]="null"; };
 struct MAC { bool valid=false; char address[18]="not synced"; };
 struct BattConf { int16_t chargeCurrent=768; uint32_t battCapacity=2000; };
 struct Extra { bool ccsBaselineValid=false; uint16_t ccsBaseline; }; 			// Here we save variables that don't have an specific place
+struct Debug { bool sdcard=false; bool esp=false; bool oled=false; bool flash=false; };
 
 struct Configuration {
 	bool valid = true;
@@ -35,7 +36,7 @@ struct Configuration {
 	Credentials credentials;
 	Token token;
 	SensorConfig sensors[SENSOR_COUNT];
-	bool sdDebug = false;
+	Debug debug;
 	BattConf battConf;
 	Extra extra;
 	uint16_t sleepTimer = 30; 					// Sleep after this amount of minutes, 480 minutes max (0 to disable sleep)

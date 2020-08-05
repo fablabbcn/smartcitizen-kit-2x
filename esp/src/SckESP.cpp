@@ -509,6 +509,8 @@ bool SckESP::sendConfig()
 // **** APmode and WebServer
 void SckESP::startAP()
 {
+	if (apStarted) return;
+
 	scanAP();
 
 	debugOUT(String F("Starting Ap with ssid: ") + String(hostname));
@@ -530,11 +532,14 @@ void SckESP::startAP()
 
 	startWebServer();
 	ledBlink(LED_FAST);
+
+	apStarted = true;
 }
 void SckESP::stopAP()
 {
 	dnsServer.stop();
 	WiFi.softAPdisconnect(true);
+	apStarted = false;
 	tryConnection();
 }
 void SckESP::startWebServer()
@@ -784,14 +789,26 @@ void SckESP::webStatus(AsyncWebServerRequest *request)
 void SckESP::scanAP()
 {
 	debugOUT(F("Scaning Wifi networks..."));
+	ledBlink(50);
+	
+	WiFi.mode(WIFI_STA);
+	WiFi.disconnect();
+	delay(100);
+	WiFi.scanNetworks(false); 
 
-	netNumber = WiFi.scanNetworks();
-	// Wait for scan...
-	while (WiFi.scanComplete() == -2) {
-		;
+	// For some reason it runs in async mode so we wait for it to finish
+	netNumber = WiFi.scanComplete();
+	while (netNumber == WIFI_SCAN_RUNNING) {
+		netNumber = WiFi.scanComplete();
+		delay(50);
 	}
 
-	debugOUT(String(netNumber) + F(" networks found"));
+	if (netNumber == WIFI_SCAN_FAILED) {
+		debugOUT("Error on WiFi scanning... retrying");
+		scanAP();
+	} else {
+		debugOUT(String(netNumber) + F(" networks found"));
+	}
 }
 
 // **** Configuration

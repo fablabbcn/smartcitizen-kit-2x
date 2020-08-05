@@ -98,6 +98,7 @@ class SckESP
 		// AP mode
 		void startAP();
 		void stopAP();
+		bool apStarted = false;
 		void scanAP();
 		int netNumber;
 		void startWebServer();

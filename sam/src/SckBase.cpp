@@ -706,6 +706,11 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 			debugFile.file.close();
 		} else st.cardPresent = false;
 	}
+
+	// Debug output to oled display
+	if (config.debug.oled) {
+		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.print(outBuff);
+	}
 }
 void SckBase::prompt()
 {

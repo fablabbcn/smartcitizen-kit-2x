@@ -147,7 +147,7 @@ class AuxBoards
 		void getReading(OneSensor *wichSensor);
 		bool getBusyState(SensorType wichSensor);
 		String control(SensorType wichSensor, String command);
-		void print(SensorType wichSensor, String payload);
+		void print(char *payload);
 		void displayReading(String title, String reading, String unit, String time);
 
 		EepromAuxData data;
@@ -293,20 +293,31 @@ static const unsigned char scLogo[] PROGMEM =
 	0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+// This implementation works with a 128x128 pixel Oled screen with SH1107 controler
 class Groove_OLED
 {
 	public:
 
 		const byte deviceAddress = 0x3c;
+		uint32_t lastUpdate = 0;
+		const uint32_t showTime = 3000;
 
-		U8G2_SH1107_SEEED_128X128_F_SW_I2C u8g2_oled = U8G2_SH1107_SEEED_128X128_F_SW_I2C(U8G2_R0, /* clock=*/ pinAUX_WIRE_SCL, /* data=*/ pinAUX_WIRE_SDA, /* reset=*/ U8X8_PIN_NONE);
+		U8G2_SH1107_SEEED_128X128_F_2ND_HW_I2C u8g2_oled = U8G2_SH1107_SEEED_128X128_F_2ND_HW_I2C(U8G2_R0, U8X8_PIN_NONE);
 
 		bool start();
 		bool stop();
-		void print(String payload);
+		void print(char *payload);
 		void displayReading(String title, String reading, String unit, String time);
 
 	private:
+		void printLine(char *payload, uint8_t size);
+		const uint8_t *font = u8g2_font_6x10_mr;	// if you change font update the next two variables
+		const uint8_t font_width = 6;
+		const uint8_t font_height = 10;
+		const uint8_t columns = 21;
+		const uint8_t lines = 12;
+
+		uint8_t currentLine = 1;
 };
 
 /*! @class DS2482_100

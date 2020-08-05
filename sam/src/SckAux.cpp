@@ -524,7 +524,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 	return "Unknown error on control command!!!";
 }
 
-void AuxBoards::print(SensorType wichSensor, String payload)
+void AuxBoards::print(char *payload)
 {
 
 	groove_OLED.print(payload);
@@ -532,8 +532,7 @@ void AuxBoards::print(SensorType wichSensor, String payload)
 
 void AuxBoards::displayReading(String title, String reading, String unit, String time)
 {
-
-	groove_OLED.displayReading(title, reading, unit, time);
+	if (millis() - groove_OLED.lastUpdate > groove_OLED.showTime) groove_OLED.displayReading(title, reading, unit, time);
 }
 
 bool GrooveI2C_ADC::start()
@@ -631,10 +630,11 @@ bool Groove_OLED::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
+	u8g2_oled.setBusClock(1000000); 	// 1000000 -> 68 ms for a full buffer redraw
 	u8g2_oled.begin();
 	u8g2_oled.drawXBM( 16, 16, 96, 96, scLogo);
 	u8g2_oled.sendBuffer();
-	delay(1000);
+	currentLine = 1;
 
 	return true;;
 }
@@ -645,19 +645,61 @@ bool Groove_OLED::stop()
 	return true;
 }
 
-void Groove_OLED::print(String payload)
+void Groove_OLED::print(char *payload)
 {
+	u8g2_oled.setFont(font);
 
-	// uint8_t length = payload.length();
-	char charPayload[payload.length()];
-	payload.toCharArray(charPayload, payload.length()+1);
+	uint8_t thisLineChar = 0;
+	uint8_t lineStart = 0;
+	for (uint8_t i=0; i<strlen(payload); i++) {
 
-	U8g2_oled.firstPage();
+		// If there is a newLine char
+		if (payload[i] == 0xA || i == (strlen(payload) - 1)) { 
 
-	do {
-		U8g2_oled.setFont(u8g2_font_ncenB14_tr);
-		U8g2_oled.drawStr(0,24, charPayload);
-	} while (U8g2_oled.nextPage());
+			printLine(&payload[lineStart], thisLineChar + 1);
+			lineStart += (thisLineChar + 1);
+			thisLineChar = 0;
+
+		// If line is full
+		} else if (thisLineChar == (columns - 1)) {
+			
+			printLine(&payload[lineStart], thisLineChar + 1);
+			lineStart += (thisLineChar + 1);
+			thisLineChar = 0;
+
+		// No new line yet
+		} else thisLineChar ++;
+	}
+
+	u8g2_oled.sendBuffer();
+}
+
+void Groove_OLED::printLine(char *payload, uint8_t size)
+{
+	// Reject empty lines
+	if (size < 1) return;
+	if (payload[0] == 0xA || payload[0] == 0xD) return;
+
+	// Clear screen if we are on the top
+	if (currentLine == 1) {
+		u8g2_oled.clearDisplay();
+		u8g2_oled.home();
+
+	// Slide screen one line up when bottom is reached
+	} else if (currentLine > lines) { 		
+		uint8_t *buffStart = u8g2_oled.getBufferPtr();
+		memcpy(&buffStart[0], &buffStart[128], 1920);
+		memset(&buffStart[1920], 0, 128);
+		currentLine = lines;
+	}
+
+	// Print line
+	char toPrint[size+1];
+	snprintf(toPrint, sizeof(toPrint), payload);
+
+	u8g2_oled.drawStr(0, currentLine * font_height, toPrint);
+	u8g2_oled.drawStr(columns * font_width, currentLine * font_height, " "); 	// Clear incomplete chars at the end
+	currentLine++;
 }
 
 void Groove_OLED::displayReading(String title, String reading, String unit, String time)

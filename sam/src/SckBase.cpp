@@ -1497,7 +1497,7 @@ void SckBase::updateSensors()
 			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 
 			// Check if it is enabled
-			if (wichSensor->enabled) {
+			if (wichSensor->enabled && wichSensor->priority != 250) {
 
 				// Is time to read it?
 				if ((lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval)) {
@@ -1800,7 +1800,7 @@ bool SckBase::sdPublish()
 			postFile.file.print("TIME");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = sensors.sensorsPriorized(i);
-				if (sensors[wichSensor].enabled) {
+				if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].shortTitle);
 				}
@@ -1809,7 +1809,7 @@ bool SckBase::sdPublish()
 			postFile.file.print("ISO 8601");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = sensors.sensorsPriorized(i);
-				if (sensors[wichSensor].enabled) {
+				if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 					postFile.file.print(",");
 					if (String(sensors[wichSensor].unit).length() > 0) {
 						postFile.file.print(sensors[wichSensor].unit);
@@ -1820,7 +1820,7 @@ bool SckBase::sdPublish()
 			postFile.file.print("Time");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = sensors.sensorsPriorized(i);
-				if (sensors[wichSensor].enabled) {
+				if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].title);
 				}
@@ -1828,7 +1828,7 @@ bool SckBase::sdPublish()
 			postFile.file.println("");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = sensors.sensorsPriorized(i);
-				if (sensors[wichSensor].enabled) {
+				if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].id);
 				}
@@ -1853,7 +1853,7 @@ bool SckBase::sdPublish()
 				// Go through all the enabled sensors
 				for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 					SensorType wichSensor = sensors.sensorsPriorized(i);
-					if (sensors[wichSensor].enabled) {
+					if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 
 						bool founded = false;
 						// Find sensor inside group readings

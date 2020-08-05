@@ -141,7 +141,7 @@ class OneSensor
 {
 	public:
 		SensorLocation location;
-		uint8_t priority;
+		uint8_t priority; 		// 0-249 lower first. 250 is reserved for sensor we don't want to read (actuators, ej. oled screen)
 		SensorType type;
 		const char *shortTitle;
 		const char *title;

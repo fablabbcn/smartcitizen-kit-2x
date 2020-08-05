@@ -44,23 +44,22 @@ void SckBase::setup()
 	auxWire.begin();
 	delay(2000); 				// Give some time for external boards to boot
 
-	// Button
+	// Button interrupt and wakeup
 	pinMode(pinBUTTON, INPUT_PULLUP);
-	LowPower.attachInterruptWakeup(pinBUTTON, ISR_button, CHANGE);
+	attachInterrupt(pinBUTTON, ISR_button, CHANGE);
+	EExt_Interrupts in = g_APinDescription[pinBUTTON].ulExtInt;
+	configGCLK6();
+	EIC->WAKEUP.reg |= (1 << in);
 
 	// RTC setup
 	rtc.begin();
-	if (rtc.isConfigured() && (rtc.getEpoch() > 1514764800)) st.timeStat.setOk();	// If greater than 01/01/2018
+	uint32_t now = rtc.getEpoch();
+	if (rtc.isConfigured() && (now > 1514764800)) st.timeStat.setOk();	// If greater than 01/01/2018
 	else {
 		rtc.setTime(0, 0, 0);
 		rtc.setDate(1, 1, 15);
 	}
-	espStarted = rtc.getEpoch();
-
-	// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
-	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
-	rtc.enableAlarm(rtc.MATCH_HHMMSS);
-	rtc.attachInterrupt(ext_reset);
+	espStarted = now;
 
 	// SDcard and flash select pins
 	pinMode(pinCS_SDCARD, OUTPUT);
@@ -107,13 +106,6 @@ void SckBase::setup()
 	// Power management configuration
 	charger.setup(this);
 	battery.setup();
-
-	// After sanity reset go directly to sleep
-	if (st.timeStat.ok) {
-		time_t tc = rtc.getEpoch();
-		struct tm* tmp = gmtime(&tc);
-		if (tmp->tm_hour == wakeUP_H && tmp->tm_min == wakeUP_M) deltaSanityReset = config.sleepTimer * 60000;
-	}
 
 	// Urban board
 	analogReadResolution(12);
@@ -190,6 +182,9 @@ void SckBase::setup()
 	// Update battery parcent for power management stuff
 	battery.percent(&charger);
 
+	// After sanity reset go directly to sleep
+	if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) lastUserEvent = 0;
+
 	if (saveNeeded) saveConfig();
 }
 void SckBase::update()
@@ -209,6 +204,15 @@ void SckBase::update()
 		butOldState = butState;
 		while(!butState) buttonStillDown();
 	}
+
+ 	// if more than 23 hours have passed since last reset and we are in the right hour-minute then reset
+	if (millis() > MS_23_HOURS) {
+		if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
+			sckOut("Sanity reset, bye!!");
+			sck_reset();
+		}
+	}
+
 }
 
 // **** Mode Control
@@ -260,7 +264,6 @@ void SckBase::reviewState()
 		}
 	}
 
-
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
 	/* bool espON */
@@ -280,12 +283,9 @@ void SckBase::reviewState()
 
 	if (st.onShell) {
 
-
 	} else if (st.onSetup) {
 
-
 	} else if (sckOFF) {
-
 
 	} else if (st.mode == MODE_NOT_CONFIGURED) {
 
@@ -439,7 +439,7 @@ void SckBase::reviewState()
 			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
 					(pendingSensors <= 0) && 								// No sensor to wait to
 					(st.timeStat.ok) && 									// RTC is synced and working
-					((millis() - lastUserEvent + deltaSanityReset) > (config.sleepTimer * 60000)) && 	// No recent user interaction (button, sdcard or USB events)
+					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
 					(config.sleepTimer > 0)) { 								// sleep is enabled
 
 				goToSleep(sleepPeriod * 1000);
@@ -458,8 +458,6 @@ void SckBase::reviewState()
 			if (readingsList.countGroups() > 0) sdPublish();
 
 		}
-
-
 	} else if  (st.mode == MODE_SD) {
 
 		if (!st.cardPresent) {
@@ -518,7 +516,7 @@ void SckBase::reviewState()
 			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
 					(pendingSensors <= 0) && 								// No sensor to wait to
 					(st.timeStat.ok) && 									// RTC is synced and working
-					((millis() - lastUserEvent + deltaSanityReset) > (config.sleepTimer * 60000)) && 	// No recent user interaction (button, sdcard or USB events)
+					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
 					(config.sleepTimer > 0)) { 								// sleep is enabled
 
 				goToSleep(sleepPeriod * 1000);
@@ -783,8 +781,9 @@ void SckBase::saveConfig(bool defaults)
 	st.tokenSet = config.token.set;
 	st.tokenError = false;
 	st.wifiStat.reset();
-	lastPublishTime = rtc.getEpoch() - config.publishInterval;
-	lastSensorUpdate = rtc.getEpoch() - config.readInterval;
+	uint32_t now = rtc.getEpoch();
+	lastPublishTime = now - config.publishInterval;
+	lastSensorUpdate = now - config.readInterval;
 
 	if (st.wifiSet || st.tokenSet) pendingSyncConfig = true;
 
@@ -1349,17 +1348,13 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 		// Stop CCS811 VOCS sensor
 		urban.stop(SENSOR_CCS811_VOCS);
 
-		// Disable the Sanity cyclic reset so it doesn't wake us up
-		rtc.disableAlarm();
-		rtc.detachInterrupt();
-
-		// Detach sdcard interrupt to avoid spurious wakeup
+		// Detach sdcard interrupt to avoid spurious wakeup 
+		// There is no need to reattach since after this sleep there is always a reset
 		detachInterrupt(pinCARD_DETECT);
 
 		// Turn off USB led
 		digitalWrite(pinLED_USB, HIGH);
 
-		LowPower.deepSleep();
 	} else {
 
 		sprintf(outBuff, "Sleeping for %.2f seconds", (sleepPeriod) / 1000.0);
@@ -1370,13 +1365,20 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 		// Turn off USB led
 		digitalWrite(pinLED_USB, HIGH);
 
-		LowPower.deepSleep(sleepPeriod);
+		// Set alarm to wakeup via RTC
+		rtc.attachInterrupt(NULL);
+		uint32_t now = rtc.getEpoch();
+		rtc.setAlarmEpoch(now + sleepPeriod/1000);
+		rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
 	}
 
-	// Re enable Sanity cyclic reset
-	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
-	rtc.enableAlarm(rtc.MATCH_HHMMSS);
-	rtc.attachInterrupt(ext_reset);
+	// Go to Sleep
+	USBDevice.standby();
+	SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;	
+	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+	__DSB();
+	__WFI();
+	SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 
 	// Recover Noise sensor timer
 	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
@@ -1458,11 +1460,36 @@ void SckBase::updatePower()
 		}
 	}
 }
+void SckBase::configGCLK6()
+{
+	// enable EIC clock
+	GCLK->CLKCTRL.bit.CLKEN = 0; //disable GCLK module
+	while (GCLK->STATUS.bit.SYNCBUSY);
+
+	GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK6 | GCLK_CLKCTRL_ID( GCM_EIC )) ;  //EIC clock switched on GCLK6
+	while (GCLK->STATUS.bit.SYNCBUSY);
+
+	GCLK->GENCTRL.reg = (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_ID(6));  //source for GCLK6 is OSCULP32K
+	while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY);
+
+	GCLK->GENCTRL.bit.RUNSTDBY = 1;  //GCLK6 run standby
+	while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY);
+
+	/* Errata: Make sure that the Flash does not power all the way down
+     	* when in sleep mode. */
+
+	NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
+}
+
 
 // **** Sensors
 void SckBase::updateSensors()
 {
-	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) st.timeStat.reset();
+	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) {
+		sckOut("RTC ERROR when updating sensors!!!");
+		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
+		st.timeStat.reset();
+	}
 	if (!st.timeStat.ok) return;
 	if (st.onSetup) return;
 	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented
@@ -1905,9 +1932,10 @@ bool SckBase::sdPublish()
 bool SckBase::setTime(String epoch)
 {
 	// Keep track of time passed before updating clock
-	uint32_t timeSinceLastUpdate = rtc.getEpoch() - lastSensorUpdate;
-	uint32_t timeSinceLastPublish = rtc.getEpoch() - lastPublishTime;
-	uint32_t timeSinceEspStarted = rtc.getEpoch() - espStarted;
+	uint32_t now = rtc.getEpoch();
+	uint32_t timeSinceLastUpdate = now - lastSensorUpdate;
+	uint32_t timeSinceLastPublish = now - lastPublishTime;
+	uint32_t timeSinceEspStarted = now - espStarted;
 
 	rtc.setEpoch(epoch.toInt());
 	int32_t diff = rtc.getEpoch() - epoch.toInt();
@@ -1916,9 +1944,10 @@ bool SckBase::setTime(String epoch)
 		st.timeStat.setOk();
 
 		// Adjust variables after updating clock
-		lastSensorUpdate = rtc.getEpoch() - timeSinceLastUpdate;
-		lastPublishTime = rtc.getEpoch() - timeSinceLastPublish;
-		espStarted = rtc.getEpoch() - timeSinceEspStarted;
+		uint32_t now = rtc.getEpoch();
+		lastSensorUpdate = now - timeSinceLastUpdate;
+		lastPublishTime = now - timeSinceLastPublish;
+		espStarted = now - timeSinceEspStarted;
 
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);

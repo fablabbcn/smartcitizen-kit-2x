@@ -530,9 +530,9 @@ void AuxBoards::print(char *payload)
 	groove_OLED.print(payload);
 }
 
-void AuxBoards::displayReading(String title, String reading, String unit, String time)
+void AuxBoards::updateDisplay(SckBase* base)
 {
-	if (millis() - groove_OLED.lastUpdate > groove_OLED.showTime) groove_OLED.displayReading(title, reading, unit, time);
+	groove_OLED.update(base);
 }
 
 bool GrooveI2C_ADC::start()
@@ -702,53 +702,114 @@ void Groove_OLED::printLine(char *payload, uint8_t size)
 	currentLine++;
 }
 
-void Groove_OLED::displayReading(String title, String reading, String unit, String time)
+void Groove_OLED::update(SckBase* base)
 {
+	if (millis() - lastUpdate < refreshRate) return;
+	lastUpdate = millis();
 
-	String date;
-	String hour;
+	drawBar(base);
 
-	if (time.toInt() != 0) {
-		date = time.substring(8,10) + "/" + time.substring(5,7) + "/" + time.substring(2,4);
-		hour = time.substring(11,16);
+
+	/* u8g2_oled.clearDisplay(); */
+
+	/* String date = String(base->rtc.getYear()) + "-" + String(base->rtc.getMonth())  + "-" + String(base->rtc.getDay()); */
+	/* String hour = String(base->rtc.getHours()) + ":" + String(base->rtc.getMinutes()); */
+
+	/* // Get next sensor */	
+	/* OneSensor *wichSensor = &base->sensors[base->sensors.sensorsPriorized(sensorIndex)]; */
+	/* sensorIndex++; */
+	/* if (sensorIndex == SENSOR_COUNT) sensorIndex = 0; */
+
+	/* // Title */
+	/* String title = wichSensor->title; */
+	/* u8g2_oled.setFont(u8g2_font_helvB10_tf); */
+	/* if (u8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) { */
+
+	/* 	String first = title.substring(0, title.indexOf(" ")); */
+	/* 	String second = title.substring(title.indexOf(" ")+1); */
+
+	/* 	u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(first.c_str()))/2,11, first.c_str()); */
+	/* 	u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(second.c_str()))/2,23, second.c_str()); */
+
+	/* } else u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(title.c_str()))/2,11, title.c_str()); */
+
+	/* // Reading */
+	/* String reading = wichSensor->reading; */
+	/* u8g2_oled.setFont(u8g2_font_helvB24_tf); */
+	/* if (u8g2_oled.getStrWidth(reading.c_str()) > 96) u8g2_oled.setFont(u8g2_font_helvB18_tf); */
+	/* u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(reading.c_str()))/2, 55,  reading.c_str()); */
+
+	/* // Unit */
+	/* String unit = wichSensor->unit; */
+	/* u8g2_oled.setFont(u8g2_font_helvB12_tf); */
+	/* u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str()); */
+
+	/* // Date */
+	/* u8g2_oled.setFont(u8g2_font_helvB10_tf); */
+	/* u8g2_oled.drawStr(0,96,date.c_str()); */
+
+	/* // Time */
+	/* u8g2_oled.drawStr(96-u8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str()); */
+	/* u8g2_oled.drawStr(96-u8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str()); */
+
+	/* u8g2_oled.sendBuffer(); */
+}
+
+void Groove_OLED::drawBar(SckBase* base)
+{
+	u8g2_oled.setFont(u8g2_font_profont12_tf);
+
+	// Clear the buffer are of the bar
+	uint8_t *buffStart = u8g2_oled.getBufferPtr();
+	memset(&buffStart[0], 0, 256);
+
+	uint8_t font_h = u8g2_oled.getMaxCharHeight();
+
+	// Print current mode on the left
+	if (base->st.onSetup) u8g2_oled.drawStr(0, font_h, "SETUP");
+	else if (base->st.onShell) u8g2_oled.drawStr(0, font_h, "SHELL");
+	else if (base->st.mode == MODE_NET) u8g2_oled.drawStr(0, font_h, "WIFI");
+	else if (base->st.mode == MODE_SD) u8g2_oled.drawStr(0, font_h, "SD");
+
+	// Print battery percent on the right
+	char percent[3];
+	snprintf(percent, sizeof(percent), "%u", base->battery.last_percent);
+	uint8_t percent_w = u8g2_oled.getStrWidth(percent);
+	if (base->battery.present) u8g2_oled.drawStr(128 - percent_w, font_h, percent);
+
+	// Battery or AC icons depending on state
+	if (!base->charger.onUSB && base->battery.present){
+
+		// Draw an empty battery
+		u8g2_oled.drawFrame(128 - percent_w - 18, ((font_h - 8) / 2) + 2, 14, 8);
+		u8g2_oled.drawFrame(128 - percent_w - 20, ((font_h - 4) / 2) + 2, 3, 4);
+
+		// Fill it full/half depending on percent
+		if (base->battery.last_percent > 75) u8g2_oled.drawBox(128 - percent_w - 18, ((font_h - 8) / 2) + 2, 14, 8);
+		else if (base->battery.last_percent > 25) u8g2_oled.drawBox(128 - percent_w - 12, ((font_h - 8) / 2) + 2, 7, 8);
+
+	} else {
+
+		// If the USB is connected display an AC icon
+		u8g2_oled.drawFrame(128 - percent_w - 7, ((font_h - 4) / 2) + 3, 3, 2); 	// Cable
+
+		u8g2_oled.drawVLine(128 - percent_w - 13, ((font_h - 4) / 2), 8); 		// Front
+
+		u8g2_oled.drawHLine(128 - percent_w - 13, ((font_h - 4) / 2), 5); 		// Up and Down
+		u8g2_oled.drawHLine(128 - percent_w - 13, ((font_h - 4) / 2) + 7, 5);
+
+		u8g2_oled.drawHLine(128 - percent_w - 16, ((font_h - 4) / 2) + 2, 3); 		// Metals
+		u8g2_oled.drawHLine(128 - percent_w - 16, ((font_h - 4) / 2) + 5, 3);
+
+		u8g2_oled.drawPixel(128 - percent_w - 7, ((font_h - 4) / 2) + 2); 		// Rounding
+		u8g2_oled.drawPixel(128 - percent_w - 7, ((font_h - 4) / 2) + 5);
+		u8g2_oled.drawPixel(128 - percent_w - 8, ((font_h - 4) / 2) + 1);
+		u8g2_oled.drawPixel(128 - percent_w - 8, ((font_h - 4) / 2) + 6);
 	}
 
-	U8g2_oled.firstPage();
-	do {
+	u8g2_oled.drawHLine(0, 15, 128);
 
-		// Title
-		U8g2_oled.setFont(u8g2_font_helvB10_tf);
-		if (U8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) {
-
-			String first = title.substring(0, title.indexOf(" "));
-			String second = title.substring(title.indexOf(" ")+1);
-
-			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(first.c_str()))/2,11, first.c_str());
-			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(second.c_str()))/2,23, second.c_str());
-
-		} else U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(title.c_str()))/2,11, title.c_str());
-
-		// Reading
-		U8g2_oled.setFont(u8g2_font_helvB24_tf);
-		if (U8g2_oled.getStrWidth(reading.c_str()) > 96) U8g2_oled.setFont(u8g2_font_helvB18_tf);
-		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(reading.c_str()))/2, 55,  reading.c_str());
-
-		// Unit
-		U8g2_oled.setFont(u8g2_font_helvB12_tf);
-		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str());
-
-		if (time.toInt() != 0) {
-
-			// Date
-			U8g2_oled.setFont(u8g2_font_helvB10_tf);
-			U8g2_oled.drawStr(0,96,date.c_str());
-
-			// Time
-			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
-			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
-		}
-
-	} while (U8g2_oled.nextPage());
+	u8g2_oled.updateDisplayArea(0, 0, 16, 2);
 }
 
 bool WaterTemp_DS18B20::start()

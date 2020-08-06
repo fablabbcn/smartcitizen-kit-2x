@@ -260,6 +260,8 @@ void SckBase::reviewState()
 		}
 	}
 
+	// If we have a screen update it
+	if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
@@ -451,6 +453,9 @@ void SckBase::reviewState()
 
 				updateSensors();
 				updatePower();
+
+				// If we have a screen update it
+				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 			}
 
 			led.update(led.BLUE, led.PULSE_SOFT);
@@ -530,6 +535,9 @@ void SckBase::reviewState()
 
 				updateSensors();
 				updatePower();
+
+				// If we have a screen update it
+				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 			}
 
 			led.update(led.PINK, led.PULSE_SOFT);
@@ -1473,6 +1481,7 @@ void SckBase::updateSensors()
 	if (!st.timeStat.ok) return;
 	if (st.onSetup) return;
 	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented
+
 
 	// Main reading loop
 	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {

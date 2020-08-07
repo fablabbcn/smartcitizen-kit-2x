@@ -216,6 +216,7 @@ class Groove_OLED
 		const uint32_t refreshRate = 50;
 
 		void drawBar(SckBase* base);
+		void drawError(errorType wichError);
 
 		// For debug log view
 		void printLine(char *payload, uint8_t size);

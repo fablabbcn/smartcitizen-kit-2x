@@ -711,50 +711,8 @@ void Groove_OLED::update(SckBase* base)
 
 	drawBar(base);
 
+	drawError(base->st.error); 
 
-	/* u8g2_oled.clearDisplay(); */
-
-	/* String date = String(base->rtc.getYear()) + "-" + String(base->rtc.getMonth())  + "-" + String(base->rtc.getDay()); */
-	/* String hour = String(base->rtc.getHours()) + ":" + String(base->rtc.getMinutes()); */
-
-	/* // Get next sensor */	
-	/* OneSensor *wichSensor = &base->sensors[base->sensors.sensorsPriorized(sensorIndex)]; */
-	/* sensorIndex++; */
-	/* if (sensorIndex == SENSOR_COUNT) sensorIndex = 0; */
-
-	/* // Title */
-	/* String title = wichSensor->title; */
-	/* u8g2_oled.setFont(u8g2_font_helvB10_tf); */
-	/* if (u8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) { */
-
-	/* 	String first = title.substring(0, title.indexOf(" ")); */
-	/* 	String second = title.substring(title.indexOf(" ")+1); */
-
-	/* 	u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(first.c_str()))/2,11, first.c_str()); */
-	/* 	u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(second.c_str()))/2,23, second.c_str()); */
-
-	/* } else u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(title.c_str()))/2,11, title.c_str()); */
-
-	/* // Reading */
-	/* String reading = wichSensor->reading; */
-	/* u8g2_oled.setFont(u8g2_font_helvB24_tf); */
-	/* if (u8g2_oled.getStrWidth(reading.c_str()) > 96) u8g2_oled.setFont(u8g2_font_helvB18_tf); */
-	/* u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(reading.c_str()))/2, 55,  reading.c_str()); */
-
-	/* // Unit */
-	/* String unit = wichSensor->unit; */
-	/* u8g2_oled.setFont(u8g2_font_helvB12_tf); */
-	/* u8g2_oled.drawStr((96-u8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str()); */
-
-	/* // Date */
-	/* u8g2_oled.setFont(u8g2_font_helvB10_tf); */
-	/* u8g2_oled.drawStr(0,96,date.c_str()); */
-
-	/* // Time */
-	/* u8g2_oled.drawStr(96-u8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str()); */
-	/* u8g2_oled.drawStr(96-u8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str()); */
-
-	/* u8g2_oled.sendBuffer(); */
 }
 
 void Groove_OLED::drawBar(SckBase* base)
@@ -820,6 +778,65 @@ void Groove_OLED::drawBar(SckBase* base)
 
 	u8g2_oled.drawHLine(0, 15, 128);
 	u8g2_oled.updateDisplayArea(0, 0, 16, 2);
+}
+
+void Groove_OLED::drawError(errorType wichError)
+{
+	// Clear error buffer area
+	uint8_t *buffStart = u8g2_oled.getBufferPtr();
+	memset(&buffStart[1792], 0, 256);
+
+	if (wichError != ERROR_NONE) {
+
+		u8g2_oled.setFont(u8g2_font_7x13B_mr);
+		uint8_t font_h = u8g2_oled.getMaxCharHeight();
+
+		// Print a frame with an alert icon on the left
+		u8g2_oled.drawFrame(0, 112, 128, 16);
+		u8g2_oled.drawBox(0, 112, 16, 16);
+		u8g2_oled.drawXBM(2, 114, error_width, error_height, error_bits);
+
+		// Set message
+		char errorMsg[18];
+		switch(wichError) {
+			case ERROR_SD:
+				snprintf(errorMsg, sizeof(errorMsg), "NO SDCARD FOUND");
+				break;
+			case ERROR_SD_PUBLISH:
+				snprintf(errorMsg, sizeof(errorMsg), "SDCARD ERROR");
+				break;
+			case ERROR_TIME:
+				snprintf(errorMsg, sizeof(errorMsg), "TIME NOT SYNCED");
+				break;
+			case ERROR_NO_WIFI_CONFIG:
+				snprintf(errorMsg, sizeof(errorMsg), "NO WIFI SET");
+				break;
+			case ERROR_AP:
+				snprintf(errorMsg, sizeof(errorMsg), "WRONG WIFI SSID");
+				break;
+			case ERROR_PASS:
+				snprintf(errorMsg, sizeof(errorMsg), "WRONG WIFI PASS");
+				break;
+			case ERROR_WIFI_UNKNOWN:
+				snprintf(errorMsg, sizeof(errorMsg), "WIFI ERROR");
+				break;
+			case ERROR_MQTT:
+				snprintf(errorMsg, sizeof(errorMsg), "MQTT ERROR");
+				break;
+			case ERROR_NO_TOKEN_CONFIG:
+				snprintf(errorMsg, sizeof(errorMsg), "NO TOKEN SET");
+				break;
+			case ERROR_BATT:
+				snprintf(errorMsg, sizeof(errorMsg), "LOW BATTERY");
+				break;
+		}
+
+		// Print message
+		u8g2_oled.drawStr(19, 125, errorMsg);
+	}
+
+	// Update display
+	u8g2_oled.updateDisplayArea(0, 14, 16, 2);
 }
 
 bool WaterTemp_DS18B20::start()

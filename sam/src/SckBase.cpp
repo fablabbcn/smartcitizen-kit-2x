@@ -1478,6 +1478,9 @@ void SckBase::updatePower()
 					delay(200);
 				}
 
+				st.error = ERROR_BATT;
+				auxBoards.updateDisplay(this); 		// Force update of screen before going to sleep
+
 				// Ignore last user event and go to sleep
 				lastUserEvent = 0;
 

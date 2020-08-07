@@ -18,6 +18,19 @@ enum SCKmodes {
 	MODE_COUNT
 };
 
+enum errorType { 
+	ERROR_NONE, 
+	ERROR_SD, 
+	ERROR_SD_PUBLISH, 
+	ERROR_TIME, 
+	ERROR_NO_WIFI_CONFIG, 
+	ERROR_AP, 
+	ERROR_PASS, 
+	ERROR_WIFI_UNKNOWN, 
+	ERROR_MQTT, 
+	ERROR_NO_TOKEN_CONFIG, 
+	ERROR_BATT 
+};
 
 struct SensorConfig { bool enabled; uint8_t everyNint; };
 struct Credentials { bool set=false; char ssid[64]="null"; char pass[64]="null"; };

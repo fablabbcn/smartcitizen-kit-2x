@@ -75,6 +75,7 @@ struct SckState
 	Status helloStat = Status(3, 5000);
 	Status infoStat = Status(3, 5000);
 	Status publishStat = Status(3, 5000);
+	errorType error = ERROR_NONE;
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup

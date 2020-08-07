@@ -300,6 +300,7 @@ void SckBase::reviewState()
 				sckOut("ERROR wifi is not configured!!!");
 				ESPcontrol(ESP_OFF);
 				led.update(led.BLUE, led.PULSE_HARD_FAST);
+				st.error = ERROR_NO_WIFI_CONFIG;
 				st.wifiStat.error = true;
 			}
 			return;
@@ -310,6 +311,7 @@ void SckBase::reviewState()
 				sckOut("ERROR token is not configured!!!");
 				ESPcontrol(ESP_OFF);
 				led.update(led.BLUE, led.PULSE_HARD_FAST);
+				st.error = ERROR_NO_TOKEN_CONFIG;
 				st.tokenError = true;
 			}
 			return;
@@ -343,6 +345,7 @@ void SckBase::reviewState()
 			} else {
 
 				led.update(led.BLUE, led.PULSE_SOFT);
+				st.error = ERROR_NONE;
 
 				if (st.helloPending) {
 
@@ -356,6 +359,7 @@ void SckBase::reviewState()
 
 						ESPcontrol(ESP_REBOOT); 		// Try reseting ESP
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
+						st.error = ERROR_MQTT;
 
 						st.helloStat.reset();
 					}
@@ -372,6 +376,7 @@ void SckBase::reviewState()
 
 						ESPcontrol(ESP_REBOOT);
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
+						st.error = ERROR_TIME;
 
 						st.timeStat.reset();
 					}
@@ -387,6 +392,7 @@ void SckBase::reviewState()
 						sckOut("ERROR sending kit info to platform!!!");
 						infoPublished = true; 		// We will try on next reset
 						st.infoStat.reset();
+						st.error = ERROR_MQTT;
 
 					}
 
@@ -424,6 +430,7 @@ void SckBase::reviewState()
 						sdPublish();
 
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
+						st.error = ERROR_MQTT;
 
 						ESPcontrol(ESP_OFF);
 						timeToPublish = false;
@@ -459,6 +466,7 @@ void SckBase::reviewState()
 			}
 
 			led.update(led.BLUE, led.PULSE_SOFT);
+			st.error = ERROR_NONE;
 			updateSensors();
 			if (readingsList.countGroups() > 0) sdPublish();
 
@@ -472,6 +480,7 @@ void SckBase::reviewState()
 				sckOut("ERROR can't find SD card!!!");
 				if (st.espON) ESPcontrol(ESP_OFF);
 				led.update(led.PINK, led.PULSE_HARD_FAST);
+				st.error = ERROR_SD;
 				st.cardPresentError = true;
 			}
 			return;
@@ -479,6 +488,7 @@ void SckBase::reviewState()
 		} else if (!st.timeStat.ok) {
 
 			if (!st.wifiSet)  {
+				st.error = ERROR_TIME;
 				if (!st.wifiStat.error) {
 					sckOut("ERROR time is not synced and no wifi set!!!");
 					ESPcontrol(ESP_OFF);
@@ -498,6 +508,7 @@ void SckBase::reviewState()
 
 						ESPcontrol(ESP_OFF);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
+						st.error = ERROR_TIME;
 						st.wifiStat.reset();
 					}
 
@@ -514,6 +525,7 @@ void SckBase::reviewState()
 						st.timeStat.reset();
 						ESPcontrol(ESP_OFF);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
+						st.error = ERROR_TIME;
 					}
 				}
 			}
@@ -541,6 +553,7 @@ void SckBase::reviewState()
 			}
 
 			led.update(led.PINK, led.PULSE_SOFT);
+			st.error = ERROR_NONE;
 			updateSensors();
 			if (st.espON) ESPcontrol(ESP_OFF);
 
@@ -550,6 +563,7 @@ void SckBase::reviewState()
 					sckOut("ERROR failed publishing to SD card");
 					// TODO if this error happens the error blink gets interrupted by the one that is just out of sleep mode
 					led.update(led.PINK, led.PULSE_HARD_FAST);
+					st.error = ERROR_SD_PUBLISH;
 				} else {
 					timeToPublish = false;
 					lastPublishTime = rtc.getEpoch();
@@ -565,6 +579,7 @@ void SckBase::enterSetup()
 
 	// Update led
 	led.update(led.RED, led.PULSE_SOFT);
+	st.error = ERROR_NONE;
 
 	// Clear errors from other modes
 	st.tokenError = false;
@@ -812,6 +827,7 @@ void SckBase::saveConfig(bool defaults)
 			st.helloPending = true;
 			st.onSetup = false;
 			led.update(led.BLUE, led.PULSE_SOFT);
+			st.error = ERROR_NONE;
 			sendMessage(ESPMES_STOP_AP, "");
 
 		} else {
@@ -820,6 +836,7 @@ void SckBase::saveConfig(bool defaults)
 			if (!st.tokenSet) sckOut("ERROR Token not configured: can't set Network Mode!!!");
 			ESPcontrol(ESP_OFF);
 			led.update(led.BLUE, led.PULSE_HARD_FAST);
+			st.error = ERROR_NO_WIFI_CONFIG;
 		}
 
 	} else if (st.mode == MODE_SD) {
@@ -828,6 +845,7 @@ void SckBase::saveConfig(bool defaults)
 		st.onSetup = false;
 		led.update(led.PINK, led.PULSE_SOFT);
 		sendMessage(ESPMES_STOP_AP, "");
+		st.error = ERROR_NONE;
 
 	}
 
@@ -1156,15 +1174,24 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 		case SAMMES_SSID_ERROR:
 
-			sckOut("ERROR Access point not found!!"); st.wifiStat.error = true; break;
+			sckOut("ERROR Access point not found!!");
+			st.wifiStat.error = true;
+			st.error = ERROR_AP;
+			break;
 
 		case SAMMES_PASS_ERROR:
 
-			sckOut("ERROR wrong wifi password!!"); st.wifiStat.error = true; break;
+			sckOut("ERROR wrong wifi password!!");
+			st.wifiStat.error = true;
+			st.error = ERROR_PASS;
+			break;
 
 		case SAMMES_WIFI_UNKNOWN_ERROR:
 
-			sckOut("ERROR unknown wifi error!!"); st.wifiStat.error = true; break;
+			sckOut("ERROR unknown wifi error!!");
+			st.wifiStat.error = true;
+			st.error = ERROR_WIFI_UNKNOWN;
+			break;
 
 		case SAMMES_TIME:
 		{
@@ -1188,6 +1215,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			sckOut("ERROR on MQTT publish");
 			st.publishStat.error = true;
+			st.error = ERROR_MQTT;
 			break;
 
 		case SAMMES_MQTT_INFO_OK:
@@ -1200,6 +1228,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_INFO_ERROR:
 
 			st.infoStat.error = true;
+			st.error = ERROR_MQTT;
 			sckOut("ERROR on Info publish!!");
 			break;
 
@@ -1210,6 +1239,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 		case SAMMES_MQTT_CUSTOM_ERROR:
 
+			st.error = ERROR_MQTT;
 			sckOut("ERROR on custom MQTT publish");
 			break;
 

@@ -656,7 +656,7 @@ void Groove_OLED::print(char *payload)
 	for (uint8_t i=0; i<strlen(payload); i++) {
 
 		// If there is a newLine char
-		if (payload[i] == 0xA || i == (strlen(payload) - 1)) { 
+		if (payload[i] == 0xA || i == (strlen(payload) - 1)) {
 
 			printLine(&payload[lineStart], thisLineChar + 1);
 			lineStart += (thisLineChar + 1);
@@ -664,7 +664,7 @@ void Groove_OLED::print(char *payload)
 
 		// If line is full
 		} else if (thisLineChar == (columns - 1)) {
-			
+
 			printLine(&payload[lineStart], thisLineChar + 1);
 			lineStart += (thisLineChar + 1);
 			thisLineChar = 0;
@@ -688,7 +688,7 @@ void Groove_OLED::printLine(char *payload, uint8_t size)
 		u8g2_oled.home();
 
 	// Slide screen one line up when bottom is reached
-	} else if (currentLine > lines) { 		
+	} else if (currentLine > lines) {
 		uint8_t *buffStart = u8g2_oled.getBufferPtr();
 		memcpy(&buffStart[0], &buffStart[128], 1920);
 		memset(&buffStart[1920], 0, 128);
@@ -709,6 +709,7 @@ void Groove_OLED::update(SckBase* base)
 	if (millis() - lastUpdate < refreshRate) return;
 	lastUpdate = millis();
 
+	// Info bar
 	drawBar(base);
 
 	drawError(base->st.error); 
@@ -736,7 +737,7 @@ void Groove_OLED::drawBar(SckBase* base)
 	uint8_t sep = 4;
 
 	if (base->battery.present) {
-		
+
 		// Battery percent
 		char percent[5];
 		snprintf(percent, sizeof(percent), "%u%%", base->battery.last_percent);
@@ -749,7 +750,7 @@ void Groove_OLED::drawBar(SckBase* base)
 		else if (base->battery.last_percent > 75) u8g2_oled.drawXBM(tray_x, (16 - batt_full_height) / 2, batt_full_width, batt_full_height, batt_full_bits);
 		else if (base->battery.last_percent > 25) u8g2_oled.drawXBM(tray_x, (16 - batt_half_height) / 2, batt_half_width, batt_half_height, batt_half_bits);
 		else u8g2_oled.drawXBM(tray_x, (16 - batt_empty_height) / 2, batt_empty_width, batt_empty_height, batt_empty_bits);
-		
+
 	}
 
 	// AC icon
@@ -1036,7 +1037,7 @@ bool Atlas::getBusyState()
 							} else {
 								newReadingStr = atlasResponse.substring(0);
 							}
-							
+
 							newReading[i] = newReadingStr.toFloat();
 						}
 					}
@@ -1530,37 +1531,37 @@ bool Sck_ADS1X15::getReading(uint8_t wichChannel)
 
 	// If value is under 4.096v increase the gain depending on voltage
 	if (value < 21845) {
-		if (value > 10922) { 
+		if (value > 10922) {
 
 			// 1x gain, 4.096V
 			ads.setGain(GAIN_ONE);
 			voltage_range = 4.096;
 
-		} else if (value > 5461) { 
+		} else if (value > 5461) {
 
 			// 2x gain, 2.048V
 			ads.setGain(GAIN_TWO);
 			voltage_range = 2.048;
 
-		} else if (value > 2730) { 
+		} else if (value > 2730) {
 
 			// 4x gain, 1.024V
 			ads.setGain(GAIN_FOUR);
 			voltage_range = 1.024;
 
-		} else if (value > 1365) { 
+		} else if (value > 1365) {
 
 			// 8x gain, 0.25V
 			ads.setGain(GAIN_EIGHT);
 			voltage_range = 0.25;
 
-		} else { 
+		} else {
 
 			// 16x gain, 0.125V
 			ads.setGain(GAIN_SIXTEEN);
 			voltage_range = 0.125;
 		}
-	
+
 		// Get the value again
 		value = ads.readADC_SingleEnded(wichChannel);
 	}

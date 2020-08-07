@@ -766,6 +766,10 @@ void SckBase::loadConfig()
 	st.tokenError = false;
 	st.mode = config.mode;
 	readingsList.debug = config.debug.flash;
+	snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
+	memcpy(&hostname[12], &config.mac.address[12], 2);
+	memcpy(&hostname[14], &config.mac.address[15], 2);
+	hostname[16] = '\0';
 
 	// CSS vocs sensor baseline loading
 	if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
@@ -780,16 +784,7 @@ void SckBase::saveConfig(bool defaults)
 	if (defaults) {
 		Configuration defaultConfig;
 
-		if (config.mac.valid) macAddress = String(config.mac.address); 	// If we already have a mac address keep it
-
 		config = defaultConfig;
-
-		if (macAddress.length() > 0) {
-			sprintf(config.mac.address, "%s", macAddress.c_str());
-			config.mac.valid = true;
-		} else {
-			config.mac.valid = false;
-		}
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
@@ -1154,9 +1149,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);
 				ipAddress = json["ip"].as<String>();
-				hostname = json["hn"].as<String>();
 
-				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname.c_str(), ipAddress.c_str(), macAddress.c_str());
+				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname, ipAddress.c_str(), config.mac.address);
 				sckOut();
 				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
 				sckOut();
@@ -1251,16 +1245,20 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 			JsonObject& json = jsonBuffer.parseObject(netBuff);
-			macAddress = json["mac"].as<String>();
+			String macAddress = json["mac"].as<String>();
 			ESPversion = json["ver"].as<String>();
 			ESPbuildDate = json["bd"].as<String>();
 
-			// Udate mac address if we haven't yet
+			// Udate mac address and hostname if we haven't yet
 			if (!config.mac.valid) {
 				sckOut("Updated MAC address");
 				sprintf(config.mac.address, "%s", macAddress.c_str());
 				config.mac.valid = true;
 				saveConfig();
+				snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
+				memcpy(&hostname[12], &config.mac.address[12], 2);
+				memcpy(&hostname[14], &config.mac.address[15], 2);
+				hostname[16] = '\0';
 			}
 
 			if (!espInfoUpdated) {

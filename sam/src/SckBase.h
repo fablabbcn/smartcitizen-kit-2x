@@ -228,8 +228,7 @@ class SckBase
 		bool sendMessage(ESPMessage wichMessage);
 		bool sendMessage();
 		String ipAddress;
-		String macAddress;
-		String hostname;
+		char hostname[17];
 		void mqttCustom(const char *topic, const char *payload);
 
 		// Output

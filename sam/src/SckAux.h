@@ -18,6 +18,8 @@
 
 // Groove_OLED libs
 #include <U8g2lib.h>
+// Icons for screen
+#include <Icons.h>
 
 // DS2482 library (I2C-1Wire bridge)
 #include <DS2482.h>

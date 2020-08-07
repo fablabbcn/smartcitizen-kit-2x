@@ -635,6 +635,8 @@ bool Groove_OLED::start()
 	u8g2_oled.drawXBM( 16, 16, 96, 96, scLogo);
 	u8g2_oled.sendBuffer();
 	currentLine = 1;
+	delay(1000);
+	u8g2_oled.clearDisplay();
 
 	return true;;
 }
@@ -757,7 +759,7 @@ void Groove_OLED::update(SckBase* base)
 
 void Groove_OLED::drawBar(SckBase* base)
 {
-	u8g2_oled.setFont(u8g2_font_profont12_tf);
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
 
 	// Clear the buffer are of the bar
 	uint8_t *buffStart = u8g2_oled.getBufferPtr();
@@ -771,44 +773,52 @@ void Groove_OLED::drawBar(SckBase* base)
 	else if (base->st.mode == MODE_NET) u8g2_oled.drawStr(0, font_h, "WIFI");
 	else if (base->st.mode == MODE_SD) u8g2_oled.drawStr(0, font_h, "SD");
 
-	// Print battery percent on the right
-	char percent[3];
-	snprintf(percent, sizeof(percent), "%u", base->battery.last_percent);
-	uint8_t percent_w = u8g2_oled.getStrWidth(percent);
-	if (base->battery.present) u8g2_oled.drawStr(128 - percent_w, font_h, percent);
+	// Print "icon tray" from right to left
+	uint8_t tray_x = 128;
+	uint8_t sep = 4;
 
-	// Battery or AC icons depending on state
-	if (!base->charger.onUSB && base->battery.present){
+	if (base->battery.present) {
+		
+		// Battery percent
+		char percent[5];
+		snprintf(percent, sizeof(percent), "%u%%", base->battery.last_percent);
+		tray_x -= u8g2_oled.getStrWidth(percent);
+		u8g2_oled.drawStr(tray_x, font_h, percent);
 
-		// Draw an empty battery
-		u8g2_oled.drawFrame(128 - percent_w - 18, ((font_h - 8) / 2) + 2, 14, 8);
-		u8g2_oled.drawFrame(128 - percent_w - 20, ((font_h - 4) / 2) + 2, 3, 4);
+		// Battery Icon
+		tray_x -= (batt_charge_width + sep);
+		if (base->led.chargeStatus == base->led.CHARGE_CHARGING) u8g2_oled.drawXBM(tray_x, (16 - batt_charge_height) / 2, batt_charge_width, batt_charge_height, batt_charge_bits);
+		else if (base->battery.last_percent > 75) u8g2_oled.drawXBM(tray_x, (16 - batt_full_height) / 2, batt_full_width, batt_full_height, batt_full_bits);
+		else if (base->battery.last_percent > 25) u8g2_oled.drawXBM(tray_x, (16 - batt_half_height) / 2, batt_half_width, batt_half_height, batt_half_bits);
+		else u8g2_oled.drawXBM(tray_x, (16 - batt_empty_height) / 2, batt_empty_width, batt_empty_height, batt_empty_bits);
+		
+	}
 
-		// Fill it full/half depending on percent
-		if (base->battery.last_percent > 75) u8g2_oled.drawBox(128 - percent_w - 18, ((font_h - 8) / 2) + 2, 14, 8);
-		else if (base->battery.last_percent > 25) u8g2_oled.drawBox(128 - percent_w - 12, ((font_h - 8) / 2) + 2, 7, 8);
+	// AC icon
+	if (base->charger.onUSB) {
+		tray_x -= (AC_width + sep);
+		u8g2_oled.drawXBM(tray_x, (16 - AC_height) / 2, AC_width, AC_height, AC_bits);
+	}
 
-	} else {
+	// Time sync icon
+	if (base->st.timeStat.ok) {
+		tray_x -= (clock_width + sep);
+		u8g2_oled.drawXBM(tray_x, (16 - clock_height) / 2, clock_width, clock_height, clock_bits);
+	}
 
-		// If the USB is connected display an AC icon
-		u8g2_oled.drawFrame(128 - percent_w - 7, ((font_h - 4) / 2) + 3, 3, 2); 	// Cable
+	// Sdcard icon
+	if (base->st.cardPresent) {
+		tray_x -= (sdcard_width + sep);
+		u8g2_oled.drawXBM(tray_x, (16 - sdcard_height) / 2, sdcard_width, sdcard_height, sdcard_bits);
+	}
 
-		u8g2_oled.drawVLine(128 - percent_w - 13, ((font_h - 4) / 2), 8); 		// Front
-
-		u8g2_oled.drawHLine(128 - percent_w - 13, ((font_h - 4) / 2), 5); 		// Up and Down
-		u8g2_oled.drawHLine(128 - percent_w - 13, ((font_h - 4) / 2) + 7, 5);
-
-		u8g2_oled.drawHLine(128 - percent_w - 16, ((font_h - 4) / 2) + 2, 3); 		// Metals
-		u8g2_oled.drawHLine(128 - percent_w - 16, ((font_h - 4) / 2) + 5, 3);
-
-		u8g2_oled.drawPixel(128 - percent_w - 7, ((font_h - 4) / 2) + 2); 		// Rounding
-		u8g2_oled.drawPixel(128 - percent_w - 7, ((font_h - 4) / 2) + 5);
-		u8g2_oled.drawPixel(128 - percent_w - 8, ((font_h - 4) / 2) + 1);
-		u8g2_oled.drawPixel(128 - percent_w - 8, ((font_h - 4) / 2) + 6);
+	// Wifi icon
+	if (base->st.wifiStat.ok && base->st.espON) {
+		tray_x -= (wifi_width + sep);
+		u8g2_oled.drawXBM(tray_x, (16 - wifi_height) / 2, wifi_width, wifi_height, wifi_bits);
 	}
 
 	u8g2_oled.drawHLine(0, 15, 128);
-
 	u8g2_oled.updateDisplayArea(0, 0, 16, 2);
 }
 

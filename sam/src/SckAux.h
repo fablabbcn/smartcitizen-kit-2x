@@ -211,6 +211,8 @@ class Groove_OLED
 		void update(SckBase* base);
 		/* void displayReading(SckBase* base); */
 
+		SensorType sensorsToDisplay[SENSOR_COUNT];
+
 	private:
 		uint32_t lastUpdate;
 		const uint32_t refreshRate = 50;

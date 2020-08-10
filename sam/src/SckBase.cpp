@@ -788,6 +788,7 @@ void SckBase::saveConfig(bool defaults)
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
+			config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
 		}
 		pendingSyncConfig = true;

@@ -94,7 +94,7 @@ class AllCommands {
 			OneCom {40,	COM_OUTLEVEL,		"outlevel",	"Shows/sets output level: outlevel [0:silent, 1:normal, 2:verbose]",									outlevel_com},
 			OneCom {50,	COM_HELP,		"help",		"Duhhhh!!",																help_com},
 			OneCom {60,	COM_PINMUX,		"pinmux",	"Shows SAMD pin mapping status",													pinmux_com},
-			OneCom {80,	COM_LIST_SENSOR,	"sensor",	"Shows/sets sensor state or interval: sensor sensor-name [-enable or -disable] or [-interval interval(seconds)]",			sensorConfig_com},
+			OneCom {80,	COM_LIST_SENSOR,	"sensor",	"Shows/sets sensor state or interval: sensor sensor-name [-enable or -disable] [-interval interval(seconds)] [-oled]",			sensorConfig_com},
 			OneCom {90,	COM_READ_SENSOR,	"read",		"Reads sensor: read [sensorName]",													readSensor_com},
 			OneCom {90,	COM_CONTROL_SENSOR,	"control",	"Control sensor: control [sensorName] [command]",											controlSensor_com},
 			OneCom {90,	COM_MONITOR_SENSOR,	"monitor",	"Continously read sensor: monitor [-sd] [-notime] [-noms] [sensorName[,sensorNameN]]",							monitorSensor_com},

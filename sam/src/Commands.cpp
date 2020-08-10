@@ -152,7 +152,11 @@ void sensorConfig_com(SckBase* base, String parameters)
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 			thisType = base->sensors.sensorsPriorized(i);
-			if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].everyNint * base->config.readInterval) + " sec)");
+			if (base->sensors[thisType].enabled) {
+				snprintf(base->outBuff, sizeof(base->outBuff), "%s (%u sec)", base->sensors[thisType].title, (base->sensors[thisType].everyNint * base->config.readInterval));
+				if (base->sensors[SENSOR_GROVE_OLED].enabled) snprintf(base->outBuff, sizeof(base->outBuff), "%s%s", base->outBuff, base->config.sensors[thisType].oled_display ? " - oled" : "");
+				base->sckOut();
+			}
 		}
 
 	} else {
@@ -184,7 +188,9 @@ void sensorConfig_com(SckBase* base, String parameters)
 		if (sensorToChange == SENSOR_COUNT) {
 			base->sckOut("ERROR sensor not found");
 			return;
-		} else if (parameters.indexOf("-enable") >=0) {
+		} 
+
+		if (parameters.indexOf("-enable") >=0) {
 			if (!base->enableSensor(sensorToChange)) {
 				sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
 				base->sckOut();
@@ -210,7 +216,20 @@ void sensorConfig_com(SckBase* base, String parameters)
 				}
 				saveNeeded = true;
 			}
-		} else if (parameters.indexOf("-interval") >=0) {
+		} 
+
+		if (parameters.indexOf("-oled") >=0) {
+
+			base->config.sensors[sensorToChange].oled_display = !base->config.sensors[sensorToChange].oled_display;
+
+			snprintf(base->outBuff, sizeof(base->outBuff), "%s will %s on oled display", base->sensors[sensorToChange].title, base->config.sensors[sensorToChange].oled_display ? "be displayed" : "not show");
+			base->sckOut();
+
+			saveNeeded = true;
+
+		} 
+
+		if (parameters.indexOf("-interval") >=0) {
 
 			// Get the number of seconds user asked for as new interval
 			int16_t intervalIndex = parameters.indexOf("-interval") + 10;

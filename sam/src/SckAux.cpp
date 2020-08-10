@@ -712,8 +712,11 @@ void Groove_OLED::update(SckBase* base)
 	// Info bar
 	drawBar(base);
 
-	drawError(base->st.error); 
+	// Setup mode screen
+	if (base->st.onSetup) drawSetup(base);
 
+	// Error popup (at the end because it goes on top)
+	drawError(base->st.error);
 }
 
 void Groove_OLED::drawBar(SckBase* base)
@@ -783,6 +786,8 @@ void Groove_OLED::drawBar(SckBase* base)
 
 void Groove_OLED::drawError(errorType wichError)
 {
+	if (lastError == wichError) return;
+
 	// Clear error buffer area
 	uint8_t *buffStart = u8g2_oled.getBufferPtr();
 	memset(&buffStart[1792], 0, 256);
@@ -836,8 +841,38 @@ void Groove_OLED::drawError(errorType wichError)
 		u8g2_oled.drawStr(19, 125, errorMsg);
 	}
 
+	lastError = wichError;
+
 	// Update display
 	u8g2_oled.updateDisplayArea(0, 14, 16, 2);
+}
+
+void Groove_OLED::drawSetup(SckBase* base)
+{
+	// Clear buffer (except info bar)
+	uint8_t *buffStart = u8g2_oled.getBufferPtr();
+	memset(&buffStart[256], 0, 1792);
+
+	uint8_t font_h = u8g2_oled.getMaxCharHeight();
+
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
+	char conn[] = "Connect to the Wi-Fi:";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn)) / 2, font_h + 30, conn);
+
+	u8g2_oled.setFont(u8g2_font_t0_16b_tf);
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(base->hostname)) / 2, font_h + 55, base->hostname);
+	
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
+	char conn2[] = "If no window opens,";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn2)) / 2, font_h + 80, conn2);
+	char conn3[] = "with your browser go to";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn3)) / 2, font_h + 92, conn3);
+	char conn4[] = "http://sck.me";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn4)) / 2, font_h + 104, conn4);
+	char conn5[] = "or 192.168.1.1";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn5)) / 2, font_h + 116, conn5);
+	
+	u8g2_oled.updateDisplayArea(0, 2, 16, 14);
 }
 
 bool WaterTemp_DS18B20::start()

@@ -217,6 +217,8 @@ class Groove_OLED
 
 		void drawBar(SckBase* base);
 		void drawError(errorType wichError);
+		errorType lastError;
+		void drawSetup(SckBase* base);
 
 		// For debug log view
 		void printLine(char *payload, uint8_t size);
@@ -226,7 +228,6 @@ class Groove_OLED
 		const uint8_t columns = 21;
 		const uint8_t lines = 12;
 		uint8_t currentLine = 1;
-
 
 		uint8_t sensorIndex;
 

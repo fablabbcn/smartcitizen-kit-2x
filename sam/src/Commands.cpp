@@ -680,6 +680,9 @@ void netInfo_com(SckBase* base, String parameters)
 void time_com(SckBase* base, String parameters)
 {
 
+	base->epoch2iso(base->rtc.getEpoch(), base->ISOtimeBuff);
+	base->sckOut();
+
 	if (parameters.length() <= 0) {
 
 		if (base->ISOtime()) {

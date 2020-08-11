@@ -532,7 +532,7 @@ void SckBase::reviewState()
 
 			led.update(led.PINK, led.PULSE_SOFT);
 			updateSensors();
-			if (st.espON) ESPcontrol(ESP_OFF);
+			if (st.espON && !pendingSyncConfig) ESPcontrol(ESP_OFF);
 
 			if (readingsList.countGroups() > 0) {
 

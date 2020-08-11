@@ -176,12 +176,14 @@ void SckBase::setup()
 		if (wichSensor->location == BOARD_AUX) {
 			if (enableSensor(wichSensor->type)) {
 				wichSensor->enabled = true;
+				if (wichSensor->type != SENSOR_GROVE_OLED) config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
 				saveNeeded = true;
 			} else if (wichSensor->enabled)  {
 				disableSensor(wichSensor->type);
 				sprintf(outBuff, "Removed: %s... ", wichSensor->title);
 				sckOut();
 				wichSensor->enabled = false;
+				config.sensors[wichSensor->type].oled_display = false;
 				saveNeeded = true;
 			}
 		}
@@ -462,7 +464,7 @@ void SckBase::reviewState()
 				updatePower();
 
 				// If we have a screen update it
-				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
+				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
 			}
 
 			led.update(led.BLUE, led.PULSE_SOFT);
@@ -549,7 +551,7 @@ void SckBase::reviewState()
 				updatePower();
 
 				// If we have a screen update it
-				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
+				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
 			}
 
 			led.update(led.PINK, led.PULSE_SOFT);
@@ -791,6 +793,7 @@ void SckBase::saveConfig(bool defaults)
 			config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
 		}
+		config.sensors[SENSOR_BATT_PERCENT].oled_display = false; 	// Battery is already shown on oled info-bar
 		pendingSyncConfig = true;
 	} else {
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -1478,7 +1481,7 @@ void SckBase::updatePower()
 				}
 
 				st.error = ERROR_BATT;
-				auxBoards.updateDisplay(this); 		// Force update of screen before going to sleep
+				auxBoards.updateDisplay(this, true); 		// Force update of screen before going to sleep
 
 				// Ignore last user event and go to sleep
 				lastUserEvent = 0;

@@ -150,7 +150,7 @@ class AuxBoards
 		bool getBusyState(SensorType wichSensor);
 		String control(SensorType wichSensor, String command);
 		void print(char *payload);
-		void updateDisplay(SckBase* base);
+		void updateDisplay(SckBase* base, bool force=false);
 
 		EepromAuxData data;
 		bool dataLoaded = false;
@@ -199,19 +199,16 @@ class INA219
 class Groove_OLED
 {
 	public:
-
 		const byte deviceAddress = 0x3c;
-		const uint32_t showTime = 3000;
+		const uint32_t showTime = 3;
 
 		U8G2_SH1107_SEEED_128X128_F_2ND_HW_I2C u8g2_oled = U8G2_SH1107_SEEED_128X128_F_2ND_HW_I2C(U8G2_R0, U8X8_PIN_NONE);
 
 		bool start();
 		bool stop();
 		void print(char *payload);
-		void update(SckBase* base);
-		/* void displayReading(SckBase* base); */
-
-		SensorType sensorsToDisplay[SENSOR_COUNT];
+		void update(SckBase* base, bool force);
+		void displayReading(SckBase* base);
 
 	private:
 		uint32_t lastUpdate;
@@ -231,8 +228,8 @@ class Groove_OLED
 		const uint8_t lines = 12;
 		uint8_t currentLine = 1;
 
-		uint8_t sensorIndex;
-
+		SensorType lastShown; 				
+		uint32_t showStartTime = 0;
 };
 
 /*! @class DS2482_100

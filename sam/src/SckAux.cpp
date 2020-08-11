@@ -530,9 +530,9 @@ void AuxBoards::print(char *payload)
 	groove_OLED.print(payload);
 }
 
-void AuxBoards::updateDisplay(SckBase* base)
+void AuxBoards::updateDisplay(SckBase* base, bool force)
 {
-	groove_OLED.update(base);
+	groove_OLED.update(base, force);
 }
 
 bool GrooveI2C_ADC::start()
@@ -704,19 +704,27 @@ void Groove_OLED::printLine(char *payload, uint8_t size)
 	currentLine++;
 }
 
-void Groove_OLED::update(SckBase* base)
+void Groove_OLED::update(SckBase* base, bool force)
 {
-	if (millis() - lastUpdate < refreshRate) return;
+	if (millis() - lastUpdate < refreshRate && !force) return;
 	lastUpdate = millis();
 
 	// Info bar
 	drawBar(base);
 
-	// Setup mode screen
-	if (base->st.onSetup) drawSetup(base);
+	if (base->st.error == ERROR_NONE) {
+	
+		// Setup mode screen
+		if (base->st.onSetup) drawSetup(base);
+		else displayReading(base);
+	
+	} else {
 
-	// Error popup (at the end because it goes on top)
-	drawError(base->st.error);
+		// Error popup
+		drawError(base->st.error);
+
+	}
+
 }
 
 void Groove_OLED::drawBar(SckBase* base)
@@ -792,54 +800,51 @@ void Groove_OLED::drawError(errorType wichError)
 	uint8_t *buffStart = u8g2_oled.getBufferPtr();
 	memset(&buffStart[1792], 0, 256);
 
-	if (wichError != ERROR_NONE) {
+	u8g2_oled.setFont(u8g2_font_7x13B_mr);
+	uint8_t font_h = u8g2_oled.getMaxCharHeight();
 
-		u8g2_oled.setFont(u8g2_font_7x13B_mr);
-		uint8_t font_h = u8g2_oled.getMaxCharHeight();
+	// Print a frame with an alert icon on the left
+	u8g2_oled.drawFrame(0, 112, 128, 16);
+	u8g2_oled.drawBox(0, 112, 16, 16);
+	u8g2_oled.drawXBM(2, 114, error_width, error_height, error_bits);
 
-		// Print a frame with an alert icon on the left
-		u8g2_oled.drawFrame(0, 112, 128, 16);
-		u8g2_oled.drawBox(0, 112, 16, 16);
-		u8g2_oled.drawXBM(2, 114, error_width, error_height, error_bits);
-
-		// Set message
-		char errorMsg[18];
-		switch(wichError) {
-			case ERROR_SD:
-				snprintf(errorMsg, sizeof(errorMsg), "NO SDCARD FOUND");
-				break;
-			case ERROR_SD_PUBLISH:
-				snprintf(errorMsg, sizeof(errorMsg), "SDCARD ERROR");
-				break;
-			case ERROR_TIME:
-				snprintf(errorMsg, sizeof(errorMsg), "TIME NOT SYNCED");
-				break;
-			case ERROR_NO_WIFI_CONFIG:
-				snprintf(errorMsg, sizeof(errorMsg), "NO WIFI SET");
-				break;
-			case ERROR_AP:
-				snprintf(errorMsg, sizeof(errorMsg), "WRONG WIFI SSID");
-				break;
-			case ERROR_PASS:
-				snprintf(errorMsg, sizeof(errorMsg), "WRONG WIFI PASS");
-				break;
-			case ERROR_WIFI_UNKNOWN:
-				snprintf(errorMsg, sizeof(errorMsg), "WIFI ERROR");
-				break;
-			case ERROR_MQTT:
-				snprintf(errorMsg, sizeof(errorMsg), "MQTT ERROR");
-				break;
-			case ERROR_NO_TOKEN_CONFIG:
-				snprintf(errorMsg, sizeof(errorMsg), "NO TOKEN SET");
-				break;
-			case ERROR_BATT:
-				snprintf(errorMsg, sizeof(errorMsg), "LOW BATTERY");
-				break;
-		}
-
-		// Print message
-		u8g2_oled.drawStr(19, 125, errorMsg);
+	// Set message
+	char errorMsg[18];
+	switch(wichError) {
+		case ERROR_SD:
+			snprintf(errorMsg, sizeof(errorMsg), "NO SDCARD FOUND");
+			break;
+		case ERROR_SD_PUBLISH:
+			snprintf(errorMsg, sizeof(errorMsg), "SDCARD ERROR");
+			break;
+		case ERROR_TIME:
+			snprintf(errorMsg, sizeof(errorMsg), "TIME NOT SYNCED");
+			break;
+		case ERROR_NO_WIFI_CONFIG:
+			snprintf(errorMsg, sizeof(errorMsg), "NO WIFI SET");
+			break;
+		case ERROR_AP:
+			snprintf(errorMsg, sizeof(errorMsg), "WRONG WIFI SSID");
+			break;
+		case ERROR_PASS:
+			snprintf(errorMsg, sizeof(errorMsg), "WRONG WIFI PASS");
+			break;
+		case ERROR_WIFI_UNKNOWN:
+			snprintf(errorMsg, sizeof(errorMsg), "WIFI ERROR");
+			break;
+		case ERROR_MQTT:
+			snprintf(errorMsg, sizeof(errorMsg), "MQTT ERROR");
+			break;
+		case ERROR_NO_TOKEN_CONFIG:
+			snprintf(errorMsg, sizeof(errorMsg), "NO TOKEN SET");
+			break;
+		case ERROR_BATT:
+			snprintf(errorMsg, sizeof(errorMsg), "LOW BATTERY");
+			break;
 	}
+
+	// Print message
+	u8g2_oled.drawStr(19, 125, errorMsg);
 
 	lastError = wichError;
 
@@ -853,15 +858,15 @@ void Groove_OLED::drawSetup(SckBase* base)
 	uint8_t *buffStart = u8g2_oled.getBufferPtr();
 	memset(&buffStart[256], 0, 1792);
 
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
 	uint8_t font_h = u8g2_oled.getMaxCharHeight();
 
-	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
 	char conn[] = "Connect to the Wi-Fi:";
 	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn)) / 2, font_h + 30, conn);
 
 	u8g2_oled.setFont(u8g2_font_t0_16b_tf);
 	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(base->hostname)) / 2, font_h + 55, base->hostname);
-	
+
 	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
 	char conn2[] = "If no window opens,";
 	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn2)) / 2, font_h + 80, conn2);
@@ -871,8 +876,95 @@ void Groove_OLED::drawSetup(SckBase* base)
 	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn4)) / 2, font_h + 104, conn4);
 	char conn5[] = "or 192.168.1.1";
 	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn5)) / 2, font_h + 116, conn5);
-	
+
 	u8g2_oled.updateDisplayArea(0, 2, 16, 14);
+}
+
+void Groove_OLED::displayReading(SckBase* base)
+{
+	if (base->rtc.getEpoch() - showStartTime <= showTime) return;
+
+	SensorType sensorToShow = SENSOR_COUNT;
+	uint8_t cycles = 0;
+
+	// Find next sensor to show
+	for (uint8_t i=lastShown+1; i<SENSOR_COUNT; i++) {
+
+		if (base->config.sensors[i].oled_display) {
+			sensorToShow = static_cast<SensorType>(i);
+			break;
+		}
+		if (i == SENSOR_COUNT - 1) {
+			i = 0;
+			cycles++;
+			if (cycles > 1) break; 	// Avoid getting stuck here if no sensor is enabled
+		}
+	}
+
+	// Clear buffer (except info bar)
+	uint8_t *buffStart = u8g2_oled.getBufferPtr();
+	memset(&buffStart[256], 0, 1792);
+
+	// Draw Title
+	u8g2_oled.setFont(u8g2_font_t0_16b_tf);
+
+	// Split in two lines if needed
+	const char *sensorTitle = base->sensors[sensorToShow].title;
+	uint8_t baseLine = 55 - u8g2_oled.getMaxCharHeight();
+	if (u8g2_oled.getStrWidth(sensorTitle) > 128) {
+
+		baseLine = 55;
+
+		// Try splitting on first space
+		char line1[20];
+		char *blank = " ";
+		uint8_t splitPoint = strcspn(sensorTitle, blank);
+		memcpy(line1, sensorTitle, splitPoint);
+		line1[splitPoint + 1] = '\0';
+
+		char *line2 = strchr(sensorTitle, ' ') + 1;
+
+		// If some of the lines is to big split in half
+		if (u8g2_oled.getStrWidth(line2) > 128 ||
+			u8g2_oled.getStrWidth(line1) > 128) {
+
+			// Split in half
+			splitPoint = strlen(sensorTitle) / 2;
+			memcpy(line1, sensorTitle, splitPoint);
+			line1[splitPoint + 1] = '\0';
+			u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(line1)) / 2, (baseLine - u8g2_oled.getMaxCharHeight()) - 2, line1);
+			u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(&sensorTitle[splitPoint])) / 2, baseLine + u8g2_oled.getDescent(), &sensorTitle[splitPoint]);
+
+		} else {
+
+			// Split on space
+			u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(line1)) / 2, (baseLine - u8g2_oled.getMaxCharHeight()) - 2, line1);
+			u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(line2)) / 2, baseLine + u8g2_oled.getDescent(), line2);
+		}
+
+	} else u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(sensorTitle)) / 2, baseLine + u8g2_oled.getDescent(), sensorTitle);
+
+	// Draw unit
+	const char *sensorUnit = base->sensors[sensorToShow].unit;
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(sensorUnit)) / 2, 128 + u8g2_oled.getDescent(), sensorUnit);
+
+	// Draw Value
+	uint8_t vCenter = baseLine + ((128 - u8g2_oled.getMaxCharHeight() - baseLine) / 2);
+	u8g2_oled.setFont(u8g2_font_fub30_tn);
+	String value = base->sensors[sensorToShow].reading;
+	if (base->sensors[sensorToShow].state != 0) value = "--";
+	if (u8g2_oled.getStrWidth(value.c_str()) > 128) {
+		u8g2_oled.setFont(u8g2_font_fub20_tn);
+		u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(value.c_str())) / 2, vCenter + (u8g2_oled.getMaxCharHeight() / 2), value.c_str());
+	} else {
+		u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(value.c_str())) / 2, vCenter + (u8g2_oled.getMaxCharHeight() / 2), value.c_str());
+	}
+
+
+	u8g2_oled.updateDisplayArea(0, 2, 16, 14);
+
+	lastShown = sensorToShow;
+	showStartTime = base->rtc.getEpoch();
 }
 
 bool WaterTemp_DS18B20::start()

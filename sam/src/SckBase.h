@@ -6,7 +6,6 @@
 #include <RTCZero.h>
 #include <time.h>
 #include <SPI.h>
-#include "ArduinoLowPower.h"
 #include "SdFat.h"
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
@@ -14,6 +13,7 @@
 #include <RH_Serial.h>
 #include <FlashStorage.h>
 #include <ArduinoJson.h>
+#include <LinkedList.h>
 
 #include "Pins.h"
 #include "SckLed.h"
@@ -76,6 +76,7 @@ struct SckState
 	Status helloStat = Status(3, 5000);
 	Status infoStat = Status(3, 5000);
 	Status publishStat = Status(3, 5000);
+	errorType error = ERROR_NONE;
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup
@@ -154,9 +155,13 @@ class SckBase
 		bool infoSaved = false;
 
 		// Power
+		#define MS_23_HOURS 82800000
+		uint8_t wakeUP_H = 3;
+		uint8_t wakeUP_M = 0;
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
 		void goToSleep(uint16_t sleepPeriod=3000); 	// sleepPeriod in ms
+		void configGCLK6(); 			// Taken from https://github.com/arduino-libraries/ArduinoLowPower
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 	// seconds
@@ -167,9 +172,6 @@ class SckBase
 		bool sdPublish();
 		uint8_t pendingSensors = 0;
 		SensorType pendingSensorsList[SENSOR_COUNT];
-
-		// Timers
-		bool alarmRunning_TC3 = false;
 
 	public:
 		const String hardwareVer = "2.1";
@@ -229,10 +231,8 @@ class SckBase
 		bool sendMessage(ESPMessage wichMessage);
 		bool sendMessage();
 		String ipAddress;
-		String macAddress;
-		String hostname;
+		char hostname[17];
 		void mqttCustom(const char *topic, const char *payload);
-		bool debugESPcom = false;
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
@@ -242,6 +242,7 @@ class SckBase
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
 		void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
 		void prompt();
+		void plot(String value, const char *title=NULL, const char *unit=NULL);
 
 		// Button
 		volatile bool butState = true;
@@ -257,10 +258,6 @@ class SckBase
 		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
-		uint8_t wakeUP_H = 3;
-		uint8_t wakeUP_M = 0;
-		uint8_t wakeUP_S = 0;
-		uint32_t deltaSanityReset = 0;
 		void sck_reset();
 		SckBatt battery;
 		SckCharger charger;

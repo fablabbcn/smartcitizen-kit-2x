@@ -367,6 +367,8 @@ int8_t SckList::getFlag(uint32_t wichGroup, GroupFlags wichFlag)
 }
 void SckList::flashStart()
 {
+	// TODO Put this on SclList::setup() here when flash implementation is integrated
+	// debug = base->config.debug.flash;
 	digitalWrite(pinCS_SDCARD, HIGH);	// disables SDcard
 	digitalWrite(pinCS_FLASH, LOW);
 	flash.begin();

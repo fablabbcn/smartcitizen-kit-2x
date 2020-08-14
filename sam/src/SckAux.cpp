@@ -535,6 +535,12 @@ void AuxBoards::updateDisplay(SckBase* base, bool force)
 	groove_OLED.update(base, force);
 }
 
+void AuxBoards::plot(String value, const char *title, const char *unit)
+{
+	if (title != NULL && unit != NULL) groove_OLED.plot(value, title, unit);
+	else groove_OLED.plot(value);
+}
+
 bool GrooveI2C_ADC::start()
 {
 
@@ -713,11 +719,11 @@ void Groove_OLED::update(SckBase* base, bool force)
 	drawBar(base);
 
 	if (base->st.error == ERROR_NONE) {
-	
+
 		// Setup mode screen
 		if (base->st.onSetup) drawSetup(base);
 		else displayReading(base);
-	
+
 	} else {
 
 		// Error popup
@@ -731,7 +737,7 @@ void Groove_OLED::drawBar(SckBase* base)
 {
 	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
 
-	// Clear the buffer are of the bar
+	// Clear the buffer area of the bar
 	uint8_t *buffStart = u8g2_oled.getBufferPtr();
 	memset(&buffStart[0], 0, 256);
 
@@ -965,6 +971,93 @@ void Groove_OLED::displayReading(SckBase* base)
 
 	lastShown = sensorToShow;
 	showStartTime = base->rtc.getEpoch();
+}
+
+void Groove_OLED::plot(String value, const char *title, const char *unit)
+{
+	// TODO support negative values
+	// TODO Auto adjust lower limit of Y scale
+
+	// Fresh start
+	if (title != NULL) {
+		_unit = unit;
+		_title = title;
+		minY = 0;
+		maxY = 100;
+		u8g2_oled.clearDisplay();
+		plotData.clear();
+	}
+
+	u8g2_oled.clearBuffer();
+
+	// Title and unit
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
+	u8g2_oled.drawStr(0, u8g2_oled.getMaxCharHeight() + u8g2_oled.getDescent(), _title);
+	u8g2_oled.drawStr(0, (u8g2_oled.getMaxCharHeight() * 2) - 2, value.c_str());
+	u8g2_oled.drawStr(u8g2_oled.getStrWidth(value.c_str()) + 10, (u8g2_oled.getMaxCharHeight() * 2) - 2, _unit);
+
+
+	// Get the new value
+	float Fvalue = value.toFloat();
+
+	// If this value is grater than our limit adjust scale
+	if (Fvalue > maxY) remap(Fvalue);
+
+	// Store the new value scaled to screen size
+	int8_t Ivalue = map(Fvalue, minY, maxY, screenMin, screenMax);
+	plotData.add(Ivalue);
+	if (plotData.size() > 128) plotData.remove(0); // Keep the size of the array limited to the screen size
+
+	// Check if we need to reajust scale (Happens when big values get out of scope)
+	float currentMaxY = 0;
+	for (uint8_t i=0; i<plotData.size(); i++) {
+		if (plotData.get(i) > currentMaxY) currentMaxY = plotData.get(i);
+	}
+	float bigCurrentMaxY = map(currentMaxY, screenMin, screenMax, minY, maxY);
+	if (bigCurrentMaxY < (maxY - (maxY / 10)) && bigCurrentMaxY > 0) remap(bigCurrentMaxY);
+
+
+	// Plot the data on the display
+	uint8_t ii = plotData.size() - 1;
+	for (uint8_t i=127; i>0; i--) {
+		if (ii == 0) break;
+		u8g2_oled.drawLine(i, 128 - plotData.get(ii), i - 1, 128 - plotData.get(ii - 1));
+		ii--;
+	}
+
+	// Print Y top value
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
+	char buff[8];
+	snprintf(buff, sizeof(buff), "%.0f", maxY);
+	u8g2_oled.drawStr(128 - u8g2_oled.getStrWidth(buff), 16 + u8g2_oled.getMaxCharHeight(), buff);
+	u8g2_oled.drawHLine(118, 18 + u8g2_oled.getMaxCharHeight(), 10);
+
+	// Print Y bottom value
+	snprintf(buff, sizeof(buff), "%.0f", minY);
+	u8g2_oled.drawStr(128 - u8g2_oled.getStrWidth(buff), 126, buff);
+	u8g2_oled.drawHLine(118, 127, 10);
+
+	u8g2_oled.sendBuffer();
+}
+
+void Groove_OLED::remap(float newMaxY)
+{
+	newMaxY += (newMaxY / 10);
+
+	float fa = maxY / newMaxY;
+
+	for (uint8_t i=0; i<plotData.size(); i++) {
+
+		float remaped = plotData.get(i) * fa;
+
+		// round it properly
+		if (remaped > 0) remaped += 0.5;
+		else remaped -= 0.5;
+
+		plotData.set(i, (int)remaped);
+	}
+
+	maxY = newMaxY;
 }
 
 bool WaterTemp_DS18B20::start()

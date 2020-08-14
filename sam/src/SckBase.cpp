@@ -741,6 +741,10 @@ void SckBase::prompt()
 	sprintf(outBuff, "%s", "SCK > ");
 	sckOut(PRIO_MED, false);
 }
+void SckBase::plot(String value, const char *title, const char *unit)
+{
+	auxBoards.plot(value, title, unit);
+}
 
 // **** Config
 void SckBase::loadConfig()

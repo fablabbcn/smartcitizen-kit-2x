@@ -151,6 +151,7 @@ class AuxBoards
 		String control(SensorType wichSensor, String command);
 		void print(char *payload);
 		void updateDisplay(SckBase* base, bool force=false);
+		void plot(String value, const char *title=NULL, const char *unit=NULL);
 
 		EepromAuxData data;
 		bool dataLoaded = false;
@@ -209,8 +210,12 @@ class Groove_OLED
 		void print(char *payload);
 		void update(SckBase* base, bool force);
 		void displayReading(SckBase* base);
+		void plot(String value, const char *title=NULL, const char *unit=NULL);
 
 	private:
+		const char *_unit;
+		const char *_title;
+
 		uint32_t lastUpdate;
 		const uint32_t refreshRate = 50;
 
@@ -218,6 +223,14 @@ class Groove_OLED
 		void drawError(errorType wichError);
 		errorType lastError;
 		void drawSetup(SckBase* base);
+
+		// Plot
+		void remap(float newMaxY);
+		const float screenMax = 100;
+		const float screenMin = 0;
+		LinkedList<int8_t> plotData;
+		float maxY = 100;
+		float minY = 0;
 
 		// For debug log view
 		void printLine(char *payload, uint8_t size);

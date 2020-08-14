@@ -13,6 +13,7 @@
 #include <RH_Serial.h>
 #include <FlashStorage.h>
 #include <ArduinoJson.h>
+#include <LinkedList.h>
 
 #include "Pins.h"
 #include "SckLed.h"
@@ -239,6 +240,7 @@ class SckBase
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
 		void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
 		void prompt();
+		void plot(String value, const char *title=NULL, const char *unit=NULL);
 
 		// Button
 		volatile bool butState = true;

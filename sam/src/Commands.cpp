@@ -299,6 +299,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 	bool sdSave = false;
 	bool printTime = true;
 	bool printMs = true;
+	bool oled = false;
 
 	if (parameters.indexOf("-sd") >=0) {
 		sdSave = true;
@@ -318,6 +319,11 @@ void monitorSensor_com(SckBase* base, String parameters)
 	if (parameters.indexOf("-noms") >=0) {
 		printMs = false;
 		parameters.replace("-noms", "");
+		parameters.trim();
+	}
+	if (parameters.indexOf("-oled") >=0) {
+		oled = true;
+		parameters.replace("-oled", "");
 		parameters.trim();
 	}
 	if (parameters.length() > 0) {
@@ -363,6 +369,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 	for (uint8_t i=0; i<index; i++) {
 		sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
 		if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
+		if (oled && i==0) base->plot(base->sensors[sensorsToMonitor[i]].reading, base->sensors[sensorsToMonitor[i]].title, base->sensors[sensorsToMonitor[i]].unit);
 	}
 	if (sdSave) base->monitorFile.file.println(base->outBuff);
 	base->sckOut();
@@ -371,20 +378,40 @@ void monitorSensor_com(SckBase* base, String parameters)
 	strncpy(base->outBuff, "", 240);
 	uint32_t lastMillis = millis();
 	while (!SerialUSB.available()) {
+
 		sprintf(base->outBuff, "%s", "");
-		base->ISOtime();
-		if (printTime) sprintf(base->outBuff, "%s%s\t", base->outBuff, base->ISOtimeBuff);
-		if (printMs) sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
-		lastMillis = millis();
+
+		if (printTime) {
+			base->ISOtime();
+			sprintf(base->outBuff, "%s%s\t", base->outBuff, base->ISOtimeBuff);
+		}
+
+		if (printMs) {
+			sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
+			lastMillis = millis();
+		}
+
+		bool theFirst = true;
 		for (uint8_t i=0; i<index; i++) {
 			// TODO check what will happen here when one shot PM is implemented
 			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 			base->getReading(&wichSensor);
-			if (wichSensor.state == 0) sprintf(base->outBuff, "%s%s", base->outBuff, wichSensor.reading.c_str());
-			else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
+			
+			if (wichSensor.state == 0) {
+				
+				sprintf(base->outBuff, "%s%s", base->outBuff, wichSensor.reading.c_str());
+				
+				if (theFirst && oled) {
+					base->plot(wichSensor.reading);
+					theFirst = false;
+				}
+			} else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
+
 			if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
 		}
+
 		if (sdSave) base->monitorFile.file.println(base->outBuff);
+
 		base->sckOut();
 	}
 	base->monitorFile.file.close();

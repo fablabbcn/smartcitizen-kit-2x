@@ -97,7 +97,7 @@ class AllCommands {
 			OneCom {80,	COM_LIST_SENSOR,	"sensor",	"Shows/sets sensor state or interval: sensor sensor-name [-enable or -disable] [-interval interval(seconds)] [-oled]",			sensorConfig_com},
 			OneCom {90,	COM_READ_SENSOR,	"read",		"Reads sensor: read [sensorName]",													readSensor_com},
 			OneCom {90,	COM_CONTROL_SENSOR,	"control",	"Control sensor: control [sensorName] [command]",											controlSensor_com},
-			OneCom {90,	COM_MONITOR_SENSOR,	"monitor",	"Continously read sensor: monitor [-sd] [-notime] [-noms] [sensorName[,sensorNameN]]",							monitorSensor_com},
+			OneCom {90,	COM_MONITOR_SENSOR,	"monitor",	"Continously read sensor: monitor [-sd] [-notime] [-noms] [-oled] [sensorName[,sensorNameN]]",						monitorSensor_com},
 			OneCom {90,	COM_READINGS,		"saved",	"Shows locally stored sensor readings: saved [-details] [-publish]",									readings_com},
 			OneCom {90,	COM_GET_FREERAM,	"free",		"Shows the amount of free RAM memory",													freeRAM_com},
 			OneCom {90,	COM_I2C_DETECT,		"i2c",		"Search the I2C bus for devices",													i2cDetect_com},

@@ -13,6 +13,7 @@
 #include <RH_Serial.h>
 #include <FlashStorage.h>
 #include <ArduinoJson.h>
+#include <LinkedList.h>
 
 #include "Pins.h"
 #include "SckLed.h"
@@ -74,6 +75,7 @@ struct SckState
 	Status helloStat = Status(3, 5000);
 	Status infoStat = Status(3, 5000);
 	Status publishStat = Status(3, 5000);
+	errorType error = ERROR_NONE;
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup
@@ -227,10 +229,8 @@ class SckBase
 		bool sendMessage(ESPMessage wichMessage);
 		bool sendMessage();
 		String ipAddress;
-		String macAddress;
-		String hostname;
+		char hostname[17];
 		void mqttCustom(const char *topic, const char *payload);
-		bool debugESPcom = false;
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
@@ -240,6 +240,7 @@ class SckBase
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
 		void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
 		void prompt();
+		void plot(String value, const char *title=NULL, const char *unit=NULL);
 
 		// Button
 		volatile bool butState = true;

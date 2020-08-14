@@ -168,12 +168,14 @@ void SckBase::setup()
 		if (wichSensor->location == BOARD_AUX) {
 			if (enableSensor(wichSensor->type)) {
 				wichSensor->enabled = true;
+				if (wichSensor->type != SENSOR_GROVE_OLED) config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
 				saveNeeded = true;
 			} else if (wichSensor->enabled)  {
 				disableSensor(wichSensor->type);
 				sprintf(outBuff, "Removed: %s... ", wichSensor->title);
 				sckOut();
 				wichSensor->enabled = false;
+				config.sensors[wichSensor->type].oled_display = false;
 				saveNeeded = true;
 			}
 		}
@@ -242,7 +244,7 @@ void SckBase::reviewState()
 	if (sdInitPending) sdInit();
 
 	// SD card debug check file size and backup big files.
-	if (config.sdDebug) {
+	if (config.debug.sdcard) {
 		// Just do this every hour
 		if (rtc.getEpoch() % 3600 == 0) {
 			if (sdSelect()) {
@@ -263,6 +265,9 @@ void SckBase::reviewState()
 			}
 		}
 	}
+
+	// If we have a screen update it
+	if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
@@ -298,6 +303,7 @@ void SckBase::reviewState()
 				sckOut("ERROR wifi is not configured!!!");
 				ESPcontrol(ESP_OFF);
 				led.update(led.BLUE, led.PULSE_HARD_FAST);
+				st.error = ERROR_NO_WIFI_CONFIG;
 				st.wifiStat.error = true;
 			}
 			return;
@@ -308,6 +314,7 @@ void SckBase::reviewState()
 				sckOut("ERROR token is not configured!!!");
 				ESPcontrol(ESP_OFF);
 				led.update(led.BLUE, led.PULSE_HARD_FAST);
+				st.error = ERROR_NO_TOKEN_CONFIG;
 				st.tokenError = true;
 			}
 			return;
@@ -341,6 +348,7 @@ void SckBase::reviewState()
 			} else {
 
 				led.update(led.BLUE, led.PULSE_SOFT);
+				st.error = ERROR_NONE;
 
 				if (st.helloPending) {
 
@@ -354,6 +362,7 @@ void SckBase::reviewState()
 
 						ESPcontrol(ESP_REBOOT); 		// Try reseting ESP
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
+						st.error = ERROR_MQTT;
 
 						st.helloStat.reset();
 					}
@@ -370,6 +379,7 @@ void SckBase::reviewState()
 
 						ESPcontrol(ESP_REBOOT);
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
+						st.error = ERROR_TIME;
 
 						st.timeStat.reset();
 					}
@@ -385,6 +395,7 @@ void SckBase::reviewState()
 						sckOut("ERROR sending kit info to platform!!!");
 						infoPublished = true; 		// We will try on next reset
 						st.infoStat.reset();
+						st.error = ERROR_MQTT;
 
 					}
 
@@ -422,6 +433,7 @@ void SckBase::reviewState()
 						sdPublish();
 
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
+						st.error = ERROR_MQTT;
 
 						ESPcontrol(ESP_OFF);
 						timeToPublish = false;
@@ -451,9 +463,13 @@ void SckBase::reviewState()
 
 				updateSensors();
 				updatePower();
+
+				// If we have a screen update it
+				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
 			}
 
 			led.update(led.BLUE, led.PULSE_SOFT);
+			st.error = ERROR_NONE;
 			updateSensors();
 			if (readingsList.countGroups() > 0) sdPublish();
 
@@ -465,6 +481,7 @@ void SckBase::reviewState()
 				sckOut("ERROR can't find SD card!!!");
 				if (st.espON) ESPcontrol(ESP_OFF);
 				led.update(led.PINK, led.PULSE_HARD_FAST);
+				st.error = ERROR_SD;
 				st.cardPresentError = true;
 			}
 			return;
@@ -472,6 +489,7 @@ void SckBase::reviewState()
 		} else if (!st.timeStat.ok) {
 
 			if (!st.wifiSet)  {
+				st.error = ERROR_TIME;
 				if (!st.wifiStat.error) {
 					sckOut("ERROR time is not synced and no wifi set!!!");
 					ESPcontrol(ESP_OFF);
@@ -491,6 +509,7 @@ void SckBase::reviewState()
 
 						ESPcontrol(ESP_OFF);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
+						st.error = ERROR_TIME;
 						st.wifiStat.reset();
 					}
 
@@ -507,6 +526,7 @@ void SckBase::reviewState()
 						st.timeStat.reset();
 						ESPcontrol(ESP_OFF);
 						led.update(led.PINK, led.PULSE_HARD_FAST);
+						st.error = ERROR_TIME;
 					}
 				}
 			}
@@ -528,9 +548,13 @@ void SckBase::reviewState()
 
 				updateSensors();
 				updatePower();
+
+				// If we have a screen update it
+				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
 			}
 
 			led.update(led.PINK, led.PULSE_SOFT);
+			st.error = ERROR_NONE;
 			updateSensors();
 			if (st.espON && !pendingSyncConfig) ESPcontrol(ESP_OFF);
 
@@ -540,6 +564,7 @@ void SckBase::reviewState()
 					sckOut("ERROR failed publishing to SD card");
 					// TODO if this error happens the error blink gets interrupted by the one that is just out of sleep mode
 					led.update(led.PINK, led.PULSE_HARD_FAST);
+					st.error = ERROR_SD_PUBLISH;
 				} else {
 					timeToPublish = false;
 					lastPublishTime = rtc.getEpoch();
@@ -555,6 +580,7 @@ void SckBase::enterSetup()
 
 	// Update led
 	led.update(led.RED, led.PULSE_SOFT);
+	st.error = ERROR_NONE;
 
 	// Clear errors from other modes
 	st.tokenError = false;
@@ -693,7 +719,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 	}
 
 	// Debug output to sdcard
-	if (config.sdDebug) {
+	if (config.debug.sdcard) {
 		if (!sdSelect()) return;
 		debugFile.file = sd.open(debugFile.name, FILE_WRITE);
 		if (debugFile.file) {
@@ -704,11 +730,20 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 			debugFile.file.close();
 		} else st.cardPresent = false;
 	}
+
+	// Debug output to oled display
+	if (config.debug.oled) {
+		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.print(outBuff);
+	}
 }
 void SckBase::prompt()
 {
 	sprintf(outBuff, "%s", "SCK > ");
 	sckOut(PRIO_MED, false);
+}
+void SckBase::plot(String value, const char *title, const char *unit)
+{
+	auxBoards.plot(value, title, unit);
 }
 
 // **** Config
@@ -735,6 +770,11 @@ void SckBase::loadConfig()
 	st.tokenSet = config.token.set;
 	st.tokenError = false;
 	st.mode = config.mode;
+	readingsList.debug = config.debug.flash;
+	snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
+	memcpy(&hostname[12], &config.mac.address[12], 2);
+	memcpy(&hostname[14], &config.mac.address[15], 2);
+	hostname[16] = '\0';
 
 	// CSS vocs sensor baseline loading
 	if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
@@ -749,21 +789,14 @@ void SckBase::saveConfig(bool defaults)
 	if (defaults) {
 		Configuration defaultConfig;
 
-		if (config.mac.valid) macAddress = String(config.mac.address); 	// If we already have a mac address keep it
-
 		config = defaultConfig;
-
-		if (macAddress.length() > 0) {
-			sprintf(config.mac.address, "%s", macAddress.c_str());
-			config.mac.valid = true;
-		} else {
-			config.mac.valid = false;
-		}
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
+			config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
 		}
+		config.sensors[SENSOR_BATT_PERCENT].oled_display = false; 	// Battery is already shown on oled info-bar
 		pendingSyncConfig = true;
 	} else {
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -771,6 +804,7 @@ void SckBase::saveConfig(bool defaults)
 			config.sensors[i].enabled = wichSensor->enabled;
 			config.sensors[i].everyNint = wichSensor->everyNint;
 		}
+		config.debug.flash = readingsList.debug;
 	}
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
@@ -796,6 +830,7 @@ void SckBase::saveConfig(bool defaults)
 			st.helloPending = true;
 			st.onSetup = false;
 			led.update(led.BLUE, led.PULSE_SOFT);
+			st.error = ERROR_NONE;
 			sendMessage(ESPMES_STOP_AP, "");
 
 		} else {
@@ -804,6 +839,7 @@ void SckBase::saveConfig(bool defaults)
 			if (!st.tokenSet) sckOut("ERROR Token not configured: can't set Network Mode!!!");
 			ESPcontrol(ESP_OFF);
 			led.update(led.BLUE, led.PULSE_HARD_FAST);
+			st.error = ERROR_NO_WIFI_CONFIG;
 		}
 
 	} else if (st.mode == MODE_SD) {
@@ -812,6 +848,7 @@ void SckBase::saveConfig(bool defaults)
 		st.onSetup = false;
 		led.update(led.PINK, led.PULSE_SOFT);
 		sendMessage(ESPMES_STOP_AP, "");
+		st.error = ERROR_NONE;
 
 	}
 
@@ -999,7 +1036,7 @@ void SckBase::ESPbusUpdate()
 
 		if (manager.recvfromAck(netPack, &len)) {
 
-			if (debugESPcom) {
+			if (config.debug.esp) {
 				sprintf(outBuff, "Receiving msg from ESP in %i parts", netPack[0]);
 				sckOut();
 			}
@@ -1019,7 +1056,7 @@ void SckBase::ESPbusUpdate()
 				else return;
 			}
 
-			if (debugESPcom) sckOut(netBuff);
+			if (config.debug.esp) sckOut(netBuff);
 
 			// Process message
 			receiveMessage(wichMessage);
@@ -1042,14 +1079,14 @@ bool SckBase::sendMessage()
 	// This function is used when netbuff is already filled with command and content
 
 	if (!st.espON || st.espBooting) {
-		if (debugESPcom) sckOut("Can't send message, ESP is off or still booting...");
+		if (config.debug.esp) sckOut("Can't send message, ESP is off or still booting...");
 		return false;
 	}
 
 	uint16_t totalSize = strlen(netBuff);
 	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
 
-	if (debugESPcom) {
+	if (config.debug.esp) {
 		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bytes", totalParts, totalSize);
 		sckOut();
 		SerialUSB.println(netBuff);
@@ -1062,7 +1099,7 @@ bool SckBase::sendMessage()
 			sckOut("ERROR sending mesg to ESP!!!");
 			return false;
 		}
-		if (debugESPcom) {
+		if (config.debug.esp) {
 			sprintf(outBuff, "Sent part num %i", i);
 			sckOut();
 		}
@@ -1120,9 +1157,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 				JsonObject& json = jsonBuffer.parseObject(netBuff);
 				ipAddress = json["ip"].as<String>();
-				hostname = json["hn"].as<String>();
 
-				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname.c_str(), ipAddress.c_str(), macAddress.c_str());
+				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname, ipAddress.c_str(), config.mac.address);
 				sckOut();
 				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
 				sckOut();
@@ -1140,15 +1176,24 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 		case SAMMES_SSID_ERROR:
 
-			sckOut("ERROR Access point not found!!"); st.wifiStat.error = true; break;
+			sckOut("ERROR Access point not found!!");
+			st.wifiStat.error = true;
+			st.error = ERROR_AP;
+			break;
 
 		case SAMMES_PASS_ERROR:
 
-			sckOut("ERROR wrong wifi password!!"); st.wifiStat.error = true; break;
+			sckOut("ERROR wrong wifi password!!");
+			st.wifiStat.error = true;
+			st.error = ERROR_PASS;
+			break;
 
 		case SAMMES_WIFI_UNKNOWN_ERROR:
 
-			sckOut("ERROR unknown wifi error!!"); st.wifiStat.error = true; break;
+			sckOut("ERROR unknown wifi error!!");
+			st.wifiStat.error = true;
+			st.error = ERROR_WIFI_UNKNOWN;
+			break;
 
 		case SAMMES_TIME:
 		{
@@ -1172,6 +1217,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			sckOut("ERROR on MQTT publish");
 			st.publishStat.error = true;
+			st.error = ERROR_MQTT;
 			break;
 
 		case SAMMES_MQTT_INFO_OK:
@@ -1184,6 +1230,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_INFO_ERROR:
 
 			st.infoStat.error = true;
+			st.error = ERROR_MQTT;
 			sckOut("ERROR on Info publish!!");
 			break;
 
@@ -1194,6 +1241,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 		case SAMMES_MQTT_CUSTOM_ERROR:
 
+			st.error = ERROR_MQTT;
 			sckOut("ERROR on custom MQTT publish");
 			break;
 
@@ -1205,16 +1253,20 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
 			JsonObject& json = jsonBuffer.parseObject(netBuff);
-			macAddress = json["mac"].as<String>();
+			String macAddress = json["mac"].as<String>();
 			ESPversion = json["ver"].as<String>();
 			ESPbuildDate = json["bd"].as<String>();
 
-			// Udate mac address if we haven't yet
+			// Udate mac address and hostname if we haven't yet
 			if (!config.mac.valid) {
 				sckOut("Updated MAC address");
 				sprintf(config.mac.address, "%s", macAddress.c_str());
 				config.mac.valid = true;
 				saveConfig();
+				snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
+				memcpy(&hostname[12], &config.mac.address[12], 2);
+				memcpy(&hostname[14], &config.mac.address[15], 2);
+				hostname[16] = '\0';
 			}
 
 			if (!espInfoUpdated) {
@@ -1435,6 +1487,9 @@ void SckBase::updatePower()
 					delay(200);
 				}
 
+				st.error = ERROR_BATT;
+				auxBoards.updateDisplay(this, true); 		// Force update of screen before going to sleep
+
 				// Ignore last user event and go to sleep
 				lastUserEvent = 0;
 
@@ -1494,6 +1549,7 @@ void SckBase::updateSensors()
 	if (st.onSetup) return;
 	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented
 
+
 	// Main reading loop
 	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {
 
@@ -1517,7 +1573,7 @@ void SckBase::updateSensors()
 			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 
 			// Check if it is enabled
-			if (wichSensor->enabled) {
+			if (wichSensor->enabled && wichSensor->priority != 250) {
 
 				// Is time to read it?
 				if ((lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval)) {
@@ -1820,7 +1876,7 @@ bool SckBase::sdPublish()
 			postFile.file.print("TIME");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = sensors.sensorsPriorized(i);
-				if (sensors[wichSensor].enabled) {
+				if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].shortTitle);
 				}
@@ -1829,7 +1885,7 @@ bool SckBase::sdPublish()
 			postFile.file.print("ISO 8601");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = sensors.sensorsPriorized(i);
-				if (sensors[wichSensor].enabled) {
+				if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 					postFile.file.print(",");
 					if (String(sensors[wichSensor].unit).length() > 0) {
 						postFile.file.print(sensors[wichSensor].unit);
@@ -1840,7 +1896,7 @@ bool SckBase::sdPublish()
 			postFile.file.print("Time");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = sensors.sensorsPriorized(i);
-				if (sensors[wichSensor].enabled) {
+				if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].title);
 				}
@@ -1848,7 +1904,7 @@ bool SckBase::sdPublish()
 			postFile.file.println("");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				SensorType wichSensor = sensors.sensorsPriorized(i);
-				if (sensors[wichSensor].enabled) {
+				if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 					postFile.file.print(",");
 					postFile.file.print(sensors[wichSensor].id);
 				}
@@ -1873,7 +1929,7 @@ bool SckBase::sdPublish()
 				// Go through all the enabled sensors
 				for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 					SensorType wichSensor = sensors.sensorsPriorized(i);
-					if (sensors[wichSensor].enabled) {
+					if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
 
 						bool founded = false;
 						// Find sensor inside group readings

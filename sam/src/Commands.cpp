@@ -152,7 +152,11 @@ void sensorConfig_com(SckBase* base, String parameters)
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 			thisType = base->sensors.sensorsPriorized(i);
-			if (base->sensors[thisType].enabled) base->sckOut(String(base->sensors[thisType].title) + " (" + String(base->sensors[thisType].everyNint * base->config.readInterval) + " sec)");
+			if (base->sensors[thisType].enabled) {
+				snprintf(base->outBuff, sizeof(base->outBuff), "%s (%u sec)", base->sensors[thisType].title, (base->sensors[thisType].everyNint * base->config.readInterval));
+				if (base->sensors[SENSOR_GROVE_OLED].enabled) snprintf(base->outBuff, sizeof(base->outBuff), "%s%s", base->outBuff, base->config.sensors[thisType].oled_display ? " - oled" : "");
+				base->sckOut();
+			}
 		}
 
 	} else {
@@ -184,7 +188,9 @@ void sensorConfig_com(SckBase* base, String parameters)
 		if (sensorToChange == SENSOR_COUNT) {
 			base->sckOut("ERROR sensor not found");
 			return;
-		} else if (parameters.indexOf("-enable") >=0) {
+		} 
+
+		if (parameters.indexOf("-enable") >=0) {
 			if (!base->enableSensor(sensorToChange)) {
 				sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
 				base->sckOut();
@@ -210,7 +216,20 @@ void sensorConfig_com(SckBase* base, String parameters)
 				}
 				saveNeeded = true;
 			}
-		} else if (parameters.indexOf("-interval") >=0) {
+		} 
+
+		if (parameters.indexOf("-oled") >=0) {
+
+			base->config.sensors[sensorToChange].oled_display = !base->config.sensors[sensorToChange].oled_display;
+
+			snprintf(base->outBuff, sizeof(base->outBuff), "%s will %s on oled display", base->sensors[sensorToChange].title, base->config.sensors[sensorToChange].oled_display ? "be displayed" : "not show");
+			base->sckOut();
+
+			saveNeeded = true;
+
+		} 
+
+		if (parameters.indexOf("-interval") >=0) {
 
 			// Get the number of seconds user asked for as new interval
 			int16_t intervalIndex = parameters.indexOf("-interval") + 10;
@@ -280,6 +299,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 	bool sdSave = false;
 	bool printTime = true;
 	bool printMs = true;
+	bool oled = false;
 
 	if (parameters.indexOf("-sd") >=0) {
 		sdSave = true;
@@ -299,6 +319,11 @@ void monitorSensor_com(SckBase* base, String parameters)
 	if (parameters.indexOf("-noms") >=0) {
 		printMs = false;
 		parameters.replace("-noms", "");
+		parameters.trim();
+	}
+	if (parameters.indexOf("-oled") >=0) {
+		oled = true;
+		parameters.replace("-oled", "");
 		parameters.trim();
 	}
 	if (parameters.length() > 0) {
@@ -344,6 +369,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 	for (uint8_t i=0; i<index; i++) {
 		sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
 		if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
+		if (oled && i==0) base->plot(base->sensors[sensorsToMonitor[i]].reading, base->sensors[sensorsToMonitor[i]].title, base->sensors[sensorsToMonitor[i]].unit);
 	}
 	if (sdSave) base->monitorFile.file.println(base->outBuff);
 	base->sckOut();
@@ -352,20 +378,40 @@ void monitorSensor_com(SckBase* base, String parameters)
 	strncpy(base->outBuff, "", 240);
 	uint32_t lastMillis = millis();
 	while (!SerialUSB.available()) {
+
 		sprintf(base->outBuff, "%s", "");
-		base->ISOtime();
-		if (printTime) sprintf(base->outBuff, "%s%s\t", base->outBuff, base->ISOtimeBuff);
-		if (printMs) sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
-		lastMillis = millis();
+
+		if (printTime) {
+			base->ISOtime();
+			sprintf(base->outBuff, "%s%s\t", base->outBuff, base->ISOtimeBuff);
+		}
+
+		if (printMs) {
+			sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
+			lastMillis = millis();
+		}
+
+		bool theFirst = true;
 		for (uint8_t i=0; i<index; i++) {
 			// TODO check what will happen here when one shot PM is implemented
 			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 			base->getReading(&wichSensor);
-			if (wichSensor.state == 0) sprintf(base->outBuff, "%s%s", base->outBuff, wichSensor.reading.c_str());
-			else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
+			
+			if (wichSensor.state == 0) {
+				
+				sprintf(base->outBuff, "%s%s", base->outBuff, wichSensor.reading.c_str());
+				
+				if (theFirst && oled) {
+					base->plot(wichSensor.reading);
+					theFirst = false;
+				}
+			} else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
+
 			if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
 		}
+
 		if (sdSave) base->monitorFile.file.println(base->outBuff);
+
 		base->sckOut();
 	}
 	base->monitorFile.file.close();
@@ -703,29 +749,35 @@ void debug_com(SckBase* base, String parameters)
 	// Set
 	if (parameters.length() > 0) {
 		if (parameters.indexOf("-sdcard") >= 0) {
-			base->config.sdDebug = !base->config.sdDebug;
-			sprintf(base->outBuff, "SD card debug: %s", base->config.sdDebug ? "true" : "false");
+			base->config.debug.sdcard = !base->config.debug.sdcard;
+			sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
 			base->sckOut();
 			base->saveConfig();
 		}
-		if (parameters.indexOf("-espcom") >= 0) {
-			base->debugESPcom = ! base->debugESPcom;
-			sprintf(base->outBuff, "ESP comm debug: %s", base->debugESPcom ? "true" : "false");
+		if (parameters.indexOf("-esp") >= 0) {
+			base->config.debug.esp = !base->config.debug.esp;
+			sprintf(base->outBuff, "ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
 			base->sckOut();
 		}
-		if (parameters.indexOf("-list") >= 0) {
-			base->readingsList.debug = ! base->readingsList.debug;
-			sprintf(base->outBuff, "Reading list debug: %s", base->readingsList.debug ? "true" : "false");
+		if (parameters.indexOf("-oled") >= 0) {
+			base->config.debug.oled = !base->config.debug.oled;
+			sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
 			base->sckOut();
 		}
-
+		if (parameters.indexOf("-flash") >= 0) {
+			base->config.debug.flash = !base->config.debug.flash;
+			sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
+			base->sckOut();
+		}
 	// Get
 	} else {
-		sprintf(base->outBuff, "SD card debug: %s", base->config.sdDebug ? "true" : "false");
+		sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
 		base->sckOut();
-		sprintf(base->outBuff, "ESP comm debug: %s", base->debugESPcom ? "true" : "false");
+		sprintf(base->outBuff, "ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
 		base->sckOut();
-		sprintf(base->outBuff, "Readings list debug: %s", base->readingsList.debug ? "true" : "false");
+		sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
+		base->sckOut();
+		sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
 		base->sckOut();
 	}
 }

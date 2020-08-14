@@ -61,6 +61,8 @@ enum SensorType
 	SENSOR_ATLAS_TEMPERATURE,
 	SENSOR_ATLAS_PH,
 	SENSOR_ATLAS_EC,
+	SENSOR_ATLAS_EC_TDS,
+	SENSOR_ATLAS_EC_SAL,
 	SENSOR_ATLAS_EC_SG,
 	SENSOR_ATLAS_DO,
 	SENSOR_ATLAS_DO_SAT,
@@ -112,8 +114,25 @@ enum SensorType
 	SENSOR_BME680_PRESSURE,
 	SENSOR_BME680_VOCS,
 
+	SENSOR_ADS1X15_48_0,
+	SENSOR_ADS1X15_48_1,
+	SENSOR_ADS1X15_48_2,
+	SENSOR_ADS1X15_48_3,
+	SENSOR_ADS1X15_49_0,
+	SENSOR_ADS1X15_49_1,
+	SENSOR_ADS1X15_49_2,
+	SENSOR_ADS1X15_49_3,
+	SENSOR_ADS1X15_4A_0,
+	SENSOR_ADS1X15_4A_1,
+	SENSOR_ADS1X15_4A_2,
+	SENSOR_ADS1X15_4A_3,
+	SENSOR_ADS1X15_4B_0,
+	SENSOR_ADS1X15_4B_1,
+	SENSOR_ADS1X15_4B_2,
+	SENSOR_ADS1X15_4B_3,
+
 	// Actuators (This is temp)
-	SENSOR_GROOVE_OLED,
+	SENSOR_GROVE_OLED,
 
 	SENSOR_COUNT
 };
@@ -122,7 +141,7 @@ class OneSensor
 {
 	public:
 		SensorLocation location;
-		uint8_t priority;
+		uint8_t priority; 		// 0-249 lower first. 250 is reserved for sensor we don't want to read (actuators, ej. oled screen)
 		SensorType type;
 		const char *shortTitle;
 		const char *title;
@@ -217,6 +236,8 @@ class AllSensors
 			OneSensor { BOARD_AUX, 		100,	SENSOR_ATLAS_TEMPERATURE, 		"AS_TEMP", 		"Atlas Temperature", 				51, 		false, 		false, 		1,			"C"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_PH,			"AS_PH",		"Atlas PH",					43,		false,		true,		1,			"pH"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_EC,			"AS_COND",		"Atlas Conductivity",				45,		false,		true,		1,			"uS/cm"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_EC_TDS,			"AS_TDS",		"Atlas Total Dissolved Solids",			122,		false,		true,		1,			"ppm"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_EC_SAL,			"AS_SAL",		"Atlas Salinity",				123,		false,		true,		1,			"PSU(ppt)"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_EC_SG,			"AS_SG",		"Atlas Specific gravity",			46,		false,		true,		1,			},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_DO,			"AS_DO",		"Atlas Dissolved Oxygen",			48,		false,		true,		1,			"mg/L"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_DO_SAT,			"AS_DO_SAT",		"Atlas DO Saturation",				49,		false,		true,		1,			"%"},
@@ -272,9 +293,26 @@ class AllSensors
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_PRESSURE,			"BME680_PRESS",		"Barometric pressure BME680",			0,		false,		false,		1,			"kPa"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_VOCS,			"BME680_VOCS",		"VOC Gas BME680",				0,		false,		false,		1,			"Ohms"},
 
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_0,			"ADC_48_0",		"ADS1x15 ADC 0x48 Ch0",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_1,			"ADC_48_1",		"ADS1x15 ADC 0x48 Ch1",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_2,			"ADC_48_2",		"ADS1x15 ADC 0x48 Ch2",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_3,			"ADC_48_3",		"ADS1x15 ADC 0x48 Ch3",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_0,			"ADC_49_0",		"ADS1x15 ADC 0x49 Ch0",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_1,			"ADC_49_1",		"ADS1x15 ADC 0x49 Ch1",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_2,			"ADC_49_2",		"ADS1x15 ADC 0x49 Ch2",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_3,			"ADC_49_3",		"ADS1x15 ADC 0x49 Ch3",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_0,			"ADC_4A_0",		"ADS1x15 ADC 0x4A Ch0",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_1,			"ADC_4A_1",		"ADS1x15 ADC 0x4A Ch1",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_2,			"ADC_4A_2",		"ADS1x15 ADC 0x4A Ch2",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_3,			"ADC_4A_3",		"ADS1x15 ADC 0x4A Ch3",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_0,			"ADC_4B_0",		"ADS1x15 ADC 0x4B Ch0",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_1,			"ADC_4B_1",		"ADS1x15 ADC 0x4B Ch1",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_2,			"ADC_4B_2",		"ADS1x15 ADC 0x4B Ch2",				0,		false,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_3,			"ADC_4B_3",		"ADS1x15 ADC 0x4B Ch3",				0,		false,		false,		1,			"V"},
+
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96
-			OneSensor { BOARD_AUX,		250,	SENSOR_GROOVE_OLED,			"GR_OLED",		"Groove OLED",					0,		false,		false,		1,			},
+			OneSensor { BOARD_AUX,		250,	SENSOR_GROVE_OLED,			"GR_OLED",		"Groove OLED",					0,		false,		false,		1,			},
 			OneSensor { BOARD_BASE, 	0,	SENSOR_COUNT,				"NOT_FOUND",		"Not found",					0,		false,		false,		1,			}
 
 			// Add New Sensor Here!!!

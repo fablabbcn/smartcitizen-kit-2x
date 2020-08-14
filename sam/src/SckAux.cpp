@@ -16,6 +16,10 @@ Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 Sck_Range 		range;
 Sck_BME680 		bme680;
+Sck_ADS1X15 		ads48;
+Sck_ADS1X15 		ads49;
+Sck_ADS1X15 		ads4A;
+Sck_ADS1X15 		ads4B;
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
@@ -48,11 +52,12 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_INA219_SHUNT:
 		case SENSOR_INA219_CURRENT:
 		case SENSOR_INA219_LOADVOLT: 		return ina219.start(); break;
-		case SENSOR_GROOVE_OLED: 		return groove_OLED.start(); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.start(); break;
 		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.start(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.start();
 		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.start(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.start(); break;
@@ -100,6 +105,23 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
 		case SENSOR_BME680_VOCS:		return bme680.start(); break;
+		case SENSOR_ADS1X15_48_0:
+		case SENSOR_ADS1X15_48_1:
+		case SENSOR_ADS1X15_48_2:
+		case SENSOR_ADS1X15_48_3: 		return ads48.start(0x48); break;
+		case SENSOR_ADS1X15_49_0:
+		case SENSOR_ADS1X15_49_1:
+		case SENSOR_ADS1X15_49_2:
+		case SENSOR_ADS1X15_49_3: 		return ads49.start(0x49); break;
+		case SENSOR_ADS1X15_4A_0:
+		case SENSOR_ADS1X15_4A_1:
+		case SENSOR_ADS1X15_4A_2:
+		case SENSOR_ADS1X15_4A_3: 		return ads4A.start(0x4A); break;
+		case SENSOR_ADS1X15_4B_0:
+		case SENSOR_ADS1X15_4B_1:
+		case SENSOR_ADS1X15_4B_2:
+		case SENSOR_ADS1X15_4B_3: 		return ads4B.start(0x4B); break;
+		case SENSOR_GROVE_OLED: 		return groove_OLED.start(); break;
 		default: break;
 	}
 
@@ -123,11 +145,12 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_INA219_SHUNT:
 		case SENSOR_INA219_CURRENT:
 		case SENSOR_INA219_LOADVOLT: 		return ina219.stop(); break;
-		case SENSOR_GROOVE_OLED: 		return groove_OLED.stop(); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.stop(); break;
 		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.stop(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.stop();
 		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.stop(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.stop(); break;
@@ -170,6 +193,23 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
 		case SENSOR_BME680_VOCS:		return bme680.stop(); break;
+		case SENSOR_ADS1X15_48_0:
+		case SENSOR_ADS1X15_48_1:
+		case SENSOR_ADS1X15_48_2:
+		case SENSOR_ADS1X15_48_3: 		return ads48.stop(); break;
+		case SENSOR_ADS1X15_49_0:
+		case SENSOR_ADS1X15_49_1:
+		case SENSOR_ADS1X15_49_2:
+		case SENSOR_ADS1X15_49_3: 		return ads49.stop(); break;
+		case SENSOR_ADS1X15_4A_0:
+		case SENSOR_ADS1X15_4A_1:
+		case SENSOR_ADS1X15_4A_2:
+		case SENSOR_ADS1X15_4A_3: 		return ads4A.stop(); break;
+		case SENSOR_ADS1X15_4B_0:
+		case SENSOR_ADS1X15_4B_1:
+		case SENSOR_ADS1X15_4B_2:
+		case SENSOR_ADS1X15_4B_3: 		return ads4B.stop(); break;
+		case SENSOR_GROVE_OLED: 		return groove_OLED.stop(); break;
 		default: break;
 	}
 
@@ -194,12 +234,14 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_INA219_CURRENT: 		wichSensor->reading = String(ina219.getReading(ina219.CURRENT)); return;
 		case SENSOR_INA219_LOADVOLT: 		wichSensor->reading = String(ina219.getReading(ina219.LOAD_VOLT)); return;
 		case SENSOR_WATER_TEMP_DS18B20:		wichSensor->reading = String(waterTemp_DS18B20.getReading()); return;
-		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()) 	{ wichSensor->reading = String(atlasTEMP.newReading); return; } break;
-		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) 	{ wichSensor->reading = String(atlasPH.newReading); return; } break;
-		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading); return; } break;
-		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReadingB); return; } break;
-		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading); return; } break;
-		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReadingB); return; } break;
+		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()) 	{ wichSensor->reading = String(atlasTEMP.newReading[0]); return; } break;
+		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) 	{ wichSensor->reading = String(atlasPH.newReading[0]); return; } break;
+		case SENSOR_ATLAS_EC:			if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[0]); return; } break;
+		case SENSOR_ATLAS_EC_TDS:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[1]); return; } break;
+		case SENSOR_ATLAS_EC_SAL:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[2]); return; } break;
+		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[3]); return; } break;
+		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[0]); return; } break;
+		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[1]); return; } break;
 		case SENSOR_CHIRP_MOISTURE_RAW:		if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE_RAW)) { wichSensor->reading = String(moistureChirp.raw); return; } break;
 		case SENSOR_CHIRP_MOISTURE:		if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE)) { wichSensor->reading = String(moistureChirp.moisture); return; } break;
 		case SENSOR_CHIRP_TEMPERATURE:		if (moistureChirp.getReading(SENSOR_CHIRP_TEMPERATURE)) { wichSensor->reading = String(moistureChirp.temperature); return; } break;
@@ -241,6 +283,22 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
 		case SENSOR_BME680_VOCS:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.VOCgas); return; } break;
+		case SENSOR_ADS1X15_48_0: 		if (ads48.getReading(0)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		case SENSOR_ADS1X15_48_1: 		if (ads48.getReading(1)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		case SENSOR_ADS1X15_48_2: 		if (ads48.getReading(2)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		case SENSOR_ADS1X15_48_3: 		if (ads48.getReading(3)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		case SENSOR_ADS1X15_49_0: 		if (ads49.getReading(0)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		case SENSOR_ADS1X15_49_1: 		if (ads49.getReading(1)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		case SENSOR_ADS1X15_49_2: 		if (ads49.getReading(2)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		case SENSOR_ADS1X15_49_3: 		if (ads49.getReading(3)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4A_0: 		if (ads4A.getReading(0)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4A_1: 		if (ads4A.getReading(1)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4A_2: 		if (ads4A.getReading(2)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4A_3: 		if (ads4A.getReading(3)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4B_0: 		if (ads4B.getReading(0)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4B_1: 		if (ads4B.getReading(1)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4B_2: 		if (ads4B.getReading(2)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		case SENSOR_ADS1X15_4B_3: 		if (ads4B.getReading(3)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
 		default: break;
 	}
 
@@ -252,10 +310,11 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 {
 
 	switch(wichSensor) {
-		case SENSOR_GROOVE_OLED:	return true; break;
 		case SENSOR_ATLAS_TEMPERATURE:  return atlasTEMP.getBusyState(); break;
 		case SENSOR_ATLAS_PH: 		return atlasPH.getBusyState(); break;
 		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG: 	return atlasEC.getBusyState(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 	return atlasDO.getBusyState(); break;
@@ -341,6 +400,8 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		}
 		case SENSOR_ATLAS_PH:
 		case SENSOR_ATLAS_EC:
+		case SENSOR_ATLAS_EC_TDS:
+		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG:
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: {
@@ -350,17 +411,23 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
 
 			// 	 Calibration command options:
-			// 		Atlas PH: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/pH_EZO_datasheet.pdf) page 50
-			// 			* set cal,[mid,low,high] 7.00
-			// 			* set cal,clear
-			// 		Atlas EC: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/EC_EZO_Datasheet.pdf) page 52
-			// 			* set cal,[dry,clear,84]
-			// 			* set cal,low,1413
-			// 			* set cal,high,12,880
-			// 		Atlas DO: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/DO_EZO_Datasheet.pdf) page 50
-			// 			* set cal
-			// 			* set cal,0
-			// 			* set cal,clear
+			// 		Atlas PH: (https://www.atlas-scientific.com/files/pH_EZO_Datasheet.pdf) page 52
+			// 			* com cal,mid,7
+			// 			* com cal,low,4
+			// 			* com cal,high,10
+			// 			* com cal,clear
+			// 			* com cal,?
+			// 		Atlas EC: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/EC_EZO_Datasheet.pdf) page 55
+			// 			* com cal,dry
+			// 			* com cal,low,12880
+			// 			* com cal,high,80000
+			// 			* com cal,clear
+			// 			* com cal,?
+			// 		Atlas DO: (https://www.atlas-scientific.com/_files/_datasheets/_circuit/DO_EZO_Datasheet.pdf) page 52
+			// 			* com cal
+			// 			* com cal,0
+			// 			* com cal,clear
+			// 			* com cal,?
 			if (command.startsWith("com")) {
 
 				command.replace("com", "");
@@ -457,16 +524,21 @@ String AuxBoards::control(SensorType wichSensor, String command)
 	return "Unknown error on control command!!!";
 }
 
-void AuxBoards::print(SensorType wichSensor, String payload)
+void AuxBoards::print(char *payload)
 {
 
 	groove_OLED.print(payload);
 }
 
-void AuxBoards::displayReading(String title, String reading, String unit, String time)
+void AuxBoards::updateDisplay(SckBase* base, bool force)
 {
+	groove_OLED.update(base, force);
+}
 
-	groove_OLED.displayReading(title, reading, unit, time);
+void AuxBoards::plot(String value, const char *title, const char *unit)
+{
+	if (title != NULL && unit != NULL) groove_OLED.plot(value, title, unit);
+	else groove_OLED.plot(value);
 }
 
 bool GrooveI2C_ADC::start()
@@ -564,11 +636,13 @@ bool Groove_OLED::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-	U8g2_oled.begin();
-	U8g2_oled.clearDisplay();
-
-	U8g2_oled.firstPage();
-	do { U8g2_oled.drawXBM( 0, 0, 96, 96, scLogo); } while (U8g2_oled.nextPage());
+	u8g2_oled.setBusClock(1000000); 	// 1000000 -> 68 ms for a full buffer redraw
+	u8g2_oled.begin();
+	u8g2_oled.drawXBM( 16, 16, 96, 96, scLogo);
+	u8g2_oled.sendBuffer();
+	currentLine = 1;
+	delay(1000);
+	u8g2_oled.clearDisplay();
 
 	return true;;
 }
@@ -579,68 +653,411 @@ bool Groove_OLED::stop()
 	return true;
 }
 
-void Groove_OLED::print(String payload)
+void Groove_OLED::print(char *payload)
 {
+	u8g2_oled.setFont(font);
 
-	// uint8_t length = payload.length();
-	char charPayload[payload.length()];
-	payload.toCharArray(charPayload, payload.length()+1);
+	uint8_t thisLineChar = 0;
+	uint8_t lineStart = 0;
+	for (uint8_t i=0; i<strlen(payload); i++) {
 
-	U8g2_oled.firstPage();
+		// If there is a newLine char
+		if (payload[i] == 0xA || i == (strlen(payload) - 1)) {
 
-	do {
-		U8g2_oled.setFont(u8g2_font_ncenB14_tr);
-		U8g2_oled.drawStr(0,24, charPayload);
-	} while (U8g2_oled.nextPage());
-}
+			printLine(&payload[lineStart], thisLineChar + 1);
+			lineStart += (thisLineChar + 1);
+			thisLineChar = 0;
 
-void Groove_OLED::displayReading(String title, String reading, String unit, String time)
-{
+		// If line is full
+		} else if (thisLineChar == (columns - 1)) {
 
-	String date;
-	String hour;
+			printLine(&payload[lineStart], thisLineChar + 1);
+			lineStart += (thisLineChar + 1);
+			thisLineChar = 0;
 
-	if (time.toInt() != 0) {
-		date = time.substring(8,10) + "/" + time.substring(5,7) + "/" + time.substring(2,4);
-		hour = time.substring(11,16);
+		// No new line yet
+		} else thisLineChar ++;
 	}
 
-	U8g2_oled.firstPage();
-	do {
+	u8g2_oled.sendBuffer();
+}
 
-		// Title
-		U8g2_oled.setFont(u8g2_font_helvB10_tf);
-		if (U8g2_oled.getStrWidth(title.c_str()) > 96 && title.indexOf(" ") > -1) {
+void Groove_OLED::printLine(char *payload, uint8_t size)
+{
+	// Reject empty lines
+	if (size < 1) return;
+	if (payload[0] == 0xA || payload[0] == 0xD) return;
 
-			String first = title.substring(0, title.indexOf(" "));
-			String second = title.substring(title.indexOf(" ")+1);
+	// Clear screen if we are on the top
+	if (currentLine == 1) {
+		u8g2_oled.clearDisplay();
+		u8g2_oled.home();
 
-			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(first.c_str()))/2,11, first.c_str());
-			U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(second.c_str()))/2,23, second.c_str());
+	// Slide screen one line up when bottom is reached
+	} else if (currentLine > lines) {
+		uint8_t *buffStart = u8g2_oled.getBufferPtr();
+		memcpy(&buffStart[0], &buffStart[128], 1920);
+		memset(&buffStart[1920], 0, 128);
+		currentLine = lines;
+	}
 
-		} else U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(title.c_str()))/2,11, title.c_str());
+	// Print line
+	char toPrint[size+1];
+	snprintf(toPrint, sizeof(toPrint), payload);
 
-		// Reading
-		U8g2_oled.setFont(u8g2_font_helvB24_tf);
-		if (U8g2_oled.getStrWidth(reading.c_str()) > 96) U8g2_oled.setFont(u8g2_font_helvB18_tf);
-		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(reading.c_str()))/2, 55,  reading.c_str());
+	u8g2_oled.drawStr(0, currentLine * font_height, toPrint);
+	u8g2_oled.drawStr(columns * font_width, currentLine * font_height, " "); 	// Clear incomplete chars at the end
+	currentLine++;
+}
 
-		// Unit
-		U8g2_oled.setFont(u8g2_font_helvB12_tf);
-		U8g2_oled.drawStr((96-U8g2_oled.getStrWidth(unit.c_str()))/2,75, unit.c_str());
+void Groove_OLED::update(SckBase* base, bool force)
+{
+	if (millis() - lastUpdate < refreshRate && !force) return;
+	lastUpdate = millis();
 
-		if (time.toInt() != 0) {
+	// Info bar
+	drawBar(base);
 
-			// Date
-			U8g2_oled.setFont(u8g2_font_helvB10_tf);
-			U8g2_oled.drawStr(0,96,date.c_str());
+	if (base->st.error == ERROR_NONE) {
 
-			// Time
-			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
-			U8g2_oled.drawStr(96-U8g2_oled.getStrWidth(hour.c_str()),96,hour.c_str());
+		// Setup mode screen
+		if (base->st.onSetup) drawSetup(base);
+		else displayReading(base);
+
+	} else {
+
+		// Error popup
+		drawError(base->st.error);
+
+	}
+
+}
+
+void Groove_OLED::drawBar(SckBase* base)
+{
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
+
+	// Clear the buffer area of the bar
+	uint8_t *buffStart = u8g2_oled.getBufferPtr();
+	memset(&buffStart[0], 0, 256);
+
+	uint8_t font_h = u8g2_oled.getMaxCharHeight();
+
+	// Print current mode on the left
+	if (base->st.onSetup) u8g2_oled.drawStr(0, font_h, "SETUP");
+	else if (base->st.onShell) u8g2_oled.drawStr(0, font_h, "SHELL");
+	else if (base->st.mode == MODE_NET) u8g2_oled.drawStr(0, font_h, "WIFI");
+	else if (base->st.mode == MODE_SD) u8g2_oled.drawStr(0, font_h, "SD");
+
+	// Print "icon tray" from right to left
+	uint8_t tray_x = 128;
+	uint8_t sep = 4;
+
+	if (base->battery.present) {
+
+		// Battery percent
+		char percent[5];
+		snprintf(percent, sizeof(percent), "%u%%", base->battery.last_percent);
+		tray_x -= u8g2_oled.getStrWidth(percent);
+		u8g2_oled.drawStr(tray_x, font_h, percent);
+
+		// Battery Icon
+		tray_x -= (batt_charge_width + sep);
+		if (base->led.chargeStatus == base->led.CHARGE_CHARGING) u8g2_oled.drawXBM(tray_x, (16 - batt_charge_height) / 2, batt_charge_width, batt_charge_height, batt_charge_bits);
+		else if (base->battery.last_percent > 75) u8g2_oled.drawXBM(tray_x, (16 - batt_full_height) / 2, batt_full_width, batt_full_height, batt_full_bits);
+		else if (base->battery.last_percent > 25) u8g2_oled.drawXBM(tray_x, (16 - batt_half_height) / 2, batt_half_width, batt_half_height, batt_half_bits);
+		else u8g2_oled.drawXBM(tray_x, (16 - batt_empty_height) / 2, batt_empty_width, batt_empty_height, batt_empty_bits);
+
+	}
+
+	// AC icon
+	if (base->charger.onUSB) {
+		tray_x -= (AC_width + sep);
+		u8g2_oled.drawXBM(tray_x, (16 - AC_height) / 2, AC_width, AC_height, AC_bits);
+	}
+
+	// Time sync icon
+	if (base->st.timeStat.ok) {
+		tray_x -= (clock_width + sep);
+		u8g2_oled.drawXBM(tray_x, (16 - clock_height) / 2, clock_width, clock_height, clock_bits);
+	}
+
+	// Sdcard icon
+	if (base->st.cardPresent) {
+		tray_x -= (sdcard_width + sep);
+		u8g2_oled.drawXBM(tray_x, (16 - sdcard_height) / 2, sdcard_width, sdcard_height, sdcard_bits);
+	}
+
+	// Wifi icon
+	if (base->st.wifiStat.ok && base->st.espON) {
+		tray_x -= (wifi_width + sep);
+		u8g2_oled.drawXBM(tray_x, (16 - wifi_height) / 2, wifi_width, wifi_height, wifi_bits);
+	}
+
+	u8g2_oled.drawHLine(0, 15, 128);
+	u8g2_oled.updateDisplayArea(0, 0, 16, 2);
+}
+
+void Groove_OLED::drawError(errorType wichError)
+{
+	if (lastError == wichError) return;
+
+	// Clear error buffer area
+	uint8_t *buffStart = u8g2_oled.getBufferPtr();
+	memset(&buffStart[1792], 0, 256);
+
+	u8g2_oled.setFont(u8g2_font_7x13B_mr);
+	uint8_t font_h = u8g2_oled.getMaxCharHeight();
+
+	// Print a frame with an alert icon on the left
+	u8g2_oled.drawFrame(0, 112, 128, 16);
+	u8g2_oled.drawBox(0, 112, 16, 16);
+	u8g2_oled.drawXBM(2, 114, error_width, error_height, error_bits);
+
+	// Set message
+	char errorMsg[18];
+	switch(wichError) {
+		case ERROR_SD:
+			snprintf(errorMsg, sizeof(errorMsg), "NO SDCARD FOUND");
+			break;
+		case ERROR_SD_PUBLISH:
+			snprintf(errorMsg, sizeof(errorMsg), "SDCARD ERROR");
+			break;
+		case ERROR_TIME:
+			snprintf(errorMsg, sizeof(errorMsg), "TIME NOT SYNCED");
+			break;
+		case ERROR_NO_WIFI_CONFIG:
+			snprintf(errorMsg, sizeof(errorMsg), "NO WIFI SET");
+			break;
+		case ERROR_AP:
+			snprintf(errorMsg, sizeof(errorMsg), "WRONG WIFI SSID");
+			break;
+		case ERROR_PASS:
+			snprintf(errorMsg, sizeof(errorMsg), "WRONG WIFI PASS");
+			break;
+		case ERROR_WIFI_UNKNOWN:
+			snprintf(errorMsg, sizeof(errorMsg), "WIFI ERROR");
+			break;
+		case ERROR_MQTT:
+			snprintf(errorMsg, sizeof(errorMsg), "MQTT ERROR");
+			break;
+		case ERROR_NO_TOKEN_CONFIG:
+			snprintf(errorMsg, sizeof(errorMsg), "NO TOKEN SET");
+			break;
+		case ERROR_BATT:
+			snprintf(errorMsg, sizeof(errorMsg), "LOW BATTERY");
+			break;
+	}
+
+	// Print message
+	u8g2_oled.drawStr(19, 125, errorMsg);
+
+	lastError = wichError;
+
+	// Update display
+	u8g2_oled.updateDisplayArea(0, 14, 16, 2);
+}
+
+void Groove_OLED::drawSetup(SckBase* base)
+{
+	// Clear buffer (except info bar)
+	uint8_t *buffStart = u8g2_oled.getBufferPtr();
+	memset(&buffStart[256], 0, 1792);
+
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
+	uint8_t font_h = u8g2_oled.getMaxCharHeight();
+
+	char conn[] = "Connect to the Wi-Fi:";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn)) / 2, font_h + 30, conn);
+
+	u8g2_oled.setFont(u8g2_font_t0_16b_tf);
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(base->hostname)) / 2, font_h + 55, base->hostname);
+
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
+	char conn2[] = "If no window opens,";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn2)) / 2, font_h + 80, conn2);
+	char conn3[] = "with your browser go to";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn3)) / 2, font_h + 92, conn3);
+	char conn4[] = "http://sck.me";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn4)) / 2, font_h + 104, conn4);
+	char conn5[] = "or 192.168.1.1";
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(conn5)) / 2, font_h + 116, conn5);
+
+	u8g2_oled.updateDisplayArea(0, 2, 16, 14);
+}
+
+void Groove_OLED::displayReading(SckBase* base)
+{
+	if (base->rtc.getEpoch() - showStartTime <= showTime) return;
+
+	SensorType sensorToShow = SENSOR_COUNT;
+	uint8_t cycles = 0;
+
+	// Find next sensor to show
+	for (uint8_t i=lastShown+1; i<SENSOR_COUNT; i++) {
+
+		if (base->config.sensors[i].oled_display) {
+			sensorToShow = static_cast<SensorType>(i);
+			break;
+		}
+		if (i == SENSOR_COUNT - 1) {
+			i = 0;
+			cycles++;
+			if (cycles > 1) break; 	// Avoid getting stuck here if no sensor is enabled
+		}
+	}
+
+	// Clear buffer (except info bar)
+	uint8_t *buffStart = u8g2_oled.getBufferPtr();
+	memset(&buffStart[256], 0, 1792);
+
+	// Draw Title
+	u8g2_oled.setFont(u8g2_font_t0_16b_tf);
+
+	// Split in two lines if needed
+	const char *sensorTitle = base->sensors[sensorToShow].title;
+	uint8_t baseLine = 55 - u8g2_oled.getMaxCharHeight();
+	if (u8g2_oled.getStrWidth(sensorTitle) > 128) {
+
+		baseLine = 55;
+
+		// Try splitting on first space
+		char line1[20];
+		char *blank = " ";
+		uint8_t splitPoint = strcspn(sensorTitle, blank);
+		memcpy(line1, sensorTitle, splitPoint);
+		line1[splitPoint + 1] = '\0';
+
+		char *line2 = strchr(sensorTitle, ' ') + 1;
+
+		// If some of the lines is to big split in half
+		if (u8g2_oled.getStrWidth(line2) > 128 ||
+			u8g2_oled.getStrWidth(line1) > 128) {
+
+			// Split in half
+			splitPoint = strlen(sensorTitle) / 2;
+			memcpy(line1, sensorTitle, splitPoint);
+			line1[splitPoint + 1] = '\0';
+			u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(line1)) / 2, (baseLine - u8g2_oled.getMaxCharHeight()) - 2, line1);
+			u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(&sensorTitle[splitPoint])) / 2, baseLine + u8g2_oled.getDescent(), &sensorTitle[splitPoint]);
+
+		} else {
+
+			// Split on space
+			u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(line1)) / 2, (baseLine - u8g2_oled.getMaxCharHeight()) - 2, line1);
+			u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(line2)) / 2, baseLine + u8g2_oled.getDescent(), line2);
 		}
 
-	} while (U8g2_oled.nextPage());
+	} else u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(sensorTitle)) / 2, baseLine + u8g2_oled.getDescent(), sensorTitle);
+
+	// Draw unit
+	const char *sensorUnit = base->sensors[sensorToShow].unit;
+	u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(sensorUnit)) / 2, 128 + u8g2_oled.getDescent(), sensorUnit);
+
+	// Draw Value
+	uint8_t vCenter = baseLine + ((128 - u8g2_oled.getMaxCharHeight() - baseLine) / 2);
+	u8g2_oled.setFont(u8g2_font_fub30_tn);
+	String value = base->sensors[sensorToShow].reading;
+	if (base->sensors[sensorToShow].state != 0) value = "--";
+	if (u8g2_oled.getStrWidth(value.c_str()) > 128) {
+		u8g2_oled.setFont(u8g2_font_fub20_tn);
+		u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(value.c_str())) / 2, vCenter + (u8g2_oled.getMaxCharHeight() / 2), value.c_str());
+	} else {
+		u8g2_oled.drawStr((128 - u8g2_oled.getStrWidth(value.c_str())) / 2, vCenter + (u8g2_oled.getMaxCharHeight() / 2), value.c_str());
+	}
+
+
+	u8g2_oled.updateDisplayArea(0, 2, 16, 14);
+
+	lastShown = sensorToShow;
+	showStartTime = base->rtc.getEpoch();
+}
+
+void Groove_OLED::plot(String value, const char *title, const char *unit)
+{
+	// TODO support negative values
+	// TODO Auto adjust lower limit of Y scale
+
+	// Fresh start
+	if (title != NULL) {
+		_unit = unit;
+		_title = title;
+		minY = 0;
+		maxY = 100;
+		u8g2_oled.clearDisplay();
+		plotData.clear();
+	}
+
+	u8g2_oled.clearBuffer();
+
+	// Title and unit
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
+	u8g2_oled.drawStr(0, u8g2_oled.getMaxCharHeight() + u8g2_oled.getDescent(), _title);
+	u8g2_oled.drawStr(0, (u8g2_oled.getMaxCharHeight() * 2) - 2, value.c_str());
+	u8g2_oled.drawStr(u8g2_oled.getStrWidth(value.c_str()) + 10, (u8g2_oled.getMaxCharHeight() * 2) - 2, _unit);
+
+
+	// Get the new value
+	float Fvalue = value.toFloat();
+
+	// If this value is grater than our limit adjust scale
+	if (Fvalue > maxY) remap(Fvalue);
+
+	// Store the new value scaled to screen size
+	int8_t Ivalue = map(Fvalue, minY, maxY, screenMin, screenMax);
+	plotData.add(Ivalue);
+	if (plotData.size() > 128) plotData.remove(0); // Keep the size of the array limited to the screen size
+
+	// Check if we need to reajust scale (Happens when big values get out of scope)
+	float currentMaxY = 0;
+	for (uint8_t i=0; i<plotData.size(); i++) {
+		if (plotData.get(i) > currentMaxY) currentMaxY = plotData.get(i);
+	}
+	float bigCurrentMaxY = map(currentMaxY, screenMin, screenMax, minY, maxY);
+	if (bigCurrentMaxY < (maxY - (maxY / 10)) && bigCurrentMaxY > 0) remap(bigCurrentMaxY);
+
+
+	// Plot the data on the display
+	uint8_t ii = plotData.size() - 1;
+	for (uint8_t i=127; i>0; i--) {
+		if (ii == 0) break;
+		u8g2_oled.drawLine(i, 128 - plotData.get(ii), i - 1, 128 - plotData.get(ii - 1));
+		ii--;
+	}
+
+	// Print Y top value
+	u8g2_oled.setFont(u8g2_font_nine_by_five_nbp_tr);
+	char buff[8];
+	snprintf(buff, sizeof(buff), "%.0f", maxY);
+	u8g2_oled.drawStr(128 - u8g2_oled.getStrWidth(buff), 16 + u8g2_oled.getMaxCharHeight(), buff);
+	u8g2_oled.drawHLine(118, 18 + u8g2_oled.getMaxCharHeight(), 10);
+
+	// Print Y bottom value
+	snprintf(buff, sizeof(buff), "%.0f", minY);
+	u8g2_oled.drawStr(128 - u8g2_oled.getStrWidth(buff), 126, buff);
+	u8g2_oled.drawHLine(118, 127, 10);
+
+	u8g2_oled.sendBuffer();
+}
+
+void Groove_OLED::remap(float newMaxY)
+{
+	newMaxY += (newMaxY / 10);
+
+	float fa = maxY / newMaxY;
+
+	for (uint8_t i=0; i<plotData.size(); i++) {
+
+		float remaped = plotData.get(i) * fa;
+
+		// round it properly
+		if (remaped > 0) remaped += 0.5;
+		else remaped -= 0.5;
+
+		plotData.set(i, (int)remaped);
+	}
+
+	maxY = newMaxY;
 }
 
 bool WaterTemp_DS18B20::start()
@@ -728,15 +1145,13 @@ bool Atlas::start()
 	// This actions are only for conductivity (EC) sensor
 	if (EC) {
 
-		// Set probe
-		if (!sendCommand((char*)"K,1.0")) return false;
-		delay(shortWait);
-
 		// ----  Set parameters
-		if (sendCommand((char*)"O,?")) {
+		if (sendCommand((char*)"O,?")) { 	// Ask info about enabled parameters
 			delay(shortWait);
-			if (!atlasResponse.equals("?O,EC,SG")) {
-				const char *parameters[4] = PROGMEM {"O,EC,1", "O,TDS,0", "O,S,0", "O,SG,1"};
+			getResponse();
+			if (!atlasResponse.equals("?O,EC,TDS,S,SG")) {
+				SerialUSB.println("Enabling all metrics for EC Atlas");
+				const char *parameters[4] = PROGMEM {"O,EC,1", "O,TDS,1", "O,S,1", "O,SG,1"};
 				for (int i = 0; i<4; ++i) {
 					if (!sendCommand((char*)parameters[i])) return false;
 					delay(longWait);
@@ -749,6 +1164,7 @@ bool Atlas::start()
 		// ---- Set parameters
 		if (sendCommand((char*)"O,?")) {
 			delay(shortWait);
+			getResponse();
 			if (!atlasResponse.equals((char*)"?O,%,mg")) {
 				if (!sendCommand((char*)"O,%,1")) return false;
 				delay(shortWait);
@@ -824,12 +1240,26 @@ bool Atlas::getBusyState()
 					// Reading OK
 					state = REST;
 
-					if (PH || TEMP)	newReading = atlasResponse.toFloat();
+					if (PH || TEMP)	newReading[0] = atlasResponse.toFloat();
 					if (EC || DO) {
-						String first = atlasResponse.substring(0, atlasResponse.indexOf(","));
-						String second = atlasResponse.substring(atlasResponse.indexOf(",")+1);
-						newReading = first.toFloat();
-						newReadingB = second.toFloat();
+
+						uint8_t readingNum = 2;
+						if (EC) readingNum = 4;
+
+						for (uint8_t i=0; i<readingNum; i++) {
+
+							uint8_t endIdx = atlasResponse.indexOf(",");
+
+							String newReadingStr;
+							if (endIdx > 0) {
+								newReadingStr = atlasResponse.substring(0, endIdx);
+								atlasResponse.remove(0, endIdx+1);
+							} else {
+								newReadingStr = atlasResponse.substring(0);
+							}
+
+							newReading[i] = newReadingStr.toFloat();
+						}
 					}
 					goToSleep();
 					return false;
@@ -839,7 +1269,7 @@ bool Atlas::getBusyState()
 
 					// Error
 					state = REST;
-					newReading = 0;
+					newReading[0] = 0;
 					goToSleep();
 					return false;
 					break;
@@ -887,10 +1317,8 @@ bool Atlas::sendCommand(char* command)
 
 bool Atlas::tempCompensation()
 {
-	String stringData;
-	char data[10];
-	float temperature = 0;
-
+	// Temperature comepnsation for PH, EC, and DO
+	float temperature;
 	if (waterTemp_DS18B20.detected) temperature = waterTemp_DS18B20.getReading();
 	else if (atlasTEMP.detected) {
 
@@ -898,21 +1326,28 @@ bool Atlas::tempCompensation()
 			while (atlasTEMP.getBusyState()) delay(2);
 		}
 
-		temperature = atlasTEMP.newReading;
-	} else {
+		char data[10];
+		temperature = atlasTEMP.newReading[0];
+		sprintf(data,"T,%.2f",temperature);
 
-		// No available sensor for temp compensation
-		// Still we want the readings
-		return true;
+		if (!sendCommand(data)) return false;
 	}
 
-	// Error on reading temperature
-	if (temperature == 0) return false;
+	// Salinity compensation only for DO
+	if (DO && atlasEC.detected) {
 
-	sprintf(data,"T,%.2f",temperature);
-	if (sendCommand(data)) return true;
+		if (millis() - atlasEC.lastUpdate > 10000) {
+			while (atlasEC.getBusyState()) delay(2);
+		}
 
-	return false;
+		char salData[20];
+		float salinity = atlasEC.newReading[2];
+		sprintf(salData,"S,%.2f,ppt",salinity);
+
+		if (!sendCommand(salData)) return false;
+	}
+
+	return true;
 }
 
 uint8_t Atlas::getResponse()
@@ -1285,6 +1720,73 @@ bool Sck_BME680::getReading()
 	pressure = bme.pressure / 1000;  // Converted to kPa
 	VOCgas = bme.gas_resistance;
 
+	return true;
+}
+
+bool Sck_ADS1X15::start(uint8_t address)
+{
+	if (!I2Cdetect(&auxWire, address)) return false;
+
+	if (started) return true;
+
+	ads.begin(address);
+	started = true;
+	return true;
+}
+
+bool Sck_ADS1X15::stop()
+{
+	started = false;
+	return true;
+}
+
+bool Sck_ADS1X15::getReading(uint8_t wichChannel)
+{
+	// Reset gain
+	ads.setGain(GAIN_TWOTHIRDS);
+	double voltage_range = 6.144;
+
+	// Get value with full range
+	int16_t value = ads.readADC_SingleEnded(wichChannel);
+
+	// If value is under 4.096v increase the gain depending on voltage
+	if (value < 21845) {
+		if (value > 10922) {
+
+			// 1x gain, 4.096V
+			ads.setGain(GAIN_ONE);
+			voltage_range = 4.096;
+
+		} else if (value > 5461) {
+
+			// 2x gain, 2.048V
+			ads.setGain(GAIN_TWO);
+			voltage_range = 2.048;
+
+		} else if (value > 2730) {
+
+			// 4x gain, 1.024V
+			ads.setGain(GAIN_FOUR);
+			voltage_range = 1.024;
+
+		} else if (value > 1365) {
+
+			// 8x gain, 0.25V
+			ads.setGain(GAIN_EIGHT);
+			voltage_range = 0.25;
+
+		} else {
+
+			// 16x gain, 0.125V
+			ads.setGain(GAIN_SIXTEEN);
+			voltage_range = 0.125;
+		}
+
+		// Get the value again
+		value = ads.readADC_SingleEnded(wichChannel);
+	}
+
+	reading = (float)value / 32768 * voltage_range;
 	return true;
 }
 

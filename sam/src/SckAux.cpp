@@ -740,6 +740,8 @@ void Groove_OLED::update(SckBase* base, bool force)
 	if (millis() - lastUpdate < refreshRate && !force) return;
 	lastUpdate = millis();
 
+	if (base->config.debug.oled) return;
+
 	// Info bar
 	drawBar(base);
 

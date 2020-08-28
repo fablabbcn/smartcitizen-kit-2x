@@ -59,6 +59,10 @@ void SckESP::setup()
 
 	// Date for Web server
 	sprintf(last_modified, "%s %s GMT", __DATE__, __TIME__);
+
+	// MQTT pubSubClient settings
+	MQTTclient.setKeepAlive(120);
+	MQTTclient.setBufferSize(4096);
 }
 void SckESP::update()
 {

@@ -19,7 +19,9 @@ int8_t SckList::_flashStart()
 
 		dumpSector(0);
 
-		if (debug) base->sckOut("F: Memory is not formated or damaged!!");
+		// Print error
+		base->sckOut("Flash memory is not formated or damaged!!", PRIO_HIGH);
+
 
 		// TODO recover data in case it exists and find a way to update current sector
 		// maybe we can avoid format by just erasing some sectors to recover sanity
@@ -33,13 +35,17 @@ int8_t SckList::_flashStart()
 }
 bool SckList::_flashFormat()
 {
-	if (debug) base->sckOut("F: Formating...");
+	base->sckOut("Formating... be patient, don't turn off your kit!", PRIO_HIGH);
 
-	if (!flash.eraseChip()) return false;
+	if (!flash.eraseChip()) {
+		return false;
+		base->sckOut("ERROR while formating flash memory!!!", PRIO_HIGH);
+	}
 
 	_currSector = 0;
 	_addr = 3;
 
+	base->sckOut("Flash memory formated OK, please power cycle your kit. (not just reset)", PRIO_HIGH);
 	return true;
 }
 
@@ -872,8 +878,12 @@ SckList::FlashInfo SckList::flashInfo()
 
 				firstEmpty = false;
 				info.sectFree++;
+				base->sckOut("U", PRIO_HIGH, false);
 
-			} else info.sectUsed++;
+			} else {
+				info.sectUsed++;
+				base->sckOut("u", PRIO_HIGH, false);
+			}
 
 			info.grpTotal += _countSectGroups(i, PUB_NET, PUBLISHED, true);
 			info.grpPubNet += _countSectGroups(i, PUB_NET, PUBLISHED);
@@ -881,7 +891,12 @@ SckList::FlashInfo SckList::flashInfo()
 			info.grpPubSd += _countSectGroups(i, PUB_SD, PUBLISHED);
 			info.grpUnPubSd += _countSectGroups(i, PUB_SD, NOT_PUBLISHED);
 
-		} else if (state == SECTOR_EMPTY) info.sectFree++;
+		} else if (state == SECTOR_EMPTY)  {
+			info.sectFree++;
+			base->sckOut("f", PRIO_HIGH, false);
+		}
+
+		base->sckOut(".", PRIO_HIGH, false);
 	}
 
 	info.currSector = _currSector;

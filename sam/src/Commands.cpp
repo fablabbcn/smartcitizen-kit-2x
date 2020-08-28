@@ -437,6 +437,7 @@ void flash_com(SckBase* base, String parameters)
 {
 	if (parameters.length() <= 0) {
 
+		base->sckOut("Scanning Flash memory (it can take a while!)");
 		SckList::FlashInfo info = base->readingsList.flashInfo();
 		sprintf(base->outBuff, "\r\n%u sectors in total, %u used and %u free.", SCKLIST_SECTOR_NUM, info.sectUsed, info.sectFree);
 		base->sckOut();
@@ -448,13 +449,9 @@ void flash_com(SckBase* base, String parameters)
 	} else {
 		// Format: flash -format
 		if (parameters.indexOf("-format") >=0) {
-			base->sckOut("Formating... be patient, don't turn off your kit!");
-			if (base->readingsList.flashFormat()) {
-				base->sckOut("Flash memory formated OK, please power cycle your kit. (not just reset)");
-			} else {
-				base->sckOut("ERROR: Something went wrong!!!");
-				return;
-			}
+
+			base->readingsList.flashFormat();
+			return;
 		}
 
 		// Recover readings: flash -recover sector-num/all sd/net
@@ -464,7 +461,7 @@ void flash_com(SckBase* base, String parameters)
 		if (recoI >= 0) {
 			
 
-			// Enter sheel mode to avoid interferences
+			// Enter shell mode to avoid interferences
 			bool alreadyOnShell = base->st.onShell;
 			if (!alreadyOnShell) {
 				base->st.onShell = true;

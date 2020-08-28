@@ -1534,7 +1534,7 @@ void SckBase::configGCLK6()
 void SckBase::updateSensors()
 {
 	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) {
-		sckOut("RTC ERROR when updating sensors!!!");
+		sckOut("RTC ERROR when updating sensors!!!", PRIO_LOW);
 		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
 		st.timeStat.reset();
 	}
@@ -1777,7 +1777,6 @@ bool SckBase::netPublish()
 	bool result = false;
 	wichGroupPublishing = readingsList.readGroup(readingsList.PUB_NET);
 	if (wichGroupPublishing.group >= 0) {
-		// TODO aqui podria dar mas informacion de lo que envia (nmumero de readings, o cuales sensores o algo mas, pensarlo)
 		sprintf(outBuff, "(%s) Sent readings to platform.", ISOtimeBuff);
 		sckOut();
 		result = sendMessage();

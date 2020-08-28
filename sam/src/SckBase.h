@@ -166,7 +166,7 @@ class SckBase
 		bool sdPublish(); 				//  Publishes the provided group of readings to sdcard (if available)
 		LinkedList<SensorType> pendingSensorsLinkedList;
 
-		SckList::GroupIndex wichGroupPublishing; 	// Index of the group beaing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
+		SckList::GroupIndex wichGroupPublishing; 	// Index of the group beeing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
 
 	public:
 		const String hardwareVer = "2.1";
@@ -209,7 +209,7 @@ class SckBase
 		friend class urban;
 		SckUrban urban = SckUrban(&rtc);
 
-		// RAM readings store
+		// Flash readings store
 		friend class SckList;
 		SckList readingsList = SckList(this);
 

@@ -245,7 +245,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 		{
 				debugOUT("Receiving new readings...");
 				if (mqttPublish()) {
-					delay(500);
 					sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
 				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
@@ -254,7 +253,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 		{
 				debugOUT("Receiving MQTT inventory...");
 				if (mqttInventory()) {
-					delay(500);
 					sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
 				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
@@ -263,7 +261,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 		{
 				debugOUT("Receiving new info...");
 				if (mqttInfo()) {
-					delay(500);
 					sendMessage(SAMMES_MQTT_INFO_OK, "");
 				} else sendMessage(SAMMES_MQTT_INFO_ERROR, "");
 				break;
@@ -272,7 +269,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 		{
 				debugOUT("Receiving MQQT custom publish request...");
 				if (mqttCustom()) {
-					delay(500);
 					sendMessage(SAMMES_MQTT_CUSTOM_OK, "");
 				} else sendMessage(SAMMES_MQTT_CUSTOM_ERROR, "");
 				break;

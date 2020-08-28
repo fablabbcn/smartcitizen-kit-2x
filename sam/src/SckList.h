@@ -38,9 +38,11 @@ class SckList
 		};
 
 		enum GroupAddr {
-			GROUP_SIZE = 0x00,
-			GROUP_NET  = 0x02,
-			GROUP_SD   = 0x03
+			GROUP_SIZE = 		0x00,
+			GROUP_NET  = 		0x02,
+			GROUP_SD   = 		0x03,
+			GROUP_TIME = 		0x04,
+			GROUP_READINGS = 	0x08
 		};
 
 		struct SectorInfo {

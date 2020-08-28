@@ -128,7 +128,7 @@ uint8_t SckList::_countReadings(GroupIndex wichGroup, uint32_t grpAddr)
 	}
 
 	uint32_t finalGrpAddr = grpAddr + flash.readWord(grpAddr);
-	uint32_t readingAddr = grpAddr + 2 + 2 + 6; // 2: grp size, 2: grpFlags, 6: timestamp
+	uint32_t readingAddr = grpAddr + GROUP_READINGS;
 	uint8_t readingCounter = 0;
 
 
@@ -264,7 +264,7 @@ int16_t SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
 
 	int16_t thisGroup = 0;
 
-	// Get right addrs depending on requested flag
+	// Get right addr depending on requested flag
 	uint8_t addPositionFlag = GROUP_NET;
 	if (wichFlag == PUB_SD) addPositionFlag = GROUP_SD;
 
@@ -448,10 +448,9 @@ uint8_t SckList::_formatSD(GroupIndex wichGroup, char* buffer)
 
 	memset(buffer, 0, sizeof(buffer)); 	// Clear buffer
 
-	uint32_t thisTime = flash.readULong(grpAddr + 6);
+	uint32_t thisTime = flash.readULong(grpAddr + GROUP_TIME);
 	base->epoch2iso(thisTime, buffer); 		// print time stamp to buffer
 	base->epoch2iso(thisTime, base->ISOtimeBuff); 	// Update base time buffer for console message.
-	grpAddr += 10;  // Jump to first reading (2 size + 2 flags + 6 timestamp = 10)
 
 	if (debug) {
 		sprintf(base->outBuff, "F: (%s) -> ", base->ISOtimeBuff);
@@ -459,22 +458,23 @@ uint8_t SckList::_formatSD(GroupIndex wichGroup, char* buffer)
 	}
 
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
 		SensorType wichSensorType = base->sensors.sensorsPriorized(i);
 
 		if (base->sensors[wichSensorType].enabled) {
 
 			bool found = false;
-			uint32_t tempAddr = grpAddr;
+			uint32_t pos = grpAddr + GROUP_READINGS;
 			for (uint8_t ii=0; ii<readingNum; ii++) {
 
-				SensorType thisType = static_cast<SensorType>(flash.readByte(tempAddr + 1)); 	// Get sensorType
-				uint8_t readSize = flash.readByte(tempAddr); // Get reading size
+				uint8_t readSize = flash.readByte(pos); // Get reading size
+				SensorType thisType = static_cast<SensorType>(flash.readByte(pos + 1)); 	// Get sensorType
 
 				if (thisType == wichSensorType) {
 
 					// Get the reading value
 					String thisReading;
-					for (uint32_t r=tempAddr+2; r<tempAddr+readSize; r++) thisReading.concat((char)flash.readByte(r));
+					for (uint32_t r=pos+2; r<pos+readSize; r++) thisReading.concat((char)flash.readByte(r));
 
 					if (debug) {
 						sprintf(base->outBuff, "%s %s %s, ", base->sensors[thisType].title, thisReading.c_str(), base->sensors[thisType].unit);
@@ -485,7 +485,7 @@ uint8_t SckList::_formatSD(GroupIndex wichGroup, char* buffer)
 					found = true;
 					break;
 				}
-				tempAddr += readSize;
+				pos += readSize;
 			}
 			if (!found) sprintf(buffer + strlen(buffer), ",null");
 		}
@@ -507,30 +507,29 @@ uint8_t SckList::_formatNET(GroupIndex wichGroup, char* buffer)
 	// 		12:28,
 	// 		10:4.45
 	// }
-	//
-	//
+
 	uint32_t grpAddr = _getGrpAddr(wichGroup);
 	uint8_t readingNum = _countReadings(wichGroup, grpAddr);
 
 	// Prepare buffer for ESP format
 	memset(buffer, 0, sizeof(buffer)); 		// Clear buffer
-	sprintf(buffer, "%c", ESPMES_MQTT_PUBLISH); 		// Write command to buffer
+	sprintf(buffer, "%c", ESPMES_MQTT_PUBLISH); 	// Write command to buffer
 
 	// Write time
-	base->epoch2iso(flash.readULong(grpAddr + 6), base->ISOtimeBuff);
+	base->epoch2iso(flash.readULong(grpAddr + GROUP_TIME), base->ISOtimeBuff);
 	sprintf(buffer + strlen(buffer), "{t:%s", base->ISOtimeBuff);
-	grpAddr += 10;  // Jump to first reading (2 size + 2 flags + 6 timestamp = 10)
 
 	if (debug) {
 		sprintf(base->outBuff, "F: (%s) -> ", base->ISOtimeBuff);
 		base->sckOut(PRIO_MED, false);
 	}
 
+	grpAddr += GROUP_READINGS;  // Jump to first reading
 	// Write sensor readings
 	for (uint8_t i=0; i<readingNum; i++) {
 
-		SensorType thisType = static_cast<SensorType>(flash.readByte(grpAddr+1)); 	// Get sensorType
 		uint8_t readSize = flash.readByte(grpAddr); // Get reading size (full size - size and flags)
+		SensorType thisType = static_cast<SensorType>(flash.readByte(grpAddr+1)); 	// Get sensorType
 
 		// Get the reading value
 		String thisReading;
@@ -573,20 +572,14 @@ uint8_t SckList::saveGroup()
 {
 
 	// First prepare the group to be saved (on ram buffer)
-	// Variable to store the buffer index position
-	uint16_t pos = 2; 	// The first two bytes are a placeholder to store the size of the group once we know it
 
 	// Init tags in NOT_PUBLISHED for all
 	byte finit = 0xFF;
-	memcpy(&flashBuff[pos], &finit, 1); pos+=1;
-	memcpy(&flashBuff[pos], &finit, 1); pos+=1;
+	memcpy(&flashBuff[GROUP_NET], &finit, 1);
+	memcpy(&flashBuff[GROUP_SD], &finit, 1);
 
 	// Store timeStamp of current group
-	uint8_t timeSize = 6; 						// 1: size + 1: SensorType + 4: reading = 6 total
-	memcpy(&flashBuff[pos], &timeSize, 1); pos+=1; 			// Write Size of value (1 byte)
-	SensorType stype = SENSOR_COUNT;
-	memcpy(&flashBuff, &stype, 1); pos+=1; 				// Write SensorType (1 byte)
-	memcpy(&flashBuff[pos], &base->lastSensorUpdate, 4); pos+=4; 	// Write timeStamp (4 bytes)
+	memcpy(&flashBuff[GROUP_TIME], &base->lastSensorUpdate, 4);  	// Write timeStamp (4 bytes)
 
 	base->epoch2iso(base->lastSensorUpdate, base->ISOtimeBuff);
 	if (debug) {
@@ -595,6 +588,7 @@ uint8_t SckList::saveGroup()
 	}
 
 	// Store sensor readings
+	uint16_t pos = GROUP_READINGS; 	// Variable to store the buffer index position
 	uint8_t enabledSensors = 0;
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 		if (base->sensors[static_cast<SensorType>(i)].enabled) { 			// If sensor is enabled
@@ -602,7 +596,7 @@ uint8_t SckList::saveGroup()
 			String value = base->sensors[static_cast<SensorType>(i)].reading;
 			uint8_t vsize = value.length() + 1 + 1; 				// Value.length + Sensortype + size byte
 			memcpy(&flashBuff[pos], &vsize, 1); pos+=1;				// Size (1 byte)
-			stype = static_cast<SensorType>(i);
+			SensorType stype = static_cast<SensorType>(i);
 			memcpy(&flashBuff[pos], &stype, 1); pos+=1;				// SensorType (1 byte)
 
 			if (debug) {
@@ -622,7 +616,7 @@ uint8_t SckList::saveGroup()
 	if (debug) base->sckOut("<-");
 
 	// Save group size at the begining of the group
-	memcpy(&flashBuff[0], &pos, 2);
+	memcpy(&flashBuff[GROUP_SIZE], &pos, 2);
 
 	// Check if new group fits in current sector
 	if (_getSectFreeSpace(_currSector) < pos) {

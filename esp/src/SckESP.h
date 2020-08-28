@@ -22,6 +22,8 @@
 #define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
 #define MQTT_SERVER_PORT 80
 #define MQTT_QOS 1
+#define MQTT_BUFF_SIZE 4096
+#define MQTT_KEEP_ALIVE 120
 
 #include "index.html.gz.h"
 

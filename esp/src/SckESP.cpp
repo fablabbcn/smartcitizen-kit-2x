@@ -61,8 +61,8 @@ void SckESP::setup()
 	sprintf(last_modified, "%s %s GMT", __DATE__, __TIME__);
 
 	// MQTT pubSubClient settings
-	MQTTclient.setKeepAlive(120);
-	MQTTclient.setBufferSize(4096);
+	MQTTclient.setKeepAlive(MQTT_KEEP_ALIVE);
+	MQTTclient.setBufferSize(MQTT_BUFF_SIZE);
 }
 void SckESP::update()
 {
@@ -349,7 +349,7 @@ bool SckESP::mqttPublish()
 		debugOUT(String(pubTopic));
 		debugOUT(String(netBuff));
 
-		char pubPayload[1024];
+		char pubPayload[MQTT_BUFF_SIZE];
 		
 
 		// /* Example
@@ -370,7 +370,7 @@ bool SckESP::mqttPublish()
 		snprintf(thisTime, 21, &netBuff[3]);
 		sprintf(pubPayload, "%s%s%s", "{\"data\":[{\"recorded_at\":\"", thisTime, "\",\"sensors\":[{\"id\":");
 
-		for (uint16_t i=24; i<NETBUFF_SIZE; i++) {
+		for (uint16_t i=24; i<strlen(netBuff); i++) {
 			
 			char thisChar[2];
 			snprintf(thisChar, 2, &netBuff[i]);
@@ -382,6 +382,7 @@ bool SckESP::mqttPublish()
 
 		sprintf(pubPayload, "%s%s", pubPayload, "]}]}");
 
+		debugOUT(String(pubPayload));
 
 		if (MQTTclient.publish(pubTopic, pubPayload)) {
 			debugOUT(F("MQTT readings published OK !!!"));

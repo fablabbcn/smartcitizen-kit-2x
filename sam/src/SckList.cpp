@@ -110,10 +110,8 @@ int8_t SckList::_isGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 
 	return 0;
 }
-uint8_t SckList::_countReadings(GroupIndex wichGroup)
+uint8_t SckList::_countReadings(GroupIndex wichGroup, uint32_t grpAddr)
 {
-	uint32_t grpAddr = _getGrpAddr(wichGroup);
-
 	// Sanity check
 	if (grpAddr == 0) {
 		if (debug) {
@@ -434,6 +432,123 @@ int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte p
 	return groupTotal;
 }
 
+
+uint8_t SckList::_formatSD(GroupIndex wichGroup, char* buffer)
+{
+	if (debug) base->sckOut("F: Preparing group data for sdcard saving");
+
+	uint32_t grpAddr = _getGrpAddr(wichGroup);
+	uint8_t readingNum = _countReadings(wichGroup, grpAddr);
+
+	memset(buffer, 0, sizeof(buffer)); 	// Clear buffer
+
+	uint32_t thisTime = flash.readULong(grpAddr + 6);
+	base->epoch2iso(thisTime, buffer); 		// print time stamp to buffer
+	base->epoch2iso(thisTime, base->ISOtimeBuff); 	// Update base time buffer for console message.
+	grpAddr += 10;  // Jump to first reading (2 size + 2 flags + 6 timestamp = 10)
+
+	if (debug) {
+		sprintf(base->outBuff, "F: (%s) -> ", base->ISOtimeBuff);
+		base->sckOut(PRIO_MED, false);
+	}
+
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		SensorType wichSensorType = base->sensors.sensorsPriorized(i);
+
+		if (base->sensors[wichSensorType].enabled) {
+
+			bool found = false;
+			uint32_t tempAddr = grpAddr;
+			for (uint8_t ii=0; ii<readingNum; ii++) {
+
+				SensorType thisType = static_cast<SensorType>(flash.readByte(tempAddr + 1)); 	// Get sensorType
+				uint8_t readSize = flash.readByte(tempAddr); // Get reading size
+
+				if (thisType == wichSensorType) {
+
+					// Get the reading value
+					String thisReading;
+					for (uint32_t r=tempAddr+2; r<tempAddr+readSize; r++) thisReading.concat((char)flash.readByte(r));
+
+					if (debug) {
+						sprintf(base->outBuff, "%s %s %s, ", base->sensors[thisType].title, thisReading.c_str(), base->sensors[thisType].unit);
+						base->sckOut(PRIO_MED, false);
+					}
+
+					sprintf(buffer + strlen(buffer), ",%s", thisReading.c_str());
+					found = true;
+					break;
+				}
+				tempAddr += readSize;
+			}
+			if (!found) sprintf(buffer + strlen(buffer), ",null");
+		}
+	}
+	sprintf(buffer + strlen(buffer), "\r\n"); 	// print newline to buffer
+
+	if (debug) base->sckOut("<-");
+
+	return readingNum;
+}
+uint8_t SckList::_formatNET(GroupIndex wichGroup, char* buffer)
+{
+	if (debug) base->sckOut("F: Preparing group data for network publishing");
+
+	// /* Example
+	// {	t:2017-03-24T13:35:14Z,
+	// 		29:48.45,
+	// 		13:66,
+	// 		12:28,
+	// 		10:4.45
+	// }
+	//
+	//
+	uint32_t grpAddr = _getGrpAddr(wichGroup);
+	uint8_t readingNum = _countReadings(wichGroup, grpAddr);
+
+	// Prepare buffer for ESP format
+	memset(buffer, 0, sizeof(buffer)); 		// Clear buffer
+	sprintf(buffer, "%c", ESPMES_MQTT_PUBLISH); 		// Write command to buffer
+
+	// Write time
+	base->epoch2iso(flash.readULong(grpAddr + 6), base->ISOtimeBuff);
+	sprintf(buffer + strlen(buffer), "{t:%s", base->ISOtimeBuff);
+	grpAddr += 10;  // Jump to first reading (2 size + 2 flags + 6 timestamp = 10)
+
+	if (debug) {
+		sprintf(base->outBuff, "F: (%s) -> ", base->ISOtimeBuff);
+		base->sckOut(PRIO_MED, false);
+	}
+
+	// Write sensor readings
+	for (uint8_t i=0; i<readingNum; i++) {
+
+		SensorType thisType = static_cast<SensorType>(flash.readByte(grpAddr+1)); 	// Get sensorType
+		uint8_t readSize = flash.readByte(grpAddr); // Get reading size (full size - size and flags)
+
+		// Get the reading value
+		String thisReading;
+		for (uint32_t r=grpAddr+2; r<grpAddr+readSize; r++) thisReading.concat((char)flash.readByte(r));
+
+		if (base->sensors[thisType].id > 0 && !thisReading.startsWith("null")) {
+
+			if (debug) {
+				sprintf(base->outBuff, "%s %s %s, ", base->sensors[thisType].title, thisReading.c_str(), base->sensors[thisType].unit);
+				base->sckOut(PRIO_MED, false);
+			}
+
+			sprintf(buffer + strlen(buffer), ",%u:%s", base->sensors[thisType].id, thisReading.c_str());
+		}
+
+		grpAddr += readSize;
+	}
+	sprintf(buffer + strlen(buffer), "}");
+
+	if (debug) base->sckOut("<-");
+
+	return readingNum;
+}
+
 // Public fnctions
 int8_t SckList::setup()
 {
@@ -573,125 +688,19 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 		thisGroup = forceIndex;
 	}
 
-	// prepare group data depending on provided flag
-	uint8_t readingNum = _countReadings(thisGroup);
-
-	if (debug) {
-		sprintf(base->outBuff, "F: Reading group %i in sector %u with %u readings.", thisGroup.group, thisGroup.sector, readingNum);
-		base->sckOut();
-	}
-
+	uint8_t readingNum = 0;
+	if (wichFlag == PUB_SD) readingNum = _formatSD(thisGroup, flashBuff);
+	else if (wichFlag == PUB_NET) readingNum = _formatNET(thisGroup, base->netBuff);
+	
 	if (readingNum > 0) {
 
-		uint32_t grpAddr = _getGrpAddr(thisGroup);
-
-		if (wichFlag == PUB_SD) {
-
-			if (debug) base->sckOut("F: Preparing group data for sdcard saving");
-
-			memset(flashBuff, 0, sizeof(flashBuff)); 	// Clear flashBuff
-
-			uint32_t thisTime = flash.readULong(grpAddr + 6);
-			base->epoch2iso(thisTime, flashBuff); 		// print time stamp to buffer
-			base->epoch2iso(thisTime, base->ISOtimeBuff); 	// Update base time buffer for console message.
-			grpAddr += 10;  // Jump to first reading (2 size + 2 flags + 6 timestamp = 10)
-
-			if (debug) {
-				sprintf(base->outBuff, "F: (%s) -> ", base->ISOtimeBuff);
-				base->sckOut(PRIO_MED, false);
-			}
-
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				SensorType wichSensorType = base->sensors.sensorsPriorized(i);
-
-				if (base->sensors[wichSensorType].enabled) {
-
-					bool found = false;
-					uint32_t tempAddr = grpAddr;
-					for (uint8_t ii=0; ii<readingNum; ii++) {
-
-						SensorType thisType = static_cast<SensorType>(flash.readByte(tempAddr + 1)); 	// Get sensorType
-						uint8_t readSize = flash.readByte(tempAddr); // Get reading size
-
-						if (thisType == wichSensorType) {
-
-							// Get the reading value
-							String thisReading;
-							for (uint32_t r=tempAddr+2; r<tempAddr+readSize; r++) thisReading.concat((char)flash.readByte(r));
-
-							if (debug) {
-								sprintf(base->outBuff, "%s %s %s, ", base->sensors[thisType].title, thisReading.c_str(), base->sensors[thisType].unit);
-								base->sckOut(PRIO_MED, false);
-							}
-
-							sprintf(flashBuff + strlen(flashBuff), ",%s", thisReading.c_str());
-							found = true;
-							break;
-						}
-						tempAddr += readSize;
-					}
-					if (!found) sprintf(flashBuff + strlen(flashBuff), ",null");
-				}
-			}
-			sprintf(flashBuff + strlen(flashBuff)-1, "\r\n"); 	// print newline to flashBuff
-
-			if (debug) base->sckOut("<-");
-
-		} else if (wichFlag == PUB_NET) {
-
-			if (debug) base->sckOut("F: Preparing group data for network publishing");
-
-			// /* Example
-			// {	t:2017-03-24T13:35:14Z,
-			// 		29:48.45,
-			// 		13:66,
-			// 		12:28,
-			// 		10:4.45
-			// }
-
-			// Prepare netBuff for ESP format
-			memset(base->netBuff, 0, sizeof(base->netBuff)); 		// Clear netBuff
-			sprintf(base->netBuff, "%c", ESPMES_MQTT_PUBLISH); 		// Write command to netBuff
-
-			// Write time
-			base->epoch2iso(flash.readULong(grpAddr + 6), base->ISOtimeBuff);
-			sprintf(base->netBuff + strlen(base->netBuff), "{t:%s", base->ISOtimeBuff);
-			grpAddr += 10;  // Jump to first reading (2 size + 2 flags + 6 timestamp = 10)
-
-			if (debug) {
-				sprintf(base->outBuff, "F: (%s) -> ", base->ISOtimeBuff);
-				base->sckOut(PRIO_MED, false);
-			}
-
-			// Write sensor readings
-			for (uint8_t i=0; i<readingNum; i++) {
-
-				SensorType thisType = static_cast<SensorType>(flash.readByte(grpAddr+1)); 	// Get sensorType
-				uint8_t readSize = flash.readByte(grpAddr); // Get reading size (full size - size and flags)
-
-				// Get the reading value
-				String thisReading;
-				for (uint32_t r=grpAddr+2; r<grpAddr+readSize; r++) thisReading.concat((char)flash.readByte(r));
-
-				if (base->sensors[thisType].id > 0 && !thisReading.startsWith("null")) {
-
-					if (debug) {
-						sprintf(base->outBuff, "%s %s %s, ", base->sensors[thisType].title, thisReading.c_str(), base->sensors[thisType].unit);
-						base->sckOut(PRIO_MED, false);
-					}
-
-					sprintf(base->netBuff + strlen(base->netBuff), ",%u:%s", base->sensors[thisType].id, thisReading.c_str());
-				}
-
-				grpAddr += readSize;
-			}
-			sprintf(base->netBuff + strlen(base->netBuff), "}");
-
-			if (debug) base->sckOut("<-");
+		if (debug) {
+			sprintf(base->outBuff, "F: Reading group %i in sector %u with %u readings.", thisGroup.group, thisGroup.sector, readingNum);
+			base->sckOut();
 		}
-
 		return thisGroup;
 	}
+
 
 	if (debug) base->sckOut("F: No readings available for this group!!");
 
@@ -710,7 +719,7 @@ uint8_t SckList::setPublished(GroupIndex wichGroup, PubFlags wichFlag)
 	// Try to mark this sector as published (flag will be rejected if not all groups are published)
 	_setSectPublished(wichGroup.sector, wichFlag);
 
-	return _countReadings(wichGroup);
+	return _countReadings(wichGroup, _getGrpAddr(wichGroup));
 }
 uint32_t SckList::countGroups(PubFlags wichFlag)
 {

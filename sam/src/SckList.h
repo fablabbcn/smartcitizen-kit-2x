@@ -129,5 +129,8 @@ class SckList
 		uint32_t _getGrpAddr(GroupIndex wichGroup);
 		int8_t _setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag);
 		int8_t _isGrpPublished(GroupIndex wichGroup, PubFlags wichFlag);
-		uint8_t _countReadings(GroupIndex wichGroup); 				// Returns the number of readings inside a group
+		uint8_t _countReadings(GroupIndex wichGroup, uint32_t grpAddr); 	// Returns the number of readings inside a group
+
+		uint8_t _formatSD(GroupIndex wichGroup, char* buffer); 			// Return the number of readings found on formated group
+		uint8_t _formatNET(GroupIndex wichGroup, char* buffer); 		// Return the number of readings found on formated group
 };

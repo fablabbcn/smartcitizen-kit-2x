@@ -1202,6 +1202,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_PUBLISH_OK:
 
 			st.publishStat.setOk();
+			// Force reviewState: avoids loosing time on continous publishing
+			reviewState();
 			break;
 
 		case SAMMES_MQTT_PUBLISH_ERROR:

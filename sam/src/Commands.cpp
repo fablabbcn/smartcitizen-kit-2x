@@ -839,28 +839,32 @@ void hello_com(SckBase* base, String parameters)
 void debug_com(SckBase* base, String parameters)
 {
 	// Set
+	bool saveNeeded = false;
 	if (parameters.length() > 0) {
 		if (parameters.indexOf("-sdcard") >= 0) {
 			base->config.debug.sdcard = !base->config.debug.sdcard;
 			sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
 			base->sckOut();
-			base->saveConfig();
+			saveNeeded = true;
 		}
 		if (parameters.indexOf("-esp") >= 0) {
 			base->config.debug.esp = !base->config.debug.esp;
 			sprintf(base->outBuff, "ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
 			base->sckOut();
+			saveNeeded = true;
 		}
 		if (parameters.indexOf("-oled") >= 0) {
 			base->config.debug.oled = !base->config.debug.oled;
 			sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
 			base->sckOut();
+			saveNeeded = true;
 		}
 		if (parameters.indexOf("-flash") >= 0) {
 			base->readingsList.debug = !base->readingsList.debug;
 			base->config.debug.flash = !base->config.debug.flash;
 			sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
 			base->sckOut();
+			saveNeeded = true;
 		}
 	// Get
 	} else {
@@ -876,6 +880,7 @@ void debug_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
 		base->sckOut();
 	}
+	if (saveNeeded) base->saveConfig();
 }
 void shell_com(SckBase* base, String parameters)
 {

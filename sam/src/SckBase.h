@@ -28,9 +28,6 @@
 
 #include "version.h"
 
-// Output
-enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
-enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
 class Status
 {
 
@@ -236,7 +233,6 @@ class SckBase
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
-		OutLevels outputLevel = OUT_VERBOSE;
 		char outBuff[240];
 		void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts String object
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string

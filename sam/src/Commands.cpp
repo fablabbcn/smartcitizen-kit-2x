@@ -85,7 +85,7 @@ void outlevel_com(SckBase* base, String parameters)
 	// get
 	if (parameters.length() <= 0) {
 
-		sprintf(base->outBuff, "Current output level: %s", base->outLevelTitles[base->outputLevel]);
+		sprintf(base->outBuff, "Current output level: %s", base->outLevelTitles[base->config.outLevel]);
 		base->sckOut();
 
 		// set
@@ -96,9 +96,10 @@ void outlevel_com(SckBase* base, String parameters)
 		// Parameter sanity check
 		if (newLevel >= 0 && newLevel < OUT_COUNT) {
 			OutLevels thisLevel = static_cast<OutLevels>(newLevel);
-			base->outputLevel = thisLevel;
+			base->config.outLevel = thisLevel;
 			sprintf(base->outBuff, "New output level: %s", base->outLevelTitles[newLevel]);
 			base->sckOut();
+			base->saveConfig();
 		} else {
 			base->sckOut("unrecognized output level!!");
 			return;

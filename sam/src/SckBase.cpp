@@ -698,7 +698,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 {
 	// Output via USB console
 	if (charger.onUSB) {
-		if (outputLevel + priority > 1) {
+		if (config.outLevel + priority > 1) {
 			if (newLine) SerialUSB.println(outBuff);
 			else SerialUSB.print(outBuff);
 		}
@@ -1087,7 +1087,7 @@ bool SckBase::sendMessage()
 		netPack[0] = totalParts;
 		memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
 		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) {
-			sckOut("ERROR sending mesg to ESP!!!");
+			sckOut("Failed sending mesg to ESP!!!", PRIO_LOW);
 			return false;
 		}
 		if (config.debug.esp) {
@@ -1779,6 +1779,8 @@ bool SckBase::netPublish()
 	if (wichGroupPublishing.group >= 0) {
 		sprintf(outBuff, "(%s) Sent readings to platform.", ISOtimeBuff);
 		sckOut();
+		snprintf(outBuff, sizeof(outBuff), "%s", netBuff);
+		sckOut(PRIO_LOW);
 		result = sendMessage();
 	} else {
 		timeToPublish = false; 		// There are no more readings available

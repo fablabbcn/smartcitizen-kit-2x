@@ -18,6 +18,10 @@ enum SCKmodes {
 	MODE_COUNT
 };
 
+// Output
+enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
+enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
+
 enum errorType { 
 	ERROR_NONE, 
 	ERROR_SD, 
@@ -50,6 +54,7 @@ struct Configuration {
 	Token token;
 	SensorConfig sensors[SENSOR_COUNT];
 	Debug debug;
+	uint8_t outLevel = OUT_NORMAL;
 	BattConf battConf;
 	Extra extra;
 	uint16_t sleepTimer = 30; 					// Sleep after this amount of minutes, 480 minutes max (0 to disable sleep)

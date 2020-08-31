@@ -1549,8 +1549,8 @@ void SckBase::updateSensors()
 		ISOtime();
 		lastSensorUpdate = rtc.getEpoch();
 
-		sckOut("\r\n-----------", PRIO_LOW);
-		sckOut(ISOtimeBuff, PRIO_LOW);
+		sckOut("\r\n-----------");
+		sckOut(ISOtimeBuff);
 
 		// Clear pending sensor list (no sensor should take more than the reading interval).
 		pendingSensorsLinkedList.clear();
@@ -1594,7 +1594,7 @@ void SckBase::updateSensors()
 	}
 
 	if (sensorsReady) {
-		sckOut("-----------", PRIO_LOW);
+		sckOut("-----------");
 		uint8_t readingNum = readingsList.saveGroup(); 	// If all sensors are ready, save the group
 		sprintf(outBuff, "(%s) %u readings saved to flash memory.", ISOtimeBuff, readingNum);
 		sckOut();

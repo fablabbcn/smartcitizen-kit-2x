@@ -1546,10 +1546,10 @@ void SckBase::updateSensors()
 	// Main reading loop
 	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {
 
-		ISOtime();
 		lastSensorUpdate = rtc.getEpoch();
 
 		sckOut("\r\n-----------");
+		epoch2iso(lastSensorUpdate, ISOtimeBuff);
 		sckOut(ISOtimeBuff);
 
 		// Clear pending sensor list (no sensor should take more than the reading interval).
@@ -1880,10 +1880,7 @@ bool SckBase::sdPublish()
 bool SckBase::setTime(String epoch)
 {
 	// Keep track of time passed before updating clock
-	uint32_t now = rtc.getEpoch();
-	uint32_t timeSinceLastUpdate = now - lastSensorUpdate;
-	uint32_t timeSinceLastPublish = now - lastPublishTime;
-	uint32_t timeSinceEspStarted = now - espStarted;
+	uint32_t pre = rtc.getEpoch();
 
 	rtc.setEpoch(epoch.toInt());
 	int32_t diff = rtc.getEpoch() - epoch.toInt();
@@ -1891,11 +1888,16 @@ bool SckBase::setTime(String epoch)
 		timeSyncAfterBoot = true;
 		st.timeStat.setOk();
 
-		// Adjust variables after updating clock
+		// Adjust events after updating clock
 		uint32_t now = rtc.getEpoch();
-		lastSensorUpdate = now - timeSinceLastUpdate;
-		lastPublishTime = now - timeSinceLastPublish;
-		espStarted = now - timeSinceEspStarted;
+		lastSensorUpdate = now - (pre - lastSensorUpdate);
+		lastPublishTime = now - (pre - lastPublishTime);
+		espStarted = now - (pre - espStarted);
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			if (sensors[static_cast<SensorType>(i)].lastReadingTime != 0) { 
+				sensors[static_cast<SensorType>(i)].lastReadingTime =  now - (pre - sensors[static_cast<SensorType>(i)].lastReadingTime);
+			}
+		}
 
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);

@@ -441,9 +441,7 @@ void SckBase::reviewState()
 						st.publishStat.reset(); 		// Restart publish error counter
 
 					} else {
-						if (wichGroupPublishing.group < 0) { 	// If publishing is not running
 							if (st.publishStat.retry()) netPublish();
-						}
 					}
 				}
 			}

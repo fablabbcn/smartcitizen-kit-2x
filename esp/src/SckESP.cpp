@@ -48,7 +48,7 @@ void SckESP::setup()
 
 	ledBlink(LED_SLOW);
 
-	if (telnetDebug) {
+	if (config.debug.telnet) {
 		Debug.begin(hostname);
 		Debug.setResetCmdEnabled(true);
 		Debug.showColors(true);
@@ -106,7 +106,7 @@ void SckESP::update()
 
 	if(shouldReboot) ESP.restart();
 
-	if (telnetDebug) Debug.handle();
+	if (config.debug.telnet) Debug.handle();
 }
 void SckESP::tryConnection()
 {
@@ -133,7 +133,7 @@ void SckESP::wifiOFF()
 // **** Input/Output
 void SckESP::debugOUT(String strOut)
 {
-	if (telnetDebug) {
+	if (config.debug.telnet) {
 		strOut += "\r\n";
 		Debug.printf(strOut.c_str());
 	}
@@ -211,6 +211,7 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			SAMbuildDate = json["bd"].as<String>();
 			uint8_t action = json["ac"];
 			ESPMessage wichAction = static_cast<ESPMessage>(action);
+			config.debug.telnet = json["tn"];
 
 			// Do we need to update ESP firmware?
 			VersionInt ESPversionInt = parseVersionStr(ESPversion);

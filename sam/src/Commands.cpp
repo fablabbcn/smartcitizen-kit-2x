@@ -867,6 +867,12 @@ void debug_com(SckBase* base, String parameters)
 			base->sckOut();
 			saveNeeded = true;
 		}
+		if (parameters.indexOf("-telnet") >= 0) {
+			base->config.debug.telnet = !base->config.debug.telnet;
+			sprintf(base->outBuff, "Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
+			base->sckOut();
+			saveNeeded = true;
+		}
 	// Get
 	} else {
 		sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
@@ -879,6 +885,9 @@ void debug_com(SckBase* base, String parameters)
 		base->sckOut();
 
 		sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
+		base->sckOut();
+
+		sprintf(base->outBuff, "Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
 		base->sckOut();
 	}
 	if (saveNeeded) base->saveConfig();

@@ -109,7 +109,6 @@ class SckList
 		int16_t _currSector = -1;
 		int16_t _dataAvailableSect[2] = {-1, -1};	// next sector with readings not published to network
 
-		// Read/Write functions
 		bool _append(char value);			// Appends a byte at the end of the list
 
 		// Flash memory functions

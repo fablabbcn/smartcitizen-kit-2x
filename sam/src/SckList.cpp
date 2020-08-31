@@ -593,25 +593,29 @@ uint8_t SckList::saveGroup()
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 		SensorType stype = static_cast<SensorType>(i);
-		
+
 		if (base->sensors[stype].enabled && base->sensors[stype].lastReadingTime == base->lastSensorUpdate) { 			// If sensor is enabled and a reading has been taken in last loop
 
 			String value = base->sensors[stype].reading;
-			uint8_t vsize = value.length() + 1 + 1; 				// Value.length + Sensortype + size byte
-			memcpy(&flashBuff[pos], &vsize, 1); pos+=1;				// Size (1 byte)
-			memcpy(&flashBuff[pos], &stype, 1); pos+=1;				// SensorType (1 byte)
 
-			if (debug) {
-				sprintf(base->outBuff, "%s %s %s, ", base->sensors[stype].title, value.c_str(), base->sensors[stype].unit);
-				base->sckOut(PRIO_MED, false);
-			}
+			if (!value.startsWith("null")) {
 
-			for (uint8_t c=0; c<value.length(); c++) {
-				char thischar = value.charAt(c);
-				memcpy(&flashBuff[pos], &thischar, 1);			// Reading value char by char
-				pos+=1;
+				uint8_t vsize = value.length() + 1 + 1; 				// Value.length + Sensortype + size byte
+				memcpy(&flashBuff[pos], &vsize, 1); pos+=1;				// Size (1 byte)
+				memcpy(&flashBuff[pos], &stype, 1); pos+=1;				// SensorType (1 byte)
+
+				if (debug) {
+					sprintf(base->outBuff, "%s %s %s, ", base->sensors[stype].title, value.c_str(), base->sensors[stype].unit);
+					base->sckOut(PRIO_MED, false);
+				}
+
+				for (uint8_t c=0; c<value.length(); c++) {
+					char thischar = value.charAt(c);
+					memcpy(&flashBuff[pos], &thischar, 1);			// Reading value char by char
+					pos+=1;
+				}
+				enabledSensors++;
 			}
-			enabledSensors++;
 		}
 		if (enabledSensors == 0) return enabledSensors;
 	}
@@ -693,7 +697,7 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 	uint8_t readingNum = 0;
 	if (wichFlag == PUB_SD) readingNum = _formatSD(thisGroup, flashBuff);
 	else if (wichFlag == PUB_NET) readingNum = _formatNET(thisGroup, base->netBuff);
-	
+
 	if (readingNum > 0) {
 
 		if (debug) {

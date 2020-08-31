@@ -520,7 +520,7 @@ bool Sck_Noise::getReading(SensorType wichSensor)
 
 	// Wait 263000 I2s cycles or 85 ms at 441000 hz
 	uint32_t startPoint = millis();
-	while (millis() - startPoint < 100) I2S.read();
+	while (millis() - startPoint < 200) I2S.read();
 
 	// Fill buffer with samples from I2S bus
 	int32_t source[SAMPLE_NUM];

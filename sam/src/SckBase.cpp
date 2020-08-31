@@ -869,6 +869,7 @@ bool SckBase::sendConfig()
 	json["to"] = config.token.token;
 	json["ver"] = SAMversion;
 	json["bd"] = SAMbuildDate;
+	json["tn"] = (uint8_t)config.debug.telnet;
 
 	if (!st.onSetup && ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet))) json["ac"] = (uint8_t)ESPMES_CONNECT;
 	else json["ac"] = (uint8_t)ESPMES_START_AP;

@@ -591,12 +591,14 @@ uint8_t SckList::saveGroup()
 	uint16_t pos = GROUP_READINGS; 	// Variable to store the buffer index position
 	uint8_t enabledSensors = 0;
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-		if (base->sensors[static_cast<SensorType>(i)].enabled) { 			// If sensor is enabled
 
-			String value = base->sensors[static_cast<SensorType>(i)].reading;
+		SensorType stype = static_cast<SensorType>(i);
+		
+		if (base->sensors[stype].enabled && base->sensors[stype].lastReadingTime == base->lastSensorUpdate) { 			// If sensor is enabled and a reading has been taken in last loop
+
+			String value = base->sensors[stype].reading;
 			uint8_t vsize = value.length() + 1 + 1; 				// Value.length + Sensortype + size byte
 			memcpy(&flashBuff[pos], &vsize, 1); pos+=1;				// Size (1 byte)
-			SensorType stype = static_cast<SensorType>(i);
 			memcpy(&flashBuff[pos], &stype, 1); pos+=1;				// SensorType (1 byte)
 
 			if (debug) {

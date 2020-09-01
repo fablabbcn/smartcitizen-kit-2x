@@ -43,13 +43,14 @@ struct MAC { bool valid=false; char address[18]="not synced"; };
 struct BattConf { int16_t chargeCurrent=768; uint32_t battCapacity=2000; };
 struct Extra { bool ccsBaselineValid=false; uint16_t ccsBaseline; }; 			// Here we save variables that don't have an specific place
 struct Debug { bool sdcard=false; bool esp=false; bool oled=false; bool flash=false; bool telnet=false; };
+struct Offline { uint32_t retry = default_publish_interval * 5; uint8_t start=NULL; uint8_t end=NULL; };
 
 struct Configuration {
 	bool valid = true;
-	SCKmodes mode = MODE_NOT_CONFIGURED;				// This mode only changes on user configuration, it can only be MODE_SD or MODE_NET or MODE_NOT_CONFIGURED
-	uint32_t publishInterval = default_publish_interval; 		// in seconds
-	uint32_t readInterval = default_reading_interval; 		// in seconds
-	MAC mac; 							// Stored here after first boot
+	SCKmodes mode = MODE_NOT_CONFIGURED;					// This mode only changes on user configuration, it can only be MODE_SD or MODE_NET or MODE_NOT_CONFIGURED
+	uint32_t publishInterval = default_publish_interval; 			// in seconds
+	uint32_t readInterval = default_reading_interval; 			// in seconds
+	MAC mac; 								// Stored here after first boot
 	Credentials credentials;
 	Token token;
 	SensorConfig sensors[SENSOR_COUNT];
@@ -58,4 +59,5 @@ struct Configuration {
 	BattConf battConf;
 	Extra extra;
 	uint16_t sleepTimer = 30; 					// Sleep after this amount of minutes, 480 minutes max (0 to disable sleep)
+	Offline offline;
 };

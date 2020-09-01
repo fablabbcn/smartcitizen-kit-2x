@@ -726,7 +726,7 @@ void config_com(SckBase* base, String parameters)
 			}
 			int16_t readIntI = parameters.indexOf("-readint");
 			if (readIntI >= 0) {
-				String readIntC = parameters.substring(readIntI+8);
+				String readIntC = parameters.substring(readIntI+9);
 				uint32_t readIntV = readIntC.toInt();
 				if (readIntV >= minimal_publish_interval && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
 			}
@@ -913,4 +913,53 @@ void custom_mqtt_com(SckBase* base, String parameters)
 	int16_t mthird = parameters.indexOf("\"", msecond + 1);
 	int16_t mfourth = parameters.indexOf("\"", mthird + 1);
 	base->mqttCustom(parameters.substring(mfirst + 1, msecond).c_str(), parameters.substring(mthird + 1, mfourth).c_str());
+}
+void offline_com(SckBase* base, String parameters)
+{
+	bool saveNeeded = false;
+
+	if (parameters.length() > 0) {
+
+		int16_t retryIntI = parameters.indexOf("-retryint");
+		if (retryIntI >= 0) {
+			String retryIntC = parameters.substring(retryIntI+10);
+			uint32_t retryIntV = retryIntC.toInt();
+			if (retryIntV >= minimal_publish_interval && retryIntV <= max_publish_interval) {
+				base->config.offline.retry = retryIntV;
+				saveNeeded = true;
+			} else base->sckOut("Wrong retry interval!!!");
+		}
+
+		int16_t startIntI = parameters.indexOf("-period");
+		if (startIntI >= 0) {
+
+			uint8_t start = NULL;
+			String startIntC = parameters.substring(startIntI+8);
+			start = startIntC.toInt();
+
+			uint8_t end = NULL;
+			int16_t endIntI = parameters.indexOf(" ", startIntI+8);
+			if (endIntI >= 0) {
+				String endIntC = parameters.substring(endIntI+1);
+				end = endIntC.toInt();
+			}
+
+			// Parameter sanity check
+			if (start >= 0 && start <= 23 && end >= 0 && end <= 23 && start != end) {
+				base->config.offline.start = start;
+				base->config.offline.end = end;
+				saveNeeded = true;
+			} else base->sckOut("Wrong start or end offline times!!");
+		}
+	} 
+
+	// Print parameters
+	sprintf(base->outBuff, "WiFi retry period: %u", base->config.offline.retry);
+	base->sckOut();
+
+	if (base->config.offline.start == NULL || base->config.offline.end == NULL) sprintf(base->outBuff, "No offline period configured");
+	else sprintf(base->outBuff, "Offline period: %u - %u (UTC)", base->config.offline.start, base->config.offline.end);
+	base->sckOut();
+
+	if (saveNeeded) base->saveConfig();
 }

@@ -244,7 +244,7 @@ void SckBase::reviewState()
 				ESPcontrol(ESP_REBOOT);
 				sendConfigCounter = 0;
 			} else if (st.espON) {
-	if (!st.espBooting) sendConfig();
+				if (!st.espBooting) sendConfig();
 				sendConfigCounter++;
 			} else {
 				ESPcontrol(ESP_ON);
@@ -309,6 +309,7 @@ void SckBase::reviewState()
 
 	} else if (st.mode == MODE_NET) {
 
+		// This error needs user intervention
 		if (!st.wifiSet) {
 			if (!st.wifiStat.error) {
 				sckOut("ERROR wifi is not configured!!!");
@@ -320,6 +321,7 @@ void SckBase::reviewState()
 			return;
 		}
 
+		// This error needs user intervention
 		if (!st.tokenSet) {
 			if (!st.tokenError) {
 				sckOut("ERROR token is not configured!!!");
@@ -335,27 +337,44 @@ void SckBase::reviewState()
 
 			if (!st.wifiStat.ok) {
 
-				updateSensors(); 			// To avoid reading delay while publishing sensors
+				updateSensors(); 				// To avoid reading delay while publishing sensors
 
-				st.wifiStat.retry();
+				if (st.wifiStat.retry()) { 			// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
+					
+					if (!st.espON) ESPcontrol(ESP_ON); 	// Make sure the ESP is on
 
-				if (!st.espON) ESPcontrol(ESP_ON);
-				else if (st.wifiStat.error) {
+				} else if (st.wifiStat.error) { 		// If error is declared something went wrong
 
-					sckOut("ERROR Can't publish without wifi!!!");
+					uint32_t now = rtc.getEpoch();
 
-					ESPcontrol(ESP_OFF); 		// Hard off not sleep to be sure the ESP state is reset
-					led.update(led.BLUE, led.PULSE_HARD_FAST);
+					// If error just happened
+					if (st.lastWiFiError == 0) {
 
-					lastPublishTime = rtc.getEpoch();
-					st.wifiStat.reset(); 		// Restart wifi retry count
+						ESPcontrol(ESP_OFF); 				// Save battery
+						st.lastWiFiError = now; 		// Start counting time
+						st.wifiErrorCounter++; 				// Count errors
+						sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
+						led.update(led.BLUE, led.PULSE_HARD_FAST);
+					}
 
-					infoPublished = true; 	// Will try to publish info on next boot, in the meantime this will allow us to sleep between readings.
+					else if (	(now - st.lastWiFiError) > config.offline.retry || 	// Enough time has passed to try again
+							st.wifiErrorCounter < 2 || 				// Try 2 times before assuming WiFi is no present
+							millis() - lastUserEvent < 1000 			// User event in the last second, this shouldn't enter more than once after event because wifi error declaration takes a lot more than one second
+						) {
+						
+						// Reset everything and try again
+						st.lastWiFiError = 0;
+						st.wifiStat.reset();
+						sckOut("Retrying WiFi..."); 	// User feedback
+					} 
+
+					// ERROR feedback should be on just for a limited amount of time, let's turn it off
+					else if (now - st.lastWiFiError > 10) led.update(led.BLUE, led.PULSE_SOFT);
 				}
-
 			} else {
 
 				led.update(led.BLUE, led.PULSE_SOFT);
+				st.wifiErrorCounter = 0;
 				st.error = ERROR_NONE;
 
 				if (st.helloPending) {
@@ -441,7 +460,7 @@ void SckBase::reviewState()
 						st.publishStat.reset(); 		// Restart publish error counter
 
 					} else {
-							if (st.publishStat.retry()) netPublish();
+						if (st.publishStat.retry()) netPublish();
 					}
 				}
 			}
@@ -1392,7 +1411,7 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 		// Stop CCS811 VOCS sensor
 		urban.stop(SENSOR_CCS811_VOCS);
 
-		// Detach sdcard interrupt to avoid spurious wakeup 
+		// Detach sdcard interrupt to avoid spurious wakeup
 		// There is no need to reattach since after this sleep there is always a reset
 		detachInterrupt(pinCARD_DETECT);
 
@@ -1418,7 +1437,7 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 
 	// Go to Sleep
 	USBDevice.standby();
-	SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;	
+	SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 	__DSB();
 	__WFI();
@@ -1894,7 +1913,7 @@ bool SckBase::setTime(String epoch)
 		lastPublishTime = now - (pre - lastPublishTime);
 		espStarted = now - (pre - espStarted);
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			if (sensors[static_cast<SensorType>(i)].lastReadingTime != 0) { 
+			if (sensors[static_cast<SensorType>(i)].lastReadingTime != 0) {
 				sensors[static_cast<SensorType>(i)].lastReadingTime =  now - (pre - sensors[static_cast<SensorType>(i)].lastReadingTime);
 			}
 		}

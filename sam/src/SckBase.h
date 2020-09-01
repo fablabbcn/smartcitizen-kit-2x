@@ -73,6 +73,8 @@ struct SckState
 	Status infoStat = Status(3, 5000);
 	Status publishStat = Status(3, 5000);
 	errorType error = ERROR_NONE;
+	uint32_t lastWiFiError = 0;
+	uint16_t wifiErrorCounter = 0;
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup

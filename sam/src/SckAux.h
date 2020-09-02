@@ -40,8 +40,13 @@
 // Adafruit library for ADS1x15 12/16 bits ADC
 #include <Adafruit_ADS1015.h>
 
-#include "GasesBoardTester.h"
+// ADS Tester (Only supported in version 2.0 and greater)
+// This function is only for internal purposes
+// #define adsTest 	// Uncomment for enabling tester board support (remember selecting board lookup table in GasesBoardTester.h) 
 
+#ifdef adsTest
+#include "GasesBoardTester.h"
+#endif
 
 extern TwoWire auxWire;
 
@@ -510,16 +515,20 @@ class Sck_ADS1X15
 		bool start(uint8_t address);
 		bool stop();
 		bool getReading(uint8_t wichChannel);
-		void setTesterCurrent(int16_t wichCurrent);
+		float reading;
+
+		#ifdef adsTest
+		uint8_t adsChannelW = 0; // Default channel for WE
+		uint8_t adsChannelA = 1; // Default channel for AE
+		void setTesterCurrent(int16_t wichCurrent, uint8_t wichChannel);
 		// double preVoltA = -99;
 		// double preVoltW = -99;
 		// double threshold = 0.05;
 		// uint8_t maxErrorsA = 5;
 		// uint8_t maxErrorsW = 5;		
-		void runTester();
-
-		float reading;
+		void runTester(uint8_t wichChannel);
 		testerGasesBoard tester;
+		#endif
 
 	private:
 		float VOLTAGE = 3.3;

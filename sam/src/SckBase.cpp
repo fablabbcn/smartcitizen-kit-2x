@@ -170,7 +170,7 @@ void SckBase::setup()
 		OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 
 		if (wichSensor->location == BOARD_AUX) {
-			if (config.sensors[wichSensor->type].enabled && enableSensor(wichSensor->type)) {
+			if (wichSensor->enabled && enableSensor(wichSensor->type)) {
 				wichSensor->enabled = true;
 				if (wichSensor->type != SENSOR_GROVE_OLED) config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
 			} else {
@@ -760,6 +760,7 @@ void SckBase::loadConfig()
 	// Load saved intervals
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+		wichSensor->enabled = config.sensors[wichSensor->type].enabled;
 		wichSensor->everyNint = config.sensors[wichSensor->type].everyNint;
 	}
 

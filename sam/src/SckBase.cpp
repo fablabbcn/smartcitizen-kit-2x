@@ -831,8 +831,8 @@ bool SckBase::sendConfig()
 	}
 	if (st.espBooting) return false;
 
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
@@ -846,7 +846,7 @@ bool SckBase::sendConfig()
 	else json["ac"] = (uint8_t)ESPMES_START_AP;
 
 	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
-	json.printTo(&netBuff[1], json.measureLength() + 1);
+	serializeJson(json, &netBuff[1], json.memoryUsage() + 1);
 
 	if (sendMessage()) {
 		pendingSyncConfig = false;
@@ -882,8 +882,8 @@ bool SckBase::publishInfo()
 
 		getUniqueID();
 
-		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-		JsonObject& json = jsonBuffer.createObject();
+		StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+		JsonObject json = jsonBuffer.to<JsonObject>();
 
 		json["time"] = ISOtimeBuff;
 		json["hw_ver"] = hardwareVer.c_str();
@@ -895,7 +895,7 @@ bool SckBase::publishInfo()
 		json["esp_bd"] = ESPbuildDate.c_str();
 
 		sprintf(netBuff, "%c", ESPMES_MQTT_INFO);
-		json.printTo(&netBuff[1], json.measureLength() + 1);
+		serializeJson(json, &netBuff[1], json.memoryUsage() + 1);
 		if (sendMessage()) return true;
 	}
 	return false;
@@ -1078,8 +1078,9 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 				lastUserEvent = millis();
 				sckOut("Received new config from ESP");
-				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-				JsonObject& json = jsonBuffer.parseObject(netBuff);
+				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, netBuff);
+				JsonObject json = jsonBuffer.as<JsonObject>();
 
 				if (json.containsKey("mo")) {
 					String stringMode = json["mo"];
@@ -1118,8 +1119,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_NETINFO:
 		{
-				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-				JsonObject& json = jsonBuffer.parseObject(netBuff);
+				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, netBuff);
+				JsonObject json = jsonBuffer.as<JsonObject>();
+
 				ipAddress = json["ip"].as<String>();
 
 				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname, ipAddress.c_str(), config.mac.address);
@@ -1215,8 +1218,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			st.espBooting = false;
 
-			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-			JsonObject& json = jsonBuffer.parseObject(netBuff);
+			StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+			deserializeJson(jsonBuffer, netBuff);
+			JsonObject json = jsonBuffer.as<JsonObject>();
+
 			String macAddress = json["mac"].as<String>();
 			ESPversion = json["ver"].as<String>();
 			ESPbuildDate = json["bd"].as<String>();
@@ -1246,14 +1251,14 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 }
 void SckBase::mqttCustom(const char *topic, const char *payload)
 {
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 
 	json["to"] = topic;
 	json["pl"] = payload;
 
 	sprintf(netBuff, "%c", ESPMES_MQTT_CUSTOM);
-	json.printTo(&netBuff[1], json.measureLength() + 1);
+	serializeJson(json, &netBuff[1], json.memoryUsage() + 1);
 
 	if (sendMessage()) sckOut("MQTT message sent to ESP...", PRIO_LOW);
 }

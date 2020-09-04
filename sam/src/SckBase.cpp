@@ -101,8 +101,6 @@ void SckBase::setup()
 	loadConfig();
 	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
 
-	bool saveNeeded = false;
-
 	// Power management configuration
 	charger.setup(this);
 	battery.setup();
@@ -116,10 +114,11 @@ void SckBase::setup()
 		// Find out if urban was reinstalled just now
 		bool justInstalled = true;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) {
-				justInstalled = false;
-			}
+
+			// If any sensor was enabled urban board was present on last boot
+			if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) justInstalled = false;
 		}
 
 		if (justInstalled) {
@@ -127,6 +126,7 @@ void SckBase::setup()
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 				if (wichSensor->location == BOARD_URBAN) wichSensor->enabled = wichSensor->defaultEnabled;
+				config.sensors[wichSensor->type].enabled = wichSensor->enabled;
 			}
 			saveConfig();
 		}
@@ -144,17 +144,21 @@ void SckBase::setup()
 		// Find out if urban was removed just now
 		bool justRemoved = false;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) {
-				justRemoved = true;
-			}
+			
+			// If any sensor was enabled that means urban board was just removed
+			if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) justRemoved = true;
 		}
 
 		if (justRemoved) {
 			sckOut("Disabling sensors...");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-				if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
+				if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) {
+					disableSensor(wichSensor->type);
+					config.sensors[wichSensor->type].enabled = false;
+				}
 			}
 			saveConfig();
 		}
@@ -166,17 +170,12 @@ void SckBase::setup()
 		OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 
 		if (wichSensor->location == BOARD_AUX) {
-			if (enableSensor(wichSensor->type)) {
+			if (wichSensor->enabled && enableSensor(wichSensor->type)) {
 				wichSensor->enabled = true;
 				if (wichSensor->type != SENSOR_GROVE_OLED) config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
-				saveNeeded = true;
-			} else if (wichSensor->enabled)  {
-				disableSensor(wichSensor->type);
-				sprintf(outBuff, "Removed: %s... ", wichSensor->title);
-				sckOut();
+			} else {
 				wichSensor->enabled = false;
 				config.sensors[wichSensor->type].oled_display = false;
-				saveNeeded = true;
 			}
 		}
 	}
@@ -186,8 +185,6 @@ void SckBase::setup()
 
 	// After sanity reset go directly to sleep
 	if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) lastUserEvent = 0;
-
-	if (saveNeeded) saveConfig();
 }
 void SckBase::update()
 {
@@ -763,10 +760,11 @@ void SckBase::loadConfig()
 		saveConfig(true);
 	}
 
+	// Load saved intervals
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-		wichSensor->enabled = config.sensors[i].enabled;
-		wichSensor->everyNint = config.sensors[i].everyNint;
+		wichSensor->enabled = config.sensors[wichSensor->type].enabled;
+		wichSensor->everyNint = config.sensors[wichSensor->type].everyNint;
 	}
 
 	st.wifiSet = config.credentials.set;
@@ -801,14 +799,8 @@ void SckBase::saveConfig(bool defaults)
 		}
 		config.sensors[SENSOR_BATT_PERCENT].oled_display = false; 	// Battery is already shown on oled info-bar
 		pendingSyncConfig = true;
-	} else {
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			config.sensors[i].enabled = wichSensor->enabled;
-			config.sensors[i].everyNint = wichSensor->everyNint;
-		}
-		config.debug.flash = readingsList.debug;
 	}
+
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
 

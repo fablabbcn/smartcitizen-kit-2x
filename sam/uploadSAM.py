@@ -26,10 +26,10 @@ print("Current build targets", map(str, BUILD_TARGETS))
 # Custom actions when building program/firmware
 #
 def before_build():
-    if not os.path.isdir(".platformio/packages/framework-arduinosam/variants/sck2"):
-        checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduinosam/variants/sck2"])
+    if not os.path.isdir(".platformio/packages/framework-arduino-samd/variants/sck2"):
+        checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduino-samd/variants/sck2"])
         checkout.wait()
-        checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduinosam/libraries/__cores__/samd/I2S/src/utility/SAMD21_I2SDevice.h"])
+        checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduino-samd/libraries/__cores__/samd/I2S/src/utility/SAMD21_I2SDevice.h"])
         checkout.wait()
 
 before_build() 

@@ -339,37 +339,51 @@ void SckBase::reviewState()
 
 				updateSensors(); 				// To avoid reading delay while publishing sensors
 
-				if (st.wifiStat.retry()) { 			// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
-					
-					if (!st.espON) ESPcontrol(ESP_ON); 	// Make sure the ESP is on
-
-				} else if (st.wifiStat.error) { 		// If error is declared something went wrong
-
-					uint32_t now = rtc.getEpoch();
-
-					// If error just happened
-					if (st.lastWiFiError == 0) {
-
-						ESPcontrol(ESP_OFF); 				// Save battery
-						st.lastWiFiError = now; 		// Start counting time
-						st.wifiErrorCounter++; 				// Count errors
-						sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
-						led.update(led.BLUE, led.PULSE_HARD_FAST);
+				// Check if we are in offline programmed hours
+				bool offlineHours = false;
+				if (config.offline.start != NULL && config.offline.end != NULL && millis() - lastUserEvent > (config.sleepTimer * 60000)) {
+					uint8_t thisHour = rtc.getHours();
+					if (thisHour > config.offline.start && thisHour < config.offline.end) {
+						if (st.espON) ESPcontrol(ESP_OFF);
+						led.update(led.BLUE, led.PULSE_SOFT);
+						offlineHours = true;
 					}
+				}
 
-					else if (	(now - st.lastWiFiError) > config.offline.retry || 	// Enough time has passed to try again
-							st.wifiErrorCounter < 2 || 				// Try 2 times before assuming WiFi is no present
-							millis() - lastUserEvent < 1000 			// User event in the last second, this shouldn't enter more than once after event because wifi error declaration takes a lot more than one second
-						) {
-						
-						// Reset everything and try again
-						st.lastWiFiError = 0;
-						st.wifiStat.reset();
-						sckOut("Retrying WiFi..."); 	// User feedback
-					} 
+				if (!offlineHours) {
 
-					// ERROR feedback should be on just for a limited amount of time, let's turn it off
-					else if (now - st.lastWiFiError > 10) led.update(led.BLUE, led.PULSE_SOFT);
+					if (st.wifiStat.retry()) { 			// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
+
+						if (!st.espON) ESPcontrol(ESP_ON); 	// Make sure the ESP is on
+
+					} else if (st.wifiStat.error) { 		// If error is declared something went wrong
+
+						uint32_t now = rtc.getEpoch();
+
+						// If error just happened
+						if (st.lastWiFiError == 0) {
+
+							ESPcontrol(ESP_OFF); 				// Save battery
+							st.lastWiFiError = now; 		// Start counting time
+							st.wifiErrorCounter++; 				// Count errors
+							sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
+							led.update(led.BLUE, led.PULSE_HARD_FAST);
+						}
+
+						else if (	(now - st.lastWiFiError) > config.offline.retry || 	// Enough time has passed to try again
+								st.wifiErrorCounter < 2 || 				// Try 2 times before assuming WiFi is no present
+								millis() - lastUserEvent < 1000				// User event in the last second, this shouldn't enter more than once after event because wifi error declaration takes a lot more than one second
+							) {
+
+							// Reset everything and try again
+							st.lastWiFiError = 0;
+							st.wifiStat.reset();
+							sckOut("Retrying WiFi..."); 	// User feedback
+						} 
+
+						// ERROR feedback should be on just for a limited amount of time, let's turn it off
+						else if (now - st.lastWiFiError > 10) led.update(led.BLUE, led.PULSE_SOFT);
+					}
 				}
 			} else {
 

@@ -444,12 +444,15 @@ void SckBase::reviewState()
 				}
 			}
 		} else {
-			uint16_t sleepPeriod = 3; 										// Only sleep if
-			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
-					(pendingSensors <= 0) && 								// No sensor to wait to
-					(st.timeStat.ok) && 									// RTC is synced and working
-					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
-					(config.sleepTimer > 0)) { 								// sleep is enabled
+			uint32_t sleepPeriod = 3; 											
+			uint32_t secSinceLastPub = (rtc.getEpoch() - lastSensorUpdate);
+			uint32_t secToNextPub = config.readInterval - secSinceLastPub;
+														// Only sleep if
+			while ( 	(secToNextPub > sleepPeriod + 1) && 					// No publish in the near future
+					(pendingSensors <= 0) && 						// No sensor to wait to
+					(st.timeStat.ok) && 							// RTC is synced and working
+					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 		// No recent user interaction (button, sdcard or USB events)
+					(config.sleepTimer > 0)) { 						// sleep is enabled
 
 				goToSleep(sleepPeriod * 1000);
 
@@ -529,8 +532,11 @@ void SckBase::reviewState()
 			}
 
 		} else {
-			uint16_t sleepPeriod = 3; 										// Only sleep if
-			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
+			uint32_t sleepPeriod = 3;
+			uint32_t secSinceLastPub = (rtc.getEpoch() - lastSensorUpdate);
+			uint32_t secToNextPub = config.readInterval - secSinceLastPub;
+																// Only sleep if
+			while ( 	(secToNextPub > sleepPeriod + 1) && 							// No publish in the near future
 					(pendingSensors <= 0) && 								// No sensor to wait to
 					(st.timeStat.ok) && 									// RTC is synced and working
 					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
@@ -1370,7 +1376,7 @@ void SckBase::sck_reset()
 	sckOut("Bye!!");
 	NVIC_SystemReset();
 }
-void SckBase::goToSleep(uint16_t sleepPeriod)
+void SckBase::goToSleep(uint32_t sleepPeriod)
 {
 	led.off();
 	if (st.espON) ESPcontrol(ESP_OFF);

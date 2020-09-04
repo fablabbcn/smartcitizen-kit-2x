@@ -435,7 +435,10 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				thisAtlas->sendCommand((char*)command.c_str());
 
 				uint8_t responseCode = thisAtlas->getResponse();
-				if (responseCode == 254) delay(1000); responseCode = thisAtlas->getResponse();
+				if (responseCode == 254) {
+					delay(1000); 
+					responseCode = thisAtlas->getResponse();
+				}
 				if (responseCode == 1) return thisAtlas->atlasResponse;
 				else return String(responseCode);
 
@@ -455,7 +458,6 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				for(uint8_t address = 1; address < 127; address++ ) {
 
-					uint8_t error;
 					auxWire.beginTransmission(address);
 
 					if (auxWire.endTransmission() == 0) {
@@ -809,7 +811,6 @@ void Groove_OLED::drawError(errorType wichError)
 	memset(&buffStart[1792], 0, 256);
 
 	u8g2_oled.setFont(u8g2_font_7x13B_mr);
-	uint8_t font_h = u8g2_oled.getMaxCharHeight();
 
 	// Print a frame with an alert icon on the left
 	u8g2_oled.drawFrame(0, 112, 128, 16);
@@ -848,6 +849,8 @@ void Groove_OLED::drawError(errorType wichError)
 			break;
 		case ERROR_BATT:
 			snprintf(errorMsg, sizeof(errorMsg), "LOW BATTERY");
+			break;
+		default:
 			break;
 	}
 
@@ -925,7 +928,7 @@ void Groove_OLED::displayReading(SckBase* base)
 
 		// Try splitting on first space
 		char line1[20];
-		char *blank = " ";
+		char blank[] = " ";
 		uint8_t splitPoint = strcspn(sensorTitle, blank);
 		memcpy(line1, sensorTitle, splitPoint);
 		line1[splitPoint + 1] = '\0';
@@ -1087,7 +1090,7 @@ bool WaterTemp_DS18B20::stop()
 float WaterTemp_DS18B20::getReading()
 {
 
- 	while ( !DS_bridge.wireSearch(addr)) {
+ 	while (!DS_bridge.wireSearch(addr)) {
 
 		DS_bridge.wireResetSearch();
 		DS_bridge.wireReset();
@@ -1110,7 +1113,7 @@ float WaterTemp_DS18B20::getReading()
 		DS_bridge.wireWriteByte(0xbe);      // Read Scratchpad command
 
 		// We need to read 9 bytes
-		for ( int i = 0; i < 9; i++) data[i] = DS_bridge.wireReadByte();
+		for (int i=0; i<9; i++) data[i] = DS_bridge.wireReadByte();
 
 		// Convert to decimal temperature
 		int LowByte = data[0];

@@ -171,8 +171,7 @@ void SckBase::setup()
 
 		if (wichSensor->location == BOARD_AUX) {
 			if (wichSensor->enabled && enableSensor(wichSensor->type)) {
-				wichSensor->enabled = true;
-				if (wichSensor->type != SENSOR_GROVE_OLED) config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
+				config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
 			} else {
 				wichSensor->enabled = false;
 				config.sensors[wichSensor->type].oled_display = false;
@@ -765,10 +764,9 @@ void SckBase::saveConfig(bool defaults)
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
-			config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
+			if (sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
 		}
-		config.sensors[SENSOR_BATT_PERCENT].oled_display = false; 	// Battery is already shown on oled info-bar
 		pendingSyncConfig = true;
 	}
 

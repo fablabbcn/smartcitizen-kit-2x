@@ -158,7 +158,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 				base->sckOut(PRIO_MED, false);
 
 				if (base->sensors[SENSOR_GROVE_OLED].enabled && base->config.sensors[thisType].oled_display)  base->sckOut(" - oled");
-				else base->sckOut();
+				else base->sckOut(" ");
 			}
 		}
 

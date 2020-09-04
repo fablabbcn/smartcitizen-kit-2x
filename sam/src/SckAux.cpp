@@ -901,8 +901,13 @@ void Groove_OLED::displayReading(SckBase* base)
 	// Find next sensor to show
 	for (uint8_t i=lastShown+1; i<SENSOR_COUNT; i++) {
 
-		if (base->config.sensors[i].oled_display) {
-			sensorToShow = static_cast<SensorType>(i);
+		SensorType thisSensor = static_cast<SensorType>(i);
+
+		if (base->config.sensors[thisSensor].oled_display && 
+				base->sensors[thisSensor].type != SENSOR_GROVE_OLED && 		//Oled screen has nothing to show
+				base->sensors[thisSensor].type != SENSOR_BATT_PERCENT) { 	// Battery is already shown on oled info-bar
+
+			sensorToShow = thisSensor;
 			break;
 		}
 		if (i == SENSOR_COUNT - 1) {

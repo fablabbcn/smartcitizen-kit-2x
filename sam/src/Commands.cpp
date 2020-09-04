@@ -196,9 +196,17 @@ void sensorConfig_com(SckBase* base, String parameters)
 				sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
 				base->sckOut();
 			} else {
+				// Enable sensor also in config to make changes persistent
+				base->config.sensors[sensorToChange].enabled = true;
+
 				// Just for PM/PN enable the rest of sensors in the same group
 				for (uint8_t i=0; i<groupToChange_size; i++) {
+					// Enable them in runtime
 					base->sensors[groupToChange[i]].enabled = true;
+
+					// Enable them also in config to make changes persistent
+					base->config.sensors[groupToChange[i]].enabled = true;
+					
 					sprintf(base->outBuff, "Enabling %s", base->sensors[groupToChange[i]].title);
 					base->sckOut();
 				}
@@ -209,9 +217,17 @@ void sensorConfig_com(SckBase* base, String parameters)
 				sprintf(base->outBuff, "Failed disabling %s", base->sensors[sensorToChange].title);
 				base->sckOut();
 			} else {
+				// Disable sensor also in config to make changes persistent
+				base->config.sensors[sensorToChange].enabled = false;
+
 				// Just for PM/PN disable the rest of sensors in the same group
 				for (uint8_t i=0; i<groupToChange_size; i++) {
+					// Disable them in runtime
 					base->sensors[groupToChange[i]].enabled = false;
+
+					// Disable them also in config to make changes persistent
+					base->config.sensors[groupToChange[i]].enabled = false;
+					
 					sprintf(base->outBuff, "Disabling %s", base->sensors[groupToChange[i]].title);
 					base->sckOut();
 				}
@@ -247,11 +263,13 @@ void sensorConfig_com(SckBase* base, String parameters)
 					// Just for PM/PN change all the sensors in the same group
 					for (uint8_t i=0; i<groupToChange_size; i++) {
 						base->sensors[groupToChange[i]].everyNint = newEveryNint;
+						base->config.sensors[groupToChange[i]].everyNint = newEveryNint;
 						sprintf(base->outBuff, "Changing interval of %s to %u", base->sensors[groupToChange[i]].title, base->sensors[groupToChange[i]].everyNint * base->config.readInterval);
 						base->sckOut();
 					}
 				} else {
 					base->sensors[sensorToChange].everyNint = newEveryNint;
+					base->config.sensors[sensorToChange].everyNint = newEveryNint;
 					sprintf(base->outBuff, "Changing interval of %s to %u", base->sensors[sensorToChange].title, base->sensors[sensorToChange].everyNint * base->config.readInterval);
 					base->sckOut();
 				}

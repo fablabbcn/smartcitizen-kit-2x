@@ -259,7 +259,7 @@ class WaterTemp_DS18B20
 
 		DS2482 DS_bridge = DS2482(0);
 
-		byte data[8];
+		byte data[9];
 		byte addr[8];
 
 		uint8_t conf =0x05;

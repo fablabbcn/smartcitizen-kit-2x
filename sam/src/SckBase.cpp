@@ -1777,7 +1777,7 @@ bool SckBase::netPublish()
 
 			// Save time
 			epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
-			sprintf(netBuff, "%s{t:%s", netBuff, ISOtimeBuff);
+			snprintf(netBuff, sizeof(netBuff) - strlen(netBuff), "%s{t:%s", netBuff, ISOtimeBuff);
 
 			uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
 			for (uint8_t i=0; i<readingsOnThisGroup; i++) {
@@ -1785,12 +1785,12 @@ bool SckBase::netPublish()
 				OneReading thisReading = readingsList.readReading(thisGroup, i);
 				if (sensors[thisReading.type].id > 0 && !thisReading.value.startsWith("null")) {
 
-					sprintf(netBuff, "%s,%u:%s", netBuff, sensors[thisReading.type].id, thisReading.value.c_str());;
+					snprintf(netBuff, sizeof(netBuff) - strlen(netBuff), "%s,%u:%s", netBuff, sensors[thisReading.type].id, thisReading.value.c_str());;
 					publishedReadings ++;
 				}
 			}
 
-			sprintf(netBuff, "%s%s", netBuff, "}");
+			snprintf(netBuff, sizeof(netBuff) - strlen(netBuff), "%s%s", netBuff, "}");
 
 			sprintf(outBuff, "(%s) Sent %i readings to platform.", ISOtimeBuff, publishedReadings);
 			sckOut();

@@ -141,7 +141,7 @@ class SckBase
 
 		// STORAGE
 		// files
-		struct SckFile {char name[13]; File file;};
+		struct SckFile {char name[16]; File file;};
 		SckFile configFile {"CONFIG.TXT"};
 		SckFile postFile {};
 		SckFile debugFile {"DEBUG.TXT"};

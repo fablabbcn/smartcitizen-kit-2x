@@ -592,38 +592,6 @@ void SckBase::enterSetup()
 	// Reboot ESP to have a clean start
 	ESPcontrol(ESP_REBOOT);
 }
-void SckBase::printState()
-{
-	// TODO fix bug: after configuring wrong wifi, restart kit, wait for error and sdcard publish and type "state" command.
-	// it will enter setup mode !?!? and if you type "state" command again it will reboot.
-	char t[] = "true";
-	char f[] = "false";
-
-	sprintf(outBuff, "%s\r\nonSetup: %s\r\n", outBuff, st.onSetup  ? t : f);
-	sprintf(outBuff, "%stokenSet: %s\r\n", outBuff, st.tokenSet  ? t : f);
-	sprintf(outBuff, "%shelloPending: %s\r\n", outBuff, st.helloPending  ? t : f);
-	sprintf(outBuff, "%smode: %s\r\n", outBuff, modeTitles[st.mode]);
-	sprintf(outBuff, "%scardPresent: %s\r\n", outBuff, st.cardPresent  ? t : f);
-	sprintf(outBuff, "%sinfoPublished: %s\r\n", outBuff, infoPublished  ? t : f);
-	sckOut(PRIO_HIGH, false);
-
-	sprintf(outBuff, "%s\r\nespON: %s\r\n", outBuff, st.espON  ? t : f);
-	sprintf(outBuff, "%sespBooting: %s\r\n", outBuff, st.espBooting  ? t : f);
-	sprintf(outBuff, "%swifiSet: %s\r\n", outBuff, st.wifiSet  ? t : f);
-	sprintf(outBuff, "%swifiOK: %s\r\n", outBuff, st.wifiStat.ok ? t : f);
-	sprintf(outBuff, "%swifiError: %s\r\n", outBuff, st.wifiStat.error ? t : f);
-	sckOut(PRIO_HIGH, false);
-
-	sprintf(outBuff, "\r\ntimeOK: %s\r\n", st.timeStat.ok ? t : f);
-	sprintf(outBuff, "%stimeError: %s\r\n", outBuff, st.timeStat.error ? t : f);
-	sckOut(PRIO_HIGH, false);
-
-	sprintf(outBuff, "%s\r\npublishOK: %s\r\n", outBuff, st.publishStat.ok ? t : f);
-	sprintf(outBuff, "%spublishError: %s\r\n", outBuff, st.publishStat.error ? t : f);
-	sprintf(outBuff, "%stime to next publish: %li\r\n", outBuff, config.publishInterval - (rtc.getEpoch() - lastPublishTime));
-	sprintf(outBuff, "%stimeToPublish: %s\r\n", outBuff, timeToPublish ? t : f);
-	sckOut(PRIO_HIGH, false);
-}
 
 // **** Input
 void SckBase::inputUpdate()

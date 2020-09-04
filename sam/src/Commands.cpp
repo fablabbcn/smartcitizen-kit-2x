@@ -758,11 +758,6 @@ void time_com(SckBase* base, String parameters)
 	// Receive Epoch time and sync
 	if (parameters.toInt() > 0) base->setTime(parameters);
 }
-void state_com(SckBase* base, String parameters)
-{
-
-	base->printState();
-}
 void hello_com(SckBase* base, String parameters)
 {
 

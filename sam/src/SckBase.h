@@ -186,7 +186,6 @@ class SckBase
 
 		// **** Mode Control
 		SckState st;
-		void printState();
 
 		// **** Time
 		RTCZero rtc;

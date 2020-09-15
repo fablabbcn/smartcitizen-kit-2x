@@ -153,9 +153,12 @@ void sensorConfig_com(SckBase* base, String parameters)
 
 			thisType = base->sensors.sensorsPriorized(i);
 			if (base->sensors[thisType].enabled) {
-				snprintf(base->outBuff, sizeof(base->outBuff), "%s (%u sec)", base->sensors[thisType].title, (base->sensors[thisType].everyNint * base->config.readInterval));
-				if (base->sensors[SENSOR_GROVE_OLED].enabled) snprintf(base->outBuff, sizeof(base->outBuff), "%s%s", base->outBuff, base->config.sensors[thisType].oled_display ? " - oled" : "");
-				base->sckOut();
+
+				snprintf(base->outBuff, sizeof(base->outBuff), "%s (%lu sec)", base->sensors[thisType].title, (base->sensors[thisType].everyNint * base->config.readInterval));
+				base->sckOut(PRIO_MED, false);
+
+				if (base->sensors[SENSOR_GROVE_OLED].enabled && base->config.sensors[thisType].oled_display)  base->sckOut(" - oled");
+				else base->sckOut(" ");
 			}
 		}
 
@@ -174,12 +177,12 @@ void sensorConfig_com(SckBase* base, String parameters)
 		uint8_t group_size[] = { 3, 6, 9, 18 };
 
 		// Find out if sensor belongs to a PM group
-		SensorType *groupToChange;
+		SensorType *groupToChange = NULL;
 		uint8_t groupToChange_size = 0;
 		for (uint8_t i=0; i<4; i++) {
 			for(uint8_t ii=0; ii<group_size[i]; ii++) {
-				if(pm_sensors[i][ii] == sensorToChange) { 
-					groupToChange = pm_sensors[i]; 
+				if(pm_sensors[i][ii] == sensorToChange) {
+					groupToChange = pm_sensors[i];
 					groupToChange_size = group_size[i];
 				}
 			}
@@ -188,7 +191,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 		if (sensorToChange == SENSOR_COUNT) {
 			base->sckOut("ERROR sensor not found");
 			return;
-		} 
+		}
 
 		if (parameters.indexOf("-enable") >=0) {
 			if (!base->enableSensor(sensorToChange)) {
@@ -205,7 +208,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 
 					// Enable them also in config to make changes persistent
 					base->config.sensors[groupToChange[i]].enabled = true;
-					
+
 					sprintf(base->outBuff, "Enabling %s", base->sensors[groupToChange[i]].title);
 					base->sckOut();
 				}
@@ -226,13 +229,13 @@ void sensorConfig_com(SckBase* base, String parameters)
 
 					// Disable them also in config to make changes persistent
 					base->config.sensors[groupToChange[i]].enabled = false;
-					
+
 					sprintf(base->outBuff, "Disabling %s", base->sensors[groupToChange[i]].title);
 					base->sckOut();
 				}
 				saveNeeded = true;
 			}
-		} 
+		}
 
 		if (parameters.indexOf("-oled") >=0) {
 
@@ -243,7 +246,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 
 			saveNeeded = true;
 
-		} 
+		}
 
 		if (parameters.indexOf("-interval") >=0) {
 
@@ -263,13 +266,13 @@ void sensorConfig_com(SckBase* base, String parameters)
 					for (uint8_t i=0; i<groupToChange_size; i++) {
 						base->sensors[groupToChange[i]].everyNint = newEveryNint;
 						base->config.sensors[groupToChange[i]].everyNint = newEveryNint;
-						sprintf(base->outBuff, "Changing interval of %s to %u", base->sensors[groupToChange[i]].title, base->sensors[groupToChange[i]].everyNint * base->config.readInterval);
+						sprintf(base->outBuff, "Changing interval of %s to %lu", base->sensors[groupToChange[i]].title, base->sensors[groupToChange[i]].everyNint * base->config.readInterval);
 						base->sckOut();
 					}
 				} else {
 					base->sensors[sensorToChange].everyNint = newEveryNint;
 					base->config.sensors[sensorToChange].everyNint = newEveryNint;
-					sprintf(base->outBuff, "Changing interval of %s to %u", base->sensors[sensorToChange].title, base->sensors[sensorToChange].everyNint * base->config.readInterval);
+					sprintf(base->outBuff, "Changing interval of %s to %lu", base->sensors[sensorToChange].title, base->sensors[sensorToChange].everyNint * base->config.readInterval);
 					base->sckOut();
 				}
 				saveNeeded = true;
@@ -298,7 +301,7 @@ void readSensor_com(SckBase* base, String parameters)
 }
 void controlSensor_com(SckBase* base, String parameters)
 {
-  	SensorType wichSensor = base->sensors.getTypeFromString(parameters);
+	SensorType wichSensor = base->sensors.getTypeFromString(parameters);
 
 	if (parameters.length() < 1) {
 		base->sckOut("ERROR No command received!! please try again...");
@@ -383,10 +386,10 @@ void monitorSensor_com(SckBase* base, String parameters)
 	// Titles
 	strncpy(base->outBuff, "", 240);
 	if (printTime) sprintf(base->outBuff, "%s\t", "Time");
-	if (printMs) sprintf(base->outBuff, "%s%s\t", base->outBuff, "Miliseconds");
+	if (printMs) snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s\t", base->outBuff, "Miliseconds");
 	for (uint8_t i=0; i<index; i++) {
 		sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
-		if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
+		if (i < index - 1) snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t", base->outBuff);
 		if (oled && i==0) base->plot(base->sensors[sensorsToMonitor[i]].reading, base->sensors[sensorsToMonitor[i]].title, base->sensors[sensorsToMonitor[i]].unit);
 	}
 	if (sdSave) base->monitorFile.file.println(base->outBuff);
@@ -401,11 +404,11 @@ void monitorSensor_com(SckBase* base, String parameters)
 
 		if (printTime) {
 			base->ISOtime();
-			sprintf(base->outBuff, "%s%s\t", base->outBuff, base->ISOtimeBuff);
+			snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s\t", base->outBuff, base->ISOtimeBuff);
 		}
 
 		if (printMs) {
-			sprintf(base->outBuff, "%s%lu\t", base->outBuff, millis() - lastMillis);
+			snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%lu\t", base->outBuff, millis() - lastMillis);
 			lastMillis = millis();
 		}
 
@@ -414,18 +417,18 @@ void monitorSensor_com(SckBase* base, String parameters)
 			// TODO check what will happen here when one shot PM is implemented
 			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 			base->getReading(&wichSensor);
-			
+
 			if (wichSensor.state == 0) {
-				
+
 				sprintf(base->outBuff, "%s%s", base->outBuff, wichSensor.reading.c_str());
-				
+
 				if (theFirst && oled) {
 					base->plot(wichSensor.reading);
 					theFirst = false;
 				}
-			} else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
+			} else snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s", base->outBuff, "none");
 
-			if (i < index - 1) sprintf(base->outBuff, "%s\t", base->outBuff);
+			if (i < index - 1) snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t", base->outBuff);
 		}
 
 		if (sdSave) base->monitorFile.file.println(base->outBuff);
@@ -519,7 +522,7 @@ void i2cDetect_com(SckBase* base, String parameters)
 void power_com(SckBase* base, String parameters)
 {
 	// Get
-	
+
 	int16_t extraI = parameters.indexOf("-info");
 	if (parameters.length() <= 0 || extraI >= 0) {
 
@@ -585,7 +588,7 @@ void power_com(SckBase* base, String parameters)
 			if (otgC.startsWith("on")) base->charger.OTG(1);
 			if (otgC.startsWith("off")) base->charger.OTG(0);
 		}
-		
+
 		int16_t batcapI = parameters.indexOf("-batcap");
 		if ( batcapI>=0) {
 			String batcapC = parameters.substring(batcapI+8);
@@ -594,7 +597,7 @@ void power_com(SckBase* base, String parameters)
 			if (batcapInt > 200 && batcapInt < 20000) {
 				base->config.battConf.battCapacity = batcapInt;
 				base->saveConfig();
-				sprintf(base->outBuff, "New battery capacity: %u\r\nWe need to reset for changes to take effect\r\nClick any key.", base->config.battConf.battCapacity);
+				sprintf(base->outBuff, "New battery capacity: %lu\r\nWe need to reset for changes to take effect\r\nClick any key.", base->config.battConf.battCapacity);
 				base->sckOut();
 				while (!SerialUSB.available())
 					;
@@ -682,24 +685,28 @@ void config_com(SckBase* base, String parameters)
 			base->saveConfig();
 		}
 		sprintf(base->outBuff, "-- New config --\r\n");
+		base->sckOut();
 
 		// Get
 	} else base->outBuff[0] = 0;
 
 	Configuration currentConfig = base->getConfig();
 
-	sprintf(base->outBuff, "%sMode: %s\r\nPublish interval: %lu\r\n", base->outBuff, base->modeTitles[currentConfig.mode], currentConfig.publishInterval);
-	sprintf(base->outBuff, "%sReading interval: %lu\r\n", base->outBuff, currentConfig.readInterval);
+	sprintf(base->outBuff, "Mode: %s\r\nPublish interval: %lu", base->modeTitles[currentConfig.mode], currentConfig.publishInterval);
+	base->sckOut();
 
-	sprintf(base->outBuff, "%sWifi credentials: ", base->outBuff);
-	if (currentConfig.credentials.set) sprintf(base->outBuff, "%s%s - %s\r\n", base->outBuff, currentConfig.credentials.ssid, currentConfig.credentials.pass);
-	else sprintf(base->outBuff, "%snot configured\r\n", base->outBuff);
+	sprintf(base->outBuff, "Reading interval: %lu", currentConfig.readInterval);
+	base->sckOut();
 
-	sprintf(base->outBuff, "%sToken: ", base->outBuff);
-	if (currentConfig.token.set) sprintf(base->outBuff, "%s%s\r\n", base->outBuff, currentConfig.token.token);
-	else sprintf(base->outBuff, "%snot configured\r\n", base->outBuff);
+	if (currentConfig.credentials.set) sprintf(base->outBuff, "Wifi credentials: %s - %s", currentConfig.credentials.ssid, currentConfig.credentials.pass);
+	else sprintf(base->outBuff, "Wifi credentials: not configured");
+	base->sckOut();
 
-	sprintf(base->outBuff, "%sMac address:  %s", base->outBuff, base->config.mac.address);
+	if (currentConfig.token.set) sprintf(base->outBuff, "Token: %s", currentConfig.token.token);
+	else sprintf(base->outBuff, "Token not configuredn");
+	base->sckOut();
+
+	sprintf(base->outBuff, "Mac address:  %s", base->config.mac.address);
 	base->sckOut();
 }
 void esp_com(SckBase* base, String parameters)
@@ -750,11 +757,6 @@ void time_com(SckBase* base, String parameters)
 
 	// Receive Epoch time and sync
 	if (parameters.toInt() > 0) base->setTime(parameters);
-}
-void state_com(SckBase* base, String parameters)
-{
-
-	base->printState();
 }
 void hello_com(SckBase* base, String parameters)
 {

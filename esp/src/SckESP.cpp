@@ -52,12 +52,17 @@ void SckESP::setup()
 		Debug.begin(hostname);
 		Debug.setResetCmdEnabled(true);
 		Debug.showColors(true);
+		Debug.showTime(true);
 		Debug.setSerialEnabled(false);
 	}
 	if (!sendStartInfo()) bootedPending = true;
 
 	// Date for Web server
 	sprintf(last_modified, "%s %s GMT", __DATE__, __TIME__);
+
+	// MQTT pubSubClient settings
+	MQTTclient.setKeepAlive(120);
+	MQTTclient.setBufferSize(4096);
 }
 void SckESP::update()
 {
@@ -130,7 +135,7 @@ void SckESP::debugOUT(String strOut)
 {
 	if (telnetDebug) {
 		strOut += "\r\n";
-		Debug.println(strOut.c_str());
+		Debug.printf(strOut.c_str());
 	}
 
 	if (serialDebug) sendMessage(SAMMES_DEBUG, strOut.c_str());
@@ -195,8 +200,9 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 	{
 		case ESPMES_SET_CONFIG:
 		{
-			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-			JsonObject& json = jsonBuffer.parseObject(netBuff);
+			StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+			deserializeJson(jsonBuffer, netBuff);
+			JsonObject json = jsonBuffer.as<JsonObject>();
 			config.credentials.set = json["cs"];
 			strcpy(config.credentials.ssid, json["ss"]);
 			strcpy(config.credentials.pass, json["pa"]);
@@ -425,8 +431,9 @@ bool SckESP::mqttInfo()
 bool SckESP::mqttCustom()
 {
 	debugOUT(F("Trying custom MQTT..."));
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.parseObject(netBuff);
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	deserializeJson(jsonBuffer, netBuff);
+	JsonObject json = jsonBuffer.as<JsonObject>();
 
 	if (mqttConnect()) {
 		if (MQTTclient.publish(json["to"], json["pl"])) {
@@ -440,14 +447,14 @@ bool SckESP::mqttCustom()
 // **** Notifications
 bool SckESP::sendNetinfo()
 {
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& jsonSend = jsonBuffer.createObject();
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject jsonSend = jsonBuffer.to<JsonObject>();
 	jsonSend["hn"] = hostname;
 	ipAddr = WiFi.localIP().toString();
 	jsonSend["ip"] = ipAddr;
 
 	sprintf(netBuff, "%c", SAMMES_NETINFO);
-	jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
+	serializeJson(jsonSend, &netBuff[1], jsonSend.memoryUsage() + 1);
 
 	return sendMessage();
 }
@@ -465,21 +472,21 @@ bool SckESP::sendTime()
 }
 bool SckESP::sendStartInfo()
 {
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& jsonSend = jsonBuffer.createObject();
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject jsonSend = jsonBuffer.to<JsonObject>();
 	jsonSend["mac"] = macAddr;
 	jsonSend["ver"] = ESPversion;
 	jsonSend["bd"] = ESPbuildDate;
 
 	sprintf(netBuff, "%c", SAMMES_BOOTED);
-	jsonSend.printTo(&netBuff[1], jsonSend.measureLength() + 1);
+	serializeJson(jsonSend, &netBuff[1], jsonSend.memoryUsage() + 1);
 
 	return sendMessage();
 }
 bool SckESP::sendConfig()
 {
-	StaticJsonBuffer<240> jsonBuffer;
-	JsonObject& jsonConf = jsonBuffer.createObject();
+	StaticJsonDocument<240> jsonBuffer;
+	JsonObject jsonConf = jsonBuffer.to<JsonObject>();
 
 	if (config.credentials.set) {
 		jsonConf["ss"] = config.credentials.ssid;
@@ -496,7 +503,7 @@ bool SckESP::sendConfig()
 	if (jsonConf.size() <= 0) return false;
 
 	sprintf(netBuff, "%c", SAMMES_SET_CONFIG);
-	jsonConf.printTo(&netBuff[1], jsonConf.measureLength() + 1);
+	serializeJson(jsonConf, &netBuff[1], jsonConf.memoryUsage() + 1);
 	if (sendMessage()) {
 		debugOUT(F("Sent configuration to SAM!!"));
 		return true;
@@ -822,8 +829,8 @@ bool SckESP::saveConfig()
 	debugOUT("Saving config...");
 	if ((config.credentials.ssid != config.credentials.ssid) || !config.credentials.set) WiFi.disconnect();
 
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
 	json["pa"] = config.credentials.pass;
@@ -832,7 +839,7 @@ bool SckESP::saveConfig()
 
 	File configFile = SPIFFS.open(configFileName, "w");
 	if (configFile) {
-		json.printTo(configFile);
+		serializeJson(json, configFile);
 		configFile.write('\n');
 		configFile.close();
 		debugOUT("saved configuration!!");
@@ -852,10 +859,11 @@ bool SckESP::loadConfig()
 
 		File configFile = SPIFFS.open(configFileName, "r");
 
-		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-		JsonObject &json = jsonBuffer.parseObject(configFile);
+		StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+		deserializeJson(jsonBuffer, configFile);
+		JsonObject json = jsonBuffer.as<JsonObject>();
 
-		if (json.success()) {
+		if (json) {
 
 			config.credentials.set = json["cs"];
 			strcpy(config.credentials.ssid, json["ss"]);

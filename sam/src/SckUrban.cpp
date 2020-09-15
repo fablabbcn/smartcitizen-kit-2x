@@ -154,7 +154,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					//Mode 2 = every 10s
 					//Mode 3 = every 60s
 					//Mode 4 = RAW mode
-					if (sck_ccs811.setDriveMode(newDriveMode) != CCS811Core::SENSOR_SUCCESS) return F("Failed to set new drive mode");
+					if (sck_ccs811.setDriveMode(newDriveMode) != CCS811Core::CCS811_Stat_SUCCESS) return F("Failed to set new drive mode");
 					else return String F("Drivemode set to ") + String(sck_ccs811.driveMode);
 					
 				} else if (command.startsWith("help") || command.length() == 0) {
@@ -1047,9 +1047,9 @@ bool Sck_CCS811::start()
 {
 	if (alreadyStarted) return true;
 
-	if (ccs.begin() != CCS811Core::SENSOR_SUCCESS) return false;
+	if (!ccs.begin()) return false;
 
-	if (ccs.setDriveMode(driveMode) != CCS811Core::SENSOR_SUCCESS) return false;
+	if (ccs.setDriveMode(driveMode) != CCS811Core::CCS811_Stat_SUCCESS) return false;
 
 	startTime = rtc->getEpoch();
 	alreadyStarted = true;
@@ -1060,7 +1060,7 @@ bool Sck_CCS811::stop()
 	// If the sensor is not there we don't need to stop it
 	if (!I2Cdetect(&Wire, address)) return true;
 
-	if (ccs.setDriveMode(0) != CCS811Core::SENSOR_SUCCESS) return false;
+	if (ccs.setDriveMode(0) != CCS811Core::CCS811_Stat_SUCCESS) return false;
 	alreadyStarted = false;
 	startTime = 0;
 	return true;
@@ -1140,13 +1140,15 @@ bool Sck_CCS811::setBaseline(uint16_t wichBaseline)
 	if (!alreadyStarted) {
 		if (!start()) return false;
 	}
-	if (ccs.setBaseline(wichBaseline) != ccs.SENSOR_SUCCESS); return false;
+
+	if (ccs.setBaseline(wichBaseline) != ccs.CCS811_Stat_SUCCESS) return false;
+
 	return true;
 }
 bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
 {
 	driveMode = wichDrivemode;
-	if (ccs.setDriveMode(driveMode) != CCS811Core::SENSOR_SUCCESS) return false;
+	if (ccs.setDriveMode(driveMode) != CCS811Core::CCS811_Stat_SUCCESS) return false;
 	return true;
 }
 

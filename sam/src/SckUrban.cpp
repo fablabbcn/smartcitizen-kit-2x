@@ -978,7 +978,7 @@ bool Sck_PM::update()
 }
 void Sck_PM::getReading(SckBase *base, OneSensor *wichSensor)
 {
-	if ((base->config.readInterval * wichSensor->everyNint) < oneShotPeriod + 10) {
+	if ((base->config.readInterval * wichSensor->everyNint) < (uint32_t)(oneShotPeriod + 10)) {
 
 		if (!started) start();
 		

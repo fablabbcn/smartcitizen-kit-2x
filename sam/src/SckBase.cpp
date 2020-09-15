@@ -1510,7 +1510,7 @@ void SckBase::configGCLK6()
 void SckBase::updateSensors()
 {
 	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) {
-		sckOut("RTC ERROR when updating sensors!!!");
+		sckOut("RTC ERROR when updating sensors!!!", PRIO_LOW);
 		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
 		st.timeStat.reset();
 	}

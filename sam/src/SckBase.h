@@ -70,6 +70,7 @@ struct SckState
 	bool cardPresentError = false;
 	bool sleeping = false;
 	bool publishPending = false;
+	bool dynamic = false;
 	Status wifiStat = Status(1, 60000);
 	Status timeStat = Status(2, 3000);
 	Status helloStat = Status(3, 5000);
@@ -190,6 +191,7 @@ class SckBase
 		// **** Time
 		RTCZero rtc;
 		bool timeSyncAfterBoot = false;
+		uint32_t lastTimeSync = 0;
 		char ISOtimeBuff[20];
 		bool setTime(String epoch);
 		bool ISOtime();

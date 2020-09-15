@@ -461,7 +461,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				uint8_t responseCode = thisAtlas->getResponse();
 				if (responseCode == 254) {
-					delay(1000); 
+					delay(1000);
 					responseCode = thisAtlas->getResponse();
 				}
 				if (responseCode == 1) return thisAtlas->atlasResponse;
@@ -928,7 +928,7 @@ void Groove_OLED::displayReading(SckBase* base)
 
 		SensorType thisSensor = static_cast<SensorType>(i);
 
-		if (base->config.sensors[thisSensor].oled_display && 
+		if (base->config.sensors[thisSensor].oled_display &&
 				base->sensors[thisSensor].type != SENSOR_GROVE_OLED && 		//Oled screen has nothing to show
 				base->sensors[thisSensor].type != SENSOR_BATT_PERCENT) { 	// Battery is already shown on oled info-bar
 
@@ -1877,6 +1877,8 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 
 	lastReading = millis();
 
+	// TODO use power save mode between readings if posible
+
 	return true;
 }
 
@@ -1961,6 +1963,8 @@ bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
 	}
 
 	lastReading = millis();
+
+	// TODO use power save mode between readings if posible
 
 	return true;
 }

@@ -32,6 +32,7 @@ struct Token { bool set=false; char token[7]="null"; };
 struct ESP_Configuration {
 	Credentials credentials;
 	Token token;
+	bool debug_telnet = false;
 };
 
 class SckESP

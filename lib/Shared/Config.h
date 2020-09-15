@@ -36,7 +36,7 @@ enum errorType {
 	ERROR_BATT 
 };
 
-struct SensorConfig { bool enabled; uint8_t everyNint; bool oled_display; };
+struct SensorConfig { bool enabled; uint8_t everyNint; bool oled_display=false; };
 struct Credentials { bool set=false; char ssid[64]="null"; char pass[64]="null"; };
 struct Token { bool set=false; char token[7]="null"; };
 struct MAC { bool valid=false; char address[18]="not synced"; };

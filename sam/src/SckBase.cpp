@@ -182,8 +182,7 @@ void SckBase::setup()
 
 		if (wichSensor->location == BOARD_AUX) {
 			if (wichSensor->enabled && enableSensor(wichSensor->type)) {
-				wichSensor->enabled = true;
-				if (wichSensor->type != SENSOR_GROVE_OLED) config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
+				config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
 			} else {
 				wichSensor->enabled = false;
 				config.sensors[wichSensor->type].oled_display = false;
@@ -605,38 +604,6 @@ void SckBase::enterSetup()
 	// Reboot ESP to have a clean start
 	ESPcontrol(ESP_REBOOT);
 }
-void SckBase::printState()
-{
-	// TODO fix bug: after configuring wrong wifi, restart kit, wait for error and sdcard publish and type "state" command.
-	// it will enter setup mode !?!? and if you type "state" command again it will reboot.
-	char t[] = "true";
-	char f[] = "false";
-
-	sprintf(outBuff, "%s\r\nonSetup: %s\r\n", outBuff, st.onSetup  ? t : f);
-	sprintf(outBuff, "%stokenSet: %s\r\n", outBuff, st.tokenSet  ? t : f);
-	sprintf(outBuff, "%shelloPending: %s\r\n", outBuff, st.helloPending  ? t : f);
-	sprintf(outBuff, "%smode: %s\r\n", outBuff, modeTitles[st.mode]);
-	sprintf(outBuff, "%scardPresent: %s\r\n", outBuff, st.cardPresent  ? t : f);
-	sprintf(outBuff, "%sinfoPublished: %s\r\n", outBuff, infoPublished  ? t : f);
-	sckOut(PRIO_HIGH, false);
-
-	sprintf(outBuff, "%s\r\nespON: %s\r\n", outBuff, st.espON  ? t : f);
-	sprintf(outBuff, "%sespBooting: %s\r\n", outBuff, st.espBooting  ? t : f);
-	sprintf(outBuff, "%swifiSet: %s\r\n", outBuff, st.wifiSet  ? t : f);
-	sprintf(outBuff, "%swifiOK: %s\r\n", outBuff, st.wifiStat.ok ? t : f);
-	sprintf(outBuff, "%swifiError: %s\r\n", outBuff, st.wifiStat.error ? t : f);
-	sckOut(PRIO_HIGH, false);
-
-	sprintf(outBuff, "\r\ntimeOK: %s\r\n", st.timeStat.ok ? t : f);
-	sprintf(outBuff, "%stimeError: %s\r\n", outBuff, st.timeStat.error ? t : f);
-	sckOut(PRIO_HIGH, false);
-
-	sprintf(outBuff, "%s\r\npublishOK: %s\r\n", outBuff, st.publishStat.ok ? t : f);
-	sprintf(outBuff, "%spublishError: %s\r\n", outBuff, st.publishStat.error ? t : f);
-	sprintf(outBuff, "%stime to next publish: %li\r\n", outBuff, config.publishInterval - (rtc.getEpoch() - lastPublishTime));
-	sprintf(outBuff, "%stimeToPublish: %s\r\n", outBuff, timeToPublish ? t : f);
-	sckOut(PRIO_HIGH, false);
-}
 
 // **** Input
 void SckBase::inputUpdate()
@@ -811,10 +778,9 @@ void SckBase::saveConfig(bool defaults)
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
-			config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
+			if (sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
 		}
-		config.sensors[SENSOR_BATT_PERCENT].oled_display = false; 	// Battery is already shown on oled info-bar
 		pendingSyncConfig = true;
 	}
 
@@ -882,8 +848,8 @@ bool SckBase::sendConfig()
 	}
 	if (st.espBooting) return false;
 
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
@@ -898,7 +864,7 @@ bool SckBase::sendConfig()
 	else json["ac"] = (uint8_t)ESPMES_START_AP;
 
 	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
-	json.printTo(&netBuff[1], json.measureLength() + 1);
+	serializeJson(json, &netBuff[1], json.memoryUsage() + 1);
 
 	if (sendMessage()) {
 		pendingSyncConfig = false;
@@ -934,8 +900,8 @@ bool SckBase::publishInfo()
 
 		getUniqueID();
 
-		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-		JsonObject& json = jsonBuffer.createObject();
+		StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+		JsonObject json = jsonBuffer.to<JsonObject>();
 
 		json["time"] = ISOtimeBuff;
 		json["hw_ver"] = hardwareVer.c_str();
@@ -947,7 +913,7 @@ bool SckBase::publishInfo()
 		json["esp_bd"] = ESPbuildDate.c_str();
 
 		sprintf(netBuff, "%c", ESPMES_MQTT_INFO);
-		json.printTo(&netBuff[1], json.measureLength() + 1);
+		serializeJson(json, &netBuff[1], json.memoryUsage() + 1);
 		if (sendMessage()) return true;
 	}
 	return false;
@@ -1129,8 +1095,9 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 				lastUserEvent = millis();
 				sckOut("Received new config from ESP");
-				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-				JsonObject& json = jsonBuffer.parseObject(netBuff);
+				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, netBuff);
+				JsonObject json = jsonBuffer.as<JsonObject>();
 
 				if (json.containsKey("mo")) {
 					String stringMode = json["mo"];
@@ -1169,8 +1136,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_NETINFO:
 		{
-				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-				JsonObject& json = jsonBuffer.parseObject(netBuff);
+				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, netBuff);
+				JsonObject json = jsonBuffer.as<JsonObject>();
+
 				ipAddress = json["ip"].as<String>();
 
 				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname, ipAddress.c_str(), config.mac.address);
@@ -1268,8 +1237,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			st.espBooting = false;
 
-			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-			JsonObject& json = jsonBuffer.parseObject(netBuff);
+			StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+			deserializeJson(jsonBuffer, netBuff);
+			JsonObject json = jsonBuffer.as<JsonObject>();
+
 			String macAddress = json["mac"].as<String>();
 			ESPversion = json["ver"].as<String>();
 			ESPbuildDate = json["bd"].as<String>();
@@ -1299,14 +1270,14 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 }
 void SckBase::mqttCustom(const char *topic, const char *payload)
 {
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 
 	json["to"] = topic;
 	json["pl"] = payload;
 
 	sprintf(netBuff, "%c", ESPMES_MQTT_CUSTOM);
-	json.printTo(&netBuff[1], json.measureLength() + 1);
+	serializeJson(json, &netBuff[1], json.memoryUsage() + 1);
 
 	if (sendMessage()) sckOut("MQTT message sent to ESP...", PRIO_LOW);
 }
@@ -1395,7 +1366,7 @@ void SckBase::sck_reset()
 	sckOut("Bye!!");
 	NVIC_SystemReset();
 }
-void SckBase::goToSleep(uint16_t sleepPeriod)
+void SckBase::goToSleep(uint32_t sleepPeriod)
 {
 	led.off();
 	if (st.espON) ESPcontrol(ESP_OFF);

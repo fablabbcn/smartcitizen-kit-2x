@@ -337,8 +337,8 @@ void SckBase::reviewState()
 
 				// Check if we are in offline programmed hours
 				bool offlineHours = false;
-				if (config.offline.start != NULL && config.offline.end != NULL && millis() - lastUserEvent > (config.sleepTimer * 60000)) {
-					uint8_t thisHour = rtc.getHours();
+				if (config.offline.start >= 0 && config.offline.end >= 0 && millis() - lastUserEvent > (config.sleepTimer * 60000)) {
+					int8_t thisHour = rtc.getHours();
 					if (thisHour > config.offline.start && thisHour < config.offline.end) {
 						if (st.espON) ESPcontrol(ESP_OFF);
 						led.update(led.BLUE, led.PULSE_SOFT);
@@ -475,12 +475,12 @@ void SckBase::reviewState()
 				}
 			}
 		} else {
-			uint16_t sleepPeriod = 3; 										// Only sleep if
-			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
-					(pendingSensorsLinkedList.size() == 0) && 								// No sensor to wait to
-					(st.timeStat.ok) && 									// RTC is synced and working
-					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
-					(config.sleepTimer > 0)) { 								// sleep is enabled
+			uint16_t sleepPeriod = 3; 											// Only sleep if
+			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 	// No publish in the near future
+					(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
+					(st.timeStat.ok) && 										// RTC is synced and working
+					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 					// No recent user interaction (button, sdcard or USB events)
+					(config.sleepTimer > 0)) { 									// sleep is enabled
 
 				goToSleep(sleepPeriod * 1000);
 
@@ -559,12 +559,12 @@ void SckBase::reviewState()
 			}
 
 		} else {
-			uint16_t sleepPeriod = 3; 										// Only sleep if
-			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
-					(pendingSensorsLinkedList.size() == 0) && 						// No sensor to wait to
-					(st.timeStat.ok) && 									// RTC is synced and working
-					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
-					(config.sleepTimer > 0)) { 								// sleep is enabled
+			uint16_t sleepPeriod = 3; 											// Only sleep if
+			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 	// No publish in the near future
+					(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
+					(st.timeStat.ok) && 										// RTC is synced and working
+					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 					// No recent user interaction (button, sdcard or USB events)
+					(config.sleepTimer > 0)) { 									// sleep is enabled
 
 				goToSleep(sleepPeriod * 1000);
 
@@ -1774,8 +1774,7 @@ bool SckBase::netPublish()
 	if (wichGroupPublishing.group >= 0) {
 		sprintf(outBuff, "(%s) Sent readings to platform.", ISOtimeBuff);
 		sckOut();
-		snprintf(outBuff, sizeof(outBuff), "%s", netBuff);
-		sckOut(PRIO_LOW);
+		sckOut(netBuff, PRIO_LOW);
 		result = sendMessage();
 	} else {
 		timeToPublish = false; 		// There are no more readings available

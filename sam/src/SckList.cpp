@@ -94,8 +94,6 @@ int8_t SckList::_setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 	// Sanity check
 	if (flagsAddr == 0) return -1;
 
-	byte byteFlags = flash.readByte(flagsAddr);
-
 	// And write flags byte back
 	return flash.writeByte(flagsAddr, PUBLISHED);
 }
@@ -446,8 +444,6 @@ uint8_t SckList::_formatSD(GroupIndex wichGroup, char* buffer)
 	uint32_t grpAddr = _getGrpAddr(wichGroup);
 	uint8_t readingNum = _countReadings(wichGroup, grpAddr);
 
-	memset(buffer, 0, sizeof(buffer)); 	// Clear buffer
-
 	uint32_t thisTime = flash.readULong(grpAddr + GROUP_TIME);
 	base->epoch2iso(thisTime, buffer); 		// print time stamp to buffer
 	base->epoch2iso(thisTime, base->ISOtimeBuff); 	// Update base time buffer for console message.
@@ -512,7 +508,6 @@ uint8_t SckList::_formatNET(GroupIndex wichGroup, char* buffer)
 	uint8_t readingNum = _countReadings(wichGroup, grpAddr);
 
 	// Prepare buffer for ESP format
-	memset(buffer, 0, sizeof(buffer)); 		// Clear buffer
 	sprintf(buffer, "%c", ESPMES_MQTT_PUBLISH); 	// Write command to buffer
 
 	// Write time
@@ -646,7 +641,7 @@ uint8_t SckList::saveGroup()
 		}
 
 		if (debug) {
-			sprintf(base->outBuff, "F: Using sector %u in address %u", _currSector, _addr);
+			sprintf(base->outBuff, "F: Using sector %u in address %lu", _currSector, _addr);
 			base->sckOut();
 		}
 	}

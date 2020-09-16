@@ -428,14 +428,14 @@ void monitorSensor_com(SckBase* base, String parameters)
 					if (wichSensor.type == SENSOR_PM_1) thisReading = String(base->urban.sck_pm.pm1);
 					else if (wichSensor.type == SENSOR_PM_25) thisReading = String(base->urban.sck_pm.pm25);
 					else if (wichSensor.type == SENSOR_PM_10) thisReading = String(base->urban.sck_pm.pm10);
-					sprintf(base->outBuff, "%s\t%s", base->outBuff, thisReading.c_str());
+					snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t%s", base->outBuff, thisReading.c_str());
 					PMreadingReady = true;
 					printit++;
 				}
 			} else {
 				base->getReading(&wichSensor);
 				if (wichSensor.state == 0) {
-					sprintf(base->outBuff, "%s\t%s", base->outBuff, wichSensor.reading.c_str());
+					snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t%s", base->outBuff, wichSensor.reading.c_str());
 
 					if (theFirst && oled) {
 						base->plot(wichSensor.reading);
@@ -443,7 +443,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 					}
 					printit++;
 
-				} else sprintf(base->outBuff, "%s%s", base->outBuff, "none");
+				} else snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s", base->outBuff, "none");
 			}
 		}
 		// If we are missing sensors we don't print the output
@@ -518,7 +518,7 @@ void flash_com(SckBase* base, String parameters)
 					totalRecovered += base->readingsList.recover(i, thisFlag);
 				}
 			} else totalRecovered = base->readingsList.recover(sectV, thisFlag);
-			sprintf(base->outBuff, "Recovered %u groups.", totalRecovered);
+			sprintf(base->outBuff, "Recovered %lu groups.", totalRecovered);
 			base->sckOut();
 
 			// Exit shell mode
@@ -549,7 +549,7 @@ void flash_com(SckBase* base, String parameters)
 				return;
 			}
 			SckList::SectorInfo info = base->readingsList.sectorInfo(sectV);
-			sprintf(base->outBuff, "\r\nSector %u in address %u is: %s", sectV, info.addr, info.used ? "Used" : (info.current ? "In use" : "Free"));
+			sprintf(base->outBuff, "\r\nSector %u in address %lu is: %s", sectV, info.addr, info.used ? "Used" : (info.current ? "In use" : "Free"));
 			base->sckOut();
 			sprintf(base->outBuff, "Sector %u fully published to network: %s", sectV, info.pubNet ? "true" : "false" );
 			base->sckOut();
@@ -953,11 +953,11 @@ void offline_com(SckBase* base, String parameters)
 		int16_t startIntI = parameters.indexOf("-period");
 		if (startIntI >= 0) {
 
-			uint8_t start = NULL;
+			int8_t start = -1;
 			String startIntC = parameters.substring(startIntI+8);
 			start = startIntC.toInt();
 
-			uint8_t end = NULL;
+			int8_t end = -1;
 			int16_t endIntI = parameters.indexOf(" ", startIntI+8);
 			if (endIntI >= 0) {
 				String endIntC = parameters.substring(endIntI+1);
@@ -974,10 +974,10 @@ void offline_com(SckBase* base, String parameters)
 	} 
 
 	// Print parameters
-	sprintf(base->outBuff, "WiFi retry period: %u", base->config.offline.retry);
+	sprintf(base->outBuff, "WiFi retry period: %lu", base->config.offline.retry);
 	base->sckOut();
 
-	if (base->config.offline.start == NULL || base->config.offline.end == NULL) sprintf(base->outBuff, "No offline period configured");
+	if (base->config.offline.start < 0 || base->config.offline.end < 0) sprintf(base->outBuff, "No offline period configured");
 	else sprintf(base->outBuff, "Offline period: %u - %u (UTC)", base->config.offline.start, base->config.offline.end);
 	base->sckOut();
 

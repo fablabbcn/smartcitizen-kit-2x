@@ -98,15 +98,15 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude()) 		{ wichSensor->reading = String(sck_mpl3115A2.altitude); return; } break;
 		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure()) 		{ wichSensor->reading = String(sck_mpl3115A2.pressure); return; } break;
 		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature()) 		{ wichSensor->reading = String(sck_mpl3115A2.temperature); return; } break;
-		case SENSOR_PM_1: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm1); return;
-		case SENSOR_PM_25: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm25); return;
-		case SENSOR_PM_10: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm10); return;
-		case SENSOR_PN_03: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn03); return;
-		case SENSOR_PN_05: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn05); return;
-		case SENSOR_PN_1: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn1); return;
-		case SENSOR_PN_25: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn25); return;
-		case SENSOR_PN_5: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn5); return;
-		case SENSOR_PN_10: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn10); return;
+		case SENSOR_PM_1: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm1); return;
+		case SENSOR_PM_25: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm25); return;
+		case SENSOR_PM_10: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm10); return;
+		case SENSOR_PN_03: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn03); return;
+		case SENSOR_PN_05: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn05); return;
+		case SENSOR_PN_1: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn1); return;
+		case SENSOR_PN_25: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn25); return;
+		case SENSOR_PN_5: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn5); return;
+		case SENSOR_PN_10: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn10); return;
 		default: break;
 	}
 	wichSensor->reading = "null";
@@ -973,16 +973,30 @@ bool Sck_PM::update()
 	}
 	return false;
 }
-int16_t Sck_PM::oneShot(uint16_t period)
+void Sck_PM::getReading(SckBase *base, OneSensor *wichSensor)
 {
-	int16_t pendingSeconds = period;
+	if ((base->config.readInterval * wichSensor->everyNint) < (uint32_t)(oneShotPeriod + 10)) {
+
+		if (!started) start();
+		
+		if (update()) wichSensor->state = 0;
+		else wichSensor->state = -1;
+
+	} else {
+		wichSensor->state = oneShot();
+	}
+	return;
+}
+int16_t Sck_PM::oneShot()
+{
+	int16_t pendingSeconds = oneShotPeriod;
 	uint32_t rtcNow = rtc->getEpoch();
 
 	if (detectionFailed) return -1;
 	if (!started) {
 
 		// If last PM reading is older than some time, start PM
-		if (rtcNow - rtcReading >= (minimal_reading_interval - period)) {
+		if (rtcNow - rtcReading >= (minimal_reading_interval - oneShotPeriod)) {
 			stop();  // Be sure it is stoped...
 			start();
 		}
@@ -992,10 +1006,10 @@ int16_t Sck_PM::oneShot(uint16_t period)
 
 	} else {
 
-		pendingSeconds = period - (rtcNow - rtcStarted);
+		pendingSeconds = oneShotPeriod - (rtcNow - rtcStarted);
 
 		// Fix the problem generated by updating RTC after starting the PM sensor
-		if (pendingSeconds > period) rtcStarted = rtcNow;
+		if (pendingSeconds > oneShotPeriod) rtcStarted = rtcNow;
 
 		// If PM is on and requested period has passed
 		if (pendingSeconds <= 0) {
@@ -1016,13 +1030,6 @@ int16_t Sck_PM::oneShot(uint16_t period)
 	}
 
 	return (int16_t)pendingSeconds;
-}
-bool Sck_PM::getReading()
-{
-	if (!started) start();
-	if (millis() - lastReading < 1000) return false; 	// Only return new values (PM updates once per second)
-	if (!update()) return false;
-	return true;
 }
 bool Sck_PM::reset()
 {

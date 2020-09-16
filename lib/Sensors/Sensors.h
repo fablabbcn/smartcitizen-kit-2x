@@ -114,6 +114,14 @@ enum SensorType
 	SENSOR_BME680_PRESSURE,
 	SENSOR_BME680_VOCS,
 
+	SENSOR_GPS_FIX_QUALITY,
+	SENSOR_GPS_LATITUDE,
+	SENSOR_GPS_LONGITUDE,
+	SENSOR_GPS_ALTITUDE,
+	SENSOR_GPS_SPEED,
+	SENSOR_GPS_HDOP,
+	SENSOR_GPS_SATNUM,
+
 	SENSOR_ADS1X15_48_0,
 	SENSOR_ADS1X15_48_1,
 	SENSOR_ADS1X15_48_2,
@@ -292,6 +300,14 @@ class AllSensors
 			OneSensor { BOARD_AUX,		0,	SENSOR_BME680_HUMIDITY,			"BME680_HUM",		"Humidity BME680",				0,		true,		false,		1,			"%"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_PRESSURE,			"BME680_PRESS",		"Barometric pressure BME680",			0,		true,		false,		1,			"kPa"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_BME680_VOCS,			"BME680_VOCS",		"VOC Gas BME680",				0,		true,		false,		1,			"Ohms"},
+
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_FIX_QUALITY,			"GPS_FIX",		"GPS Fix Quality",				0,		true,		false,		1,			},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_LATITUDE,			"GPS_LAT",		"GPS Latitude",					0,		true,		false,		1,			"Deg"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_LONGITUDE,			"GPS_LONG",		"GPS Longitude",				0,		true,		false,		1,			"Deg"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_ALTITUDE,			"GPS_ALT",		"GPS Altitude",					0,		true,		false,		1,			"m"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_SPEED,			"GPS_SPEED",		"GPS Speed",					0,		true,		false,		1,			"m/s"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_HDOP,			"GPS_HDOP",		"GPS Horizontal Dilution of Position",		0,		true,		false,		1,			},
+			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_SATNUM,			"GPS_SATNUM",		"GPS Traked Satellites",			0,		true,		false,		1,			},
 
 			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_0,			"ADC_48_0",		"ADS1x15 ADC 0x48 Ch0",				0,		true,		false,		1,			"V"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_1,			"ADC_48_1",		"ADS1x15 ADC 0x48 Ch1",				0,		true,		false,		1,			"V"},

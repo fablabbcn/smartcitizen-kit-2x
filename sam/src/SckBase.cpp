@@ -273,6 +273,9 @@ void SckBase::reviewState()
 		}
 	}
 
+	// If we have a GPS get time if needed
+	if (sensors[SENSOR_GPS_FIX_QUALITY].enabled && !st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
+
 	// If we have a screen update it
 	if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 
@@ -1537,10 +1540,19 @@ void SckBase::updateSensors()
 	if (st.onSetup) return;
 	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented
 
+	// Speed based interval
+	// TODO in dynamic mode PMS sensor should not use oneShot mode
+	st.dynamic = false;
+	if (sensors[SENSOR_GPS_SPEED].enabled && getReading(&sensors[SENSOR_GPS_SPEED])) {
+			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
+			if (speedFloat > speed_threshold) st.dynamic = true;
+	}
+
 	bool sensorsReady = false;
 
 	// Main reading loop
-	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {
+	uint32_t timeSinceLastSensorUpdate = rtc.getEpoch() - lastSensorUpdate;
+	if ((st.dynamic && (timeSinceLastSensorUpdate >= dynamicInterval)) || timeSinceLastSensorUpdate >= config.readInterval) {
 
 		lastSensorUpdate = rtc.getEpoch();
 
@@ -1713,7 +1725,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
 		}
 		case BOARD_AUX:
 		{
-				auxBoards.getReading(wichSensor);
+				auxBoards.getReading(this, wichSensor);
 				break;
 		}
 	}
@@ -1893,6 +1905,8 @@ bool SckBase::setTime(String epoch)
 				sensors[static_cast<SensorType>(i)].lastReadingTime =  now - (pre - sensors[static_cast<SensorType>(i)].lastReadingTime);
 			}
 		}
+
+		lastTimeSync = millis();
 
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);

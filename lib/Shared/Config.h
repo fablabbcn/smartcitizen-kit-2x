@@ -1,11 +1,13 @@
 #pragma once
 #include "Sensors.h"
 
-static const uint32_t minimal_reading_interval = 30;
 static const uint32_t default_reading_interval = 60;
+static const uint32_t minimal_reading_interval = 5;
 static const uint32_t max_reading_interval = 86400;		// One day
+static const float speed_threshold = 1.4; 			// m/s -> faster than this we enter dynamic mode - 1.4 m/s ~= 5 km/h
+static const uint32_t dynamicInterval = 5; 			// Seconds
 
-static const uint32_t minimal_publish_interval = 30;
+static const uint32_t minimal_publish_interval = 5;
 static const uint32_t default_publish_interval = 60 * 3;
 static const uint32_t max_publish_interval = 3600;		// One hour
 

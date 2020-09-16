@@ -209,8 +209,8 @@ class Sck_PM
 		bool start();
 		bool stop();
 		bool update();
-		int16_t oneShot(uint16_t period);
-		bool getReading();		
+		void getReading(SckBase *base, OneSensor *wichSensor);
+		int16_t oneShot();
 		bool reset();
 };
 

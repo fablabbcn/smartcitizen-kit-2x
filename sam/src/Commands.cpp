@@ -423,7 +423,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 
 			if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) {
-				if (PMreadingReady || base->urban.sck_pm.getReading()) {
+				if (PMreadingReady || base->getReading(&wichSensor)) {
 					String thisReading;
 					if (wichSensor.type == SENSOR_PM_1) thisReading = String(base->urban.sck_pm.pm1);
 					else if (wichSensor.type == SENSOR_PM_25) thisReading = String(base->urban.sck_pm.pm25);

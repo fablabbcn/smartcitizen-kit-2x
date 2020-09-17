@@ -996,7 +996,7 @@ int16_t Sck_PM::oneShot()
 	if (!started) {
 
 		// If last PM reading is older than some time, start PM
-		if (rtcNow - rtcReading >= (minimal_reading_interval - oneShotPeriod)) {
+		if (rtcNow - rtcReading >= (minimal_reading_interval - oneShotPeriod) || rtcReading == 0) {
 			stop();  // Be sure it is stoped...
 			start();
 		}

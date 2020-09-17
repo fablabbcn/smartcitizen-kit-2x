@@ -125,7 +125,7 @@ void SckBase::setup()
 		// Find out if urban was reinstalled just now
 		bool justInstalled = true;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			
+
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 
 			// If any sensor was enabled urban board was present on last boot
@@ -157,7 +157,7 @@ void SckBase::setup()
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			
+
 			// If any sensor was enabled that means urban board was just removed
 			if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) justRemoved = true;
 		}
@@ -378,7 +378,7 @@ void SckBase::reviewState()
 							st.lastWiFiError = 0;
 							st.wifiStat.reset();
 							sckOut("Retrying WiFi..."); 	// User feedback
-						} 
+						}
 
 						// ERROR feedback should be on just for a limited amount of time, let's turn it off
 						else if (now - st.lastWiFiError > 10) led.update(led.BLUE, led.PULSE_SOFT);
@@ -1576,6 +1576,8 @@ void SckBase::updateSensors()
 					wichSensor->lastReadingTime = lastSensorUpdate; 	// Update sensor reading time
 
 					if (!getReading(wichSensor)) {
+						sprintf(outBuff, "Adding %s to pending sensor list", wichSensor->title);
+						sckOut(PRIO_LOW);
 						pendingSensorsLinkedList.add(wichSensor->type); 	// Read it or save it for later
 					} else {
 						sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
@@ -1586,6 +1588,10 @@ void SckBase::updateSensors()
 		}
 
 		if (pendingSensorsLinkedList.size() == 0) sensorsReady = true;
+		else {
+			sprintf(outBuff, "Waiting for %u sensors to finish the reading process", pendingSensorsLinkedList.size());
+			sckOut(PRIO_LOW);
+		}
 
 	} else if (pendingSensorsLinkedList.size() > 0) { 	// If we still have some sensors pending
 		for (uint8_t i=0; i<pendingSensorsLinkedList.size(); i++) {

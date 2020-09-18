@@ -131,12 +131,12 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 		case SENSOR_CCS811_ECO2:
 		{
 				if (command.startsWith("compensate")) {
-				
+
 					sck_ccs811.compensate = !sck_ccs811.compensate;
 					return (sck_ccs811.compensate ? "True" : "False");
-				
+
 				} else if (command.startsWith("mode")) {
-				
+
 					command.replace("mode", "");
 					command.trim();
 
@@ -156,9 +156,9 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					//Mode 4 = RAW mode
 					if (sck_ccs811.setDriveMode(newDriveMode) != CCS811Core::CCS811_Stat_SUCCESS) return F("Failed to set new drive mode");
 					else return String F("Drivemode set to ") + String(sck_ccs811.driveMode);
-					
+
 				} else if (command.startsWith("help") || command.length() == 0) {
-				
+
 					sprintf(base->outBuff, "Available commands:\r\n* compensate (toggles temp/hum compensation)\r\n* mode [0-4] (0-idle, 1-1s, 2-10s, 3-60s, 4-raw)");
 					base->sckOut();
 					return "\r\n";
@@ -975,10 +975,10 @@ bool Sck_PM::update()
 }
 void Sck_PM::getReading(SckBase *base, OneSensor *wichSensor)
 {
-	if ((base->config.readInterval * wichSensor->everyNint) < (uint32_t)(oneShotPeriod + 10)) {
+	if ((base->config.readInterval * wichSensor->everyNint) < (uint32_t)(oneShotPeriod + minSeparationBetweenShots)) {
 
 		if (!started) start();
-		
+
 		if (update()) wichSensor->state = 0;
 		else wichSensor->state = -1;
 
@@ -995,9 +995,8 @@ int16_t Sck_PM::oneShot()
 	if (detectionFailed) return -1;
 	if (!started) {
 
-		// If last PM reading is older than some time, start PM
-		if (rtcNow - rtcReading >= (minimal_reading_interval - oneShotPeriod) || rtcReading == 0) {
-			stop();  // Be sure it is stoped...
+		// Only start PM sensor again if last reading is old
+		if (rtcNow - rtcReading >= minSeparationBetweenShots - 2) {
 			start();
 		}
 

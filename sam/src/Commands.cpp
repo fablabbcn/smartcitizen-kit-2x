@@ -423,7 +423,8 @@ void monitorSensor_com(SckBase* base, String parameters)
 			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 
 			if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) {
-				if (PMreadingReady || base->getReading(&wichSensor)) {
+				if (!base->urban.sck_pm.started) base->urban.sck_pm.start();
+				if (PMreadingReady || base->urban.sck_pm.update()) {
 					String thisReading;
 					if (wichSensor.type == SENSOR_PM_1) thisReading = String(base->urban.sck_pm.pm1);
 					else if (wichSensor.type == SENSOR_PM_25) thisReading = String(base->urban.sck_pm.pm25);
@@ -454,6 +455,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 		}
 	}
 	if (sdSave) base->monitorFile.file.close();
+	if (base->urban.sck_pm.started) base->urban.sck_pm.stop();
 }
 void flash_com(SckBase* base, String parameters)
 {

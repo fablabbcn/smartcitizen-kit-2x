@@ -20,7 +20,7 @@ enum CommandType {
 	COM_READ_SENSOR,
 	COM_CONTROL_SENSOR,
 	COM_MONITOR_SENSOR,
-	COM_READINGS,
+	COM_FLASH,
 	COM_GET_FREERAM,
 	COM_I2C_DETECT,
 	COM_CHARGER,
@@ -32,6 +32,7 @@ enum CommandType {
 	COM_DEBUG,
 	COM_SHELL,
 	COM_CUSTOM_MQTT,
+	COM_OFFLINE,
 
 	COM_COUNT
 };
@@ -47,7 +48,7 @@ void sensorConfig_com(SckBase* base, String parameters);
 void readSensor_com(SckBase* base, String parameters);
 void controlSensor_com(SckBase* base, String parameters);
 void monitorSensor_com(SckBase* base, String parameters);
-void readings_com(SckBase* base, String parameters);
+void flash_com(SckBase* base, String parameters);
 void freeRAM_com(SckBase* base, String parameters);
 void i2cDetect_com(SckBase* base, String parameters);
 void power_com(SckBase* base, String parameters);
@@ -59,6 +60,7 @@ void hello_com(SckBase* base, String parameters);
 void debug_com(SckBase* base, String parameters);
 void shell_com(SckBase* base, String parameters);
 void custom_mqtt_com(SckBase* base, String parameters);
+void offline_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -91,11 +93,11 @@ class AllCommands {
 			OneCom {40,	COM_OUTLEVEL,		"outlevel",	"Shows/sets output level: outlevel [0:silent, 1:normal, 2:verbose]",									outlevel_com},
 			OneCom {50,	COM_HELP,		"help",		"Duhhhh!!",																help_com},
 			OneCom {60,	COM_PINMUX,		"pinmux",	"Shows SAMD pin mapping status",													pinmux_com},
+			OneCom {90,	COM_FLASH,		"flash",	"Shows and manage flash memory state [no-param -> info] [-format (be carefull)] [-dump sect-num (0-2040)] [-sector sect-num] [-recover sect-num/all net/sd]", flash_com},
 			OneCom {80,	COM_LIST_SENSOR,	"sensor",	"Shows/sets sensor state or interval: sensor sensor-name [-enable or -disable] [-interval interval(seconds)] [-oled]",			sensorConfig_com},
 			OneCom {90,	COM_READ_SENSOR,	"read",		"Reads sensor: read [sensorName]",													readSensor_com},
 			OneCom {90,	COM_CONTROL_SENSOR,	"control",	"Control sensor: control [sensorName] [command]",											controlSensor_com},
 			OneCom {90,	COM_MONITOR_SENSOR,	"monitor",	"Continously read sensor: monitor [-sd] [-notime] [-noms] [-oled] [sensorName[,sensorNameN]]",						monitorSensor_com},
-			OneCom {90,	COM_READINGS,		"saved",	"Shows locally stored sensor readings: saved [-details] [-publish]",									readings_com},
 			OneCom {90,	COM_GET_FREERAM,	"free",		"Shows the amount of free RAM memory",													freeRAM_com},
 			OneCom {90,	COM_I2C_DETECT,		"i2c",		"Search the I2C bus for devices",													i2cDetect_com},
 			OneCom {90,	COM_CHARGER,		"power",	"Controls/shows power config: power [-info (extra info)] [-batcap mAh] [-otg on/off] [-charge on/off] [-sleep min (0-disable)]",	power_com},
@@ -104,9 +106,10 @@ class AllCommands {
 			OneCom {100,	COM_NETINFO,		"netinfo",	"Shows network information",														netInfo_com},
 			OneCom {100,	COM_TIME,		"time",		"Shows/sets date and time: time [epoch time] [-sync]",											time_com},
 			OneCom {100,	COM_HELLO,		"hello",	"Sends MQTT hello to platform",														hello_com},
-			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages: debug [-sdcard] [-esp] [-oled] [-flash]", 									debug_com},
+			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages: debug [-sdcard] [-esp] [-oled] [-flash] [-telnet]", 								debug_com},
 			OneCom {100,	COM_SHELL, 		"shell", 	"Shows or sets shell mode: shell [-on] [-off]",												shell_com},
 			OneCom {100,	COM_CUSTOM_MQTT,	"mqtt", 	"Publish custom mqtt message: mqtt [\"topic\" \"message\"]",										custom_mqtt_com},
+			OneCom {100,	COM_OFFLINE, 		"offline", 	"Configure offline periods and WiFi retry interval: [-retryint seconds] [-period start-hour end-hour (UTC 0-23)]",			offline_com}
 		};
 
 		OneCom & operator[](CommandType type) {

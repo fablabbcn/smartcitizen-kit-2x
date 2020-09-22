@@ -205,11 +205,11 @@ class Sck_PM
 		bool started = false;
 		bool active = false;
 		uint16_t oneShotPeriod = 15;
+		uint8_t minSeparationBetweenShots = 10;
 
 		bool start();
 		bool stop();
 		bool update();
-		
 		void getReading(SckBase *base, OneSensor *wichSensor);
 		int16_t oneShot();
 		bool reset();

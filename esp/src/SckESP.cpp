@@ -48,7 +48,7 @@ void SckESP::setup()
 
 	ledBlink(LED_SLOW);
 
-	if (telnetDebug) {
+	if (config.debug_telnet) {
 		Debug.begin(hostname);
 		Debug.setResetCmdEnabled(true);
 		Debug.showColors(true);
@@ -61,8 +61,8 @@ void SckESP::setup()
 	sprintf(last_modified, "%s %s GMT", __DATE__, __TIME__);
 
 	// MQTT pubSubClient settings
-	MQTTclient.setKeepAlive(120);
-	MQTTclient.setBufferSize(4096);
+	MQTTclient.setKeepAlive(MQTT_KEEP_ALIVE);
+	MQTTclient.setBufferSize(MQTT_BUFF_SIZE);
 }
 void SckESP::update()
 {
@@ -106,7 +106,7 @@ void SckESP::update()
 
 	if(shouldReboot) ESP.restart();
 
-	if (telnetDebug) Debug.handle();
+	if (config.debug_telnet) Debug.handle();
 }
 void SckESP::tryConnection()
 {
@@ -133,7 +133,7 @@ void SckESP::wifiOFF()
 // **** Input/Output
 void SckESP::debugOUT(String strOut)
 {
-	if (telnetDebug) {
+	if (config.debug_telnet) {
 		strOut += "\r\n";
 		Debug.printf(strOut.c_str());
 	}
@@ -212,6 +212,7 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			SAMbuildDate = json["bd"].as<String>();
 			uint8_t action = json["ac"];
 			ESPMessage wichAction = static_cast<ESPMessage>(action);
+			config.debug_telnet = json["tn"];
 
 			// Do we need to update ESP firmware?
 			VersionInt ESPversionInt = parseVersionStr(ESPversion);
@@ -246,7 +247,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 		{
 				debugOUT("Receiving new readings...");
 				if (mqttPublish()) {
-					delay(500);
 					sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
 				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
@@ -255,7 +255,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 		{
 				debugOUT("Receiving MQTT inventory...");
 				if (mqttInventory()) {
-					delay(500);
 					sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
 				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
@@ -264,7 +263,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 		{
 				debugOUT("Receiving new info...");
 				if (mqttInfo()) {
-					delay(500);
 					sendMessage(SAMMES_MQTT_INFO_OK, "");
 				} else sendMessage(SAMMES_MQTT_INFO_ERROR, "");
 				break;
@@ -273,7 +271,6 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 		{
 				debugOUT("Receiving MQQT custom publish request...");
 				if (mqttCustom()) {
-					delay(500);
 					sendMessage(SAMMES_MQTT_CUSTOM_OK, "");
 				} else sendMessage(SAMMES_MQTT_CUSTOM_ERROR, "");
 				break;
@@ -354,7 +351,7 @@ bool SckESP::mqttPublish()
 		debugOUT(String(pubTopic));
 		debugOUT(String(netBuff));
 
-		char pubPayload[1024];
+		char pubPayload[MQTT_BUFF_SIZE];
 		
 
 		// /* Example
@@ -375,7 +372,7 @@ bool SckESP::mqttPublish()
 		snprintf(thisTime, 21, &netBuff[3]);
 		sprintf(pubPayload, "%s%s%s", "{\"data\":[{\"recorded_at\":\"", thisTime, "\",\"sensors\":[{\"id\":");
 
-		for (uint16_t i=24; i<NETBUFF_SIZE; i++) {
+		for (uint16_t i=24; i<strlen(netBuff); i++) {
 			
 			char thisChar[2];
 			snprintf(thisChar, 2, &netBuff[i]);
@@ -387,6 +384,7 @@ bool SckESP::mqttPublish()
 
 		sprintf(pubPayload, "%s%s", pubPayload, "]}]}");
 
+		debugOUT(String(pubPayload));
 
 		if (MQTTclient.publish(pubTopic, pubPayload)) {
 			debugOUT(F("MQTT readings published OK !!!"));

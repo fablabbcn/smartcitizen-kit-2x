@@ -22,6 +22,8 @@
 #define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
 #define MQTT_SERVER_PORT 80
 #define MQTT_QOS 1
+#define MQTT_BUFF_SIZE 4096
+#define MQTT_KEEP_ALIVE 120
 
 #include "index.html.gz.h"
 
@@ -30,6 +32,7 @@ struct Token { bool set=false; char token[7]="null"; };
 struct ESP_Configuration {
 	Credentials credentials;
 	Token token;
+	bool debug_telnet = false;
 };
 
 class SckESP
@@ -37,7 +40,6 @@ class SckESP
 	private:
 		// Input/Output
 		bool serialDebug = false;		// Interfere with ESP <-> SAM comunnication (use with caution)
-		bool telnetDebug = false;
 		void SAMbusUpdate();
 		void debugOUT(String strOut);
 

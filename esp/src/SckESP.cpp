@@ -834,6 +834,7 @@ bool SckESP::saveConfig()
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
+	json["tn"] = config.debug_telnet;
 
 	File configFile = SPIFFS.open(configFileName, "w");
 	if (configFile) {
@@ -869,6 +870,8 @@ bool SckESP::loadConfig()
 
 			config.token.set = json["ts"];
 			strcpy(config.token.token, json["to"]);
+
+			config.debug_telnet = json["tn"];
 		}
 		configFile.close();
 		debugOUT("Loaded configuration!!");

@@ -1074,7 +1074,9 @@ bool SckBase::sendMessage()
 	if (config.debug.esp) {
 		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bytes", totalParts, totalSize);
 		sckOut();
+		sckOut(netBuff);
 	}
+
 
 	for (uint8_t i=0; i<totalParts; i++) {
 		netPack[0] = totalParts;
@@ -1086,6 +1088,8 @@ bool SckBase::sendMessage()
 		if (config.debug.esp) {
 			sprintf(outBuff, "Sent part num %i", i);
 			sckOut();
+			for(uint16_t i=0; i<NETPACK_TOTAL_SIZE; i++) SerialUSB.print((char)netPack[i]);
+			SerialUSB.println("");
 		}
 	}
 	return true;

@@ -867,7 +867,7 @@ bool SckBase::sendConfig()
 	else json["ac"] = (uint8_t)ESPMES_START_AP;
 
 	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
-	serializeJson(json, &netBuff[1], json.memoryUsage() + 1);
+	serializeJson(json, &netBuff[1], NETBUFF_SIZE);
 
 	if (sendMessage()) {
 		pendingSyncConfig = false;
@@ -916,7 +916,7 @@ bool SckBase::publishInfo()
 		json["esp_bd"] = ESPbuildDate.c_str();
 
 		sprintf(netBuff, "%c", ESPMES_MQTT_INFO);
-		serializeJson(json, &netBuff[1], json.memoryUsage() + 1);
+		serializeJson(json, &netBuff[1], NETBUFF_SIZE);
 		if (sendMessage()) return true;
 	}
 	return false;
@@ -1280,7 +1280,7 @@ void SckBase::mqttCustom(const char *topic, const char *payload)
 	json["pl"] = payload;
 
 	sprintf(netBuff, "%c", ESPMES_MQTT_CUSTOM);
-	serializeJson(json, &netBuff[1], json.memoryUsage() + 1);
+	serializeJson(json, &netBuff[1], NETBUFF_SIZE);
 
 	if (sendMessage()) sckOut("MQTT message sent to ESP...", PRIO_LOW);
 }

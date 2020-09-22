@@ -452,7 +452,7 @@ bool SckESP::sendNetinfo()
 	jsonSend["ip"] = ipAddr;
 
 	sprintf(netBuff, "%c", SAMMES_NETINFO);
-	serializeJson(jsonSend, &netBuff[1], jsonSend.memoryUsage() + 1);
+	serializeJson(jsonSend, &netBuff[1], NETBUFF_SIZE);
 
 	return sendMessage();
 }
@@ -477,7 +477,7 @@ bool SckESP::sendStartInfo()
 	jsonSend["bd"] = ESPbuildDate;
 
 	sprintf(netBuff, "%c", SAMMES_BOOTED);
-	serializeJson(jsonSend, &netBuff[1], jsonSend.memoryUsage() + 1);
+	serializeJson(jsonSend, &netBuff[1], NETBUFF_SIZE);
 
 	return sendMessage();
 }
@@ -501,7 +501,7 @@ bool SckESP::sendConfig()
 	if (jsonConf.size() <= 0) return false;
 
 	sprintf(netBuff, "%c", SAMMES_SET_CONFIG);
-	serializeJson(jsonConf, &netBuff[1], jsonConf.memoryUsage() + 1);
+	serializeJson(jsonConf, &netBuff[1], NETBUFF_SIZE);
 	if (sendMessage()) {
 		debugOUT(F("Sent configuration to SAM!!"));
 		return true;

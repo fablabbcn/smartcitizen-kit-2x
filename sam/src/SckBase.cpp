@@ -1542,7 +1542,6 @@ void SckBase::updateSensors()
 	}
 	if (!st.timeStat.ok) return;
 	if (st.onSetup) return;
-	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented
 
 	uint32_t now = rtc.getEpoch();
 

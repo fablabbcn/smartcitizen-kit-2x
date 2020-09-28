@@ -1546,7 +1546,6 @@ void SckBase::updateSensors()
 	uint32_t now = rtc.getEpoch();
 
 	// Speed based interval
-	// TODO in dynamic mode PMS sensor should not use oneShot mode
 	st.dynamic = false;
 	if ( 	sensors[SENSOR_GPS_SPEED].enabled && 
 		now - sensors[SENSOR_GPS_SPEED].lastReadingTime >  dynamicInterval && 

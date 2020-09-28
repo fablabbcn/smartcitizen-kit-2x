@@ -478,30 +478,8 @@ void SckBase::reviewState()
 				}
 			}
 		} else {
-			uint16_t sleepPeriod = 3; 											// Only sleep if
-			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 	// No publish in the near future
-					(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
-					(st.timeStat.ok) && 										// RTC is synced and working
-					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 					// No recent user interaction (button, sdcard or USB events)
-					(config.sleepTimer > 0)) { 									// sleep is enabled
 
-				goToSleep(sleepPeriod * 1000);
-
-				// Let the led be visible for one instant (and start breathing if we need to read sensors)
-				led.update(led.BLUE2, led.PULSE_STATIC, true);
-				delay(10);
-				led.update(led.BLUE, led.PULSE_SOFT, true);
-
-				updateSensors();
-				updatePower();
-
-				// If we have a screen update it
-				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
-			}
-
-			led.update(led.BLUE, led.PULSE_SOFT);
-			st.error = ERROR_NONE;
-			updateSensors();
+			sleepLoop();
 
 		}
 	} else if  (st.mode == MODE_SD) {
@@ -562,30 +540,8 @@ void SckBase::reviewState()
 			}
 
 		} else {
-			uint16_t sleepPeriod = 3; 											// Only sleep if
-			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 	// No publish in the near future
-					(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
-					(st.timeStat.ok) && 										// RTC is synced and working
-					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 					// No recent user interaction (button, sdcard or USB events)
-					(config.sleepTimer > 0)) { 									// sleep is enabled
 
-				goToSleep(sleepPeriod * 1000);
-
-				// Let the led be visible for one instant (and start breathing if we need to read sensors)
-				led.update(led.PINK2, led.PULSE_STATIC, true);
-				delay(10);
-				led.update(led.PINK, led.PULSE_SOFT, true);
-
-				updateSensors();
-				updatePower();
-
-				// If we have a screen update it
-				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
-			}
-
-			led.update(led.PINK, led.PULSE_SOFT);
-			st.error = ERROR_NONE;
-			updateSensors();
+			sleepLoop();
 
 			if (st.espON && !pendingSyncConfig) ESPcontrol(ESP_OFF);
 		}
@@ -1530,7 +1486,40 @@ void SckBase::configGCLK6()
 
 	NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
 }
+void SckBase::sleepLoop()
+{
+	uint16_t sleepPeriod = 3; 											// Only sleep if
+	while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 	// No readings to take in the near future
+			!st.dynamic && 											// No dynamic interval active
+			!timeToPublish && 										// We don't need to publish yet
+			(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
+			(st.timeStat.ok) && 										// RTC is synced and working
+			((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 					// No recent user interaction (button, sdcard or USB events)
+			(config.sleepTimer > 0)) { 									// sleep is enabled
 
+		led.off();
+		goToSleep(sleepPeriod * 1000);
+
+		// Let the led be visible for one instant (and start breathing if we need to read sensors)
+		if (st.mode == MODE_NET) {
+			led.update(led.BLUE2, led.PULSE_STATIC, true);
+			delay(10);
+			led.update(led.BLUE, led.PULSE_SOFT, true);
+		} else {
+			led.update(led.PINK2, led.PULSE_STATIC, true);
+			delay(10);
+			led.update(led.PINK, led.PULSE_SOFT, true);
+		}
+
+		updateSensors();
+		updatePower();
+
+		// If we have a screen update it
+		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
+	}
+
+	updateSensors();
+}
 
 // **** Sensors
 void SckBase::updateSensors()

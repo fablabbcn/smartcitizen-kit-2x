@@ -1960,9 +1960,10 @@ bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
 		// Satellites
 		r.satellitesValid = true;
 		r.satellites = ubloxGps.getSIV();
-	}
 
-	lastReading = millis();
+		lastReading = millis();
+	
+	} else return false;
 
 	// TODO use power save mode between readings if posible
 

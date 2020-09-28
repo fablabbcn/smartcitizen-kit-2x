@@ -1544,10 +1544,15 @@ void SckBase::updateSensors()
 	if (st.onSetup) return;
 	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented
 
+	uint32_t now = rtc.getEpoch();
+
 	// Speed based interval
 	// TODO in dynamic mode PMS sensor should not use oneShot mode
 	st.dynamic = false;
-	if (sensors[SENSOR_GPS_SPEED].enabled && getReading(&sensors[SENSOR_GPS_SPEED])) {
+	if ( 	sensors[SENSOR_GPS_SPEED].enabled && 
+		now - sensors[SENSOR_GPS_SPEED].lastReadingTime >  dynamicInterval && 
+		getReading(&sensors[SENSOR_GPS_SPEED])) {
+			sensors[SENSOR_GPS_SPEED].lastReadingTime = now;
 			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
 			if (speedFloat > speed_threshold) st.dynamic = true;
 	}

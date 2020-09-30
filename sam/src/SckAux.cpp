@@ -1907,52 +1907,79 @@ bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-	// Time
-	if (ubloxGps.getDateValid() && ubloxGps.getTimeValid()) {
-		// Time (epoch) -> uint32 - 4
-		struct tm tm; 					// http://www.nongnu.org/avr-libc/user-manual/structtm.html
-		tm.tm_isdst = -1; 				// -1 means no data available
-		tm.tm_yday = 0;
-		tm.tm_wday = 0;
-		tm.tm_year = ubloxGps.getYear() - 1900; 	// tm struct expects years since 1900
-		tm.tm_mon = ubloxGps.getMonth() - 1; 		// tm struct uses 0-11 months
-		tm.tm_mday = ubloxGps.getDay();
-		tm.tm_hour = ubloxGps.getHour();
-		tm.tm_min = ubloxGps.getMinute();
-		tm.tm_sec = ubloxGps.getSecond();
-		r.timeValid = true;
-		r.epochTime = mktime(&tm);
+	switch(wichSensor) {
+
+		case SENSOR_GPS_FIX_QUALITY:
+		{
+
+			// Time
+			if (ubloxGps.getDateValid() && ubloxGps.getTimeValid()) {
+				// Time (epoch) -> uint32 - 4
+				struct tm tm; 					// http://www.nongnu.org/avr-libc/user-manual/structtm.html
+				tm.tm_isdst = -1; 				// -1 means no data available
+				tm.tm_yday = 0;
+				tm.tm_wday = 0;
+				tm.tm_year = ubloxGps.getYear() - 1900; 	// tm struct expects years since 1900
+				tm.tm_mon = ubloxGps.getMonth() - 1; 		// tm struct uses 0-11 months
+				tm.tm_mday = ubloxGps.getDay();
+				tm.tm_hour = ubloxGps.getHour();
+				tm.tm_min = ubloxGps.getMinute();
+				tm.tm_sec = ubloxGps.getSecond();
+				r.timeValid = true;
+				r.epochTime = mktime(&tm);
+			}
+
+			uint8_t fixQual = ubloxGps.getFixType(); 		// Type of fix: 0=no, 3=3D, 4=GNSS+Deadreckoning */
+			// TODO
+			// Translate fix quality to NMEA standard
+			r.fixQuality = fixQual;
+			break;
+
+		}
+		case SENSOR_GPS_LATITUDE:
+		case SENSOR_GPS_LONGITUDE:
+		{
+			// Location
+			r.locationValid = true;
+			// Latitude
+			r.latitude = (float)ubloxGps.getLatitude() / 10000000.0;
+			// Longitude
+			r.longitude = (float)ubloxGps.getLongitude() / 10000000.0;
+			break;
+		}
+		case  SENSOR_GPS_ALTITUDE:
+		{
+			// Altitude
+			// TODO check if main sea level option (getAltitudeMSL()) is better for us
+			r.altitudeValid = true;
+			r.altitude = (float)ubloxGps.getAltitude() / 1000.0;
+			break;
+		}
+		case SENSOR_GPS_SPEED:
+		{
+			// Speed
+			r.speedValid = true;
+			r.speed = (float)ubloxGps.getGroundSpeed() / 1000.0;
+			break;
+		}
+		case SENSOR_GPS_HDOP:
+		{
+			// Horizontal dilution of position
+			//FIXME this is PDOP not HDOP!!
+			r.hdopValid = true;
+			r.hdop = ubloxGps.getPDOP();
+			break;
+		}
+		case SENSOR_GPS_SATNUM:
+		{
+			// Satellites
+			r.satellitesValid = true;
+			r.satellites = ubloxGps.getSIV();
+			break;
+		}
+		default:
+			break;
 	}
-
-	uint8_t fixQual = ubloxGps.getFixType(); 		// Type of fix: 0=no, 3=3D, 4=GNSS+Deadreckoning */
-	// Satellites
-	r.satellitesValid = true;
-	r.satellites = ubloxGps.getSIV();
-
-	// TODO
-	// Translate fix quality to NMEA standard
-	r.fixQuality = fixQual;
-
-	// Location
-	r.locationValid = true;
-	// Latitude
-	r.latitude = (float)ubloxGps.getLatitude() / 10000000.0;
-	// Longitude
-	r.longitude = (float)ubloxGps.getLongitude() / 10000000.0;
-
-	// Altitude
-	// TODO check if main sea level option (getAltitudeMSL()) is better for us
-	r.altitudeValid = true;
-	r.altitude = (float)ubloxGps.getAltitude() / 1000.0;
-
-	// Speed
-	r.speedValid = true;
-	r.speed = (float)ubloxGps.getGroundSpeed() / 1000.0;
-
-	// Horizontal dilution of position
-	//FIXME this is PDOP not HDOP!!
-	r.hdopValid = true;
-	r.hdop = ubloxGps.getPDOP();
 
 	lastReading = millis();
 

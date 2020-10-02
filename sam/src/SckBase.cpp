@@ -1541,7 +1541,7 @@ void SckBase::updateSensors()
 		getReading(&sensors[SENSOR_GPS_SPEED])) {
 			sensors[SENSOR_GPS_SPEED].lastReadingTime = now;
 			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
-			sprintf(outBuff, "Current speed: %f");
+			sprintf(outBuff, "Current speed: %s (%f)", sensors[SENSOR_GPS_SPEED].reading.c_str(), speedFloat);
 			sckOut(PRIO_LOW);
 			if (speedFloat > speed_threshold) st.dynamic = true;
 	}

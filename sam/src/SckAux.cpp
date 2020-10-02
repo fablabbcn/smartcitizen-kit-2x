@@ -1690,11 +1690,17 @@ bool Sck_GPS::stop()
 
 bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 {
-	// Use time from gps to set RTC if time is not set or older than 10 minutesdate
-	if (((millis() - base->lastTimeSync) > 600000 || base->lastTimeSync == 0) && r.timeValid) {
-		// Wait for some GPS readings after sync to be sure time is accurate
-		if (fixCounter > 5) base->setTime(String(r.epochTime));
-		else fixCounter++;
+	// Use time from gps to set RTC if time is not set or older than 1 hour
+	if (((millis() - base->lastTimeSync) > 3600000 || base->lastTimeSync == 0)) {
+
+		if (gps_source->getReading(SENSOR_GPS_FIX_QUALITY, r)) {
+			if (r.fixQuality > 0 && r.timeValid) {
+				// Wait for some GPS readings after sync to be sure time is accurate
+				if (fixCounter > 5) base->setTime(String(r.epochTime));
+				else fixCounter++;
+			}
+		}
+
 	} else {
 		fixCounter = 0;
 	}
@@ -1927,6 +1933,8 @@ bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
 				tm.tm_sec = ubloxGps.getSecond();
 				r.timeValid = true;
 				r.epochTime = mktime(&tm);
+			} else {
+				r.timeValid = false;
 			}
 
 			uint8_t fixQual = ubloxGps.getFixType(); 		// Type of fix: 0=no, 3=3D, 4=GNSS+Deadreckoning */

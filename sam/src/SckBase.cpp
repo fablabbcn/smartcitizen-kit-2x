@@ -69,12 +69,23 @@ void SckBase::setup()
 	pinMode(pinCARD_DETECT, INPUT_PULLUP);
 
 	// SD card
-	SerialUSB.println("Setting up SDcard interrupt");
+	sckOut("Setting up SDcard interrupt");
 	attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
 	sdDetect();
 
 	// Flash storage
-	/* readingsList.flashStart(); */
+	sckOut("Starting flash memory...");
+	led.update(led.WHITE, led.PULSE_HARD_FAST);
+	wichGroupPublishing.group = -1;  	// No group is being published yet
+	int8_t rcode = readingsList.setup();
+	if (rcode == 1) sckOut("Found problems on flash memory, it was formated...");
+	else if (rcode == -1) {
+		while (true) {
+			sckOut("Error starting flash memory!!!");
+			delay(1000);
+		}
+	}
+	led.update(led.WHITE, led.PULSE_STATIC);
 
 /* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
 
@@ -101,8 +112,6 @@ void SckBase::setup()
 	loadConfig();
 	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
 
-	bool saveNeeded = false;
-
 	// Power management configuration
 	charger.setup(this);
 	battery.setup();
@@ -116,10 +125,11 @@ void SckBase::setup()
 		// Find out if urban was reinstalled just now
 		bool justInstalled = true;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) {
-				justInstalled = false;
-			}
+
+			// If any sensor was enabled urban board was present on last boot
+			if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) justInstalled = false;
 		}
 
 		if (justInstalled) {
@@ -127,6 +137,7 @@ void SckBase::setup()
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 				if (wichSensor->location == BOARD_URBAN) wichSensor->enabled = wichSensor->defaultEnabled;
+				config.sensors[wichSensor->type].enabled = wichSensor->enabled;
 			}
 			saveConfig();
 		}
@@ -144,17 +155,21 @@ void SckBase::setup()
 		// Find out if urban was removed just now
 		bool justRemoved = false;
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) {
-				justRemoved = true;
-			}
+
+			// If any sensor was enabled that means urban board was just removed
+			if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) justRemoved = true;
 		}
 
 		if (justRemoved) {
 			sckOut("Disabling sensors...");
 			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-				if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
+				if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) {
+					disableSensor(wichSensor->type);
+					config.sensors[wichSensor->type].enabled = false;
+				}
 			}
 			saveConfig();
 		}
@@ -166,17 +181,11 @@ void SckBase::setup()
 		OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 
 		if (wichSensor->location == BOARD_AUX) {
-			if (enableSensor(wichSensor->type)) {
-				wichSensor->enabled = true;
-				if (wichSensor->type != SENSOR_GROVE_OLED) config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
-				saveNeeded = true;
-			} else if (wichSensor->enabled)  {
-				disableSensor(wichSensor->type);
-				sprintf(outBuff, "Removed: %s... ", wichSensor->title);
-				sckOut();
+			if (wichSensor->enabled && enableSensor(wichSensor->type)) {
+				config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
+			} else {
 				wichSensor->enabled = false;
 				config.sensors[wichSensor->type].oled_display = false;
-				saveNeeded = true;
 			}
 		}
 	}
@@ -186,8 +195,6 @@ void SckBase::setup()
 
 	// After sanity reset go directly to sleep
 	if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) lastUserEvent = 0;
-
-	if (saveNeeded) saveConfig();
 }
 void SckBase::update()
 {
@@ -266,6 +273,9 @@ void SckBase::reviewState()
 		}
 	}
 
+	// If we have a GPS get time if needed
+	if (sensors[SENSOR_GPS_FIX_QUALITY].enabled && !st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
+
 	// If we have a screen update it
 	if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 
@@ -298,6 +308,7 @@ void SckBase::reviewState()
 
 	} else if (st.mode == MODE_NET) {
 
+		// This error needs user intervention
 		if (!st.wifiSet) {
 			if (!st.wifiStat.error) {
 				sckOut("ERROR wifi is not configured!!!");
@@ -309,6 +320,7 @@ void SckBase::reviewState()
 			return;
 		}
 
+		// This error needs user intervention
 		if (!st.tokenSet) {
 			if (!st.tokenError) {
 				sckOut("ERROR token is not configured!!!");
@@ -324,30 +336,58 @@ void SckBase::reviewState()
 
 			if (!st.wifiStat.ok) {
 
-				updateSensors(); 			// To avoid reading delay while publishing sensors
+				updateSensors(); 				// To avoid reading delay while publishing sensors
 
-				st.wifiStat.retry();
-
-				if (!st.espON) ESPcontrol(ESP_ON);
-				else if (st.wifiStat.error) {
-
-					sckOut("ERROR Can't publish without wifi!!!");
-
-					// Publish to sd card
-					sdPublish();
-
-					ESPcontrol(ESP_OFF); 		// Hard off not sleep to be sure the ESP state is reset
-					led.update(led.BLUE, led.PULSE_HARD_FAST);
-
-					lastPublishTime = rtc.getEpoch();
-					st.wifiStat.reset(); 		// Restart wifi retry count
-
-					infoPublished = true; 	// Will try to publish info on next boot, in the meantime this will allow us to sleep between readings.
+				// Check if we are in offline programmed hours
+				bool offlineHours = false;
+				if (config.offline.start >= 0 && config.offline.end >= 0 && millis() - lastUserEvent > (config.sleepTimer * 60000)) {
+					int8_t thisHour = rtc.getHours();
+					if (thisHour > config.offline.start && thisHour < config.offline.end) {
+						if (st.espON) ESPcontrol(ESP_OFF);
+						led.update(led.BLUE, led.PULSE_SOFT);
+						offlineHours = true;
+					}
 				}
 
+				if (!offlineHours) {
+
+					if (st.wifiStat.retry()) { 			// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
+
+						if (!st.espON) ESPcontrol(ESP_ON); 	// Make sure the ESP is on
+
+					} else if (st.wifiStat.error) { 		// If error is declared something went wrong
+
+						uint32_t now = rtc.getEpoch();
+
+						// If error just happened
+						if (st.lastWiFiError == 0) {
+
+							ESPcontrol(ESP_OFF); 				// Save battery
+							st.lastWiFiError = now; 		// Start counting time
+							st.wifiErrorCounter++; 				// Count errors
+							sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
+							led.update(led.BLUE, led.PULSE_HARD_FAST);
+						}
+
+						else if (	(now - st.lastWiFiError) > config.offline.retry || 	// Enough time has passed to try again
+								st.wifiErrorCounter < 2 || 				// Try 2 times before assuming WiFi is no present
+								millis() - lastUserEvent < 1000				// User event in the last second, this shouldn't enter more than once after event because wifi error declaration takes a lot more than one second
+							) {
+
+							// Reset everything and try again
+							st.lastWiFiError = 0;
+							st.wifiStat.reset();
+							sckOut("Retrying WiFi..."); 	// User feedback
+						}
+
+						// ERROR feedback should be on just for a limited amount of time, let's turn it off
+						else if (now - st.lastWiFiError > 10) led.update(led.BLUE, led.PULSE_SOFT);
+					}
+				}
 			} else {
 
 				led.update(led.BLUE, led.PULSE_SOFT);
+				st.wifiErrorCounter = 0;
 				st.error = ERROR_NONE;
 
 				if (st.helloPending) {
@@ -407,30 +447,22 @@ void SckBase::reviewState()
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
 
-						// Publish to sdcard
-						sdPublish();
-
-						epoch2iso(readingsList.getTime(0), ISOtimeBuff);
-						sprintf(outBuff, "(%s) Published OK, erasing from memory", ISOtimeBuff);
+						// Mark reading as published
+						uint8_t readingNum = readingsList.setPublished(wichGroupPublishing, readingsList.PUB_NET);
+						wichGroupPublishing.group = -1;
+						sprintf(outBuff, "Network publish OK!! (%u readings)", readingNum);
 						sckOut();
-						readingsList.delLastGroup();
 
 						// Continue as fast as posible with remaining readings, or go to sleep
-						if (readingsList.countGroups() > 0) {
-
-							if (st.publishStat.retry()) netPublish();
-						} else {
-
-							timeToPublish = false;
-						}
+						if (st.publishStat.retry()) netPublish();
 
 
 					} else if (st.publishStat.error) {
 
 						sckOut("Will retry on next publish interval!!!");
 
-						// Publish to sd card
-						sdPublish();
+						// Forget the index of the group we tried to publish
+						wichGroupPublishing.group = -1;
 
 						led.update(led.BLUE, led.PULSE_HARD_FAST);
 						st.error = ERROR_MQTT;
@@ -440,38 +472,14 @@ void SckBase::reviewState()
 						lastPublishTime = rtc.getEpoch();
 						st.publishStat.reset(); 		// Restart publish error counter
 
-					} else if (readingsList.countGroups() > 0) {
-
+					} else {
 						if (st.publishStat.retry()) netPublish();
 					}
 				}
 			}
 		} else {
-			uint16_t sleepPeriod = 3; 										// Only sleep if
-			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
-					(pendingSensors <= 0) && 								// No sensor to wait to
-					(st.timeStat.ok) && 									// RTC is synced and working
-					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
-					(config.sleepTimer > 0)) { 								// sleep is enabled
 
-				goToSleep(sleepPeriod * 1000);
-
-				// Let the led be visible for one instant (and start breathing if we need to read sensors)
-				led.update(led.BLUE2, led.PULSE_STATIC, true);
-				delay(10);
-				led.update(led.BLUE, led.PULSE_SOFT, true);
-
-				updateSensors();
-				updatePower();
-
-				// If we have a screen update it
-				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
-			}
-
-			led.update(led.BLUE, led.PULSE_SOFT);
-			st.error = ERROR_NONE;
-			updateSensors();
-			if (readingsList.countGroups() > 0) sdPublish();
+			sleepLoop();
 
 		}
 	} else if  (st.mode == MODE_SD) {
@@ -532,44 +540,10 @@ void SckBase::reviewState()
 			}
 
 		} else {
-			uint16_t sleepPeriod = 3; 										// Only sleep if
-			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
-					(pendingSensors <= 0) && 								// No sensor to wait to
-					(st.timeStat.ok) && 									// RTC is synced and working
-					((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 				// No recent user interaction (button, sdcard or USB events)
-					(config.sleepTimer > 0)) { 								// sleep is enabled
 
-				goToSleep(sleepPeriod * 1000);
+			sleepLoop();
 
-				// Let the led be visible for one instant (and start breathing if we need to read sensors)
-				led.update(led.PINK2, led.PULSE_STATIC, true);
-				delay(10);
-				led.update(led.PINK, led.PULSE_SOFT, true);
-
-				updateSensors();
-				updatePower();
-
-				// If we have a screen update it
-				if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
-			}
-
-			led.update(led.PINK, led.PULSE_SOFT);
-			st.error = ERROR_NONE;
-			updateSensors();
 			if (st.espON && !pendingSyncConfig) ESPcontrol(ESP_OFF);
-
-			if (readingsList.countGroups() > 0) {
-
-				if (!sdPublish()) {
-					sckOut("ERROR failed publishing to SD card");
-					// TODO if this error happens the error blink gets interrupted by the one that is just out of sleep mode
-					led.update(led.PINK, led.PULSE_HARD_FAST);
-					st.error = ERROR_SD_PUBLISH;
-				} else {
-					timeToPublish = false;
-					lastPublishTime = rtc.getEpoch();
-				}
-			}
 		}
 	}
 }
@@ -588,38 +562,6 @@ void SckBase::enterSetup()
 
 	// Reboot ESP to have a clean start
 	ESPcontrol(ESP_REBOOT);
-}
-void SckBase::printState()
-{
-	// TODO fix bug: after configuring wrong wifi, restart kit, wait for error and sdcard publish and type "state" command.
-	// it will enter setup mode !?!? and if you type "state" command again it will reboot.
-	char t[] = "true";
-	char f[] = "false";
-
-	sprintf(outBuff, "%s\r\nonSetup: %s\r\n", outBuff, st.onSetup  ? t : f);
-	sprintf(outBuff, "%stokenSet: %s\r\n", outBuff, st.tokenSet  ? t : f);
-	sprintf(outBuff, "%shelloPending: %s\r\n", outBuff, st.helloPending  ? t : f);
-	sprintf(outBuff, "%smode: %s\r\n", outBuff, modeTitles[st.mode]);
-	sprintf(outBuff, "%scardPresent: %s\r\n", outBuff, st.cardPresent  ? t : f);
-	sprintf(outBuff, "%sinfoPublished: %s\r\n", outBuff, infoPublished  ? t : f);
-	sckOut(PRIO_HIGH, false);
-
-	sprintf(outBuff, "%s\r\nespON: %s\r\n", outBuff, st.espON  ? t : f);
-	sprintf(outBuff, "%sespBooting: %s\r\n", outBuff, st.espBooting  ? t : f);
-	sprintf(outBuff, "%swifiSet: %s\r\n", outBuff, st.wifiSet  ? t : f);
-	sprintf(outBuff, "%swifiOK: %s\r\n", outBuff, st.wifiStat.ok ? t : f);
-	sprintf(outBuff, "%swifiError: %s\r\n", outBuff, st.wifiStat.error ? t : f);
-	sckOut(PRIO_HIGH, false);
-
-	sprintf(outBuff, "\r\ntimeOK: %s\r\n", st.timeStat.ok ? t : f);
-	sprintf(outBuff, "%stimeError: %s\r\n", outBuff, st.timeStat.error ? t : f);
-	sckOut(PRIO_HIGH, false);
-
-	sprintf(outBuff, "%s\r\npublishOK: %s\r\n", outBuff, st.publishStat.ok ? t : f);
-	sprintf(outBuff, "%spublishError: %s\r\n", outBuff, st.publishStat.error ? t : f);
-	sprintf(outBuff, "%stime to next publish: %li\r\n", outBuff, config.publishInterval - (rtc.getEpoch() - lastPublishTime));
-	sprintf(outBuff, "%stimeToPublish: %s\r\n", outBuff, timeToPublish ? t : f);
-	sckOut(PRIO_HIGH, false);
 }
 
 // **** Input
@@ -710,7 +652,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 {
 	// Output via USB console
 	if (charger.onUSB) {
-		if (outputLevel + priority > 1) {
+		if (config.outLevel + priority > 1) {
 			if (newLine) SerialUSB.println(outBuff);
 			else SerialUSB.print(outBuff);
 		}
@@ -760,10 +702,11 @@ void SckBase::loadConfig()
 		saveConfig(true);
 	}
 
+	// Load saved intervals
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-		wichSensor->enabled = config.sensors[i].enabled;
-		wichSensor->everyNint = config.sensors[i].everyNint;
+		wichSensor->enabled = config.sensors[wichSensor->type].enabled;
+		wichSensor->everyNint = config.sensors[wichSensor->type].everyNint;
 	}
 
 	st.wifiSet = config.credentials.set;
@@ -771,6 +714,7 @@ void SckBase::loadConfig()
 	st.tokenError = false;
 	st.mode = config.mode;
 	readingsList.debug = config.debug.flash;
+
 	snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
 	memcpy(&hostname[12], &config.mac.address[12], 2);
 	memcpy(&hostname[14], &config.mac.address[15], 2);
@@ -793,19 +737,12 @@ void SckBase::saveConfig(bool defaults)
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
-			config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
+			if (sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
 		}
-		config.sensors[SENSOR_BATT_PERCENT].oled_display = false; 	// Battery is already shown on oled info-bar
 		pendingSyncConfig = true;
-	} else {
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			config.sensors[i].enabled = wichSensor->enabled;
-			config.sensors[i].everyNint = wichSensor->everyNint;
-		}
-		config.debug.flash = readingsList.debug;
 	}
+
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
 
@@ -815,9 +752,12 @@ void SckBase::saveConfig(bool defaults)
 	st.tokenSet = config.token.set;
 	st.tokenError = false;
 	st.wifiStat.reset();
+
 	uint32_t now = rtc.getEpoch();
 	lastPublishTime = now - config.publishInterval;
 	lastSensorUpdate = now - config.readInterval;
+
+	readingsList.flashUpdate(); 	// Scan flash memory and update indexes
 
 	if (st.wifiSet || st.tokenSet) pendingSyncConfig = true;
 
@@ -867,22 +807,27 @@ bool SckBase::sendConfig()
 	}
 	if (st.espBooting) return false;
 
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
+	json["ms"] = config.mqtt.server;
+	json["mp"] = config.mqtt.port;
+	json["ns"] = config.ntp.server;
+	json["np"] = config.ntp.port;
 	json["ver"] = SAMversion;
 	json["bd"] = SAMbuildDate;
+	json["tn"] = (uint8_t)config.debug.telnet;
 
 	if (!st.onSetup && ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet))) json["ac"] = (uint8_t)ESPMES_CONNECT;
 	else json["ac"] = (uint8_t)ESPMES_START_AP;
 
 	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
-	json.printTo(&netBuff[1], json.measureLength() + 1);
+	serializeJson(json, &netBuff[1], NETBUFF_SIZE);
 
 	if (sendMessage()) {
 		pendingSyncConfig = false;
@@ -918,8 +863,8 @@ bool SckBase::publishInfo()
 
 		getUniqueID();
 
-		StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-		JsonObject& json = jsonBuffer.createObject();
+		StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+		JsonObject json = jsonBuffer.to<JsonObject>();
 
 		json["time"] = ISOtimeBuff;
 		json["hw_ver"] = hardwareVer.c_str();
@@ -931,7 +876,7 @@ bool SckBase::publishInfo()
 		json["esp_bd"] = ESPbuildDate.c_str();
 
 		sprintf(netBuff, "%c", ESPMES_MQTT_INFO);
-		json.printTo(&netBuff[1], json.measureLength() + 1);
+		serializeJson(json, &netBuff[1], NETBUFF_SIZE);
 		if (sendMessage()) return true;
 	}
 	return false;
@@ -1089,19 +1034,22 @@ bool SckBase::sendMessage()
 	if (config.debug.esp) {
 		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bytes", totalParts, totalSize);
 		sckOut();
-		SerialUSB.println(netBuff);
+		sckOut(netBuff);
 	}
+
 
 	for (uint8_t i=0; i<totalParts; i++) {
 		netPack[0] = totalParts;
 		memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
 		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) {
-			sckOut("ERROR sending mesg to ESP!!!");
+			sckOut("Failed sending mesg to ESP!!!", PRIO_LOW);
 			return false;
 		}
 		if (config.debug.esp) {
 			sprintf(outBuff, "Sent part num %i", i);
 			sckOut();
+			for(uint16_t i=0; i<NETPACK_TOTAL_SIZE; i++) SerialUSB.print((char)netPack[i]);
+			SerialUSB.println("");
 		}
 	}
 	return true;
@@ -1114,8 +1062,9 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 				lastUserEvent = millis();
 				sckOut("Received new config from ESP");
-				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-				JsonObject& json = jsonBuffer.parseObject(netBuff);
+				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, netBuff);
+				JsonObject json = jsonBuffer.as<JsonObject>();
 
 				if (json.containsKey("mo")) {
 					String stringMode = json["mo"];
@@ -1154,8 +1103,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_NETINFO:
 		{
-				StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-				JsonObject& json = jsonBuffer.parseObject(netBuff);
+				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, netBuff);
+				JsonObject json = jsonBuffer.as<JsonObject>();
+
 				ipAddress = json["ip"].as<String>();
 
 				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname, ipAddress.c_str(), config.mac.address);
@@ -1211,6 +1162,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_PUBLISH_OK:
 
 			st.publishStat.setOk();
+			// Force reviewState: avoids loosing time on continous publishing
+			reviewState();
 			break;
 
 		case SAMMES_MQTT_PUBLISH_ERROR:
@@ -1251,8 +1204,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			st.espBooting = false;
 
-			StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-			JsonObject& json = jsonBuffer.parseObject(netBuff);
+			StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+			deserializeJson(jsonBuffer, netBuff);
+			JsonObject json = jsonBuffer.as<JsonObject>();
+
 			String macAddress = json["mac"].as<String>();
 			ESPversion = json["ver"].as<String>();
 			ESPbuildDate = json["bd"].as<String>();
@@ -1282,14 +1237,14 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 }
 void SckBase::mqttCustom(const char *topic, const char *payload)
 {
-	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 
 	json["to"] = topic;
 	json["pl"] = payload;
 
 	sprintf(netBuff, "%c", ESPMES_MQTT_CUSTOM);
-	json.printTo(&netBuff[1], json.measureLength() + 1);
+	serializeJson(json, &netBuff[1], NETBUFF_SIZE);
 
 	if (sendMessage()) sckOut("MQTT message sent to ESP...", PRIO_LOW);
 }
@@ -1378,7 +1333,7 @@ void SckBase::sck_reset()
 	sckOut("Bye!!");
 	NVIC_SystemReset();
 }
-void SckBase::goToSleep(uint16_t sleepPeriod)
+void SckBase::goToSleep(uint32_t sleepPeriod)
 {
 	led.off();
 	if (st.espON) ESPcontrol(ESP_OFF);
@@ -1400,7 +1355,7 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 		// Stop CCS811 VOCS sensor
 		urban.stop(SENSOR_CCS811_VOCS);
 
-		// Detach sdcard interrupt to avoid spurious wakeup 
+		// Detach sdcard interrupt to avoid spurious wakeup
 		// There is no need to reattach since after this sleep there is always a reset
 		detachInterrupt(pinCARD_DETECT);
 
@@ -1426,7 +1381,7 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 
 	// Go to Sleep
 	USBDevice.standby();
-	SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;	
+	SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 	__DSB();
 	__WFI();
@@ -1535,37 +1490,80 @@ void SckBase::configGCLK6()
 
 	NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
 }
+void SckBase::sleepLoop()
+{
+	uint16_t sleepPeriod = 3; 											// Only sleep if
+	while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 	// No readings to take in the near future
+			!st.dynamic && 											// No dynamic interval active
+			!timeToPublish && 										// We don't need to publish yet
+			(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
+			(st.timeStat.ok) && 										// RTC is synced and working
+			((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 					// No recent user interaction (button, sdcard or USB events)
+			(config.sleepTimer > 0)) { 									// sleep is enabled
 
+		led.off();
+		goToSleep(sleepPeriod * 1000);
+
+		// Let the led be visible for one instant (and start breathing if we need to read sensors)
+		if (st.mode == MODE_NET) {
+			led.update(led.BLUE2, led.PULSE_STATIC, true);
+			delay(10);
+			led.update(led.BLUE, led.PULSE_SOFT, true);
+		} else {
+			led.update(led.PINK2, led.PULSE_STATIC, true);
+			delay(10);
+			led.update(led.PINK, led.PULSE_SOFT, true);
+		}
+
+		updateSensors();
+		updatePower();
+
+		// If we have a screen update it
+		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
+	}
+
+	updateSensors();
+}
 
 // **** Sensors
 void SckBase::updateSensors()
 {
 	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) {
-		sckOut("RTC ERROR when updating sensors!!!");
+		sckOut("RTC ERROR when updating sensors!!!", PRIO_LOW);
 		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
 		st.timeStat.reset();
 	}
 	if (!st.timeStat.ok) return;
 	if (st.onSetup) return;
-	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented
 
+	uint32_t now = rtc.getEpoch();
+
+	// Speed based interval
+	st.dynamic = false;
+	if ( 	sensors[SENSOR_GPS_SPEED].enabled && 
+		now - sensors[SENSOR_GPS_SPEED].lastReadingTime >= (float)(dynamicInterval / 2) && 
+		getReading(&sensors[SENSOR_GPS_SPEED])) {
+			sensors[SENSOR_GPS_SPEED].lastReadingTime = now;
+			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
+			sprintf(outBuff, "Current speed: %s (%f)", sensors[SENSOR_GPS_SPEED].reading.c_str(), speedFloat);
+			sckOut(PRIO_LOW);
+			if (speedFloat > speed_threshold) st.dynamic = true;
+	}
+
+	bool sensorsReady = false;
 
 	// Main reading loop
-	if (rtc.getEpoch() - lastSensorUpdate >= config.readInterval) {
+	uint32_t timeSinceLastSensorUpdate = rtc.getEpoch() - lastSensorUpdate;
+	if ((st.dynamic && (timeSinceLastSensorUpdate >= dynamicInterval)) || timeSinceLastSensorUpdate >= config.readInterval) {
 
-		ISOtime();
 		lastSensorUpdate = rtc.getEpoch();
-		pendingSensors = 0;
 
-		sckOut("\r\n-----------", PRIO_LOW);
-		sckOut(ISOtimeBuff, PRIO_LOW);
+		sckOut("\r\n-----------");
+		epoch2iso(lastSensorUpdate, ISOtimeBuff);
+		sckOut(ISOtimeBuff);
 
-		// Create new RAM group with this timestamp
-		if (!readingsList.createGroup(lastSensorUpdate)) {
-			sckOut("RAM full: Error creating new group of readings!!!");
-			sck_reset(); // TODO this is temporal until flash support is ready
-			return;
-		};
+		// Clear pending sensor list (no sensor should take more than the reading interval).
+		pendingSensorsLinkedList.clear();
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
@@ -1575,63 +1573,67 @@ void SckBase::updateSensors()
 			// Check if it is enabled
 			if (wichSensor->enabled && wichSensor->priority != 250) {
 
-				// Is time to read it?
-				if ((lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval)) {
+				if ( 	(lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval) || 
+					st.dynamic && (lastSensorUpdate - wichSensor->lastReadingTime) >= dynamicInterval) { 	// Is time to read it?
 
-					wichSensor->lastReadingTime = lastSensorUpdate;
+					wichSensor->lastReadingTime = lastSensorUpdate; 	// Update sensor reading time
 
 					if (!getReading(wichSensor)) {
-
-						pendingSensorsList[pendingSensors] = wichSensor->type;
-						pendingSensors++;
-
+						sprintf(outBuff, "Adding %s to pending sensor list", wichSensor->title);
+						sckOut(PRIO_LOW);
+						pendingSensorsLinkedList.add(wichSensor->type); 	// Read it or save it for later
 					} else {
-						// Save reading
-						if (!readingsList.appendReading(wichSensor->type, wichSensor->reading)) sckOut("Failed saving reading!!!");
 						sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
 						sckOut();
 					}
 				}
 			}
 		}
-		if (pendingSensors == 0 && readingsList.countReadings(readingsList.countGroups()) > 0) {
-			if (!readingsList.saveLastGroup()) sckOut("Failed saving reading Group!!");
-			sckOut("-----------", PRIO_LOW);
+
+		if (pendingSensorsLinkedList.size() == 0) sensorsReady = true;
+		else {
+			sprintf(outBuff, "Waiting for %u sensors to finish the reading process", pendingSensorsLinkedList.size());
+			sckOut(PRIO_LOW);
 		}
 
-	} else if (pendingSensors > 0) {
+	} else if (pendingSensorsLinkedList.size() > 0) { 	// If we still have some sensors pending
+		for (uint8_t i=0; i<pendingSensorsLinkedList.size(); i++) {
 
-		SensorType tmpPendingSensorList[pendingSensors];
-		uint8_t tmpPendingSensors = 0;
+			OneSensor *wichSensor = &sensors[pendingSensorsLinkedList.get(i)];
 
-		for (uint8_t i=0; i<pendingSensors; i++) {
-
-			OneSensor *wichSensor = &sensors[pendingSensorsList[i]];
-
-			if (!getReading(wichSensor)) {
-
-				// Reappend the sensor to the pending list
-				tmpPendingSensorList[i] = wichSensor->type;
-				tmpPendingSensors ++;
-
-			} else  {
-				// Save reading
-				if (!readingsList.appendReading(wichSensor->type, wichSensor->reading)) sckOut("Failed saving reading!!!");
+			if (getReading(wichSensor)) {
+				pendingSensorsLinkedList.remove(i); 	// Read it or keepit for later
 				sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
 				sckOut();
 			}
 		}
+		if (pendingSensorsLinkedList.size() == 0) sensorsReady = true;
+	}
 
-		pendingSensors = tmpPendingSensors;
-		if (pendingSensors <= 0) {
-			if (!readingsList.saveLastGroup()) sckOut("Failed saving reading Group!!");
-			sckOut("-----------", PRIO_LOW);
-		} else {
-			for (uint8_t i=0; i<pendingSensors; i++) pendingSensorsList[i] = tmpPendingSensorList[i];
+	if (sensorsReady) {
+		sckOut("-----------");
+		uint8_t readingNum = readingsList.saveGroup(); 	// If all sensors are ready, save the group
+		sprintf(outBuff, "(%s) %u readings saved to flash memory.", ISOtimeBuff, readingNum);
+		sckOut();
+
+		if (st.cardPresent) {
+			// Publish new groups (that aren't saved to sdcard)
+			uint32_t counter = 0;
+			SckList::GroupIndex thisGroup = readingsList.readGroup(readingsList.PUB_SD);
+			while (thisGroup.group >= 0) {
+
+				if (sdPublish()) {
+					uint8_t readingNum = readingsList.setPublished(thisGroup, readingsList.PUB_SD);
+					sprintf(outBuff, "(%s) %u readings saved to sdcard.", ISOtimeBuff, readingNum);
+					sckOut();
+					counter++;
+					thisGroup = readingsList.readGroup(readingsList.PUB_SD);
+				} else break;
+			}
 		}
 	}
 
-	if (readingsList.countGroups() > 0) { 								// Only make sense to publish if there is readings available
+	if (readingsList.availableReadings[readingsList.PUB_NET]) {
 		if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) timeToPublish = true; 	// Time to publish
 		else if ((millis() - lastUserEvent < (config.sleepTimer * 60000)) || config.sleepTimer == 0) timeToPublish = true; 	// If there is recent user interaction we want to publish as often as posible.
 	}
@@ -1732,7 +1734,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
 		}
 		case BOARD_AUX:
 		{
-				auxBoards.getReading(wichSensor);
+				auxBoards.getReading(this, wichSensor);
 				break;
 		}
 	}
@@ -1788,59 +1790,17 @@ bool SckBase::netPublish()
 		return false;
 	}
 
-	/* if (ramGroupsIndex < 0) return false; */
-
-	// /* Example
-	// {	t:2017-03-24T13:35:14Z,
-	// 		29:48.45,
-	// 		13:66,
-	// 		12:28,
-	// 		10:4.45
-	// }
-	// 	*/
-
-
 	bool result = false;
-	if (readingsList.countGroups() > 0) {
-		uint32_t thisGroup = 0;
-		if (readingsList.getFlag(thisGroup, readingsList.NET_PUBLISHED) == 0) {
-
-			memset(netBuff, 0, sizeof(netBuff));
-			uint16_t publishedReadings = 0;
-			sprintf(netBuff, "%c", ESPMES_MQTT_PUBLISH);
-
-			// Save time
-			epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
-			sprintf(netBuff, "%s{t:%s", netBuff, ISOtimeBuff);
-
-			uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
-			for (uint8_t i=0; i<readingsOnThisGroup; i++) {
-
-				OneReading thisReading = readingsList.readReading(thisGroup, i);
-				if (sensors[thisReading.type].id > 0 && !thisReading.value.startsWith("null")) {
-
-					sprintf(netBuff, "%s,%u:%s", netBuff, sensors[thisReading.type].id, thisReading.value.c_str());;
-					publishedReadings ++;
-				}
-			}
-
-			sprintf(netBuff, "%s%s", netBuff, "}");
-
-			sprintf(outBuff, "(%s) Sent %i readings to platform.", ISOtimeBuff, publishedReadings);
-			sckOut();
-
-			result = sendMessage();
-
-		} else {
-
-			// If the group is already published delete it from saved ones
-			epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
-			sprintf(outBuff, "(%s) Published OK, erasing from memory", ISOtimeBuff);
-			sckOut();
-			readingsList.delLastGroup();
-		}
-
+	wichGroupPublishing = readingsList.readGroup(readingsList.PUB_NET);
+	if (wichGroupPublishing.group >= 0) {
+		sprintf(outBuff, "(%s) Sent readings to platform.", ISOtimeBuff);
+		sckOut();
+		sckOut(netBuff, PRIO_LOW);
+		result = sendMessage();
+	} else {
+		timeToPublish = false; 		// There are no more readings available
 	}
+
 	return result;
 }
 bool SckBase::sdPublish()
@@ -1913,67 +1873,12 @@ bool SckBase::sdPublish()
 			writeHeader = false;
 		}
 
-		// From the saved groups check wich one's need to be published to sdcard
-		uint32_t savedGroups = readingsList.countGroups();
-		uint8_t counter = 0;
-		for (uint32_t thisGroup=0; thisGroup<savedGroups; thisGroup++) {
-			if (readingsList.getFlag(thisGroup, readingsList.SD_PUBLISHED) == 0) {
-
-				uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
-
-				// Save time
-				epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
-				postFile.file.print(ISOtimeBuff);
-
-
-				// Go through all the enabled sensors
-				for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-					SensorType wichSensor = sensors.sensorsPriorized(i);
-					if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
-
-						bool founded = false;
-						// Find sensor inside group readings
-						// TODO this can be optimized
-						for (uint16_t re=0; re<readingsOnThisGroup; re++) {
-							OneReading thisReading = readingsList.readReading(thisGroup, re);
-							if (thisReading.type == wichSensor) {
-
-								// Save reading
-								founded = true;
-								postFile.file.print(",");
-								postFile.file.print(thisReading.value);
-							}
-						}
-
-						if (!founded) {
-							postFile.file.print(",");
-							postFile.file.print("null");
-						}
-					}
-				}
-
-				// Set SD_PUBLISHED flag for this group
-				readingsList.setFlag(thisGroup, readingsList.SD_PUBLISHED, true);
-
-				// newLine
-				postFile.file.println("");
-
-				counter++;
-
-				epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
-				sprintf(outBuff, "(%s) Readings saved to sdcard.", ISOtimeBuff);
-				sckOut();
-			}
-		}
-
+		postFile.file.print(readingsList.flashBuff);
 		postFile.file.close();
 
-		if (counter > 0) {
-
-			// If we are on MODE_SD we can delete the published groups
-			if (st.mode == MODE_SD) {
-				for (uint8_t i=0; i<counter; i++) readingsList.delLastGroup();
-			}
+		if (st.mode == MODE_SD) {
+			timeToPublish = false;
+			lastPublishTime = rtc.getEpoch();
 		}
 		return true;
 
@@ -1981,6 +1886,9 @@ bool SckBase::sdPublish()
 		st.cardPresent = false;
 		st.cardPresentError = false;
 	}
+
+	sckOut("ERROR failed publishing to SD card");
+	led.update(led.PINK, led.PULSE_HARD_FAST);
 	return false;
 }
 
@@ -1988,10 +1896,7 @@ bool SckBase::sdPublish()
 bool SckBase::setTime(String epoch)
 {
 	// Keep track of time passed before updating clock
-	uint32_t now = rtc.getEpoch();
-	uint32_t timeSinceLastUpdate = now - lastSensorUpdate;
-	uint32_t timeSinceLastPublish = now - lastPublishTime;
-	uint32_t timeSinceEspStarted = now - espStarted;
+	uint32_t pre = rtc.getEpoch();
 
 	rtc.setEpoch(epoch.toInt());
 	int32_t diff = rtc.getEpoch() - epoch.toInt();
@@ -1999,11 +1904,18 @@ bool SckBase::setTime(String epoch)
 		timeSyncAfterBoot = true;
 		st.timeStat.setOk();
 
-		// Adjust variables after updating clock
+		// Adjust events after updating clock
 		uint32_t now = rtc.getEpoch();
-		lastSensorUpdate = now - timeSinceLastUpdate;
-		lastPublishTime = now - timeSinceLastPublish;
-		espStarted = now - timeSinceEspStarted;
+		lastSensorUpdate = now - (pre - lastSensorUpdate);
+		lastPublishTime = now - (pre - lastPublishTime);
+		espStarted = now - (pre - espStarted);
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			if (sensors[static_cast<SensorType>(i)].lastReadingTime != 0) {
+				sensors[static_cast<SensorType>(i)].lastReadingTime =  now - (pre - sensors[static_cast<SensorType>(i)].lastReadingTime);
+			}
+		}
+
+		lastTimeSync = millis();
 
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);

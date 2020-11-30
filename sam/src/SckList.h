@@ -1,80 +1,137 @@
 #pragma once
 
 #include <Arduino.h>
-#include <SPIFlash.h>
+#include <SPIFlash.h> 	// https://github.com/Marzogh/SPIMemory
 
 #include "Sensors.h"
 #include "Pins.h"
-
-// Number of bytes to be used in RAM, 512 bytes can store around 6 groups with the default urban board sensors enabled.
-#define SCKLIST_RAM_SIZE 1024
+#include "Shared.h"
 
 // Number of bytes to be used on FLASH (Always keep this a littel bit smaller than real size)
-#define SCKLIST_FLASH_SIZE 4190000 // 4194304 is the real size (last 4304 bytes reserved for other uses)
-// it seems 2.1 has a 8mb flash!
+#define SCKLIST_FLASH_SIZE 8388608
+#define SECTOR_SIZE 4096
+#define SCKLIST_RESERVED_SECTOR_COUNT 8 	// Number of sectors to be reserved (at the end of memory) for other uses
+#define SCKLIST_SECTOR_NUM (SCKLIST_FLASH_SIZE/SECTOR_SIZE)-SCKLIST_RESERVED_SECTOR_COUNT 	// 2048 - 8 = 2040
 
-struct OneReading {
-	SensorType type;
-	String value;
-};
+#define SECTOR_EMPTY 0xFF
+#define SECTOR_USED 0x00
+#define NOT_PUBLISHED 0xFF
+#define PUBLISHED 0x00
+
+#define FLASH_DEBUG  	// Uncoment to enable debug messages
+
+class SckBase;
 
 class SckList
 {
-	private:
-		char ramBuff[SCKLIST_RAM_SIZE];
-
-		uint32_t index = 0;
-		uint32_t totalGroups = 0;
-		uint32_t lastGroupRightIndex = 0;  	// The last position of a group that means were group starts (reading from right to left)
-
-		// Flash memory
-		SPIFlash flash = SPIFlash(pinCS_FLASH);
-		bool flashStarted = false;
-		void flashSelect(); 			// Choose between sdcard or flash memory on SPI bus (this needs to be called before using flash)
-		void migrateToFlash(); 			// When RAM buff is full we migrate all stored readings to flash until we are able to publish and empty the buffer.
-
-
-		union u_TimeStamp {
-			char b[4];
-			uint32_t i;
-		} uTimeStamp;
-
-		union u_GroupSize {
-			char b[2];
-			uint16_t i;
-		} uGroupSize;
-
-		void debugOut(const char *msg);
-		bool append(char value); 						// Appends a byte at the end of the list
-		bool write(uint32_t wichIndex, char value); 				// Writes a byte on a specific index of the list
-		char read(uint32_t index); 						// Reads a byte of an specific index of the list
-		uint32_t getGroupRightIndex(uint32_t wichGroup); 			// Returns the ending index of a specific group (zero if group don't exist)
-		uint32_t getGroupLeftIndex(uint32_t wichGroup);				// Returns the first index of a specific group
-		uint16_t readGroupSize(uint32_t rightGroupIndex); 			// Returns the group size in bytes, it requires the right index of the group
-		bool lastGroupIsOpen(); 						// True if last created group is not yet saved
-
 	public:
 
-		enum GroupFlags {
-			NET_PUBLISHED,
-			SD_PUBLISHED
+		struct GroupIndex {
+			uint16_t sector;
+			int16_t group;
 		};
 
+		enum PubFlags {
+			PUB_NET,
+			PUB_SD,
+			PUB_BOTH
+		};
+
+		enum GroupAddr {
+			GROUP_SIZE = 		0x00,
+			GROUP_NET  = 		0x02,
+			GROUP_SD   = 		0x03,
+			GROUP_TIME = 		0x04,
+			GROUP_READINGS = 	0x08
+		};
+
+		struct SectorInfo {
+			bool used;
+			bool current;
+			bool pubNet;
+			bool pubSd;
+			uint16_t grpUnPubNet = 0;
+			uint16_t grpPubNet = 0;
+			uint16_t grpUnPubSd = 0;
+			uint16_t grpPubSd = 0;
+			uint16_t freeSpace = 0;
+			uint32_t addr;
+			uint32_t firstTime = 0;
+			uint32_t lastTime = 0;
+		};
+
+		struct FlashInfo {
+			uint16_t sectFree = 0;
+			uint16_t sectUsed = 0;
+			uint16_t grpUnPubNet = 0;
+			uint16_t grpPubNet = 0;
+			uint16_t grpUnPubSd = 0;
+			uint16_t grpPubSd = 0;
+			int16_t grpTotal = 0;
+			uint16_t currSector = 0;
+		};
+
+		SckList(SckBase* nBase) {
+			base = nBase;
+		};
+
+		bool availableReadings[2] = {false, false}; 	// " places for PUB_NET and PUB_SD"
 		bool debug = false;
-		void flashStart();
+		char flashBuff[NETBUFF_SIZE];
 
-		bool usingFlash = false;
+		int8_t setup(); 			// Starts flash memory. returns 0 on success, 1 on success but flash has been formated or -1 on error
+		bool flashFormat(); 			// Erases the flash memory and starts it again
+		void flashUpdate(); 			// After SCK config changes (ej. from sd card mode to net mode) updating flash indexes (or reseting the kit) is mandatory to find all readings.
+		uint8_t saveGroup(); 			// Saves group to flash memory, return number of readings saved
+		GroupIndex readGroup(PubFlags wichFlag, GroupIndex forceIndex={0,-1}); // Copies to buffer the next available group that hasn't been published to NET or SD. The format of data is dependant on the provided flag. If no group available it returns index.group = -1 unless forceIndex parameter exists and is a valid group index
+		uint8_t setPublished(GroupIndex wichGroup, PubFlags wichFlag); // Set the group as published depending on the flag (accepted flags: NET, SD). Return the number of readings on published group.
+		uint32_t countGroups(PubFlags wichFlag); // Returns the number of non published (for the specified flag) groups founded on flash.
 
-		bool createGroup(uint32_t timeStamp); 					// Starts a new group, if there is an open gruop it will delete it before.
-		bool saveLastGroup(); 							// Save the last group, to be called once all sensor readings are saved
-		bool delLastGroup(); 							// Will delete the last created group (saved or not)
-		uint32_t countGroups(); 						// Will return the total of saved groups
-		uint32_t getTime(uint32_t wichGroup); 					// Return the timeStamp of the requested group (group index starts on the last saved group)
-		uint16_t countReadings(uint32_t wichGroup);
-		bool appendReading(SensorType wichsensor, String value);
-		OneReading readReading(uint32_t wichGroup, uint8_t wichReading);
-		void setFlag(uint32_t wichGroup, GroupFlags wichFlag, bool value);
-		int8_t getFlag(uint32_t wichGroup, GroupFlags wichFlag); 		// Return flags or -1 on error
-		uint32_t getFlashCapacity();
-		bool testFlash();
+
+		uint16_t recover(uint16_t wichSector, PubFlags wichFlag); 	// Recover all the readings on specified sector and outputs them to the specified media, returns de number of recovered groups
+		SectorInfo sectorInfo(uint16_t wichSector);
+		void dumpSector(uint16_t wichSector, uint16_t howMany=SECTOR_SIZE);
+		FlashInfo flashInfo();
+
+	private:
+
+
+		enum SectorAddr {
+			SECTOR_STATE = 0x00,
+			SECTOR_NET   = 0x01,
+			SECTOR_SD    = 0x02
+		};
+
+		SPIFlash flash = SPIFlash(pinCS_FLASH);
+		SckBase* base;
+
+		uint32_t _addr = 0; 				// The address where we write the contents of groups (readings) in flash.
+		int16_t _currSector = -1;
+		int16_t _dataAvailableSect[2] = {-1, -1};	// next sector with readings not published to network
+
+		bool _append(char value);			// Appends a byte at the end of the list
+
+		// Flash memory functions
+		int8_t _flashStart();
+		bool _flashFormat();
+
+		// Sector functions
+		uint32_t _getSectAddr(uint16_t wichSector);
+		uint8_t _getSectState(uint16_t wichSector);
+		int8_t _setSectPublished(uint16_t wichSector, PubFlags wichFlag); 		// Sector flags are only  marked if SectorState = SECTOR_FULL and all groups in the sector are already published in the correspondant flag
+		int8_t _closeSector(uint16_t wichSector); 					// Marks sector as SECTOR_FULL and if there is no unpublished data in the sector also mark it as published
+		int8_t _isSectPublished(uint16_t wichSector, PubFlags wichFlag);
+		int16_t _getSectFreeSpace(uint16_t wichSector);
+		int16_t _countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte publishedState, bool getAll=false);
+		int16_t _getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag); 	// Returns the index of the first non-published group on the sector and aflag specified
+		void _scanSectors();
+
+		// Group functions
+		uint32_t _getGrpAddr(GroupIndex wichGroup);
+		int8_t _setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag);
+		int8_t _isGrpPublished(GroupIndex wichGroup, PubFlags wichFlag);
+		uint8_t _countReadings(GroupIndex wichGroup, uint32_t grpAddr); 	// Returns the number of readings inside a group
+
+		uint8_t _formatSD(GroupIndex wichGroup, char* buffer); 			// Return the number of readings found on formated group
+		uint8_t _formatNET(GroupIndex wichGroup, char* buffer); 		// Return the number of readings found on formated group
 };

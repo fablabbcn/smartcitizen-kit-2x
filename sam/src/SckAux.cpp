@@ -16,6 +16,10 @@ Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 Sck_Range 		range;
 Sck_BME680 		bme680;
+Sck_GPS 		gps;
+PM_Grove_GPS 		pmGroveGps;
+XA111GPS 		xa1110gps;
+NEOM8UGPS 		neoM8uGps;
 Sck_ADS1X15 		ads48;
 Sck_ADS1X15 		ads49;
 Sck_ADS1X15 		ads4A;
@@ -105,6 +109,13 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
 		case SENSOR_BME680_VOCS:		return bme680.start(); break;
+		case SENSOR_GPS_FIX_QUALITY:
+		case SENSOR_GPS_LATITUDE:
+		case SENSOR_GPS_LONGITUDE:
+		case SENSOR_GPS_ALTITUDE:
+		case SENSOR_GPS_SPEED:
+		case SENSOR_GPS_HDOP:
+		case SENSOR_GPS_SATNUM:			return gps.start(); break;
 		case SENSOR_ADS1X15_48_0:
 		case SENSOR_ADS1X15_48_1:
 		case SENSOR_ADS1X15_48_2:
@@ -193,6 +204,13 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
 		case SENSOR_BME680_VOCS:		return bme680.stop(); break;
+		case SENSOR_GPS_FIX_QUALITY:
+		case SENSOR_GPS_LATITUDE:
+		case SENSOR_GPS_LONGITUDE:
+		case SENSOR_GPS_ALTITUDE:
+		case SENSOR_GPS_SPEED:
+		case SENSOR_GPS_HDOP:
+		case SENSOR_GPS_SATNUM:			return gps.stop(); break;
 		case SENSOR_ADS1X15_48_0:
 		case SENSOR_ADS1X15_48_1:
 		case SENSOR_ADS1X15_48_2:
@@ -216,7 +234,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 	return false;
 }
 
-void AuxBoards::getReading(OneSensor *wichSensor)
+void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 {
 	wichSensor->state = 0;
 	switch (wichSensor->type) {
@@ -283,6 +301,13 @@ void AuxBoards::getReading(OneSensor *wichSensor)
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
 		case SENSOR_BME680_VOCS:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.VOCgas); return; } break;
+		case SENSOR_GPS_FIX_QUALITY: 		if (gps.getReading(base, SENSOR_GPS_FIX_QUALITY)) 	{ wichSensor->reading = String(gps.r.fixQuality); return; } break;
+		case SENSOR_GPS_LATITUDE: 		if (gps.getReading(base, SENSOR_GPS_LATITUDE)) 		{ wichSensor->reading = String(gps.r.latitude, 6); return; } break;
+		case SENSOR_GPS_LONGITUDE: 		if (gps.getReading(base, SENSOR_GPS_LONGITUDE)) 	{ wichSensor->reading = String(gps.r.longitude, 6); return; } break;
+		case SENSOR_GPS_ALTITUDE: 		if (gps.getReading(base, SENSOR_GPS_ALTITUDE)) 		{ wichSensor->reading = String(gps.r.altitude, 2); return; } break;
+		case SENSOR_GPS_SPEED: 			if (gps.getReading(base, SENSOR_GPS_SPEED)) 		{ wichSensor->reading = String(gps.r.speed, 2); return; } break;
+		case SENSOR_GPS_HDOP: 			if (gps.getReading(base, SENSOR_GPS_HDOP)) 		{ wichSensor->reading = String(gps.r.hdop, 2); return; } break;
+		case SENSOR_GPS_SATNUM:			if (gps.getReading(base, SENSOR_GPS_SATNUM)) 		{ wichSensor->reading = String(gps.r.satellites); return; } break;
 		case SENSOR_ADS1X15_48_0: 		if (ads48.getReading(0)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
 		case SENSOR_ADS1X15_48_1: 		if (ads48.getReading(1)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
 		case SENSOR_ADS1X15_48_2: 		if (ads48.getReading(2)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
@@ -435,7 +460,10 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				thisAtlas->sendCommand((char*)command.c_str());
 
 				uint8_t responseCode = thisAtlas->getResponse();
-				if (responseCode == 254) delay(1000); responseCode = thisAtlas->getResponse();
+				if (responseCode == 254) {
+					delay(1000);
+					responseCode = thisAtlas->getResponse();
+				}
 				if (responseCode == 1) return thisAtlas->atlasResponse;
 				else return String(responseCode);
 
@@ -455,7 +483,6 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				for(uint8_t address = 1; address < 127; address++ ) {
 
-					uint8_t error;
 					auxWire.beginTransmission(address);
 
 					if (auxWire.endTransmission() == 0) {
@@ -965,7 +992,6 @@ void Groove_OLED::drawError(errorType wichError)
 	memset(&buffStart[1792], 0, 256);
 
 	u8g2_oled.setFont(u8g2_font_7x13B_mr);
-	uint8_t font_h = u8g2_oled.getMaxCharHeight();
 
 	// Print a frame with an alert icon on the left
 	u8g2_oled.drawFrame(0, 112, 128, 16);
@@ -1004,6 +1030,8 @@ void Groove_OLED::drawError(errorType wichError)
 			break;
 		case ERROR_BATT:
 			snprintf(errorMsg, sizeof(errorMsg), "LOW BATTERY");
+			break;
+		default:
 			break;
 	}
 
@@ -1054,8 +1082,13 @@ void Groove_OLED::displayReading(SckBase* base)
 	// Find next sensor to show
 	for (uint8_t i=lastShown+1; i<SENSOR_COUNT; i++) {
 
-		if (base->config.sensors[i].oled_display) {
-			sensorToShow = static_cast<SensorType>(i);
+		SensorType thisSensor = static_cast<SensorType>(i);
+
+		if (base->config.sensors[thisSensor].oled_display &&
+				base->sensors[thisSensor].type != SENSOR_GROVE_OLED && 		//Oled screen has nothing to show
+				base->sensors[thisSensor].type != SENSOR_BATT_PERCENT) { 	// Battery is already shown on oled info-bar
+
+			sensorToShow = thisSensor;
 			break;
 		}
 		if (i == SENSOR_COUNT - 1) {
@@ -1081,7 +1114,7 @@ void Groove_OLED::displayReading(SckBase* base)
 
 		// Try splitting on first space
 		char line1[20];
-		char *blank = " ";
+		char blank[] = " ";
 		uint8_t splitPoint = strcspn(sensorTitle, blank);
 		memcpy(line1, sensorTitle, splitPoint);
 		line1[splitPoint + 1] = '\0';
@@ -1243,17 +1276,16 @@ bool WaterTemp_DS18B20::stop()
 float WaterTemp_DS18B20::getReading()
 {
 
- 	while ( !DS_bridge.wireSearch(addr)) {
+ 	while (!DS_bridge.wireSearch(addr)) {
 
 		DS_bridge.wireResetSearch();
 		DS_bridge.wireReset();
 		DS_bridge.selectChannel(0); 			// After reset need to set channel 0 because we are using the version with single channel (DS2482_100)
 		DS_bridge.configure(conf);
- 		DS_bridge.wireSkip();
- 		DS_bridge.configure(conf); 				// Set bus on strong pull-up after next write, not only LSB nibble is required
- 		DS_bridge.wireWriteByte(0x44); 			// Convert temperature on all devices
- 		DS_bridge.configure(0x01);
-
+		DS_bridge.wireSkip();
+		DS_bridge.configure(conf); 				// Set bus on strong pull-up after next write, not only LSB nibble is required
+		DS_bridge.wireWriteByte(0x44); 			// Convert temperature on all devices
+		DS_bridge.configure(0x01);
 	}
 
 	//	Test if device is in reality the DS18B20 Water Temperature
@@ -1266,7 +1298,7 @@ float WaterTemp_DS18B20::getReading()
 		DS_bridge.wireWriteByte(0xbe);      // Read Scratchpad command
 
 		// We need to read 9 bytes
-		for ( int i = 0; i < 9; i++) data[i] = DS_bridge.wireReadByte();
+		for (int i=0; i<9; i++) data[i] = DS_bridge.wireReadByte();
 
 		// Convert to decimal temperature
 		int LowByte = data[0];
@@ -1381,7 +1413,7 @@ bool Atlas::getBusyState()
 
 		} case ASKED_READING: {
 
-		   	uint16_t customWait = longWait;
+			uint16_t customWait = longWait;
 			if (TEMP) customWait = mediumWait;
 
 			if (millis() - lastCommandSent >= customWait) {
@@ -1543,7 +1575,7 @@ uint8_t Atlas::getResponse()
 
 			return 2;
 		}
-    }
+	}
 }
 
 bool Moisture::start()
@@ -1771,6 +1803,353 @@ float PM_DallasTemp::getReading()
 	while (!auxWire.available()) if ((millis() - start)>500) return -9999;
 	for (uint8_t i=0; i<4; i++) uRead.b[i] = auxWire.read();
 	return uRead.fval;
+}
+
+TinyGPSPlus tinyGps;
+TinyGPSCustom fixQuality(tinyGps, "GPGGA", 6);
+TinyGPSCustom nfixQuality(tinyGps, "GNGGA", 6);
+
+bool Sck_GPS::start()
+{
+	if (started) return true;
+
+	if (neoM8uGps.start()) {
+		gps_source = &neoM8uGps;
+		started = true;
+		return true;
+	}
+
+	if (xa1110gps.start()) {
+		gps_source = &xa1110gps;
+		started = true;
+		return true;
+	}
+
+	if (pmGroveGps.start()) {
+		gps_source = &pmGroveGps;
+		started = true;
+		return true;
+	}
+
+	return false;
+}
+
+bool Sck_GPS::stop()
+{
+	if (!started) return true;
+
+	gps_source->stop();
+	started = false;
+
+	return true;
+}
+
+bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
+{
+	// Use time from gps to set RTC if time is not set or older than 1 hour
+	if (((millis() - base->lastTimeSync) > 3600000 || base->lastTimeSync == 0)) {
+
+		if (gps_source->getReading(SENSOR_GPS_FIX_QUALITY, r)) {
+			if (r.fixQuality > 0 && r.timeValid) {
+				// Wait for some GPS readings after sync to be sure time is accurate
+				if (fixCounter > 5) base->setTime(String(r.epochTime));
+				else fixCounter++;
+			}
+		}
+
+	} else {
+		fixCounter = 0;
+	}
+
+	if (!gps_source->getReading(wichSensor, r)) return false;
+
+	return true;
+}
+
+bool PM_Grove_GPS::start()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(GROVEGPS_START);
+	auxWire.endTransmission();
+	auxWire.requestFrom(deviceAddress, 1);
+
+	bool result = auxWire.read();
+
+	return result;
+}
+
+bool PM_Grove_GPS::stop()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(GROVEGPS_STOP);
+	auxWire.endTransmission();
+
+	return true;
+}
+
+bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	//  Only ask for readings if last one is older than
+	if (millis() - lastReading < 500 && r.fixQuality > 0) return true;
+
+	// Ask for reading
+	auxWire.beginTransmission(deviceAddress);
+	auxWire.write(GROVEGPS_GET);
+	auxWire.endTransmission();
+
+	// Get the reading
+	auxWire.requestFrom(deviceAddress, DATA_LEN);
+	uint32_t time = millis();
+	while (!auxWire.available()) if ((millis() - time)>500) return false;
+
+	for (uint8_t i=0; i<DATA_LEN; i++) data[i] = auxWire.read();
+
+	// Fix quality
+	memcpy(&r.fixQuality, &data[0], 1);
+
+	// Time
+	memcpy(&r.timeValid, &data[23], 1);
+	if (r.timeValid) memcpy(&r.epochTime, &data[24], 4);
+	// With this GPS wrong time is reported as Valid when no GPS fix
+	// So if no fix we mark time as invalid
+	if (r.fixQuality == 0) r.timeValid = false;
+
+	// Location
+	memcpy(&r.locationValid, &data[1], 1);
+	if (r.locationValid) {
+
+		// Latitude
+		memcpy(&r.latitude, &data[2], 8);
+
+		// Longitude
+		memcpy(&r.longitude, &data[10], 8);
+
+	} else if (wichSensor == SENSOR_GPS_LATITUDE ||	wichSensor == SENSOR_GPS_LONGITUDE) return false;
+
+	// Altitude
+	memcpy(&r.altitudeValid, &data[18], 1);
+	if (r.altitudeValid) memcpy(&r.altitude, &data[19], 4);
+	else if (wichSensor == SENSOR_GPS_ALTITUDE) return false;
+
+	// Speed
+	memcpy(&r.speedValid, &data[28], 1);
+	if (r.speedValid) memcpy(&r.speed, &data[29], 4);
+	else if (wichSensor == SENSOR_GPS_SPEED) return false;
+
+	// Horizontal dilution of position
+	memcpy(&r.hdopValid, &data[33], 1);
+	if (r.hdopValid) memcpy(&r.hdop, &data[34], 4);
+	else if (wichSensor == SENSOR_GPS_HDOP) return false;
+
+	// Satellites
+	memcpy(&r.satellitesValid, &data[38], 1);
+	if (r.satellitesValid) memcpy(&r.satellites, &data[39], 1);
+	else if (wichSensor == SENSOR_GPS_SATNUM) return false;
+
+	lastReading = millis();
+
+	return true;
+}
+
+bool XA111GPS::start()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	if (!i2cGps.begin(auxWire)) return false;
+
+	return true;
+}
+
+bool XA111GPS::stop()
+{
+	return true;
+}
+
+bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	//  Only ask for readings if last one is older than
+	if (millis() - lastReading < 500) return true;
+
+	while (i2cGps.available()) tinyGps.encode(i2cGps.read());
+
+	// Time
+	r.timeValid = tinyGps.time.isValid();
+	if (r.timeValid) {
+		// Time (epoch) -> uint32 - 4
+		struct tm tm; 				// http://www.nongnu.org/avr-libc/user-manual/structtm.html
+		tm.tm_isdst = -1; 			// -1 means no data available
+		tm.tm_yday = 0;
+		tm.tm_wday = 0;
+		tm.tm_year = tinyGps.date.year() - 1900; 	// tm struct expects years since 1900
+		tm.tm_mon = tinyGps.date.month() - 1; 	// tm struct uses 0-11 months
+		tm.tm_mday = tinyGps.date.day();
+		tm.tm_hour = tinyGps.time.hour();
+		tm.tm_min = tinyGps.time.minute();
+		tm.tm_sec = tinyGps.time.second();
+		r.epochTime = mktime(&tm);
+	}
+
+	// Fix Quality
+	String fixQual = fixQuality.value();
+	r.fixQuality = fixQual.toInt();
+	if (r.fixQuality == 0) {
+		fixQual = nfixQuality.value();
+		r.fixQuality = fixQual.toInt();
+	}
+
+	// Location
+	r.locationValid = tinyGps.location.isValid();
+	if (r.locationValid) {
+
+		// Latitude
+		r.latitude = tinyGps.location.lat();
+
+		// Longitude
+		r.longitude = tinyGps.location.lng();
+
+	} else if (wichSensor == SENSOR_GPS_LATITUDE ||	wichSensor == SENSOR_GPS_LONGITUDE) return false;
+
+	// Altitude
+	r.altitudeValid = tinyGps.altitude.isValid();
+	if (r.altitudeValid) r.altitude = tinyGps.altitude.meters();
+	else if (wichSensor == SENSOR_GPS_ALTITUDE) return false;
+
+	// Speed
+	r.speedValid = tinyGps.speed.isValid();
+	if (r.speedValid) r.speed = tinyGps.speed.mps();
+	else if (wichSensor == SENSOR_GPS_SPEED) return false;
+
+	// Horizontal dilution of position
+	r.hdopValid = tinyGps.hdop.isValid();
+	if (r.hdopValid) r.hdop = tinyGps.hdop.value();
+	else if (wichSensor == SENSOR_GPS_HDOP) return false;
+
+	// Satellites
+	r.satellitesValid = tinyGps.satellites.isValid();
+	if (r.satellitesValid) r.satellites = tinyGps.satellites.value();
+	else if (wichSensor == SENSOR_GPS_SATNUM) return false;
+
+	lastReading = millis();
+
+	// TODO use power save mode between readings if posible
+
+	return true;
+}
+
+bool NEOM8UGPS::start()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	if (!ubloxGps.begin(auxWire)) return false;
+
+	ubloxGps.setI2COutput(COM_TYPE_UBX); 	// Set the I2C port to output UBX only (turn off NMEA noise)
+	ubloxGps.setNavigationFrequency(1);
+	ubloxGps.setAutoPVT(true); 		// Tell the GPS to "send" each solution
+	ubloxGps.saveConfiguration(); 		// Save the current settings to flash and BBR
+
+	return true;
+}
+
+bool NEOM8UGPS::stop()
+{
+	// TODO
+	// Lowpower mode
+	return true;
+}
+
+bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	switch(wichSensor) {
+
+		case SENSOR_GPS_FIX_QUALITY:
+		{
+
+			// Time
+			if (ubloxGps.getDateValid() && ubloxGps.getTimeValid()) {
+				// Time (epoch) -> uint32 - 4
+				struct tm tm; 					// http://www.nongnu.org/avr-libc/user-manual/structtm.html
+				tm.tm_isdst = -1; 				// -1 means no data available
+				tm.tm_yday = 0;
+				tm.tm_wday = 0;
+				tm.tm_year = ubloxGps.getYear() - 1900; 	// tm struct expects years since 1900
+				tm.tm_mon = ubloxGps.getMonth() - 1; 		// tm struct uses 0-11 months
+				tm.tm_mday = ubloxGps.getDay();
+				tm.tm_hour = ubloxGps.getHour();
+				tm.tm_min = ubloxGps.getMinute();
+				tm.tm_sec = ubloxGps.getSecond();
+				r.timeValid = true;
+				r.epochTime = mktime(&tm);
+			} else {
+				r.timeValid = false;
+			}
+
+			uint8_t fixQual = ubloxGps.getFixType(); 		// Type of fix: 0=no, 3=3D, 4=GNSS+Deadreckoning */
+			// TODO
+			// Translate fix quality to NMEA standard
+			r.fixQuality = fixQual;
+			break;
+
+		}
+		case SENSOR_GPS_LATITUDE:
+		case SENSOR_GPS_LONGITUDE:
+		{
+			// Location
+			r.locationValid = true;
+			// Latitude
+			r.latitude = (float)ubloxGps.getLatitude() / 10000000.0;
+			// Longitude
+			r.longitude = (float)ubloxGps.getLongitude() / 10000000.0;
+			break;
+		}
+		case  SENSOR_GPS_ALTITUDE:
+		{
+			// Altitude
+			// TODO check if main sea level option (getAltitudeMSL()) is better for us
+			r.altitudeValid = true;
+			r.altitude = (float)ubloxGps.getAltitude() / 1000.0;
+			break;
+		}
+		case SENSOR_GPS_SPEED:
+		{
+			// Speed
+			r.speedValid = true;
+			r.speed = (float)ubloxGps.getGroundSpeed() / 1000.0;
+			break;
+		}
+		case SENSOR_GPS_HDOP:
+		{
+			// Horizontal dilution of position
+			//FIXME this is PDOP not HDOP!!
+			r.hdopValid = true;
+			r.hdop = ubloxGps.getPDOP();
+			break;
+		}
+		case SENSOR_GPS_SATNUM:
+		{
+			// Satellites
+			r.satellitesValid = true;
+			r.satellites = ubloxGps.getSIV();
+			break;
+		}
+		default:
+			break;
+	}
+
+	lastReading = millis();
+
+	// TODO use power save mode between readings if posible
+
+	return true;
 }
 
 bool Sck_DallasTemp::start()
@@ -2028,21 +2407,21 @@ void Sck_ADS1X15::runTester(uint8_t wichChannel)
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )
 {
-  auxWire.beginTransmission(deviceaddress);
-  auxWire.write(instruction);
-  auxWire.write(data);
-  auxWire.endTransmission();
+	auxWire.beginTransmission(deviceaddress);
+	auxWire.write(instruction);
+	auxWire.write(data);
+	auxWire.endTransmission();
 }
 
 byte readI2C(byte deviceaddress, byte instruction)
 {
-  byte  data = 0x0000;
-  auxWire.beginTransmission(deviceaddress);
-  auxWire.write(instruction);
-  auxWire.endTransmission();
-  auxWire.requestFrom(deviceaddress,1);
-  unsigned long time = millis();
-  while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
-  data = auxWire.read();
-  return data;
+	byte  data = 0x0000;
+	auxWire.beginTransmission(deviceaddress);
+	auxWire.write(instruction);
+	auxWire.endTransmission();
+	auxWire.requestFrom(deviceaddress,1);
+	unsigned long time = millis();
+	while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
+	data = auxWire.read();
+	return data;
 }

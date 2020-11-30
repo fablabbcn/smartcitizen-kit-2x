@@ -37,6 +37,15 @@
 // Adafruit BME608 library
 #include <Adafruit_BME680.h>
 
+// Library for GPS data parsing
+#include "TinyGPS++.h"
+
+// Librtary for XA1110 Sparkfun i2c GPS
+#include <SparkFun_I2C_GPS_Arduino_Library.h>
+
+// Library for SparkFun u-Blox NEO-M8U GPS
+#include "SparkFun_Ublox_Arduino_Library.h"
+
 // Adafruit library for ADS1x15 12/16 bits ADC
 #include <Adafruit_ADS1015.h>
 
@@ -49,6 +58,8 @@
 #endif
 
 extern TwoWire auxWire;
+
+class SckBase;
 
 
 struct Calibration {
@@ -143,7 +154,11 @@ class AuxBoards
 			0x77,			// SENSOR_BME680_PRESSURE,
 			0x77,			// SENSOR_BME680_VOCS,
 
-			0x3c,			// SENSOR_GROVE_OLED,
+			0x02, 			// SENSOR_GPS_* Grove Gps (on PM board)
+			0x10, 			// SENSOR_GPS_* XA111 Gps
+			0x42, 			// SENSOR_GPS_* NEO-M8U Gps
+
+			0x3c,			// SENSOR_GROOVE_OLED,
 
 			0x48, 			// SENSOR_ADS1X15_XX_X
 			0x49, 			// SENSOR_ADS1X15_XX_X
@@ -153,7 +168,7 @@ class AuxBoards
 
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
-		void getReading(OneSensor *wichSensor);
+		void getReading(SckBase *base, OneSensor *wichSensor);
 		bool getBusyState(SensorType wichSensor);
 		String control(SensorType wichSensor, String command);
 		void print(char *payload);
@@ -266,7 +281,7 @@ class WaterTemp_DS18B20
 
 		DS2482 DS_bridge = DS2482(0);
 
-		byte data[8];
+		byte data[9];
 		byte addr[8];
 
 		uint8_t conf =0x05;
@@ -401,7 +416,10 @@ enum PMcommands
 	PM_STOP,         // Stop both PMS
 	DALLASTEMP_START,
 	DALLASTEMP_STOP,
-	GET_DALLASTEMP
+	GET_DALLASTEMP,
+	GROVEGPS_START,
+	GROVEGPS_STOP,
+	GROVEGPS_GET
  };
 
 class PMsensor
@@ -458,6 +476,115 @@ class PM_DallasTemp
 		} uRead;
 
 		float reading;
+};
+
+struct GpsReadings
+{
+	// Data (40 bytes)
+	// Fix Quality -> uint8 - 1
+	// 	0 = Invalid
+	// 	1 = GPS fix (SPS)
+	// 	2 = DGPS fix
+	// 	3 = PPS fix
+	// 	4 = Real Time Kinematic
+	// 	5 = Float RTK
+	// 	6 = estimated (dead reckoning) (2.3 feature)
+	// 	7 = Manual input mode
+	// 	8 = Simulation mode
+	// locationValid -> bool - 1
+	// Latitude DDD.DDDDDD (negative is south) -> double - 8
+	// Longitude DDD.DDDDDD (negative is west) -> double - 8
+	// altitudeValid -> bool - 1
+	// Altitude in meters -> float - 4
+	// timeValid -> bool - 1
+	// Time (epoch) -> uint32 - 4
+	// speedValid -> bool - 1
+	// Speed (meters per second) -> float - 4
+	// hdopValid -> bool - 1
+	// Horizontal dilution of position -> float - 4
+	// satellitesValid -> bool - 1
+	// Number of Satellites being traked -> uint8 - 1
+
+	uint8_t fixQuality = 0;
+	bool locationValid = false;
+	double latitude;
+	double longitude;
+	bool altitudeValid = false;
+	float altitude;
+	bool speedValid = false;
+	float speed;
+	bool hdopValid = false;
+	float hdop;
+	bool satellitesValid = false;
+	uint8_t satellites;
+	bool timeValid = false;
+	uint32_t epochTime = 0;
+};
+
+class GPS_Source
+{
+	public:
+		virtual bool stop();
+		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+};
+
+class Sck_GPS
+{
+	private:
+		bool started = false;
+		uint8_t fixCounter = 0;
+		GPS_Source *gps_source;
+	public:
+		GpsReadings r;
+
+		bool start();
+		bool stop();
+		bool getReading(SckBase *base, SensorType wichSensor);
+};
+
+class PM_Grove_GPS: public GPS_Source
+{
+	public:
+		const byte deviceAddress = 0x02;
+
+		bool start();
+		virtual bool stop();
+		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+
+	private:
+		static const uint8_t DATA_LEN = 40;
+		byte data[DATA_LEN];
+		uint32_t lastReading = 0;
+};
+
+class XA111GPS: public GPS_Source
+{
+	public:
+		const byte deviceAddress = 0x10;
+
+		bool start();
+		virtual bool stop();
+		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+
+	private:
+		I2CGPS i2cGps;
+		uint32_t lastReading = 0;
+
+};
+
+class NEOM8UGPS: public GPS_Source
+{
+	public:
+		const byte deviceAddress = 0x42;
+
+		bool start();
+		virtual bool stop();
+		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+
+	private:
+		SFE_UBLOX_GPS ubloxGps;
+		uint32_t lastReading = 0;
+
 };
 
 class Sck_DallasTemp

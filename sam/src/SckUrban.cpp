@@ -98,15 +98,15 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude()) 		{ wichSensor->reading = String(sck_mpl3115A2.altitude); return; } break;
 		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure()) 		{ wichSensor->reading = String(sck_mpl3115A2.pressure); return; } break;
 		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature()) 		{ wichSensor->reading = String(sck_mpl3115A2.temperature); return; } break;
-		case SENSOR_PM_1: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm1); return;
-		case SENSOR_PM_25: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm25); return;
-		case SENSOR_PM_10: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm10); return;
-		case SENSOR_PN_03: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn03); return;
-		case SENSOR_PN_05: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn05); return;
-		case SENSOR_PN_1: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn1); return;
-		case SENSOR_PN_25: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn25); return;
-		case SENSOR_PN_5: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn5); return;
-		case SENSOR_PN_10: 			wichSensor->state = sck_pm.oneShot(sck_pm.oneShotPeriod); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn10); return;
+		case SENSOR_PM_1: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm1); return;
+		case SENSOR_PM_25: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm25); return;
+		case SENSOR_PM_10: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm10); return;
+		case SENSOR_PN_03: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn03); return;
+		case SENSOR_PN_05: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn05); return;
+		case SENSOR_PN_1: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn1); return;
+		case SENSOR_PN_25: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn25); return;
+		case SENSOR_PN_5: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn5); return;
+		case SENSOR_PN_10: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn10); return;
 		default: break;
 	}
 	wichSensor->reading = "null";
@@ -131,12 +131,12 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 		case SENSOR_CCS811_ECO2:
 		{
 				if (command.startsWith("compensate")) {
-				
+
 					sck_ccs811.compensate = !sck_ccs811.compensate;
 					return (sck_ccs811.compensate ? "True" : "False");
-				
+
 				} else if (command.startsWith("mode")) {
-				
+
 					command.replace("mode", "");
 					command.trim();
 
@@ -154,11 +154,11 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					//Mode 2 = every 10s
 					//Mode 3 = every 60s
 					//Mode 4 = RAW mode
-					if (sck_ccs811.setDriveMode(newDriveMode) != CCS811Core::SENSOR_SUCCESS) return F("Failed to set new drive mode");
+					if (sck_ccs811.setDriveMode(newDriveMode) != CCS811Core::CCS811_Stat_SUCCESS) return F("Failed to set new drive mode");
 					else return String F("Drivemode set to ") + String(sck_ccs811.driveMode);
-					
+
 				} else if (command.startsWith("help") || command.length() == 0) {
-				
+
 					sprintf(base->outBuff, "Available commands:\r\n* compensate (toggles temp/hum compensation)\r\n* mode [0-4] (0-idle, 1-1s, 2-10s, 3-60s, 4-raw)");
 					base->sckOut();
 					return "\r\n";
@@ -902,9 +902,6 @@ bool Sck_PM::update()
 	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
 	if (millis() - lastFail < 1000) return false; 		// We need at least one second after las fail
 
-	// Empty serial buffer
-	while(SerialPM.available()) SerialPM.read();
-
 	// Wait for new readings
 	uint32_t startPoint = millis();
 	while(SerialPM.available() < (buffLong + 2)) {
@@ -976,17 +973,30 @@ bool Sck_PM::update()
 	}
 	return false;
 }
-int16_t Sck_PM::oneShot(uint16_t period)
+void Sck_PM::getReading(SckBase *base, OneSensor *wichSensor)
 {
-	int16_t pendingSeconds = period;
+	if (base->st.dynamic || ((base->config.readInterval * wichSensor->everyNint) < (uint32_t)(oneShotPeriod + minSeparationBetweenShots))) {
+
+		if (!started) start();
+
+		if (update()) wichSensor->state = 0;
+		else wichSensor->state = -1;
+
+	} else {
+		wichSensor->state = oneShot();
+	}
+	return;
+}
+int16_t Sck_PM::oneShot()
+{
+	int16_t pendingSeconds = oneShotPeriod;
 	uint32_t rtcNow = rtc->getEpoch();
 
 	if (detectionFailed) return -1;
 	if (!started) {
 
-		// If last PM reading is older than some time, start PM
-		if (rtcNow - rtcReading >= (minimal_reading_interval - period)) {
-			stop();  // Be sure it is stoped...
+		// Only start PM sensor again if last reading is old
+		if (rtcNow - rtcReading >= minSeparationBetweenShots - 2) {
 			start();
 		}
 
@@ -995,10 +1005,10 @@ int16_t Sck_PM::oneShot(uint16_t period)
 
 	} else {
 
-		pendingSeconds = period - (rtcNow - rtcStarted);
+		pendingSeconds = oneShotPeriod - (rtcNow - rtcStarted);
 
 		// Fix the problem generated by updating RTC after starting the PM sensor
-		if (pendingSeconds > period) rtcStarted = rtcNow;
+		if (pendingSeconds > oneShotPeriod) rtcStarted = rtcNow;
 
 		// If PM is on and requested period has passed
 		if (pendingSeconds <= 0) {
@@ -1033,9 +1043,9 @@ bool Sck_CCS811::start()
 {
 	if (alreadyStarted) return true;
 
-	if (ccs.begin() != CCS811Core::SENSOR_SUCCESS) return false;
+	if (!ccs.begin()) return false;
 
-	if (ccs.setDriveMode(driveMode) != CCS811Core::SENSOR_SUCCESS) return false;
+	if (ccs.setDriveMode(driveMode) != CCS811Core::CCS811_Stat_SUCCESS) return false;
 
 	startTime = rtc->getEpoch();
 	alreadyStarted = true;
@@ -1046,7 +1056,7 @@ bool Sck_CCS811::stop()
 	// If the sensor is not there we don't need to stop it
 	if (!I2Cdetect(&Wire, address)) return true;
 
-	if (ccs.setDriveMode(0) != CCS811Core::SENSOR_SUCCESS) return false;
+	if (ccs.setDriveMode(0) != CCS811Core::CCS811_Stat_SUCCESS) return false;
 	alreadyStarted = false;
 	startTime = 0;
 	return true;
@@ -1126,13 +1136,15 @@ bool Sck_CCS811::setBaseline(uint16_t wichBaseline)
 	if (!alreadyStarted) {
 		if (!start()) return false;
 	}
-	if (ccs.setBaseline(wichBaseline) != ccs.SENSOR_SUCCESS); return false;
+
+	if (ccs.setBaseline(wichBaseline) != ccs.CCS811_Stat_SUCCESS) return false;
+
 	return true;
 }
 bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
 {
 	driveMode = wichDrivemode;
-	if (ccs.setDriveMode(driveMode) != CCS811Core::SENSOR_SUCCESS) return false;
+	if (ccs.setDriveMode(driveMode) != CCS811Core::CCS811_Stat_SUCCESS) return false;
 	return true;
 }
 

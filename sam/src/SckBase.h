@@ -28,9 +28,6 @@
 
 #include "version.h"
 
-// Output
-enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
-enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
 class Status
 {
 
@@ -70,23 +67,26 @@ struct SckState
 	bool cardPresentError = false;
 	bool sleeping = false;
 	bool publishPending = false;
+	bool dynamic = false;
 	Status wifiStat = Status(1, 60000);
 	Status timeStat = Status(2, 3000);
 	Status helloStat = Status(3, 5000);
 	Status infoStat = Status(3, 5000);
 	Status publishStat = Status(3, 5000);
 	errorType error = ERROR_NONE;
+	uint32_t lastWiFiError = 0;
+	uint16_t wifiErrorCounter = 0;
 
 	inline bool operator==(SckState a) {
 		if (	a.onSetup == onSetup
-			&& a.espON == espON
-			&& a.wifiSet == wifiSet
-			&& a.tokenSet == tokenSet
-			&& a.helloPending == helloPending
-			&& a.mode == mode
-			&& a.cardPresent == cardPresent
-			&& a.sleeping == sleeping
-		   ) return true;
+				&& a.espON == espON
+				&& a.wifiSet == wifiSet
+				&& a.tokenSet == tokenSet
+				&& a.helloPending == helloPending
+				&& a.mode == mode
+				&& a.cardPresent == cardPresent
+				&& a.sleeping == sleeping
+		) return true;
 		else return false;
 	}
 };
@@ -134,14 +134,9 @@ class SckBase
 		bool espInfoUpdated = false;
 		bool infoPublished = false;
 
-		// Urban board
-		bool urbanPresent = false;
-		friend class urban;
-		SckUrban urban = SckUrban(&rtc);
-
 		// STORAGE
 		// files
-		struct SckFile {char name[13]; File file;};
+		struct SckFile {char name[16]; File file;};
 		SckFile configFile {"CONFIG.TXT"};
 		SckFile postFile {};
 		SckFile debugFile {"DEBUG.TXT"};
@@ -159,18 +154,20 @@ class SckBase
 		uint8_t wakeUP_M = 0;
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
-		void goToSleep(uint16_t sleepPeriod=3000); 	// sleepPeriod in ms
+		void goToSleep(uint32_t sleepPeriod=3000); 	// sleepPeriod in ms
 		void configGCLK6(); 			// Taken from https://github.com/arduino-libraries/ArduinoLowPower
+		void sleepLoop();
 
 		// **** Sensors
-		uint32_t lastPublishTime = 0; 	// seconds
+		uint32_t lastPublishTime = 0; 			// seconds
 		uint32_t lastSensorUpdate = 0;
 		bool timeToPublish = false;
 		void updateSensors();
 		bool netPublish();
-		bool sdPublish();
-		uint8_t pendingSensors = 0;
-		SensorType pendingSensorsList[SENSOR_COUNT];
+		bool sdPublish(); 				//  Publishes the provided group of readings to sdcard (if available)
+		LinkedList<SensorType> pendingSensorsLinkedList;
+
+		SckList::GroupIndex wichGroupPublishing; 	// Index of the group beeing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
 
 	public:
 		const String hardwareVer = "2.1";
@@ -186,11 +183,11 @@ class SckBase
 
 		// **** Mode Control
 		SckState st;
-		void printState();
 
 		// **** Time
 		RTCZero rtc;
 		bool timeSyncAfterBoot = false;
+		uint32_t lastTimeSync = 0;
 		char ISOtimeBuff[20];
 		bool setTime(String epoch);
 		bool ISOtime();
@@ -208,8 +205,14 @@ class SckBase
 		bool disableSensor(SensorType wichSensor);
 		bool writeHeader = false;
 
-		// RAM readings store
-		SckList readingsList;
+		// Urban board
+		bool urbanPresent = false;
+		friend class urban;
+		SckUrban urban = SckUrban(&rtc);
+
+		// Flash readings store
+		friend class SckList;
+		SckList readingsList = SckList(this);
 
 		// Configuration
 		Configuration config;
@@ -234,7 +237,6 @@ class SckBase
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent",	"Normal", "Verbose"	};
-		OutLevels outputLevel = OUT_VERBOSE;
 		char outBuff[240];
 		void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts String object
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string

@@ -815,6 +815,8 @@ bool SckBase::sendConfig()
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
+	json["ms"] = config.mqtt.server;
+	json["mp"] = config.mqtt.port;
 	json["ver"] = SAMversion;
 	json["bd"] = SAMbuildDate;
 	json["tn"] = (uint8_t)config.debug.telnet;

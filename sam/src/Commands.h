@@ -33,6 +33,7 @@ enum CommandType {
 	COM_SHELL,
 	COM_CUSTOM_MQTT,
 	COM_OFFLINE,
+	COM_MQTT_CONFIG,
 
 	COM_COUNT
 };
@@ -61,6 +62,7 @@ void debug_com(SckBase* base, String parameters);
 void shell_com(SckBase* base, String parameters);
 void custom_mqtt_com(SckBase* base, String parameters);
 void offline_com(SckBase* base, String parameters);
+void mqttConfig_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -108,8 +110,9 @@ class AllCommands {
 			OneCom {100,	COM_HELLO,		"hello",	"Sends MQTT hello to platform",														hello_com},
 			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages: debug [-sdcard] [-esp] [-oled] [-flash] [-telnet]", 								debug_com},
 			OneCom {100,	COM_SHELL, 		"shell", 	"Shows or sets shell mode: shell [-on] [-off]",												shell_com},
-			OneCom {100,	COM_CUSTOM_MQTT,	"mqtt", 	"Publish custom mqtt message: mqtt [\"topic\" \"message\"]",										custom_mqtt_com},
-			OneCom {100,	COM_OFFLINE, 		"offline", 	"Configure offline periods and WiFi retry interval: [-retryint seconds] [-period start-hour end-hour (UTC 0-23)]",			offline_com}
+			OneCom {100,	COM_CUSTOM_MQTT,	"publish", 	"Publish custom mqtt message: mqtt [\"topic\" \"message\"]",										custom_mqtt_com},
+			OneCom {100,	COM_OFFLINE, 		"offline", 	"Configure offline periods and WiFi retry interval: [-retryint seconds] [-period start-hour end-hour (UTC 0-23)]",			offline_com},
+			OneCom {100,	COM_MQTT_CONFIG, 	"mqttsrv", 	"Configure mqtt server address and port: [-host serverName] [-port portNum]",								mqttConfig_com}
 		};
 
 		OneCom & operator[](CommandType type) {

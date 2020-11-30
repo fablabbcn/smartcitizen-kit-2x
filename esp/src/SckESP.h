@@ -19,8 +19,6 @@
 
 #define NTP_SERVER_NAME "ntp.smartcitizen.me"
 #define NTP_SERVER_PORT 80
-#define MQTT_SERVER_NAME "mqtt.smartcitizen.me"
-#define MQTT_SERVER_PORT 80
 #define MQTT_QOS 1
 #define MQTT_BUFF_SIZE 4096
 #define MQTT_KEEP_ALIVE 120
@@ -29,9 +27,11 @@
 
 struct Credentials { bool set=false; char ssid[64]="null"; char pass[64]="null"; };
 struct Token { bool set=false; char token[7]="null"; };
+struct Mqtt { char server[64]; uint16_t port; };
 struct ESP_Configuration {
 	Credentials credentials;
 	Token token;
+	Mqtt mqtt;
 	bool debug_telnet = false;
 };
 

@@ -208,6 +208,8 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			strcpy(config.credentials.pass, json["pa"]);
 			config.token.set = json["ts"];
 			strcpy(config.token.token, json["to"]);
+			strcpy(config.mqtt.server, json["ms"]);
+			config.mqtt.port = json["mp"];
 			SAMversion = json["ver"].as<String>();
 			SAMbuildDate = json["bd"].as<String>();
 			uint8_t action = json["ac"];
@@ -305,7 +307,7 @@ bool SckESP::mqttConnect()
 
 	debugOUT(F("Connecting to MQTT server..."));
 
-	MQTTclient.setServer(MQTT_SERVER_NAME, MQTT_SERVER_PORT);
+	MQTTclient.setServer(config.mqtt.server, config.mqtt.port);
 
 	if (MQTTclient.connect(config.token.token)) {
 		debugOUT(F("Established MQTT connection..."));
@@ -835,6 +837,9 @@ bool SckESP::saveConfig()
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
 	json["tn"] = config.debug_telnet;
+	json["ms"] = config.mqtt.server;
+	json["mp"] = config.mqtt.port;
+		
 
 	File configFile = SPIFFS.open(configFileName, "w");
 	if (configFile) {
@@ -863,15 +868,18 @@ bool SckESP::loadConfig()
 		JsonObject json = jsonBuffer.as<JsonObject>();
 
 		if (json) {
+			
+			if (json.containsKey("cs")) config.credentials.set = json["cs"];
+			if (json.containsKey("ss")) strcpy(config.credentials.ssid, json["ss"]);
+			if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
 
-			config.credentials.set = json["cs"];
-			strcpy(config.credentials.ssid, json["ss"]);
-			strcpy(config.credentials.pass, json["pa"]);
+			if (json.containsKey("ts")) config.token.set = json["ts"];
+			if (json.containsKey("to")) strcpy(config.token.token, json["to"]);
 
-			config.token.set = json["ts"];
-			strcpy(config.token.token, json["to"]);
+			if (json.containsKey("ms")) strcpy(config.mqtt.server, json["ms"]);
+			if (json.containsKey("mp")) config.mqtt.port = json["mp"];
 
-			config.debug_telnet = json["tn"];
+			if (json.containsKey("tn")) config.debug_telnet = json["tn"];
 		}
 		configFile.close();
 		debugOUT("Loaded configuration!!");

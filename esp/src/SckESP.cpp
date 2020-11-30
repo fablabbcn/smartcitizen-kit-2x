@@ -210,6 +210,8 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			strcpy(config.token.token, json["to"]);
 			strcpy(config.mqtt.server, json["ms"]);
 			config.mqtt.port = json["mp"];
+			strcpy(config.ntp.server, json["ns"]);
+			config.ntp.port = json["np"];
 			SAMversion = json["ver"].as<String>();
 			SAMbuildDate = json["bd"].as<String>();
 			uint8_t action = json["ac"];
@@ -839,6 +841,8 @@ bool SckESP::saveConfig()
 	json["tn"] = config.debug_telnet;
 	json["ms"] = config.mqtt.server;
 	json["mp"] = config.mqtt.port;
+	json["ns"] = config.ntp.server;
+	json["np"] = config.ntp.port;
 		
 
 	File configFile = SPIFFS.open(configFileName, "w");
@@ -878,6 +882,8 @@ bool SckESP::loadConfig()
 
 			if (json.containsKey("ms")) strcpy(config.mqtt.server, json["ms"]);
 			if (json.containsKey("mp")) config.mqtt.port = json["mp"];
+			if (json.containsKey("ns")) strcpy(config.ntp.server, json["ms"]);
+			if (json.containsKey("np")) config.ntp.port = json["mp"];
 
 			if (json.containsKey("tn")) config.debug_telnet = json["tn"];
 		}
@@ -926,7 +932,7 @@ time_t SckESP::getNtpTime()
 	IPAddress ntpServerIP;
 
 	while (Udp.parsePacket() > 0) ; // discard any previously received packets
-	WiFi.hostByName(NTP_SERVER_NAME, ntpServerIP);
+	WiFi.hostByName(config.ntp.server, ntpServerIP);
 
 	sendNTPpacket(ntpServerIP);
 	uint32_t beginWait = millis();
@@ -966,7 +972,7 @@ void SckESP::sendNTPpacket(IPAddress &address)
 	packetBuffer[14] = 49;
 	packetBuffer[15] = 52;
 
-	Udp.beginPacket(address, NTP_SERVER_PORT);
+	Udp.beginPacket(address, config.ntp.port);
 	Udp.write(packetBuffer, 48);
 	Udp.endPacket();
 }

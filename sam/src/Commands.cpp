@@ -1023,3 +1023,41 @@ void mqttConfig_com(SckBase* base, String parameters)
 	base->sckOut();
 	
 }
+void ntpConfig_com(SckBase* base, String parameters)
+{
+	// Set
+	if (parameters.length() > 0) {
+
+		int16_t serverI = parameters.indexOf("-host");
+		if (serverI >= 0) {
+			String serverC = parameters.substring(serverI+6, parameters.indexOf(" ", serverI+6));
+			if (serverC.length() < 64) {
+				serverC.toCharArray(base->config.ntp.server, 64);
+			} else {
+				sprintf(base->outBuff, "NTP host name should be less than 64 chars");
+				base->sckOut();
+			}
+		}
+
+		int16_t portI = parameters.indexOf("-port");
+		if (portI >= 0) {
+			String portC = parameters.substring(portI+6, parameters.indexOf(" ", portI+6));
+			uint16_t portV = portC.toInt();
+			if (portV > 0) base->config.ntp.port = portV;
+			else {
+				sprintf(base->outBuff, "Error setting NTP server port");
+				base->sckOut();
+			}
+		}
+		base->saveConfig();
+	}
+	
+	// Get
+	Configuration currentConfig = base->getConfig();
+
+	sprintf(base->outBuff, "NTP Host: %s", currentConfig.ntp.server);
+	base->sckOut();
+	sprintf(base->outBuff, "NTP Port: %lu", currentConfig.ntp.port);
+	base->sckOut();
+	
+}

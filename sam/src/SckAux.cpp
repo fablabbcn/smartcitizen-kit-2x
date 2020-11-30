@@ -407,7 +407,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				}
 
 				return F("\nTesting finished!");
-
+            
 			} else if (command.startsWith("autotest")) {
 
 				return String(gasBoard.autoTest());
@@ -529,7 +529,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			} else if (command.startsWith("help") || command.length() == 0) return F("Available commands:\r\n* get ver\r\n* reset (connect only the chirp to aux)\r\n* cal dryPoint wetPoint");
 			else return F("Unrecognized command!! please try again...");
 			break;
-
+		
 		} case SENSOR_EXT_PM_1:
 		case SENSOR_EXT_PM_25:
 		case SENSOR_EXT_PM_10: {
@@ -545,6 +545,162 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				else return ("Failed starting PM sensor!!");
 
 			}
+			break;
+		} case SENSOR_ADS1X15_48_0:
+		  case SENSOR_ADS1X15_48_1:
+		  case SENSOR_ADS1X15_48_2:
+		  case SENSOR_ADS1X15_48_3:{
+		  	#ifdef adsTest
+		  	if (command.startsWith("test")) {
+				command.replace("test", "");
+				command.trim();
+
+				// Get channels
+				String channelSTR = String(command.charAt(0));
+				uint8_t wichChannel = channelSTR.toInt();
+
+				command.remove(0,1);
+				command.trim();
+
+				if (command.startsWith("set")) {
+
+					command.replace("set", "");
+					command.trim();
+
+					// Get value
+					int wichValue = command.toInt();
+					ads48.setTesterCurrent(wichValue, wichChannel);
+				
+				} else if (command.startsWith("full")) {
+
+					ads48.runTester(wichChannel);
+
+				} else {
+
+					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
+				}
+
+				return F("\nCurrent set!");
+			}
+			#endif
+			break;
+		  }
+		  case SENSOR_ADS1X15_49_0:
+		  case SENSOR_ADS1X15_49_1:
+		  case SENSOR_ADS1X15_49_2:
+		  case SENSOR_ADS1X15_49_3:{
+		  	#ifdef adsTest
+		  	if (command.startsWith("test")) {
+				command.replace("test", "");
+				command.trim();
+
+				// Get channels
+				String channelSTR = String(command.charAt(0));
+				uint8_t wichChannel = channelSTR.toInt();
+
+				command.remove(0,1);
+				command.trim();
+
+				if (command.startsWith("set")) {
+
+					command.replace("set", "");
+					command.trim();
+
+					// Get value
+					int wichValue = command.toInt();
+					ads49.setTesterCurrent(wichValue, wichChannel);
+				
+				} else if (command.startsWith("full")) {
+
+					ads49.runTester(wichChannel);
+
+				} else {
+
+					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
+				}
+
+				return F("\nCurrent set!");
+			}
+			#endif
+			break;
+		  }
+		  case SENSOR_ADS1X15_4A_0:
+		  case SENSOR_ADS1X15_4A_1:
+		  case SENSOR_ADS1X15_4A_2:
+		  case SENSOR_ADS1X15_4A_3:
+		  {
+		  	#ifdef adsTest
+		  	if (command.startsWith("test")) {
+				command.replace("test", "");
+				command.trim();
+
+				// Get channels
+				String channelSTR = String(command.charAt(0));
+				uint8_t wichChannel = channelSTR.toInt();
+
+				command.remove(0,1);
+				command.trim();
+
+				if (command.startsWith("set")) {
+
+					command.replace("set", "");
+					command.trim();
+
+					// Get value
+					int wichValue = command.toInt();
+					ads4A.setTesterCurrent(wichValue, wichChannel);
+				
+				} else if (command.startsWith("full")) {
+
+					ads4A.runTester(wichChannel);
+
+				} else {
+
+					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
+				}
+
+				return F("\nCurrent set!");
+			}
+			#endif
+			break;
+		  }
+		  case SENSOR_ADS1X15_4B_0:
+		  case SENSOR_ADS1X15_4B_1:
+		  case SENSOR_ADS1X15_4B_2:
+		  case SENSOR_ADS1X15_4B_3: {
+		  	#ifdef adsTest
+		  	if (command.startsWith("test")) {
+				command.replace("test", "");
+				command.trim();
+
+				// Get channels
+				String channelSTR = String(command.charAt(0));
+				uint8_t wichChannel = channelSTR.toInt();
+
+				command.remove(0,1);
+				command.trim();
+
+				if (command.startsWith("set")) {
+
+					command.replace("set", "");
+					command.trim();
+
+					// Get value
+					int wichValue = command.toInt();
+					ads4B.setTesterCurrent(wichValue, wichChannel);
+				
+				} else if (command.startsWith("full")) {
+
+					ads4B.runTester(wichChannel);
+
+				} else {
+
+					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
+				}
+
+				return F("\nCurrent set!");
+			}
+			#endif
 			break;
 		} default: return "Unrecognized sensor!!!"; break;
 	}
@@ -2128,7 +2284,7 @@ bool Sck_ADS1X15::getReading(uint8_t wichChannel)
 	double voltage_range = 6.144;
 
 	// Get value with full range
-	int16_t value = ads.readADC_SingleEnded(wichChannel);
+	uint16_t value = ads.readADC_SingleEnded(wichChannel);
 
 	// If value is under 4.096v increase the gain depending on voltage
 	if (value < 21845) {
@@ -2154,13 +2310,13 @@ bool Sck_ADS1X15::getReading(uint8_t wichChannel)
 
 			// 8x gain, 0.25V
 			ads.setGain(GAIN_EIGHT);
-			voltage_range = 0.25;
+			voltage_range = 0.512;
 
 		} else {
 
 			// 16x gain, 0.125V
 			ads.setGain(GAIN_SIXTEEN);
-			voltage_range = 0.125;
+			voltage_range = 0.256;
 		}
 
 		// Get the value again
@@ -2170,6 +2326,84 @@ bool Sck_ADS1X15::getReading(uint8_t wichChannel)
 	reading = (float)value / 32768 * voltage_range;
 	return true;
 }
+
+#ifdef adsTest
+void Sck_ADS1X15::setTesterCurrent(int16_t wichCurrent, uint8_t wichChannel)
+{
+	// Support both combinations of ADC channels:
+	// wichChannel = 0 (default) -> WE in ADS_Ch0 and AE in ADS_Ch1
+	// wichChannel = 1 			 -> WE in ADS_Ch2 and AE in ADS_Ch3
+	if (wichChannel > 0) {
+		adsChannelW = 2;
+		adsChannelA = 3;
+	}
+
+	SerialUSB.print("Setting test current to: ");
+	SerialUSB.println(wichCurrent);
+
+	tester.setCurrent(tester.electrode_W, wichCurrent);
+	tester.setCurrent(tester.electrode_A, wichCurrent);
+
+	SerialUSB.print("Tester Electrode W: ");
+	SerialUSB.println(tester.getCurrent(tester.electrode_W));
+	SerialUSB.print("ISB W:");
+	this->getReading(adsChannelW);
+	SerialUSB.println(this->reading);
+
+	SerialUSB.print("Tester Electrode A: ");
+	SerialUSB.println(tester.getCurrent(tester.electrode_A));
+	SerialUSB.print("ISB A: ");
+	this->getReading(adsChannelA);
+	SerialUSB.println(this->reading);	
+
+}
+
+void Sck_ADS1X15::runTester(uint8_t wichChannel)
+{
+	// Support both combinations of ADC channels:
+	// wichChannel = 0 (default) -> WE in ADS_Ch0 and AE in ADS_Ch1
+	// wichChannel = 1 			 -> WE in ADS_Ch2 and AE in ADS_Ch3
+	if (wichChannel > 0) {
+		adsChannelW = 2;
+		adsChannelA = 3;
+	}
+
+	// Print headers
+	SerialUSB.println("testW,readW,testA,readA");
+
+	// Output from -1400 to +1400 nA
+	for (int16_t i=-1400; i<1400; i++) {
+		tester.setCurrent(tester.electrode_W, i);
+		double currVoltW = -10;
+
+		if (this->getReading(adsChannelW))  currVoltW = this->reading;
+		else SerialUSB.println("Error in Working electrode");
+
+		// if (preVoltW != -99) if ((currVoltW - preVoltW) < threshold) maxErrorsW--;
+		// preVoltW = currVoltW;
+		// if (maxErrorsW == 0) SerialUSB.println("Working electrode fail !!!");
+
+		tester.setCurrent(tester.electrode_A, i);
+		double currVoltA = -10;
+
+		if (this->getReading(adsChannelA)) currVoltA = this->reading;
+		else SerialUSB.println("Error in Working electrode");
+
+		// if (preVoltA != -99) if ((currVoltA - preVoltA) < threshold) maxErrorsA--;
+		// preVoltA = currVoltA;
+		// if (maxErrorsA == 0) SerialUSB.println("Auxiliary electrode fail !!!");
+
+		SerialUSB.print(tester.getCurrent(tester.electrode_W));
+		SerialUSB.print(",");
+		SerialUSB.print(currVoltW, 8);
+		SerialUSB.print(",");
+		SerialUSB.print(tester.getCurrent(tester.electrode_A));
+		SerialUSB.print(",");
+		SerialUSB.println(currVoltA, 8);
+	}
+	SerialUSB.println("Run test finished!");
+}
+#endif
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )
 {

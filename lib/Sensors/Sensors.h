@@ -252,6 +252,7 @@ class AllSensors
 
 			// I2C Moisture Sensor (chirp)
 			// https://github.com/Miceuz/i2c-moisture-sensor
+
 			OneSensor { BOARD_AUX, 		100,	SENSOR_CHIRP_MOISTURE_RAW, 		"CHRP_MOIS_RAW",	"Soil Moisture Raw", 				0, 		true, 		true, 		1,			},
 			OneSensor { BOARD_AUX, 		100,	SENSOR_CHIRP_MOISTURE, 			"CHRP_MOIS", 		"Soil Moisture Percent",			50, 		true, 		true, 		1,			"%"},
 			OneSensor { BOARD_AUX, 		100,	SENSOR_CHIRP_TEMPERATURE, 		"CHRP_TEMP", 		"Soil Temperature", 				0, 		true, 		true, 		1,			"C"},
@@ -309,22 +310,22 @@ class AllSensors
 			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_HDOP,			"GPS_HDOP",		"GPS Horizontal Dilution of Position",		131,		true,		false,		1,			},
 			OneSensor { BOARD_AUX,		100,	SENSOR_GPS_SATNUM,			"GPS_SATNUM",		"GPS Traked Satellites",			130,		true,		false,		1,			},
 
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_0,			"ADC_48_0",		"ADS1x15 ADC 0x48 Ch0",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_1,			"ADC_48_1",		"ADS1x15 ADC 0x48 Ch1",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_2,			"ADC_48_2",		"ADS1x15 ADC 0x48 Ch2",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_3,			"ADC_48_3",		"ADS1x15 ADC 0x48 Ch3",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_0,			"ADC_49_0",		"ADS1x15 ADC 0x49 Ch0",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_1,			"ADC_49_1",		"ADS1x15 ADC 0x49 Ch1",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_2,			"ADC_49_2",		"ADS1x15 ADC 0x49 Ch2",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_3,			"ADC_49_3",		"ADS1x15 ADC 0x49 Ch3",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_0,			"ADC_4A_0",		"ADS1x15 ADC 0x4A Ch0",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_1,			"ADC_4A_1",		"ADS1x15 ADC 0x4A Ch1",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_2,			"ADC_4A_2",		"ADS1x15 ADC 0x4A Ch2",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_3,			"ADC_4A_3",		"ADS1x15 ADC 0x4A Ch3",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_0,			"ADC_4B_0",		"ADS1x15 ADC 0x4B Ch0",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_1,			"ADC_4B_1",		"ADS1x15 ADC 0x4B Ch1",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_2,			"ADC_4B_2",		"ADS1x15 ADC 0x4B Ch2",				0,		true,		false,		1,			"V"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_3,			"ADC_4B_3",		"ADS1x15 ADC 0x4B Ch3",				0,		true,		false,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_0,			"ADC_48_0",		"ADS1x15 ADC 0x48 Ch0",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_1,			"ADC_48_1",		"ADS1x15 ADC 0x48 Ch1",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_2,			"ADC_48_2",		"ADS1x15 ADC 0x48 Ch2",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_48_3,			"ADC_48_3",		"ADS1x15 ADC 0x48 Ch3",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_0,			"ADC_49_0",		"ADS1x15 ADC 0x49 Ch0",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_1,			"ADC_49_1",		"ADS1x15 ADC 0x49 Ch1",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_2,			"ADC_49_2",		"ADS1x15 ADC 0x49 Ch2",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_49_3,			"ADC_49_3",		"ADS1x15 ADC 0x49 Ch3",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_0,			"ADC_4A_0",		"ADS1x15 ADC 0x4A Ch0",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_1,			"ADC_4A_1",		"ADS1x15 ADC 0x4A Ch1",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_2,			"ADC_4A_2",		"ADS1x15 ADC 0x4A Ch2",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4A_3,			"ADC_4A_3",		"ADS1x15 ADC 0x4A Ch3",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_0,			"ADC_4B_0",		"ADS1x15 ADC 0x4B Ch0",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_1,			"ADC_4B_1",		"ADS1x15 ADC 0x4B Ch1",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_2,			"ADC_4B_2",		"ADS1x15 ADC 0x4B Ch2",				0,		true,		true,		1,			"V"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_3,			"ADC_4B_3",		"ADS1x15 ADC 0x4B Ch3",				0,		true,		true,		1,			"V"},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

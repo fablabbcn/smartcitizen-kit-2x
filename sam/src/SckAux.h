@@ -409,11 +409,12 @@ class Moisture
 enum PMslot {SLOT_A, SLOT_B, SLOT_AVG};
 enum PMcommands
 {
-	PM_START,        // Start both PMS
-	GET_PMA,         // Get values for PMS in slot A
-	GET_PMB,         // Get values for PMS in slot A
-	GET_PM_AVG,      // Get values for both PMS averaged
-	PM_STOP,         // Stop both PMS
+	START_PMA, 	  	// Start PM in slot A
+	START_PMB,      	// Start PM in slot B
+	GET_PMA, 		// Get values for PM in slot A
+	GET_PMB, 		// Get values for PM in slot B
+	STOP_PMA, 		// Stop PM in slot A
+	STOP_PMB, 		// Stop PM in slot B
 	DALLASTEMP_START,
 	DALLASTEMP_STOP,
 	GET_DALLASTEMP,
@@ -425,6 +426,10 @@ enum PMcommands
 class PMsensor
 {
 	public:
+		// Constructor varies by sensor type
+		PMsensor(PMslot wichSlot) {
+			_slot = wichSlot;
+		}
 
 		const byte deviceAddress = 0x02;
 
@@ -440,7 +445,7 @@ class PMsensor
 
 		bool start();
 		bool stop();
-		float getReading(PMslot slot, SensorType wichSensor);
+		bool update();
 	private:
 		bool started = false;
 		bool failed = false;
@@ -459,7 +464,7 @@ class PMsensor
 		// 16:17 -> 10.0 um
 		//
 		uint32_t lastReading = 0;
-		PMslot lastSlot;
+		PMslot _slot;
 };
 
 class PM_DallasTemp

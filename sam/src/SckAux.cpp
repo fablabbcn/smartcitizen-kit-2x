@@ -10,7 +10,8 @@ Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
 Atlas			atlasDO = Atlas(SENSOR_ATLAS_DO);
 Atlas 			atlasTEMP = Atlas(SENSOR_ATLAS_TEMPERATURE);
 Moisture 		moistureChirp;
-PMsensor		pmSensor = PMsensor();
+PMsensor		pmSensorA = PMsensor(SLOT_A);
+PMsensor		pmSensorB = PMsensor(SLOT_B);
 PM_DallasTemp 		pmDallasTemp;
 Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
@@ -77,7 +78,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_EXT_A_PN_1:
 		case SENSOR_EXT_A_PN_25:
 		case SENSOR_EXT_A_PN_5:
-		case SENSOR_EXT_A_PN_10:
+		case SENSOR_EXT_A_PN_10: 		return pmSensorA.start(); break;
 		case SENSOR_EXT_B_PM_1:
 		case SENSOR_EXT_B_PM_25:
 		case SENSOR_EXT_B_PM_10:
@@ -86,16 +87,7 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_EXT_B_PN_1:
 		case SENSOR_EXT_B_PN_25:
 		case SENSOR_EXT_B_PN_5:
-		case SENSOR_EXT_B_PN_10:
-		case SENSOR_EXT_PM_1:
-		case SENSOR_EXT_PM_25:
-		case SENSOR_EXT_PM_10:
-		case SENSOR_EXT_PN_03:
-		case SENSOR_EXT_PN_05:
-		case SENSOR_EXT_PN_1:
-		case SENSOR_EXT_PN_25:
-		case SENSOR_EXT_PN_5:
-		case SENSOR_EXT_PN_10:			return pmSensor.start(); break;
+		case SENSOR_EXT_B_PN_10: 		return pmSensorB.start(); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.start(); break;
 		case SENSOR_DALLAS_TEMP: 		return dallasTemp.start(); break;
 		case SENSOR_SHT31_TEMP:
@@ -175,7 +167,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_EXT_A_PN_1:
 		case SENSOR_EXT_A_PN_25:
 		case SENSOR_EXT_A_PN_5:
-		case SENSOR_EXT_A_PN_10:
+		case SENSOR_EXT_A_PN_10: 		return pmSensorA.stop(); break;
 		case SENSOR_EXT_B_PM_1:
 		case SENSOR_EXT_B_PM_25:
 		case SENSOR_EXT_B_PM_10:
@@ -184,16 +176,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_EXT_B_PN_1:
 		case SENSOR_EXT_B_PN_25:
 		case SENSOR_EXT_B_PN_5:
-		case SENSOR_EXT_B_PN_10:
-		case SENSOR_EXT_PM_1:
-		case SENSOR_EXT_PM_25:
-		case SENSOR_EXT_PM_10:
-		case SENSOR_EXT_PN_03:
-		case SENSOR_EXT_PN_05:
-		case SENSOR_EXT_PN_1:
-		case SENSOR_EXT_PN_25:
-		case SENSOR_EXT_PN_5:
-		case SENSOR_EXT_PN_10:			return pmSensor.stop(); break;
+		case SENSOR_EXT_B_PN_10: 		return pmSensorB.stop(); break;
 		case SENSOR_PM_DALLAS_TEMP: 		return pmDallasTemp.stop(); break;
 		case SENSOR_DALLAS_TEMP: 		return dallasTemp.stop(); break;
 		case SENSOR_SHT31_TEMP:
@@ -264,33 +247,24 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_CHIRP_MOISTURE:		if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE)) { wichSensor->reading = String(moistureChirp.moisture); return; } break;
 		case SENSOR_CHIRP_TEMPERATURE:		if (moistureChirp.getReading(SENSOR_CHIRP_TEMPERATURE)) { wichSensor->reading = String(moistureChirp.temperature); return; } break;
 		case SENSOR_CHIRP_LIGHT:		if (moistureChirp.getReading(SENSOR_CHIRP_LIGHT)) { wichSensor->reading = String(moistureChirp.light); return; } break;
-		case SENSOR_EXT_A_PM_1:
-		case SENSOR_EXT_A_PM_25:
-		case SENSOR_EXT_A_PM_10:
-		case SENSOR_EXT_A_PN_03:
-		case SENSOR_EXT_A_PN_05:
-		case SENSOR_EXT_A_PN_1:
-		case SENSOR_EXT_A_PN_25:
-		case SENSOR_EXT_A_PN_5:
-		case SENSOR_EXT_A_PN_10:		wichSensor->reading = String(pmSensor.getReading(SLOT_A, wichSensor->type)); return;
-		case SENSOR_EXT_B_PM_1:
-		case SENSOR_EXT_B_PM_25:
-		case SENSOR_EXT_B_PM_10:
-		case SENSOR_EXT_B_PN_03:
-		case SENSOR_EXT_B_PN_05:
-		case SENSOR_EXT_B_PN_1:
-		case SENSOR_EXT_B_PN_25:
-		case SENSOR_EXT_B_PN_5:
-		case SENSOR_EXT_B_PN_10: 		wichSensor->reading = String(pmSensor.getReading(SLOT_B, wichSensor->type)); return;
-		case SENSOR_EXT_PM_1:
-		case SENSOR_EXT_PM_25:
-		case SENSOR_EXT_PM_10:
-		case SENSOR_EXT_PN_03:
-		case SENSOR_EXT_PN_05:
-		case SENSOR_EXT_PN_1:
-		case SENSOR_EXT_PN_25:
-		case SENSOR_EXT_PN_5:
-		case SENSOR_EXT_PN_10: 			wichSensor->reading = String(pmSensor.getReading(SLOT_AVG, wichSensor->type)); return;
+		case SENSOR_EXT_A_PM_1: 		if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pm1); return; } break;
+		case SENSOR_EXT_A_PM_25: 		if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pm25); return; } break;
+		case SENSOR_EXT_A_PM_10: 		if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pm10); return; } break;
+		case SENSOR_EXT_A_PN_03: 		if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn03); return; } break;
+		case SENSOR_EXT_A_PN_05: 		if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn05); return; } break;
+		case SENSOR_EXT_A_PN_1: 		if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn1); return; } break;
+		case SENSOR_EXT_A_PN_25: 		if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn25); return; } break;
+		case SENSOR_EXT_A_PN_5: 		if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn5); return; } break;
+		case SENSOR_EXT_A_PN_10:		if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn10); return; } break;
+		case SENSOR_EXT_B_PM_1: 		if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pm1); return; } break;
+		case SENSOR_EXT_B_PM_25:                if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pm25); return; } break;
+		case SENSOR_EXT_B_PM_10:                if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pm10); return; } break;
+		case SENSOR_EXT_B_PN_03:                if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn03); return; } break;
+		case SENSOR_EXT_B_PN_05:                if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn05); return; } break;
+		case SENSOR_EXT_B_PN_1:                 if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn1); return; } break;
+		case SENSOR_EXT_B_PN_25:                if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn25); return; } break;
+		case SENSOR_EXT_B_PN_5:                 if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn5); return; } break;
+		case SENSOR_EXT_B_PN_10: 		if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn10); return; } break;
 		case SENSOR_PM_DALLAS_TEMP: 		wichSensor->reading = String(pmDallasTemp.getReading()); return;
 		case SENSOR_DALLAS_TEMP: 		if (dallasTemp.getReading()) 			{ wichSensor->reading = String(dallasTemp.reading); return; } break;
 		case SENSOR_SHT31_TEMP: 		if (sht31.getReading()) 				{ wichSensor->reading = String(sht31.temperature); return; } break;
@@ -530,26 +504,11 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			else return F("Unrecognized command!! please try again...");
 			break;
 		
-		} case SENSOR_EXT_PM_1:
-		case SENSOR_EXT_PM_25:
-		case SENSOR_EXT_PM_10: {
-
-			if (command.startsWith("stop")) {
-
-				if (pmSensor.stop()) return ("Stoping PM sensors...");
-				else return ("Failed stoping PM sensor!!");
-
-			} else if (command.startsWith("start")) {
-
-				if (pmSensor.start()) return ("Starting PM sensors...");
-				else return ("Failed starting PM sensor!!");
-
-			}
-			break;
-		} case SENSOR_ADS1X15_48_0:
-		  case SENSOR_ADS1X15_48_1:
-		  case SENSOR_ADS1X15_48_2:
-		  case SENSOR_ADS1X15_48_3:{
+		} 
+		case SENSOR_ADS1X15_48_0:
+		case SENSOR_ADS1X15_48_1:
+		case SENSOR_ADS1X15_48_2:
+		case SENSOR_ADS1X15_48_3:{
 		  	#ifdef adsTest
 		  	if (command.startsWith("test")) {
 				command.replace("test", "");
@@ -1663,7 +1622,8 @@ bool PMsensor::start()
 	if (!I2Cdetect(&auxWire, deviceAddress) || failed) return false;
 
 	auxWire.beginTransmission(deviceAddress);
-	auxWire.write(PM_START);
+	if (_slot == SLOT_A) auxWire.write(START_PMA);
+	else if (_slot == SLOT_B) auxWire.write(START_PMB);
 	auxWire.endTransmission();
 	auxWire.requestFrom(deviceAddress, 1);
 
@@ -1677,42 +1637,41 @@ bool PMsensor::start()
 
 bool PMsensor::stop()
 {
-
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	auxWire.beginTransmission(deviceAddress);
-	auxWire.write(PM_STOP);
+	if (_slot == SLOT_A) auxWire.write(STOP_PMA);
+	else if (_slot == SLOT_B) auxWire.write(STOP_PMB);
 	auxWire.endTransmission();
 
 	started = false;
 	return true;
 }
 
-float PMsensor::getReading(PMslot slot, SensorType wichSensor)
+bool PMsensor::update()
 {
-	if (millis() - lastReading > 1000 || lastSlot != slot) {
-		// Ask for reading
+	// Only update if more than one second has past
+	if (millis() - lastReading > 1000) {
+
+		// Ask for readings
 		auxWire.beginTransmission(deviceAddress);
-		switch (slot) {
-			case SLOT_A: auxWire.write(GET_PMA); break;
-			case SLOT_B: auxWire.write(GET_PMB); break;
-			case SLOT_AVG: auxWire.write(GET_PM_AVG); break;
-		}
+		if (_slot == SLOT_A) auxWire.write(GET_PMA);
+		else if (_slot == SLOT_B) auxWire.write(GET_PMB);
 		auxWire.endTransmission();
 		delay(2);
 
-		// Get the reading
+		// Get the readings
 		auxWire.requestFrom(deviceAddress, valuesSize);
 		uint32_t time = millis();
-		while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
+		while (!auxWire.available()) if ((millis() - time) > 500) return false;
 
+		// Check for errors
 		bool isError = true;
 		for (uint8_t i=0; i<valuesSize; i++) {
 			values[i] = auxWire.read();
 			if (values[i] != 255) isError = false;
 		}
-
-		if (isError) return -9999;
+		if (isError) return false;
 
 		pm1 = (values[0]<<8) + values[1];
 		pm25 = (values[2]<<8) + values[3];
@@ -1725,42 +1684,9 @@ float PMsensor::getReading(PMslot slot, SensorType wichSensor)
 		pn10 = (values[16]<<8) + values[17];
 
 		lastReading = millis();
-		lastSlot = slot;
 	}
 
-
-	switch(wichSensor) {
-		case SENSOR_EXT_PM_1:
-		case SENSOR_EXT_A_PM_1:
-		case SENSOR_EXT_B_PM_1: return pm1; break;
-		case SENSOR_EXT_PM_25:
-		case SENSOR_EXT_A_PM_25:
-		case SENSOR_EXT_B_PM_25: return pm25; break;
-		case SENSOR_EXT_PM_10:
-		case SENSOR_EXT_A_PM_10:
-		case SENSOR_EXT_B_PM_10: return pm10; break;
-		case SENSOR_EXT_PN_03:
-		case SENSOR_EXT_A_PN_03:
-		case SENSOR_EXT_B_PN_03: return pn03; break;
-		case SENSOR_EXT_PN_05:
-		case SENSOR_EXT_A_PN_05:
-		case SENSOR_EXT_B_PN_05: return pn05; break;
-		case SENSOR_EXT_PN_1:
-		case SENSOR_EXT_A_PN_1:
-		case SENSOR_EXT_B_PN_1: return pn1; break;
-		case SENSOR_EXT_PN_25:
-		case SENSOR_EXT_A_PN_25:
-		case SENSOR_EXT_B_PN_25: return pn25; break;
-		case SENSOR_EXT_PN_5:
-		case SENSOR_EXT_A_PN_5:
-		case SENSOR_EXT_B_PN_5: return pn5; break;
-		case SENSOR_EXT_PN_10:
-		case SENSOR_EXT_A_PN_10:
-		case SENSOR_EXT_B_PN_10: return pn10; break;
-		default:break;
-	}
-
-	return -9999;
+	return true;
 }
 
 bool PM_DallasTemp::start()

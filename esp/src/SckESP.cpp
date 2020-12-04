@@ -250,7 +250,7 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 		case ESPMES_MQTT_PUBLISH:
 		{
 				debugOUT("Receiving new readings...");
-				if (mqttPublish()) {
+				if (mqttPublishRaw()) {
 					sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
 				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
@@ -391,6 +391,37 @@ bool SckESP::mqttPublish()
 		debugOUT(String(pubPayload));
 
 		if (MQTTclient.publish(pubTopic, pubPayload)) {
+			debugOUT(F("MQTT readings published OK !!!"));
+			return true;
+		}
+	}
+	debugOUT(F("MQTT publish ERROR !!!"));
+	return false;
+}
+bool SckESP::mqttPublishRaw()
+{
+	debugOUT(F("Trying MQTT publish..."));
+
+	if (mqttConnect()) {
+
+		// Prepare the topic title
+		char pubTopic[32];
+		sprintf(pubTopic, "device/sck/%s/readings/raw", config.token.token);
+
+		debugOUT(String(pubTopic));
+		debugOUT(String(netBuff));
+
+		// /* Example
+		// {	t:2017-03-24T13:35:14Z,
+		// 		29:48.45,
+		// 		13:66,
+		// 		12:28,
+		// 		10:4.45
+		// }
+
+		debugOUT(String(netBuff));
+
+		if (MQTTclient.publish(pubTopic, netBuff)) {
 			debugOUT(F("MQTT readings published OK !!!"));
 			return true;
 		}

@@ -770,7 +770,7 @@ uint16_t SckList::recover(uint16_t wichSector, PubFlags wichFlag)
 			} else {
 				_setGrpPublished(thisGroup, wichFlag);
 				totalRecovered++;
-				base->epoch2iso(flash.readULong(_getGrpAddr(tryingGroup) + 6), base->ISOtimeBuff); 	// print time stamp to buffer
+				base->epoch2iso(flash.readULong(_getGrpAddr(tryingGroup) + GROUP_TIME), base->ISOtimeBuff); 	// print time stamp to buffer
 				sprintf(base->outBuff, "(%s) - Group %u of sector %u saved to sd-card OK!", base->ISOtimeBuff, i, wichSector);
 				base->sckOut();
 			}
@@ -792,7 +792,7 @@ uint16_t SckList::recover(uint16_t wichSector, PubFlags wichFlag)
 					_setGrpPublished(thisGroup, wichFlag);
 					totalRecovered++;
 					base->st.publishStat.reset();
-					base->epoch2iso(flash.readULong(_getGrpAddr(tryingGroup) + 6), base->ISOtimeBuff); 	// print time stamp to buffer
+					base->epoch2iso(flash.readULong(_getGrpAddr(tryingGroup) + GROUP_TIME), base->ISOtimeBuff); 	// print time stamp to buffer
 					sprintf(base->outBuff, "(%s) - Group %u of sector %u published OK!", base->ISOtimeBuff, i, wichSector);
 					base->sckOut();
 					break;
@@ -831,11 +831,12 @@ SckList::SectorInfo SckList::sectorInfo(uint16_t wichSector)
 	info.addr = _getSectAddr(wichSector);
 	uint16_t totalGroups = _countSectGroups(wichSector, PUB_NET, PUBLISHED, true);
 	if (totalGroups > 0) {
-		info.firstTime = flash.readULong(_getSectAddr(wichSector) + 9);
+		info.firstTime = flash.readULong(_getGrpAddr(firstGroup) + GROUP_TIME);
+
 		GroupIndex lastGroup;
 		lastGroup.sector = wichSector;
 		lastGroup.group = totalGroups - 1;
-		info.lastTime = flash.readULong(_getGrpAddr(lastGroup) + 6);
+		info.lastTime = flash.readULong(_getGrpAddr(lastGroup) + GROUP_TIME);
 	}
 
 	return info;

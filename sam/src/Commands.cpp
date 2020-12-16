@@ -565,6 +565,8 @@ void flash_com(SckBase* base, String parameters)
 			base->sckOut();
 			sprintf(base->outBuff, "Sd not saved groups: %u", info.grpUnPubSd);
 			base->sckOut();
+			sprintf(base->outBuff, "Total groups: %u", info.grpTotal);
+			base->sckOut();
 			sprintf(base->outBuff, "Freespace: %u bytes", info.freeSpace);
 			base->sckOut();
 			base->epoch2iso(info.firstTime, base->ISOtimeBuff);

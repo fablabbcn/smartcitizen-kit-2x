@@ -396,6 +396,43 @@ void SckList::_scanSectors()
 	_addr = _getSectAddr(_currSector) + 3;
 
 }
+bool SckList::_countSectGroups(uint16_t wichSector, SectorInfo* info)
+{
+	if (debug) {
+		sprintf(base->outBuff, "F: Building info for sector %u", wichSector);
+		base->sckOut();
+	}
+
+	uint32_t startAddr = _getSectAddr(wichSector);
+
+	// Sanity check
+	if (startAddr > uint32_t(SCKLIST_SECTOR_NUM * SECTOR_SIZE)) return false;;
+
+	uint32_t endAddr = startAddr + SECTOR_SIZE;
+	uint32_t address = startAddr + 3; 	// First tree bytes used for sector state and flags
+
+	// Read from the byte 2 until we found 0xFFFF or an unpublished group
+	while (address < endAddr) {
+
+		// Find out groupSize
+		uint16_t groupSize = flash.readWord(address);
+		if (groupSize == 0xFFFF) break; 	// If GroupSize is not yet written that means no valid group is present
+
+		// Store group state
+		// get NET flag
+		byte byteNetFlag = flash.readByte(address + GROUP_NET);
+		byteNetFlag == PUBLISHED ? info->grpPubNet++ : info->grpUnPubNet++;
+		// get SD flag
+		byte byteSdFlag = flash.readByte(address + GROUP_SD);
+		byteSdFlag == PUBLISHED ? info->grpPubSd++ : info->grpUnPubSd++;
+
+		info->grpTotal++;
+
+		address += groupSize;
+	}
+
+	return true;
+}
 int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte publishedState, bool getAll)
 {
 	if (debug) {
@@ -752,7 +789,7 @@ uint16_t SckList::recover(uint16_t wichSector, PubFlags wichFlag)
 		base->sckOut();
 	}
 
-	uint16_t groupNum = _countSectGroups(wichSector, PUB_NET, PUBLISHED, true);
+	uint16_t groupNum = _countSectGroups(wichSector, PUB_NET, PUBLISHED, true);  // Gets all groups with in the sector (getAll = true)
 	uint16_t totalRecovered = 0;
 
 	for (int16_t i=0; i<groupNum; i++) {
@@ -823,19 +860,20 @@ SckList::SectorInfo SckList::sectorInfo(uint16_t wichSector)
 	info.current = wichSector == _currSector ? true : false;
 	info.pubNet = _isSectPublished(wichSector, PUB_NET);
 	info.pubSd = _isSectPublished(wichSector, PUB_SD);
-	info.grpUnPubNet = _countSectGroups(wichSector, PUB_NET, NOT_PUBLISHED);
-	info.grpPubNet = _countSectGroups(wichSector, PUB_NET, PUBLISHED);
-	info.grpUnPubSd = _countSectGroups(wichSector, PUB_SD, NOT_PUBLISHED);
-	info.grpPubSd = _countSectGroups(wichSector, PUB_SD, PUBLISHED);
+	_countSectGroups(wichSector, &info);
 	info.freeSpace = _getSectFreeSpace(wichSector);
 	info.addr = _getSectAddr(wichSector);
-	uint16_t totalGroups = _countSectGroups(wichSector, PUB_NET, PUBLISHED, true);
-	if (totalGroups > 0) {
+
+	if (info.grpTotal > 0) {
+
+		GroupIndex firstGroup;
+		firstGroup.sector = wichSector;
+		firstGroup.group = 0;
 		info.firstTime = flash.readULong(_getGrpAddr(firstGroup) + GROUP_TIME);
 
 		GroupIndex lastGroup;
 		lastGroup.sector = wichSector;
-		lastGroup.group = totalGroups - 1;
+		lastGroup.group = info.grpTotal - 1;
 		info.lastTime = flash.readULong(_getGrpAddr(lastGroup) + GROUP_TIME);
 	}
 
@@ -861,42 +899,66 @@ SckList::FlashInfo SckList::flashInfo()
 {
 	if (debug) base->sckOut("F: Scanning flash memory sectors");
 
-	FlashInfo info;
+	FlashInfo flashInfo;
 
 	bool firstEmpty = true;
+	uint8_t sectPerLine = 32;
+	uint8_t sectPrinted = 0;
 
 	for (uint16_t i=0; i<SCKLIST_SECTOR_NUM; i++) {
 
 		byte state = _getSectState(i);
+
+		if (sectPrinted == 0) sprintf(base->outBuff, "\r\n%u > |", i);
+
 		if (state == SECTOR_USED || (state == SECTOR_EMPTY && firstEmpty)) {
 
 			if (state == SECTOR_EMPTY) {
 
+				// Print uppercase U to indicate this is the current sector
 				firstEmpty = false;
-				info.sectFree++;
-				base->sckOut("U", PRIO_HIGH, false);
+				flashInfo.sectFree++;
+				sprintf(base->outBuff, "%sU", base->outBuff);
 
 			} else {
-				info.sectUsed++;
-				base->sckOut("u", PRIO_HIGH, false);
+				// Print lowercase u to indicate this sector is used
+				flashInfo.sectUsed++;
+				sprintf(base->outBuff, "%su", base->outBuff);
 			}
 
-			info.grpTotal += _countSectGroups(i, PUB_NET, PUBLISHED, true);
-			info.grpPubNet += _countSectGroups(i, PUB_NET, PUBLISHED);
-			info.grpUnPubNet += _countSectGroups(i, PUB_NET, NOT_PUBLISHED);
-			info.grpPubSd += _countSectGroups(i, PUB_SD, PUBLISHED);
-			info.grpUnPubSd += _countSectGroups(i, PUB_SD, NOT_PUBLISHED);
+			SectorInfo sectInfo;
+			_countSectGroups(i, &sectInfo);
+			flashInfo.grpTotal += sectInfo.grpTotal;
+			flashInfo.grpPubNet += sectInfo.grpPubNet;
+			flashInfo.grpUnPubNet += sectInfo.grpUnPubNet;
+			flashInfo.grpPubSd += sectInfo.grpPubSd;
+			flashInfo.grpUnPubSd += sectInfo.grpUnPubSd;
+
+			// Print the number of unpublished readings for net/sd
+			if (sectInfo.grpUnPubNet > 0) sprintf(base->outBuff, "%s%u/", base->outBuff, sectInfo.grpUnPubNet);
+			else sprintf(base->outBuff, "%s_/", base->outBuff);
+			if (sectInfo.grpUnPubSd > 0) sprintf(base->outBuff, "%s%u", base->outBuff, sectInfo.grpUnPubSd);
+			else sprintf(base->outBuff, "%s_", base->outBuff);
 
 		} else if (state == SECTOR_EMPTY)  {
-			info.sectFree++;
-			base->sckOut("f", PRIO_HIGH, false);
+			flashInfo.sectFree++;
+			// Print an e to indicate an empty sector
+			sprintf(base->outBuff, "%se", base->outBuff);
 		}
 
-		base->sckOut(".", PRIO_HIGH, false);
+		sprintf(base->outBuff, "%s|", base->outBuff);
+		sectPrinted++;
+		if (sectPrinted == sectPerLine) {
+			base->sckOut(PRIO_HIGH, false);
+			sectPrinted = 0;
+		}
+
+
 	}
+	base->sckOut("\r\nu -> Used sector\r\nU -> In use sector\r\ne -> empty sector\r\nUnpublished readings are shown after sector state in the form network/sdcard (ej. |u65/45|)");
 
-	info.currSector = _currSector;
+	flashInfo.currSector = _currSector;
 
-	return info;
+	return flashInfo;
 }
 

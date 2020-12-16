@@ -46,14 +46,15 @@ class SckList
 		};
 
 		struct SectorInfo {
-			bool used;
-			bool current;
-			bool pubNet;
-			bool pubSd;
+			bool used = false;
+			bool current = false;
+			bool pubNet = false;
+			bool pubSd = false;
 			uint16_t grpUnPubNet = 0;
 			uint16_t grpPubNet = 0;
 			uint16_t grpUnPubSd = 0;
 			uint16_t grpPubSd = 0;
+			uint16_t grpTotal = 0;
 			uint16_t freeSpace = 0;
 			uint32_t addr;
 			uint32_t firstTime = 0;
@@ -122,8 +123,9 @@ class SckList
 		int8_t _closeSector(uint16_t wichSector); 					// Marks sector as SECTOR_FULL and if there is no unpublished data in the sector also mark it as published
 		int8_t _isSectPublished(uint16_t wichSector, PubFlags wichFlag);
 		int16_t _getSectFreeSpace(uint16_t wichSector);
-		int16_t _countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte publishedState, bool getAll=false);
-		int16_t _getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag); 	// Returns the index of the first non-published group on the sector and aflag specified
+		bool _countSectGroups(uint16_t wichSector, SectorInfo* info); 			// Counts groups in sector (indepently of their state). To count more that one type of groups in the sector this is more efficient.
+		int16_t _countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte publishedState, bool getAll=false);  	// Count specified groups on sector. To count different type of groups this is not efficient, try the previous function.
+		int16_t _getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag); 		// Returns the index of the first non-published group on the sector and aflag specified
 		void _scanSectors();
 
 		// Group functions

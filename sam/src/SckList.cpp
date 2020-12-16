@@ -221,9 +221,9 @@ int8_t SckList::_closeSector(uint16_t wichSector)
 	// Mark sector as full
 	flash.writeByte(_getSectAddr(wichSector), SECTOR_USED);
 
-	// If no readings left, mark sector as published
-	if (_countSectGroups(wichSector, PUB_NET, NOT_PUBLISHED) == 0) _setSectPublished(_currSector, PUB_NET);
-	if (_countSectGroups(wichSector, PUB_SD, NOT_PUBLISHED) == 0) _setSectPublished(_currSector, PUB_SD);
+	// If no readings left, mark sector as published (_setSectPublished() will check if all readings are published)
+	_setSectPublished(_currSector, PUB_NET);
+	_setSectPublished(_currSector, PUB_SD);
 
 	return 1;
 }

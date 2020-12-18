@@ -2205,6 +2205,8 @@ bool Sck_ADS1X15::stop()
 
 bool Sck_ADS1X15::getReading(uint8_t wichChannel)
 {
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
 	// Reset gain
 	ads.setGain(GAIN_TWOTHIRDS);
 	double voltage_range = 6.144;

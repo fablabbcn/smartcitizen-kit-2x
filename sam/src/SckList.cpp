@@ -59,24 +59,26 @@ bool SckList::_append(char value)
 }
 
 // Group functions
-uint32_t SckList::_getGrpAddr(GroupIndex wichGroup)
+bool SckList::_getGrpAddr(GroupIndex* wichGroup)
 {
-	uint32_t startAddr = _getSectAddr(wichGroup.sector);
+	uint32_t startAddr = _getSectAddr(wichGroup->sector);
 	uint32_t endAddr = startAddr + SECTOR_SIZE;
 	uint32_t address = startAddr + 3; 	// First two bytes used for sector state and flags
 	int16_t groupCount = 0;
 
-
 	// Read from the byte 2 until we found 0xFFFF
 	while (address < endAddr) {
-		if (groupCount == wichGroup.group) return address;
+		if (groupCount == wichGroup->group) {
+			wichGroup->address = address;
+			return true;
+		}
 		uint16_t groupSize = flash.readWord(address);
 
 		address += groupSize;
 		groupCount++;
 	}
 
-	return 0;
+	return false;
 }
 int8_t SckList::_setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 {
@@ -89,7 +91,7 @@ int8_t SckList::_setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 		base->sckOut();
 	}
 
-	uint32_t flagsAddr = _getGrpAddr(wichGroup) + position;
+	uint32_t flagsAddr = wichGroup.address + position;
 
 	// Sanity check
 	if (flagsAddr == 0) return -1;
@@ -103,21 +105,22 @@ int8_t SckList::_isGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 	uint8_t position = GROUP_NET;
 	if (wichFlag == PUB_SD) position = GROUP_SD;
 
-	uint32_t flagsAddr = _getGrpAddr(wichGroup) + position;
+	_getGrpAddr(&wichGroup);
+	wichGroup.address += position;
 
 	// Sanity check
-	if (flagsAddr == 0) return -1;
+	if (wichGroup.address == 0) return -1;
 
-	byte byteFlags = flash.readByte(flagsAddr);
+	byte byteFlags = flash.readByte(wichGroup.address);
 
 	if (byteFlags == PUBLISHED) return 1;
 
 	return 0;
 }
-uint8_t SckList::_countReadings(GroupIndex wichGroup, uint32_t grpAddr)
+uint8_t SckList::_countReadings(GroupIndex wichGroup)
 {
 	// Sanity check
-	if (grpAddr == 0) {
+	if (wichGroup.address == 0) {
 		if (debug) {
 			sprintf(base->outBuff, "F: Wrong address (0) for group %i on sector %u", wichGroup.group, wichGroup.sector);
 			base->sckOut();
@@ -125,8 +128,8 @@ uint8_t SckList::_countReadings(GroupIndex wichGroup, uint32_t grpAddr)
 		return 0;
 	}
 
-	uint32_t finalGrpAddr = grpAddr + flash.readWord(grpAddr);
-	uint32_t readingAddr = grpAddr + GROUP_READINGS;
+	uint32_t finalGrpAddr = wichGroup.address + flash.readWord(wichGroup.address);
+	uint32_t readingAddr = wichGroup.address + GROUP_READINGS;
 	uint8_t readingCounter = 0;
 
 
@@ -245,8 +248,11 @@ int8_t SckList::_isSectPublished(uint16_t wichSector, PubFlags wichFlag)
 
 	return -1;
 }
-int16_t SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
+SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
 {
+	GroupIndex thisGroup = {wichSector, -1, 0};
+	bool founded = false;
+
 	if (debug) {
 		sprintf(base->outBuff, "F: Searching for group not %s on sector %u: ", wichFlag == PUB_NET ? " published to network" : " saved to sdcard", wichSector);
 		base->sckOut(PRIO_MED, false);
@@ -255,44 +261,80 @@ int16_t SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
 	uint32_t startAddr = _getSectAddr(wichSector);
 
 	// Sanity check
-	if (startAddr > uint32_t(SCKLIST_SECTOR_NUM * SECTOR_SIZE)) return -1;
+	if (startAddr > uint32_t(SCKLIST_SECTOR_NUM * SECTOR_SIZE)) return {-1,-1,0};
 
 	uint32_t endAddr = startAddr + SECTOR_SIZE;
-	uint32_t address = startAddr + 3; 	// First tree bytes used for sector state and flags
+	thisGroup.address = startAddr + 3; 		// First tree bytes used for sector state and flags
 
-	int16_t thisGroup = 0;
+	thisGroup.group = 0;
 
 	// Get right addr depending on requested flag
 	uint8_t addPositionFlag = GROUP_NET;
 	if (wichFlag == PUB_SD) addPositionFlag = GROUP_SD;
 
-	// Read from the byte 2 until we found 0xFFFF or an unpublished group
-	// TODO aqui hay un prblema cuando el ultimo grupo termina exactamente al final del sector y no queda ningún 0xFF antes del siguiente sector
-	while (address < endAddr) {
+	// If a potencial next group was stored before let's check it first
+	if (potencialNextGroup.group > 0) {
+
+		if (debug) base->sckOut("Potencial next group stored, checking it...");
 
 		// Find out groupSize
-		uint16_t groupSize = flash.readWord(address);
-		if (groupSize == 0xFFFF || (address + groupSize) >= endAddr) {
-			if (debug) base->sckOut("None found!!");
+		uint16_t groupSize = flash.readWord(potencialNextGroup.address);
+		
+		if (groupSize != 0xFFFF && (potencialNextGroup.address + groupSize) < endAddr) {
 
-			// If this setor is not marked as fully published markt it!
-			if (_getSectState(wichSector) == SECTOR_USED && !_isSectPublished(wichSector, wichFlag)) _setSectPublished(wichSector, wichFlag);
+			// Check if group is NOT published in the requested flag
+			byte byteFlags = flash.readByte(potencialNextGroup.address + addPositionFlag);
 
-			return -1; 	// If GroupSize is not yet written that means no valid group is present
-		}
+			if (byteFlags == NOT_PUBLISHED) {
 
-		// Check if group is NOT published in the requested flag
-		byte byteFlags = flash.readByte(address + addPositionFlag);
-		if (byteFlags == NOT_PUBLISHED) break;
-
-		address += groupSize;
-		thisGroup++;
+				// Store the group and and the next potencial
+				thisGroup.group = potencialNextGroup.group;
+				thisGroup.address = potencialNextGroup.address;
+				potencialNextGroup = {wichSector, potencialNextGroup.group++, potencialNextGroup.address + groupSize};
+				founded = true;
+				if (debug) base->sckOut("Potencial next group OK!");
+			}
+		} else if (debug) base->sckOut("Potencial next not valid!");
 	}
+
+	if (!founded) {
+		// Read from the byte 2 until we found 0xFFFF or an unpublished group
+		while (thisGroup.address < endAddr) {
+
+			// Find out groupSize
+			uint16_t groupSize = flash.readWord(thisGroup.address);
+
+			if (groupSize == 0xFFFF || (thisGroup.address + groupSize) >= endAddr) {
+				if (debug) base->sckOut("None found!!");
+
+				// If this sector is already marked as USED and it is not marked as fully published markt it!
+				if (_getSectState(wichSector) == SECTOR_USED && !_isSectPublished(wichSector, wichFlag)) _setSectPublished(wichSector, wichFlag);
+
+				// If this group is the last one there is no next potencial group in this sector
+				potencialNextGroup = {-1,-1,0};
+
+				return {-1,-1,0}; 	// If GroupSize is not yet written that means no valid group is present
+			}
+
+			// Check if group is NOT published in the requested flag
+			byte byteFlags = flash.readByte(thisGroup.address + addPositionFlag);
+			if (byteFlags == NOT_PUBLISHED) {
+				// Store position of the next potencial group
+				potencialNextGroup = {wichSector, thisGroup.group++, thisGroup.address + groupSize};
+				break;
+			}
+
+			thisGroup.address += groupSize;
+			thisGroup.group++;
+		}
+	}
+	
 
 	if (debug) {
-		sprintf(base->outBuff, "Found group  with index: %i", thisGroup);
+		sprintf(base->outBuff, "Found group with index: %i", thisGroup);
 		base->sckOut();
 	}
+
 	return thisGroup;
 }
 void SckList::_scanSectors()
@@ -318,12 +360,14 @@ void SckList::_scanSectors()
 					// If sector is not marked as published, search for available groups
 					if (!_isSectPublished(i, PUB_NET)) {
 						if (debug) base->sckOut("");
-						if (_getUnpubGrpIdx(i, PUB_NET) >= 0) {
+						GroupIndex netGroup = _getUnpubGrpIdx(i, PUB_NET);
+						if (netGroup.group >= 0) {
 							if (debug) {
 								sprintf(base->outBuff, "F: Network unpublished data founded on sector: %u", i);
 								base->sckOut();
 							}
 							_dataAvailableSect[PUB_NET] = i;
+							availableReadings[PUB_NET] = true;
 						// If there is no unpublished data, mark sector as published.
 						} else _setSectPublished(i, PUB_NET);
 					}
@@ -332,12 +376,14 @@ void SckList::_scanSectors()
 				if (_dataAvailableSect[PUB_SD] < 0) {
 					if (!_isSectPublished(i, PUB_SD)) {
 						if (debug) base->sckOut("");
-						if (_getUnpubGrpIdx(i, PUB_SD) >= 0) {
+						GroupIndex sdGroup = _getUnpubGrpIdx(i, PUB_NET);
+						if (sdGroup.group >= 0) {
 							if (debug) {
 								sprintf(base->outBuff, "Data not saved to sdcard founded on sector: %u", i);
 								base->sckOut();
 							}
 							_dataAvailableSect[PUB_SD] = i;
+							availableReadings[PUB_SD] = true;
 						} else _setSectPublished(i, PUB_SD);
 					}
 				}
@@ -389,7 +435,6 @@ void SckList::_scanSectors()
 	}
 
 	// If we didn't find a empty sector that means the flash memory is full
-	// TODO We should find and start using the sector after the one with the most recent timestamp, but to do this we need a very in deep scanning
 	// Start from first sector
 	_currSector = 0;
 	flash.eraseSector(_getSectAddr(_currSector));
@@ -478,10 +523,9 @@ uint8_t SckList::_formatSD(GroupIndex wichGroup, char* buffer)
 {
 	if (debug) base->sckOut("F: Preparing group data for sdcard saving");
 
-	uint32_t grpAddr = _getGrpAddr(wichGroup);
-	uint8_t readingNum = _countReadings(wichGroup, grpAddr);
+	uint8_t readingNum = _countReadings(wichGroup);
 
-	uint32_t thisTime = flash.readULong(grpAddr + GROUP_TIME);
+	uint32_t thisTime = flash.readULong(wichGroup.address + GROUP_TIME);
 	base->epoch2iso(thisTime, buffer); 		// print time stamp to buffer
 	base->epoch2iso(thisTime, base->ISOtimeBuff); 	// Update base time buffer for console message.
 
@@ -497,7 +541,7 @@ uint8_t SckList::_formatSD(GroupIndex wichGroup, char* buffer)
 		if (base->sensors[wichSensorType].enabled) {
 
 			bool found = false;
-			uint32_t pos = grpAddr + GROUP_READINGS;
+			uint32_t pos = wichGroup.address + GROUP_READINGS;
 			for (uint8_t ii=0; ii<readingNum; ii++) {
 
 				uint8_t readSize = flash.readByte(pos); // Get reading size
@@ -541,14 +585,13 @@ uint8_t SckList::_formatNET(GroupIndex wichGroup, char* buffer)
 	// 		10:4.45
 	// }
 
-	uint32_t grpAddr = _getGrpAddr(wichGroup);
-	uint8_t readingNum = _countReadings(wichGroup, grpAddr);
+	uint8_t readingNum = _countReadings(wichGroup);
 
 	// Prepare buffer for ESP format
 	sprintf(buffer, "%c", ESPMES_MQTT_PUBLISH); 	// Write command to buffer
 
 	// Write time
-	base->epoch2iso(flash.readULong(grpAddr + GROUP_TIME), base->ISOtimeBuff);
+	base->epoch2iso(flash.readULong(wichGroup.address + GROUP_TIME), base->ISOtimeBuff);
 	sprintf(buffer + strlen(buffer), "{t:%s", base->ISOtimeBuff);
 
 	if (debug) {
@@ -556,16 +599,16 @@ uint8_t SckList::_formatNET(GroupIndex wichGroup, char* buffer)
 		base->sckOut(PRIO_MED, false);
 	}
 
-	grpAddr += GROUP_READINGS;  // Jump to first reading
+	wichGroup.address += GROUP_READINGS;  // Jump to first reading
 	// Write sensor readings
 	for (uint8_t i=0; i<readingNum; i++) {
 
-		uint8_t readSize = flash.readByte(grpAddr); // Get reading size (full size - size and flags)
-		SensorType thisType = static_cast<SensorType>(flash.readByte(grpAddr+1)); 	// Get sensorType
+		uint8_t readSize = flash.readByte(wichGroup.address); // Get reading size (full size - size and flags)
+		SensorType thisType = static_cast<SensorType>(flash.readByte(wichGroup.address+1)); 	// Get sensorType
 
 		// Get the reading value
 		String thisReading;
-		for (uint32_t r=grpAddr+2; r<grpAddr+readSize; r++) thisReading.concat((char)flash.readByte(r));
+		for (uint32_t r=wichGroup.address+2; r<wichGroup.address+readSize; r++) thisReading.concat((char)flash.readByte(r));
 
 		if (base->sensors[thisType].id > 0 && !thisReading.startsWith("null")) {
 
@@ -577,7 +620,7 @@ uint8_t SckList::_formatNET(GroupIndex wichGroup, char* buffer)
 			sprintf(buffer + strlen(buffer), ",%u:%s", base->sensors[thisType].id, thisReading.c_str());
 		}
 
-		grpAddr += readSize;
+		wichGroup.address += readSize;
 	}
 	sprintf(buffer + strlen(buffer), "}");
 
@@ -698,7 +741,7 @@ uint8_t SckList::saveGroup()
 }
 SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 {
-	GroupIndex thisGroup;
+	GroupIndex thisGroup = {-1, -1, 0};
 
 	if (forceIndex.group < 0) {
 
@@ -707,23 +750,52 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 			base->sckOut();
 		}
 
-		// Find a sector with available data
-		if (_dataAvailableSect[wichFlag] >= 0) thisGroup.sector = _dataAvailableSect[wichFlag];
-		else thisGroup.sector = _currSector;
+		// If the initial scan afound data on some sector this should have that sector number
+		if (_dataAvailableSect[wichFlag] >= 0) {
 
+			while(_dataAvailableSect[wichFlag] >= 0) {
 
-		// try to find unpublished group inside sector
-		thisGroup.group = _getUnpubGrpIdx(thisGroup.sector, wichFlag);
+				// Check if that sector still has some unpublished data
+				thisGroup = _getUnpubGrpIdx(_dataAvailableSect[wichFlag], wichFlag);
 
-		// If there is no group available
-		if (thisGroup.group < 0) {
-			if (debug) base->sckOut("F: Can't find unpublished group!!!");
-			availableReadings[wichFlag] = false;
-			return thisGroup;
+				if (thisGroup.group < 0) {
+					if (debug) {
+						sprintf(base->outBuff, "F: Can't find unpublished group on sector %u\r\nCheking the rest of flash memory...", _dataAvailableSect[wichFlag]);
+						base->sckOut();
+					}
+
+					// If no data found on the sector scan sectors to see if any unpublished group is still available
+					_scanSectors();
+				} else {
+
+					// If we found unpublished group let's publish it!
+					break;
+				}
+			}
+
+		// If no data is pending to be published lets check the current sector
 		}
+
+		if (thisGroup.group < 0) {
+
+			thisGroup.sector = _currSector;
+
+			// try to find unpublished group inside sector
+			thisGroup = _getUnpubGrpIdx(thisGroup.sector, wichFlag);
+
+			// If there is no group available
+			if (thisGroup.group < 0) {
+				if (debug) base->sckOut("F: Can't find unpublished group!!!");
+				availableReadings[wichFlag] = false;
+				return {-1,-1,0};
+			}
+		}
+
+
 	} else {
 
 		thisGroup = forceIndex;
+		_getGrpAddr(&thisGroup);
 	}
 
 	uint8_t readingNum = 0;
@@ -742,8 +814,7 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 
 	if (debug) base->sckOut("F: No readings available for this group!!");
 
-	thisGroup.group = -1;
-	return thisGroup;
+	return {-1,-1,0};
 }
 uint8_t SckList::setPublished(GroupIndex wichGroup, PubFlags wichFlag)
 {
@@ -752,12 +823,15 @@ uint8_t SckList::setPublished(GroupIndex wichGroup, PubFlags wichFlag)
 		base->sckOut();
 	}
 
+	// Sanity check
+	if (wichGroup.group < 0) return -1;
+
 	_setGrpPublished(wichGroup, wichFlag);
 
 	// Try to mark this sector as published (flag will be rejected if not all groups are published)
 	_setSectPublished(wichGroup.sector, wichFlag);
 
-	return _countReadings(wichGroup, _getGrpAddr(wichGroup));
+	return _countReadings(wichGroup);
 }
 uint32_t SckList::countGroups(PubFlags wichFlag)
 {
@@ -794,6 +868,7 @@ uint16_t SckList::recover(uint16_t wichSector, PubFlags wichFlag)
 
 	for (int16_t i=0; i<groupNum; i++) {
 
+
 		// prepare the flash group
 		GroupIndex thisGroup = {wichSector, i};
 		GroupIndex tryingGroup = readGroup(wichFlag, thisGroup);
@@ -807,7 +882,7 @@ uint16_t SckList::recover(uint16_t wichSector, PubFlags wichFlag)
 			} else {
 				_setGrpPublished(thisGroup, wichFlag);
 				totalRecovered++;
-				base->epoch2iso(flash.readULong(_getGrpAddr(tryingGroup) + GROUP_TIME), base->ISOtimeBuff); 	// print time stamp to buffer
+				base->epoch2iso(flash.readULong(tryingGroup.address + GROUP_TIME), base->ISOtimeBuff); 	// print time stamp to buffer
 				sprintf(base->outBuff, "(%s) - Group %u of sector %u saved to sd-card OK!", base->ISOtimeBuff, i, wichSector);
 				base->sckOut();
 			}
@@ -829,7 +904,7 @@ uint16_t SckList::recover(uint16_t wichSector, PubFlags wichFlag)
 					_setGrpPublished(thisGroup, wichFlag);
 					totalRecovered++;
 					base->st.publishStat.reset();
-					base->epoch2iso(flash.readULong(_getGrpAddr(tryingGroup) + GROUP_TIME), base->ISOtimeBuff); 	// print time stamp to buffer
+					base->epoch2iso(flash.readULong(tryingGroup.address + GROUP_TIME), base->ISOtimeBuff); 	// print time stamp to buffer
 					sprintf(base->outBuff, "(%s) - Group %u of sector %u published OK!", base->ISOtimeBuff, i, wichSector);
 					base->sckOut();
 					break;
@@ -866,15 +941,13 @@ SckList::SectorInfo SckList::sectorInfo(uint16_t wichSector)
 
 	if (info.grpTotal > 0) {
 
-		GroupIndex firstGroup;
-		firstGroup.sector = wichSector;
-		firstGroup.group = 0;
-		info.firstTime = flash.readULong(_getGrpAddr(firstGroup) + GROUP_TIME);
+		GroupIndex firstGroup = {wichSector, 0, 0};
+		_getGrpAddr(&firstGroup);
+		info.firstTime = flash.readULong(firstGroup.address + GROUP_TIME);
 
-		GroupIndex lastGroup;
-		lastGroup.sector = wichSector;
-		lastGroup.group = info.grpTotal - 1;
-		info.lastTime = flash.readULong(_getGrpAddr(lastGroup) + GROUP_TIME);
+		GroupIndex lastGroup = {wichSector, info.grpTotal - 1, 0};
+		_getGrpAddr(&lastGroup);
+		info.lastTime = flash.readULong(lastGroup.address + GROUP_TIME);
 	}
 
 	return info;

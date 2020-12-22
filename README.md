@@ -33,7 +33,9 @@ All branches and pull requests on Github are auto tested with Travis
 * Platform Onboarding [github.com/fablabbcn/smartcitizen-onboarding-app](https://github.com/fablabbcn/smartcitizen-onboarding-app)
 * Kit Enclosures [github.com/fablabbcn/smartcitizen-enclosures](https://github.com/fablabbcn/smartcitizen-enclosures)
 * Useful software resources for communities [github.com/fablabbcn/smartcitizen-toolkit](https://github.com/fablabbcn/smartcitizen-toolkit)
-* Advanced data analysis tools [github.com/fablabbcn/smartcitizen-iscape-data](https://github.com/fablabbcn/smartcitizen-iscape-data)
+* Advanced data analysis tools [github.com/fablabbcn/smartcitizen-data](https://github.com/fablabbcn/smartcitizen-data)
+* Analog Sensor Board [github.com/fablabbcn/smartcitizen-analog-sensor-board](https://github.com/fablabbcn/smartcitizen-analog-sensor-board)
+* PM Board [github.com/fablabbcn/smartcitizen-kit-pm-board](https://github.com/fablabbcn/smartcitizen-kit-pm-board)
 
 ## License
 

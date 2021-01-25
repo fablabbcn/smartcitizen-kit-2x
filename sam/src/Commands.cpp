@@ -928,6 +928,11 @@ void shell_com(SckBase* base, String parameters)
 			base->led.update(base->led.YELLOW, base->led.PULSE_STATIC);
 		} else if (parameters.equals("-off")) {
 			base->st.onShell = false;
+			if (base->st.onSetup || base->st.mode == MODE_NOT_CONFIGURED) base->led.update(base->led.RED, base->led.PULSE_SOFT);
+			else {
+				if (base->st.mode == MODE_NET) base->led.update(base->led.BLUE, base->led.PULSE_SOFT);
+				else base->led.update(base->led.PINK, base->led.PULSE_SOFT);
+			}
 		}
 	}
 	sprintf(base->outBuff, "Shell mode: %s", base->st.onShell ? "on" : "off");

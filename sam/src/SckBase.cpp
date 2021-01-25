@@ -483,6 +483,8 @@ void SckBase::reviewState()
 
 		} else {
 
+			st.error = ERROR_NONE;
+			led.update(led.PINK, led.PULSE_SOFT);
 			sleepLoop();
 
 			if (st.espON && !pendingSyncConfig) ESPcontrol(ESP_OFF);

@@ -265,7 +265,7 @@ class SckUrban
 			rtc = myrtc;
 		}
 
-		bool setup();
+		bool present();
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
 

@@ -117,75 +117,17 @@ void SckBase::setup()
 	battery.setup();
 
 	// Urban board
-	analogReadResolution(12);
-	if (urban.setup()) {
-		sckOut("Urban board detected");
-		urbanPresent = true;
-
-		// Find out if urban was reinstalled just now
-		bool justInstalled = true;
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-
-			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-
-			// If any sensor was enabled urban board was present on last boot
-			if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) justInstalled = false;
-		}
-
-		if (justInstalled) {
-			sckOut("Enabling default sensors...");
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-				if (wichSensor->location == BOARD_URBAN) wichSensor->enabled = wichSensor->defaultEnabled;
-				config.sensors[wichSensor->type].enabled = wichSensor->enabled;
-			}
-			saveConfig();
-		}
-
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->enabled) urban.start(wichSensor->type);
-			else urban.stop(wichSensor->type);
-		}
-
-	} else {
-		sckOut("No urban board detected!!");
-		urbanPresent = false;
-
-		// Find out if urban was removed just now
-		bool justRemoved = false;
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-
-			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-
-			// If any sensor was enabled that means urban board was just removed
-			if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) justRemoved = true;
-		}
-
-		if (justRemoved) {
-			sckOut("Disabling sensors...");
-			for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-				OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-				if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) {
-					disableSensor(wichSensor->type);
-					config.sensors[wichSensor->type].enabled = false;
-				}
-			}
-			saveConfig();
-		}
-	}
+	urbanStart();
 
 	// Detect and enable auxiliary boards
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-
 		OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
-
 		if (wichSensor->location == BOARD_AUX) {
-			if (wichSensor->enabled && enableSensor(wichSensor->type)) {
-				config.sensors[wichSensor->type].oled_display = true;  // Show detected sensors on oled display
+			if (config.sensors[wichSensor->type].enabled) {
+				enableSensor(wichSensor->type);
 			} else {
 				wichSensor->enabled = false;
-				config.sensors[wichSensor->type].oled_display = false;
+				wichSensor->oled_display = false;
 			}
 		}
 	}
@@ -705,7 +647,6 @@ void SckBase::loadConfig()
 	// Load saved intervals
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-		wichSensor->enabled = config.sensors[wichSensor->type].enabled;
 		wichSensor->everyNint = config.sensors[wichSensor->type].everyNint;
 	}
 
@@ -736,12 +677,18 @@ void SckBase::saveConfig(bool defaults)
 		config = defaultConfig;
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
-			if (sensors[static_cast<SensorType>(i)].location == BOARD_URBAN) config.sensors[i].oled_display = sensors[static_cast<SensorType>(i)].defaultEnabled;
-			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
+
+			SensorType wichSensorType = static_cast<SensorType>(i);
+
+			config.sensors[wichSensorType].enabled = sensors[wichSensorType].defaultEnabled;
+			config.sensors[wichSensorType].oled_display = true;
+			config.sensors[wichSensorType].everyNint = sensors[wichSensorType].defaultEveryNint;
 		}
 		pendingSyncConfig = true;
 	}
+
+	// Sensor enabled/disabled state is only saved if it is setted in config.sensors the runtime state (sensors) is not saved.
+	// This means that if you want to make sensor state persistent you have to change explicitly config.sensors
 
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
@@ -1526,6 +1473,31 @@ void SckBase::sleepLoop()
 }
 
 // **** Sensors
+void SckBase::urbanStart()
+{
+	analogReadResolution(12);
+
+	if (urban.present()) {
+
+		sckOut("Urban board detected");
+		
+		// Try to start enabled sensors
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) enableSensor(wichSensor->type);
+		}
+
+	} else {
+		
+		sckOut("No urban board detected!!");
+
+		// Disable all urban sensors
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
+		}
+	}
+}
 void SckBase::updateSensors()
 {
 	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) {
@@ -1666,10 +1638,20 @@ bool SckBase::enableSensor(SensorType wichSensor)
 
 	if (result) {
 		sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
-		sensors[wichSensor].enabled = true;
 		sckOut();
+		sensors[wichSensor].enabled = true;
+		sensors[wichSensor].oled_display = config.sensors[wichSensor].oled_display;  // Show detected sensors on oled display if config is true (default).
 		writeHeader = true;
 		return true;
+	}
+
+	sensors[wichSensor].enabled = false;
+	sensors[wichSensor].oled_display = false;
+
+	// Avoid spamming with mesgs for every supported auxiliary sensor
+	if (sensors[wichSensor].location != BOARD_AUX) {
+		sprintf(outBuff, "Failed enabling %s", sensors[wichSensor].title);
+		sckOut();
 	}
 
 	return false;
@@ -1694,15 +1676,14 @@ bool SckBase::disableSensor(SensorType wichSensor)
 		default: break;
 	}
 
-	if (result) {
-		sprintf(outBuff, "Disabling %s", sensors[wichSensor].title);
-		sensors[wichSensor].enabled = false;
-		sckOut();
-		writeHeader = true;
-		return true;
-	}
+	if (result) sprintf(outBuff, "Disabling %s", sensors[wichSensor].title);
+	else sprintf(outBuff, "Failed stopping %s, still will be disabled", sensors[wichSensor].title);
+	sckOut();
 
-	return false;
+	sensors[wichSensor].enabled = false;
+	writeHeader = true;
+
+	return result;
 }
 bool SckBase::getReading(OneSensor *wichSensor)
 {

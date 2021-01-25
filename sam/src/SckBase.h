@@ -162,6 +162,7 @@ class SckBase
 		uint32_t lastPublishTime = 0; 			// seconds
 		uint32_t lastSensorUpdate = 0;
 		bool timeToPublish = false;
+		void urbanStart();
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish(); 				//  Publishes the provided group of readings to sdcard (if available)

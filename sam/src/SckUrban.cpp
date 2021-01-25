@@ -7,17 +7,16 @@ void SERCOM5_Handler() {
 	SerialPM.IrqHandler();
 }
 
-bool SckUrban::setup()
+bool SckUrban::present()
 {
-	if (!sck_bh1730fvc.start()) return false;
-	if (!sck_sht31.start()) return false;
-	if (!sck_noise.start()) return false;
-	if (!sck_mpl3115A2.start()) return false;
-	if (!sck_ccs811.start()) return false;
-	sck_pm.start(); // This sensor is independent of the urban board. That's way we don't declare error if it's not there.
+	if (sck_bh1730fvc.start()) return true;
+	if (sck_sht31.start()) return true;
+	if (sck_mpl3115A2.start()) return true;
+	if (sck_ccs811.start()) return true;
+	if (sck_pm.start()) return true;
 
-	return true;
-};
+	return false;
+}
 bool SckUrban::start(SensorType wichSensor)
 {
 	switch(wichSensor) {

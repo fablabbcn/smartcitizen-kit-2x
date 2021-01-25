@@ -195,10 +195,9 @@ void sensorConfig_com(SckBase* base, String parameters)
 		}
 
 		if (parameters.indexOf("-enable") >=0) {
-			if (!base->enableSensor(sensorToChange)) {
-				sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
-				base->sckOut();
-			} else {
+			
+			if (base->enableSensor(sensorToChange)) {
+
 				// Enable sensor also in config to make changes persistent
 				base->config.sensors[sensorToChange].enabled = true;
 
@@ -215,32 +214,32 @@ void sensorConfig_com(SckBase* base, String parameters)
 				}
 				saveNeeded = true;
 			}
+
 		} else if (parameters.indexOf("-disable") >=0) {
-			if (!base->disableSensor(sensorToChange)) {
-				sprintf(base->outBuff, "Failed disabling %s", base->sensors[sensorToChange].title);
+
+			base->disableSensor(sensorToChange);
+
+			// Disable sensor also in config to make changes persistent
+			base->config.sensors[sensorToChange].enabled = false;
+
+			// Just for PM/PN disable the rest of sensors in the same group
+			for (uint8_t i=0; i<groupToChange_size; i++) {
+				// Disable them in runtime
+				base->sensors[groupToChange[i]].enabled = false;
+
+				// Disable them also in config to make changes persistent
+				base->config.sensors[groupToChange[i]].enabled = false;
+
+				sprintf(base->outBuff, "Disabling %s", base->sensors[groupToChange[i]].title);
 				base->sckOut();
-			} else {
-				// Disable sensor also in config to make changes persistent
-				base->config.sensors[sensorToChange].enabled = false;
-
-				// Just for PM/PN disable the rest of sensors in the same group
-				for (uint8_t i=0; i<groupToChange_size; i++) {
-					// Disable them in runtime
-					base->sensors[groupToChange[i]].enabled = false;
-
-					// Disable them also in config to make changes persistent
-					base->config.sensors[groupToChange[i]].enabled = false;
-
-					sprintf(base->outBuff, "Disabling %s", base->sensors[groupToChange[i]].title);
-					base->sckOut();
-				}
-				saveNeeded = true;
 			}
+			saveNeeded = true;
 		}
 
 		if (parameters.indexOf("-oled") >=0) {
 
 			base->config.sensors[sensorToChange].oled_display = !base->config.sensors[sensorToChange].oled_display;
+			base->sensors[sensorToChange].oled_display = base->config.sensors[sensorToChange].oled_display;
 
 			snprintf(base->outBuff, sizeof(base->outBuff), "%s will %s on oled display", base->sensors[sensorToChange].title, base->config.sensors[sensorToChange].oled_display ? "be displayed" : "not show");
 			base->sckOut();
@@ -728,12 +727,14 @@ void power_com(SckBase* base, String parameters)
 }
 void config_com(SckBase* base, String parameters)
 {
+	bool resetMsg = false;
 
 	// Set
 	if (parameters.length() > 0) {
 
 		if (parameters.indexOf("-defaults") >= 0) {
 			base->saveConfig(true);
+			resetMsg = true;
 		} else {
 			// Shows or sets configuration [-defaults -mode sdcard/network -pubint publish-interval -wifi \"ssid/null\" [\"pass\"] -token token/null]
 			int16_t modeI = parameters.indexOf("-mode");
@@ -805,6 +806,8 @@ void config_com(SckBase* base, String parameters)
 
 	sprintf(base->outBuff, "Mac address:  %s", base->config.mac.address);
 	base->sckOut();
+
+	if (resetMsg) base->sckOut("\r\n** Please reset your kit **");
 }
 void esp_com(SckBase* base, String parameters)
 {

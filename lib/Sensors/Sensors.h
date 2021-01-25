@@ -154,8 +154,9 @@ class OneSensor
 		bool enabled;
 		bool defaultEnabled;
 		int16_t state; 		// -1:error on reading, 0:reading OK, >0:number of seconds until the reading is OK
+		bool oled_display;
 
-		OneSensor(SensorLocation nLocation, uint8_t nPriority, SensorType nType, const char *nShortTitle, const char *nTitle, uint8_t nId=0, bool nEnabled=false, bool nControllable=false, uint8_t nEveryNint=1, const char *nUnit="") {
+		OneSensor(SensorLocation nLocation, uint8_t nPriority, SensorType nType, const char *nShortTitle, const char *nTitle, uint8_t nId=0, bool nEnabled=false, bool nControllable=false, uint8_t nEveryNint=1, const char *nUnit="", bool nOled_display=true) {
 			location = nLocation;
 			priority = nPriority; 		// 0-250, 0:Max priority -> 250:Min priority
 			type = nType;
@@ -171,6 +172,7 @@ class OneSensor
 			enabled = nEnabled;
 			defaultEnabled = nEnabled;
 			state = -1;
+			oled_display = nOled_display;
 		}
 };
 

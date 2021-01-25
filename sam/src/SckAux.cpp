@@ -1043,7 +1043,8 @@ void Groove_OLED::displayReading(SckBase* base)
 
 		SensorType thisSensor = static_cast<SensorType>(i);
 
-		if (base->config.sensors[thisSensor].oled_display &&
+		if (base->sensors[thisSensor].enabled &&
+				base->sensors[thisSensor].oled_display &&
 				base->sensors[thisSensor].type != SENSOR_GROVE_OLED && 		//Oled screen has nothing to show
 				base->sensors[thisSensor].type != SENSOR_BATT_PERCENT) { 	// Battery is already shown on oled info-bar
 

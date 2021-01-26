@@ -643,7 +643,7 @@ void SckList::flashUpdate()
 {
 	_scanSectors();
 }
-uint8_t SckList::saveGroup()
+SckList::GroupIndex SckList::saveGroup()
 {
 
 	// First prepare the group to be saved (on ram buffer)
@@ -692,7 +692,7 @@ uint8_t SckList::saveGroup()
 				enabledSensors++;
 			}
 		}
-		if (enabledSensors == 0) return enabledSensors;
+		if (enabledSensors == 0) return {-1,-1,0};
 	}
 	if (debug) base->sckOut("<-");
 
@@ -726,6 +726,8 @@ uint8_t SckList::saveGroup()
 		}
 	}
 
+	uint32_t startAddress = _addr;
+
 	// Copy buffer to flash memory
 	for (uint16_t i=0; i<pos; i++) _append(flashBuff[i]);
 
@@ -737,7 +739,9 @@ uint8_t SckList::saveGroup()
 		base->sckOut();
 	}
 
-	return enabledSensors;
+	int16_t thisGroup = _countSectGroups(_currSector, PUB_NET, true);
+	GroupIndex returnGroup = {_currSector, thisGroup, startAddress};
+	return returnGroup;
 }
 SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 {

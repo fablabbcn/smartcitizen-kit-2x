@@ -1586,9 +1586,12 @@ void SckBase::updateSensors()
 
 	if (sensorsReady) {
 		sckOut("-----------");
-		uint8_t readingNum = readingsList.saveGroup(); 	// If all sensors are ready, save the group
-		sprintf(outBuff, "(%s) %u readings saved to flash memory.", ISOtimeBuff, readingNum);
-		sckOut();
+
+		SckList::GroupIndex justSaved = readingsList.saveGroup();
+		if (justSaved.sector >= 0) {
+			sprintf(outBuff, "(%s) Readings saved to flash memory.", ISOtimeBuff);
+			sckOut();
+		}
 
 		if (st.cardPresent) {
 			// Publish new groups (that aren't saved to sdcard)
@@ -1605,6 +1608,10 @@ void SckBase::updateSensors()
 				} else break;
 			}
 		}
+
+		// Don't keep groups as unpublished for other modes.
+		if (st.mode == MODE_NET) readingsList.setPublished(justSaved, readingsList.PUB_SD);
+		else if (st.mode == MODE_SD) readingsList.setPublished(justSaved, readingsList.PUB_NET);
 	}
 
 	if (readingsList.availableReadings[readingsList.PUB_NET]) {

@@ -464,7 +464,7 @@ void flash_com(SckBase* base, String parameters)
 		SckList::FlashInfo info = base->readingsList.flashInfo();
 		sprintf(base->outBuff, "\r\n%u sectors in total, %u used and %u free.", SCKLIST_SECTOR_NUM, info.sectUsed, info.sectFree);
 		base->sckOut();
-		sprintf(base->outBuff, "%u groups in total.\r\nNetwork: %u published and %u not published.\r\nSd-card: %u published and %u not published.", info.grpTotal, info.grpPubNet, info.grpUnPubNet, info.grpPubSd, info.grpUnPubSd);
+		sprintf(base->outBuff, "%u groups in total.\r\nNetwork: %u pending to publish.\r\nSd-card: %u pending to publish.", info.grpTotal, info.grpUnPubNet, info.grpUnPubSd);
 		base->sckOut();
 		sprintf(base->outBuff, "Using sector number: %u\r\n", info.currSector);
 		base->sckOut();

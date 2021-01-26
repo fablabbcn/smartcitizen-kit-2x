@@ -65,11 +65,11 @@ class SckList
 		struct FlashInfo {
 			uint16_t sectFree = 0;
 			uint16_t sectUsed = 0;
-			uint16_t grpUnPubNet = 0;
-			uint16_t grpPubNet = 0;
-			uint16_t grpUnPubSd = 0;
-			uint16_t grpPubSd = 0;
-			int16_t grpTotal = 0;
+			uint32_t grpUnPubNet = 0;
+			uint32_t grpPubNet = 0;
+			uint32_t grpUnPubSd = 0;
+			uint32_t grpPubSd = 0;
+			uint32_t grpTotal = 0;
 			uint16_t currSector = 0;
 		};
 

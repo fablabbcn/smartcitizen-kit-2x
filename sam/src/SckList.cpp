@@ -1011,10 +1011,13 @@ SckList::FlashInfo SckList::flashInfo()
 			flashInfo.grpPubSd += sectInfo.grpPubSd;
 			flashInfo.grpUnPubSd += sectInfo.grpUnPubSd;
 
+			// Print the total of groups in the sector
+			sprintf(base->outBuff, "%s%u", base->outBuff, sectInfo.grpTotal);
+
 			// Print the number of unpublished readings for net/sd
-			if (sectInfo.grpUnPubNet > 0) sprintf(base->outBuff, "%s%u/", base->outBuff, sectInfo.grpUnPubNet);
+			if (sectInfo.grpUnPubNet > 0) sprintf(base->outBuff, "%s(%u/", base->outBuff, sectInfo.grpUnPubNet);
 			else sprintf(base->outBuff, "%s_/", base->outBuff);
-			if (sectInfo.grpUnPubSd > 0) sprintf(base->outBuff, "%s%u", base->outBuff, sectInfo.grpUnPubSd);
+			if (sectInfo.grpUnPubSd > 0) sprintf(base->outBuff, "%s%u)", base->outBuff, sectInfo.grpUnPubSd);
 			else sprintf(base->outBuff, "%s_", base->outBuff);
 
 		} else if (state == SECTOR_EMPTY)  {
@@ -1032,7 +1035,7 @@ SckList::FlashInfo SckList::flashInfo()
 
 
 	}
-	base->sckOut("\r\nu -> Used sector\r\nU -> In use sector\r\ne -> empty sector\r\nUnpublished readings are shown after sector state in the form network/sdcard (ej. |u65/45|)");
+	base->sckOut("\r\nSector state:\r\nu -> Used sector\r\nU -> In use sector\r\ne -> empty sector\r\nReadings are shown after sector state in the form of: total(net-pending/sd-pending) (ej. |u78(65/45)|)");
 
 	flashInfo.currSector = _currSector;
 

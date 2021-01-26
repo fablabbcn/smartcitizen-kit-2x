@@ -4,6 +4,7 @@ matrix:
       python: 2.7
       install:
         - pip install -U platformio
+        - pio --version
       before_script:
         - pwd
         - cd esp
@@ -15,6 +16,7 @@ matrix:
       python: 2.7
       install:
         - pip install -U platformio
+        - pio --version
       before_script:
         - pwd
         - cd sam

@@ -1586,15 +1586,10 @@ void SckBase::updateSensors()
 
 	if (sensorsReady) {
 		sckOut("-----------");
-
-		uint8_t readingNum = 0;
-		// If all sensors are ready, save the group indicating the intended publish mode 
-		if (st.mode == MODE_SD) readingNum = readingsList.saveGroup(readingsList.PUB_SD);
-		else if (st.mode == MODE_NET) readingNum = readingsList.saveGroup(readingsList.PUB_NET);
+		uint8_t readingNum = readingsList.saveGroup(); 	// If all sensors are ready, save the group
 		sprintf(outBuff, "(%s) %u readings saved to flash memory.", ISOtimeBuff, readingNum);
 		sckOut();
 
-		// If we have an sdcard available always save data (even in network mode)
 		if (st.cardPresent) {
 			// Publish new groups (that aren't saved to sdcard)
 			uint32_t counter = 0;

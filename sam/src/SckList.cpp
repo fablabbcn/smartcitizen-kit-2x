@@ -643,18 +643,15 @@ void SckList::flashUpdate()
 {
 	_scanSectors();
 }
-uint8_t SckList::saveGroup(PubFlags publishTo)
+uint8_t SckList::saveGroup()
 {
 
 	// First prepare the group to be saved (on ram buffer)
 
-	// Only init tags in NOT_PUBLISHED (0xFF) for the requested publish mode in the publishTo parameter
-	byte finit_net = 0x00;
-	byte finit_sd = 0x00;
-	if (publishTo == PUB_NET) finit_net = 0xFF;
-	else if (publishTo == PUB_SD) finit_sd = 0xFF; 
-	memcpy(&flashBuff[GROUP_NET], &finit_net, 1);
-	memcpy(&flashBuff[GROUP_SD], &finit_sd, 1);
+	// Init tags in NOT_PUBLISHED for all
+	byte finit = 0xFF;
+	memcpy(&flashBuff[GROUP_NET], &finit, 1);
+	memcpy(&flashBuff[GROUP_SD], &finit, 1);
 
 	// Store timeStamp of current group
 	memcpy(&flashBuff[GROUP_TIME], &base->lastSensorUpdate, 4);  	// Write timeStamp (4 bytes)

@@ -250,6 +250,8 @@ void SckBase::reviewState()
 
 	} else if (st.mode == MODE_NET) {
 
+		updateSensors();
+
 		// This error needs user intervention
 		if (!st.wifiSet) {
 			if (!st.wifiStat.error) {
@@ -425,6 +427,8 @@ void SckBase::reviewState()
 
 		}
 	} else if  (st.mode == MODE_SD) {
+
+		updateSensors();
 
 		if (!st.cardPresent) {
 			if (!st.cardPresentError) {

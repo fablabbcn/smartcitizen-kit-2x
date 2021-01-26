@@ -254,7 +254,7 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichF
 	bool founded = false;
 
 	if (debug) {
-		sprintf(base->outBuff, "F: Searching for group not %s on sector %u: ", wichFlag == PUB_NET ? " published to network" : " saved to sdcard", wichSector);
+		sprintf(base->outBuff, "F: Searching for group not %s on sector %u: ", wichFlag == PUB_NET ? "published to network" : "saved to sdcard", wichSector);
 		base->sckOut(PRIO_MED, false);
 	}
 
@@ -280,7 +280,7 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichF
 		// Find out groupSize
 		uint16_t groupSize = flash.readWord(potencialNextGroup.address);
 		
-		if (groupSize != 0xFFFF && (potencialNextGroup.address + groupSize) < endAddr) {
+		if (groupSize != 0xFFFF && (potencialNextGroup.address + groupSize) <= endAddr) {
 
 			// Check if group is NOT published in the requested flag
 			byte byteFlags = flash.readByte(potencialNextGroup.address + addPositionFlag);
@@ -304,7 +304,7 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichF
 			// Find out groupSize
 			uint16_t groupSize = flash.readWord(thisGroup.address);
 
-			if (groupSize == 0xFFFF || (thisGroup.address + groupSize) >= endAddr) {
+			if (groupSize == 0xFFFF || (thisGroup.address + groupSize) > endAddr) {
 				if (debug) base->sckOut("None found!!");
 
 				// If this sector is already marked as USED and it is not marked as fully published markt it!
@@ -750,7 +750,7 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 			base->sckOut();
 		}
 
-		// If the initial scan afound data on some sector this should have that sector number
+		// If the initial scan found data on some sector this should know that sector number
 		if (_dataAvailableSect[wichFlag] >= 0) {
 
 			while(_dataAvailableSect[wichFlag] >= 0) {

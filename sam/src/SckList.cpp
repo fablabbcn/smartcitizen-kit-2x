@@ -52,7 +52,11 @@ bool SckList::_flashFormat()
 // Read/Write functions
 bool SckList::_append(char value)
 {
-	if (!flash.writeByte(_addr, value)) return false;
+	if (!flash.writeByte(_addr, value)) {
+		sprintf(base->outBuff, "F: Error writing on address %u", _addr);
+		base->sckOut();
+		return false;
+	}
 
 	_addr++;
 	return true;
@@ -175,10 +179,17 @@ int16_t SckList::_getSectFreeSpace(uint16_t wichSector)
 		uint16_t groupSize = flash.readWord(address);
 		if (groupSize == 0xFFFF) break;
 		else if (groupSize == 0) return -1;
+		else if (groupSize > SECTOR_SIZE - 3) return -1; 	// One group shouldn't be bigger than the sector
 		address += groupSize;
 	}
 
 	uint16_t freeSpace = endAddr - address;
+
+	if (debug) {
+		sprintf(base->outBuff, "F: Sector %u has %u bytes free", wichSector, freeSpace);
+		base->sckOut();
+	}
+
 	return freeSpace;
 }
 uint8_t SckList::_getSectState(uint16_t wichSector)
@@ -227,6 +238,9 @@ int8_t SckList::_closeSector(uint16_t wichSector)
 	// If no readings left, mark sector as published (_setSectPublished() will check if all readings are published)
 	_setSectPublished(_currSector, PUB_NET);
 	_setSectPublished(_currSector, PUB_SD);
+
+	// _scanSectors will find the next availablew sector to be used
+	_scanSectors();
 
 	return 1;
 }
@@ -700,31 +714,28 @@ SckList::GroupIndex SckList::saveGroup()
 	memcpy(&flashBuff[GROUP_SIZE], &pos, 2);
 
 	// Check if new group fits in current sector
-	if (_getSectFreeSpace(_currSector) < pos) {
+	int16_t _currentFreeSpace = _getSectFreeSpace(_currSector);
+	bool sectorIsFull = false;
+	if (_currentFreeSpace < pos) {
 
 		if (debug) {
 			sprintf(base->outBuff, "F: Sector %u doesn't have enough free space, will search for a new one.", _currSector);
 			base->sckOut();
 		}
 
-		// Close full sector
+		// Close this one and find next usable sector
 		_closeSector(_currSector);
 
-		// _scanSectors will find the next availablew sector to be used
-		_scanSectors();
-
-
 		// If selected sector doesn't have enough space, close it and keep scanning until we found a sector that fits the data
-		while (_getSectFreeSpace(_currSector) < pos) {
-			_closeSector(_currSector);
-			_scanSectors();
-		}
+		while (_getSectFreeSpace(_currSector) < pos) _closeSector(_currSector);
 
 		if (debug) {
 			sprintf(base->outBuff, "F: Using sector %u in address %lu", _currSector, _addr);
 			base->sckOut();
 		}
-	}
+
+	// Check if after saving the group the sector is completely full
+	} else if (_currentFreeSpace == pos) sectorIsFull = true;
 
 	uint32_t startAddress = _addr;
 
@@ -741,6 +752,21 @@ SckList::GroupIndex SckList::saveGroup()
 
 	int16_t thisGroup = _countSectGroups(_currSector, PUB_NET, true);
 	GroupIndex returnGroup = {_currSector, thisGroup, startAddress};
+
+	if (sectorIsFull) {
+		if (debug) {
+			sprintf(base->outBuff, "F: We just filled sector %u.", _currSector);
+			base->sckOut();
+		}
+		// Close full sector
+		_closeSector(_currSector);
+
+		if (debug) {
+			sprintf(base->outBuff, "F: Now using sector %u in address %lu", _currSector, _addr);
+			base->sckOut();
+		}
+	}
+
 	return returnGroup;
 }
 SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
@@ -1016,9 +1042,9 @@ SckList::FlashInfo SckList::flashInfo()
 
 			// Print the number of unpublished readings for net/sd
 			if (sectInfo.grpUnPubNet > 0) sprintf(base->outBuff, "%s(%u/", base->outBuff, sectInfo.grpUnPubNet);
-			else sprintf(base->outBuff, "%s_/", base->outBuff);
+			else sprintf(base->outBuff, "%s(_/", base->outBuff);
 			if (sectInfo.grpUnPubSd > 0) sprintf(base->outBuff, "%s%u)", base->outBuff, sectInfo.grpUnPubSd);
-			else sprintf(base->outBuff, "%s_", base->outBuff);
+			else sprintf(base->outBuff, "%s_)", base->outBuff);
 
 		} else if (state == SECTOR_EMPTY)  {
 			flashInfo.sectFree++;

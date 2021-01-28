@@ -122,7 +122,7 @@ class SckList
 		uint32_t _getSectAddr(uint16_t wichSector);
 		uint8_t _getSectState(uint16_t wichSector);
 		int8_t _setSectPublished(uint16_t wichSector, PubFlags wichFlag); 		// Sector flags are only  marked if SectorState = SECTOR_FULL and all groups in the sector are already published in the correspondant flag
-		int8_t _closeSector(uint16_t wichSector); 					// Marks sector as SECTOR_FULL and if there is no unpublished data in the sector also mark it as published
+		int8_t _closeSector(uint16_t wichSector); 					// Marks sector as SECTOR_FULL and if there is no unpublished data in the sector also mark it as published, searchs for the next usable sector and updates _currSector to save next readings.
 		int8_t _isSectPublished(uint16_t wichSector, PubFlags wichFlag);
 		int16_t _getSectFreeSpace(uint16_t wichSector);
 		bool _countSectGroups(uint16_t wichSector, SectorInfo* info); 			// Counts groups in sector (indepently of their state). To count more that one type of groups in the sector this is more efficient.

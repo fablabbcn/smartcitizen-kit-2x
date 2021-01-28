@@ -9,9 +9,9 @@
 ## Documentation
 
 * If you want to read more about the Smartcitizen Kit or its sensors please check our [documentation](http://docs.smartcitizen.me/)
-* If you just want to **upgrade** your Smartcitizen kit **firmware** please refer to the [Updating the Smartcitizen Kit Firmware](http://docs.smartcitizen.me/Components/Firmware/guides/Update%20the%20firmware/) guide.
-* If you want to change something and build the firmware, use the [Building and flashing the Smartcitizen Kit firmware](http://docs.smartcitizen.me/Components/Firmware/guides/Edit%20the%20Firmware/) guide.
-* The SCK provides a comprehensive command shell over USB to manage all the kits functionalities for advanced users: [Using the Smartcitizen Kit shell](http://docs.smartcitizen.me/Components/Firmware/guides/Using%20the%20Shell/) guide.
+* If you just want to **upgrade** your Smartcitizen kit **firmware** please refer to the [Updating the Smartcitizen Kit Firmware](http://docs.smartcitizen.me/Guides/firmware/Update%20the%20firmware/) guide.
+* If you want to change something and build the firmware, use the [Building and flashing the Smartcitizen Kit firmware](http://docs.smartcitizen.me/Guides/firmware/Edit%20the%20Firmware/) guide.
+* The SCK provides a comprehensive command shell over USB to manage all the kits functionalities for advanced users: [Using the Smartcitizen Kit shell](http://docs.smartcitizen.me/Guides/getting%20started/Using%20the%20Shell/) guide.
 * A compilation of Smartcitizen hardware work in a single **open publication:** [_Hardware X: Special Issue on Open-Hardware for Environmental Sensing and Instruments_](https://doi.org/10.1016/j.ohx.2019.e00070)
 * You can also follow the [forum](https://forum.smartcitizen.me/) and [twitter](https://twitter.com/SmartCitizenKit) for updates.
 

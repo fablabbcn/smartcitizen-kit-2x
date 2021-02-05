@@ -29,7 +29,7 @@ def before_build():
     if not os.path.isdir(".platformio/packages/framework-arduino-samd/variants/sck2"):
         checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduino-samd/variants/sck2"])
         checkout.wait()
-        checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduino-samd/libraries/__cores__/samd/I2S/src/utility/SAMD21_I2SDevice.h"])
+        checkout = subprocess.Popen(["git", "checkout", ".platformio/packages/framework-arduino-samd/libraries/I2S/src/utility/SAMD21_I2SDevice.h"])
         checkout.wait()
 
 before_build() 

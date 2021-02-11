@@ -464,7 +464,7 @@ void flash_com(SckBase* base, String parameters)
 		SckList::FlashInfo info = base->readingsList.flashInfo();
 		sprintf(base->outBuff, "\r\n%u sectors in total, %u used and %u free.", SCKLIST_SECTOR_NUM, info.sectUsed, info.sectFree);
 		base->sckOut();
-		sprintf(base->outBuff, "%u groups in total.\r\nNetwork: %u pending to publish.\r\nSd-card: %u pending to publish.", info.grpTotal, info.grpUnPubNet, info.grpUnPubSd);
+		sprintf(base->outBuff, "%lu groups in total.\r\nNetwork: %lu pending to publish.\r\nSd-card: %lu pending to publish.", info.grpTotal, info.grpUnPubNet, info.grpUnPubSd);
 		base->sckOut();
 		sprintf(base->outBuff, "Using sector number: %u\r\n", info.currSector);
 		base->sckOut();
@@ -1029,7 +1029,7 @@ void mqttConfig_com(SckBase* base, String parameters)
 
 	sprintf(base->outBuff, "Mqtt Host: %s", currentConfig.mqtt.server);
 	base->sckOut();
-	sprintf(base->outBuff, "Mqtt Port: %lu", currentConfig.mqtt.port);
+	sprintf(base->outBuff, "Mqtt Port: %u", currentConfig.mqtt.port);
 	base->sckOut();
 	
 }
@@ -1067,7 +1067,7 @@ void ntpConfig_com(SckBase* base, String parameters)
 
 	sprintf(base->outBuff, "NTP Host: %s", currentConfig.ntp.server);
 	base->sckOut();
-	sprintf(base->outBuff, "NTP Port: %lu", currentConfig.ntp.port);
+	sprintf(base->outBuff, "NTP Port: %u", currentConfig.ntp.port);
 	base->sckOut();
 	
 }

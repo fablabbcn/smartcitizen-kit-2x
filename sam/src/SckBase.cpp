@@ -1552,7 +1552,7 @@ void SckBase::updateSensors()
 			if (wichSensor->enabled && wichSensor->priority != 250) {
 
 				if ( 	(lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval) || 
-					st.dynamic && (lastSensorUpdate - wichSensor->lastReadingTime) >= dynamicInterval) { 	// Is time to read it?
+					(st.dynamic && ((lastSensorUpdate - wichSensor->lastReadingTime) >= dynamicInterval))) { 	// Is time to read it?
 
 					wichSensor->lastReadingTime = lastSensorUpdate; 	// Update sensor reading time
 

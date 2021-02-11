@@ -53,7 +53,7 @@ bool SckList::_flashFormat()
 bool SckList::_append(char value)
 {
 	if (!flash.writeByte(_addr, value)) {
-		sprintf(base->outBuff, "F: Error writing on address %u", _addr);
+		sprintf(base->outBuff, "F: Error writing on address %lu", _addr);
 		base->sckOut();
 		return false;
 	}
@@ -264,7 +264,7 @@ int8_t SckList::_isSectPublished(uint16_t wichSector, PubFlags wichFlag)
 }
 SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag)
 {
-	GroupIndex thisGroup = {wichSector, -1, 0};
+	GroupIndex thisGroup = {(int16_t)wichSector, -1, 0};
 	bool founded = false;
 
 	if (debug) {
@@ -304,7 +304,7 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichF
 				// Store the group and and the next potencial
 				thisGroup.group = potencialNextGroup.group;
 				thisGroup.address = potencialNextGroup.address;
-				potencialNextGroup = {wichSector, potencialNextGroup.group++, potencialNextGroup.address + groupSize};
+				potencialNextGroup = {(int16_t)wichSector, potencialNextGroup.group++, potencialNextGroup.address + groupSize};
 				founded = true;
 				if (debug) base->sckOut("Potencial next group OK!");
 			}
@@ -334,7 +334,7 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichF
 			byte byteFlags = flash.readByte(thisGroup.address + addPositionFlag);
 			if (byteFlags == NOT_PUBLISHED) {
 				// Store position of the next potencial group
-				potencialNextGroup = {wichSector, thisGroup.group++, thisGroup.address + groupSize};
+				potencialNextGroup = {(int16_t)wichSector, thisGroup.group++, thisGroup.address + groupSize};
 				break;
 			}
 
@@ -345,7 +345,7 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichF
 	
 
 	if (debug) {
-		sprintf(base->outBuff, "Found group with index: %i", thisGroup);
+		sprintf(base->outBuff, "Found group with index: %i", thisGroup.group);
 		base->sckOut();
 	}
 
@@ -900,7 +900,7 @@ uint16_t SckList::recover(uint16_t wichSector, PubFlags wichFlag)
 
 
 		// prepare the flash group
-		GroupIndex thisGroup = {wichSector, i};
+		GroupIndex thisGroup = {(int16_t)wichSector, i};
 		GroupIndex tryingGroup = readGroup(wichFlag, thisGroup);
 
 		if (wichFlag == PUB_SD) {
@@ -971,11 +971,11 @@ SckList::SectorInfo SckList::sectorInfo(uint16_t wichSector)
 
 	if (info.grpTotal > 0) {
 
-		GroupIndex firstGroup = {wichSector, 0, 0};
+		GroupIndex firstGroup = {(int16_t)wichSector, 0, 0};
 		_getGrpAddr(&firstGroup);
 		info.firstTime = flash.readULong(firstGroup.address + GROUP_TIME);
 
-		GroupIndex lastGroup = {wichSector, info.grpTotal - 1, 0};
+		GroupIndex lastGroup = {(int16_t)wichSector, (int16_t)((int16_t)info.grpTotal - 1), 0};
 		_getGrpAddr(&lastGroup);
 		info.lastTime = flash.readULong(lastGroup.address + GROUP_TIME);
 	}
@@ -1021,12 +1021,12 @@ SckList::FlashInfo SckList::flashInfo()
 				// Print uppercase U to indicate this is the current sector
 				firstEmpty = false;
 				flashInfo.sectFree++;
-				sprintf(base->outBuff, "%sU", base->outBuff);
+				snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "U");
 
 			} else {
 				// Print lowercase u to indicate this sector is used
 				flashInfo.sectUsed++;
-				sprintf(base->outBuff, "%su", base->outBuff);
+				snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "u");
 			}
 
 			SectorInfo sectInfo;
@@ -1038,21 +1038,21 @@ SckList::FlashInfo SckList::flashInfo()
 			flashInfo.grpUnPubSd += sectInfo.grpUnPubSd;
 
 			// Print the total of groups in the sector
-			sprintf(base->outBuff, "%s%u", base->outBuff, sectInfo.grpTotal);
+			snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "%u", sectInfo.grpTotal);
 
 			// Print the number of unpublished readings for net/sd
-			if (sectInfo.grpUnPubNet > 0) sprintf(base->outBuff, "%s(%u/", base->outBuff, sectInfo.grpUnPubNet);
-			else sprintf(base->outBuff, "%s(_/", base->outBuff);
-			if (sectInfo.grpUnPubSd > 0) sprintf(base->outBuff, "%s%u)", base->outBuff, sectInfo.grpUnPubSd);
-			else sprintf(base->outBuff, "%s_)", base->outBuff);
+			if (sectInfo.grpUnPubNet > 0) snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "(%u/", sectInfo.grpUnPubNet);
+			else snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "(_/");
+			if (sectInfo.grpUnPubSd > 0) snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "%u)", sectInfo.grpUnPubSd);
+			else snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "_)");
 
 		} else if (state == SECTOR_EMPTY)  {
 			flashInfo.sectFree++;
 			// Print an e to indicate an empty sector
-			sprintf(base->outBuff, "%se", base->outBuff);
+			snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "e");
 		}
 
-		sprintf(base->outBuff, "%s|", base->outBuff);
+		snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "|");
 		sectPrinted++;
 		if (sectPrinted == sectPerLine) {
 			base->sckOut(PRIO_HIGH, false);

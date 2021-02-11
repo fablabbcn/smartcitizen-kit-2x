@@ -108,6 +108,7 @@ if 'flash' in sys.argv:
         else: ERROR()
 
     if 'esp' in sys.argv or 'all' in sys.argv:
+        time.sleep(0.5)
         oneLine('Flashing ESP firmware')
         for i in range(4):
             mySpeed = 115200 / pow(2, i)

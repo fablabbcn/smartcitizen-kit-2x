@@ -35,17 +35,31 @@ def enablePrint():
 if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv or len(sys.argv) < 2 or (not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv):
     if not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv:
         print('\nYou need to specify at least one action!!!\n')
-    print('USAGE:\n\nbuild.py [options] action[s] target[s]')
+    print('USAGE:\n\nbuild.py [options] action[s] target[s] -p port -f')
     print('\noptions: -v: verbose -k: keep configuration')
     print('actions: boot (only for sam), build, flash')
-    print('targets: sam, esp')
+    print('targets: sam, esp [-p port [-f]]')
+    print('-p port [-f]: specify a port instead of scanning')
+    print('-f: option ignores serial device description (must contain Smartcitizen otherwise)')
     sys.exit()
+
+verbose = False
+blockPrint()
+if '-v' in sys.argv:
+    verbose = True
+    enablePrint()
 
 import sck
 kit = sck.sck()
 
-if 'flash' in sys.argv :
-    kit.begin() 
+if 'flash' in sys.argv:
+    force = False
+    port = None
+    if '-p' in sys.argv:
+        port = sys.argv[sys.argv.index('-p')+1]
+        if '-f' in sys.argv: force = True
+    elif '-f' in sys.argv: ERROR('No force action if port is not specified'); sys.exit()
+    if not kit.begin(port=port, force=force): sys.exit()
     if '-k' in sys.argv: 
         kit.getConfig()
         if kit.mode == 'network':
@@ -56,13 +70,6 @@ if 'flash' in sys.argv :
             print('Current mode: ' + kit.mode + ww)
         else:
             print('Kit is not configured')
-
-
-verbose = False
-blockPrint()
-if '-v' in sys.argv: 
-    verbose = True
-    enablePrint()
 
 if 'erase' in sys.argv:
     print('Erasing ESP flash...')

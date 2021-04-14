@@ -1286,7 +1286,6 @@ bool Atlas::start()
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	if (beginDone) return true;
-	beginDone = true;
 
 	// Protocol lock
 	if (!sendCommand((char*)"Plock,1")) return false;
@@ -1311,6 +1310,13 @@ bool Atlas::start()
 
 	} else if (DO) {
 
+		// ---- Check if this is really a Atlas DO sensor (allows sharing I2C addres 0x61 with SCD30 CO2 sensor)
+		if (sendCommand((char*)"i")) {
+			delay(shortWait);
+			getResponse();
+			if (!atlasResponse.startsWith("?I,DO")) return false;
+		} else return false;
+
 		// ---- Set parameters
 		if (sendCommand((char*)"O,?")) {
 			delay(shortWait);
@@ -1324,6 +1330,7 @@ bool Atlas::start()
 		} else return false;
 	}
 
+	beginDone = true;
 	detected = true;
 
 	goToSleep();

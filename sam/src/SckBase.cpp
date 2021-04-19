@@ -1643,7 +1643,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
 		}
 		case BOARD_URBAN: if (urban.start(wichSensor)) result = true; break;
 		case BOARD_AUX:	{
-					if (auxBoards.start(wichSensor)) result = true;
+					if (auxBoards.start(this, wichSensor)) result = true;
 					break;
 				}
 		default: break;

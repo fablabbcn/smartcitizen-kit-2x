@@ -174,7 +174,7 @@ class AuxBoards
 			0x4b 			// SENSOR_ADS1X15_XX_X
 		};
 
-		bool start(SensorType wichSensor);
+		bool start(SckBase *base, SensorType wichSensor);
 		bool stop(SensorType wichSensor);
 		void getReading(SckBase *base, OneSensor *wichSensor);
 		bool getBusyState(SensorType wichSensor);
@@ -683,25 +683,26 @@ class Sck_SCD30
 {
 	public:
 		const byte deviceAddress = 0x61;
-		bool start(SensorType wichSensor);
+		bool start(SckBase *base, SensorType wichSensor);
 		bool stop(SensorType wichSensor);
 		bool getReading(SensorType wichSensor);
 		uint16_t interval(uint16_t newInterval=0);
 		bool autoSelfCal(int8_t value=-1);
+		bool forcedRecalFactor(uint16_t newFactor=0);
+		float tempOffset(float userTemp=NULL, bool off=false);
 
 		uint16_t co2 = 0;
 		float temperature = 0;
 		float humidity = 0;
 
-	private:
+		bool pressureCompensated = false;
 
+	private:
 		uint8_t enabled[3][2] = { {SENSOR_SCD30_CO2, 0}, {SENSOR_SCD30_TEMP, 0}, {SENSOR_SCD30_HUM, 0} };
 		bool _debug = false;
 		bool started = false;
 		uint16_t measInterval = 2; 	// "2-1800 seconds"
 		SCD30 sparkfun_scd30;
-
-
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

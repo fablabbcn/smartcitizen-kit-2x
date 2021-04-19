@@ -30,7 +30,7 @@ Sck_SCD30 		scd30;
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
 
-bool AuxBoards::start(SensorType wichSensor)
+bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 {
 	if (!dataLoaded) {
 		data = eepromAuxData.read();
@@ -125,9 +125,9 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_ADS1X15_4B_1:
 		case SENSOR_ADS1X15_4B_2:
 		case SENSOR_ADS1X15_4B_3: 		return ads4B.start(0x4B); break;
-		case SENSOR_SCD30_CO2: 			return scd30.start(SENSOR_SCD30_CO2); break;
-		case SENSOR_SCD30_TEMP: 		return scd30.start(SENSOR_SCD30_TEMP); break;
-		case SENSOR_SCD30_HUM: 			return scd30.start(SENSOR_SCD30_HUM); break;
+		case SENSOR_SCD30_CO2: 			return scd30.start(base, SENSOR_SCD30_CO2); break;
+		case SENSOR_SCD30_TEMP: 		return scd30.start(base, SENSOR_SCD30_TEMP); break;
+		case SENSOR_SCD30_HUM: 			return scd30.start(base, SENSOR_SCD30_HUM); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.start(); break;
 		default: break;
 	}
@@ -696,9 +696,38 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				return String F("Auto Self Calibration: ") + String(scd30.autoSelfCal() ? "on" : "off");
 
-			} else {
+			} else if (command.startsWith("calfactor")) {
 
-				return F("Wrong commad!!\r\nOptions:\r\ninterval [10-1000 seconds]\r\nautocal [on/off]");
+				command.replace("calfactor", "");
+				command.trim();
+
+				uint16_t newFactor = command.toInt();
+
+				return String F("Forced Recalibration Factor: ") + String(scd30.forcedRecalFactor(newFactor) ? "Ok" : "Error!");
+
+			} else if (command.startsWith("caltemp")) {
+				
+				command.replace("caltemp", "");
+				command.trim();
+
+				float userTemp = NULL;
+				bool off = false;
+
+				if (command.startsWith("off")) off = true;
+				else {
+
+					if (command.length() > 0) userTemp = command.toFloat();
+				}
+
+				scd30.getReading(SENSOR_SCD30_TEMP);
+
+				return String F("Current temperature: ") + String(scd30.temperature) + F(" C") + F("\r\nTemperature offset: ") + String(scd30.tempOffset(userTemp, off)) + F(" C");
+			} else if (command.startsWith("pressure")) {
+
+				return String F("Pressure compensation on last boot: ") + String(scd30.pressureCompensated ? "True" : "False");
+
+			} else {
+				return F("Wrong commad!!\r\nOptions:\r\ninterval [2-1000 (seconds)]\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]\r\npressure");
 			}
 
 
@@ -2382,7 +2411,7 @@ void Sck_ADS1X15::runTester(uint8_t wichChannel)
 }
 #endif
 
-bool Sck_SCD30::start(SensorType wichSensor)
+bool Sck_SCD30::start(SckBase *base, SensorType wichSensor)
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
@@ -2397,8 +2426,22 @@ bool Sck_SCD30::start(SensorType wichSensor)
 	// Without this delay sensor init fails sometimes
 	delay(500);
 
-	// Unset measbegin to avoid begin() function to set measuring interval to default value of 2 seconds.
+	// Unset measbegin option to avoid begin() function to set measuring interval to default value of 2 seconds.
 	if (!sparkfun_scd30.begin(auxWire, false, false)) return false;
+
+	// Ambient pressure compensation
+	OneSensor *pressureSensor = &base->sensors[SENSOR_PRESSURE];
+	
+	if (pressureSensor->enabled && base->getReading(pressureSensor)) {
+		float pressureReading = pressureSensor->reading.toFloat();
+		uint16_t pressureInMillibar = pressureReading * 10;
+
+		if (pressureInMillibar > 700 && pressureInMillibar < 1200) {
+			if (sparkfun_scd30.setAmbientPressure(pressureInMillibar)) {
+				pressureCompensated = true;				
+			}
+		}
+	}
 
 	// Start measuring with this function respects the saved interval
 	if (!sparkfun_scd30.beginMeasuring()) return false;
@@ -2471,6 +2514,35 @@ bool Sck_SCD30::autoSelfCal(int8_t value)
 	else if (value == 0) sparkfun_scd30.setAutoSelfCalibration(false);	
 
 	return sparkfun_scd30.getAutoSelfCalibration();
+}
+
+bool Sck_SCD30::forcedRecalFactor(uint16_t newFactor)
+{
+	// Cheking the saved factor on sensor always return 400 so for now we check if the value was received without error
+	if (newFactor >= 400 && newFactor <= 2000) {
+		return sparkfun_scd30.setAutoSelfCalibration(newFactor);
+	}
+
+	return false;
+}
+
+float Sck_SCD30::tempOffset(float userTemp, bool off)
+{
+	// We expect from user the REAL temperature measured during calibration 
+	// We calculate the difference against the sensor measured temperature to set the correct offset. Please wait for sensor to stabilize temperatures before aplying an offset.
+	// Temperature offset should always be positive (the sensor is generating heat)
+
+	uint16_t currentOffsetTemp;
+	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
+
+	getReading(SENSOR_SCD30_TEMP);
+
+	if (userTemp != NULL && temperature > userTemp) sparkfun_scd30.setTemperatureOffset(temperature - userTemp);
+	else if (off) sparkfun_scd30.setTemperatureOffset(0);
+
+	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
+
+	return currentOffsetTemp / 100.0;
 }
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )

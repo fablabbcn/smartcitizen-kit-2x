@@ -315,8 +315,8 @@ class AllSensors
 			OneSensor { BOARD_AUX,		100,	SENSOR_ADS1X15_4B_3,			"ADC_4B_3",		"ADS1x15 ADC 0x4B Ch3",				151,		true,		true,		1,			"V"},
 
 			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_CO2,			"SCD30_CO2",		"SCD30 CO2", 					158,		true,		true,		1,			"ppm"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_TEMP,			"SCD30_TEMP",		"SCD30 Temperature", 				0,		true,		true,		1,			"C"},
-			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_HUM,			"SCD30_HUM",		"SCD30 Humidity", 				0,		true,		true,		1,			"%"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_TEMP,			"SCD30_TEMP",		"SCD30 Temperature", 				160,		true,		true,		1,			"C"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_HUM,			"SCD30_HUM",		"SCD30 Humidity", 				161,		true,		true,		1,			"%"},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

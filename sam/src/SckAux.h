@@ -44,7 +44,10 @@
 #include <SparkFun_I2C_GPS_Arduino_Library.h>
 
 // Library for SparkFun u-Blox NEO-M8U GPS
-#include "SparkFun_Ublox_Arduino_Library.h"
+#ifdef ID
+#undef ID 	// Fix conflict with define on SPIMemory.h
+#endif
+#include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 
 // Adafruit library for ADS1x15 12/16 bits ADC
 #include <Adafruit_ADS1015.h>
@@ -587,7 +590,7 @@ class NEOM8UGPS: public GPS_Source
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
 
 	private:
-		SFE_UBLOX_GPS ubloxGps;
+		SFE_UBLOX_GNSS ubloxGps;
 		uint32_t lastReading = 0;
 
 };

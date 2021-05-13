@@ -1489,7 +1489,7 @@ void SckBase::urbanStart()
 	if (urban.present()) {
 
 		sckOut("Urban board detected");
-		
+
 		// Try to start enabled sensors
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
@@ -1497,7 +1497,7 @@ void SckBase::urbanStart()
 		}
 
 	} else {
-		
+
 		sckOut("No urban board detected!!");
 
 		// Disable all urban sensors
@@ -1519,16 +1519,27 @@ void SckBase::updateSensors()
 
 	uint32_t now = rtc.getEpoch();
 
-	// Speed based interval
-	st.dynamic = false;
-	if ( 	sensors[SENSOR_GPS_SPEED].enabled && 
-		now - sensors[SENSOR_GPS_SPEED].lastReadingTime >= (float)(dynamicInterval / 2) && 
+	// Speed based dynamic interval
+	if ( 	sensors[SENSOR_GPS_SPEED].enabled &&
+		now - sensors[SENSOR_GPS_SPEED].lastReadingTime >= (float)(dynamicInterval / 2) &&
 		getReading(&sensors[SENSOR_GPS_SPEED])) {
 			sensors[SENSOR_GPS_SPEED].lastReadingTime = now;
 			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
+
+			speedSmoothed = speedSmoothed + (SPEED_ALPHA * (speedFloat - speedSmoothed) / 10);
+
 			sprintf(outBuff, "Current speed: %s (%f)", sensors[SENSOR_GPS_SPEED].reading.c_str(), speedFloat);
 			sckOut(PRIO_LOW);
-			if (speedFloat > speed_threshold) st.dynamic = true;
+
+			// If high speed is detected enable dynamic interval
+			if (speedSmoothed > speed_threshold) {
+				st.dynamic = true;
+				dynamicLast = now;
+			} else if (st.dynamic) {
+				// After detecting low speed wait some time before disabling dynamic interval
+				if (now - dynamicLast > DYNAMIC_TIMEOUT) st.dynamic = false;
+			}
+
 	}
 
 	bool sensorsReady = false;
@@ -1554,7 +1565,7 @@ void SckBase::updateSensors()
 			// Check if it is enabled
 			if (wichSensor->enabled && wichSensor->priority != 250) {
 
-				if ( 	(lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval) || 
+				if ( 	(lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval) ||
 					(st.dynamic && ((lastSensorUpdate - wichSensor->lastReadingTime) >= dynamicInterval))) { 	// Is time to read it?
 
 					wichSensor->lastReadingTime = lastSensorUpdate; 	// Update sensor reading time

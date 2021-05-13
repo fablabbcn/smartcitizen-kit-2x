@@ -169,6 +169,10 @@ class SckBase
 		LinkedList<SensorType> pendingSensorsLinkedList;
 
 		SckList::GroupIndex wichGroupPublishing; 	// Index of the group beeing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
+		uint32_t dynamicLast = 0; 			// Last time that we detected enough speed to trigger dynamic interval
+		const uint8_t DYNAMIC_TIMEOUT = 15; 		// When low speed is detected let this time (seconds) pass before changing dynamic interval off. (This helps with noise in speed data).
+		float speedSmoothed;
+		const float SPEED_ALPHA = 2; 			// 0-10 - small values -> more smooth, big values -> closer to original data.
 
 	public:
 		const String hardwareVer = "2.1";

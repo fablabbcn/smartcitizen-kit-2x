@@ -1449,8 +1449,9 @@ void SckBase::configGCLK6()
 void SckBase::sleepLoop()
 {
 	uint16_t sleepPeriod = 3; 											// Only sleep if
-	while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 	// No readings to take in the near future
-			!st.dynamic && 											// No dynamic interval active
+	uint32_t now = rtc.getEpoch();
+	while ( 	(config.readInterval - (now - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 		// No readings to take in the near future
+			((now - dynamicLast) > (config.sleepTimer * 60)) && 						// Dynamic interval wasn't triggered recently
 			!timeToPublish && 										// We don't need to publish yet
 			(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
 			(st.timeStat.ok) && 										// RTC is synced and working

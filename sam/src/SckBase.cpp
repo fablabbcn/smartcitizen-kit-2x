@@ -215,8 +215,11 @@ void SckBase::reviewState()
 		}
 	}
 
-	// If we have a GPS get time if needed
-	if (sensors[SENSOR_GPS_FIX_QUALITY].enabled && !st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
+	// If we have a GPS update it and get time if needed
+	if (sensors[SENSOR_GPS_FIX_QUALITY].enabled){
+		auxBoards.updateGPS();
+		if (!st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
+	}
 
 	// If we have a screen update it
 	if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);

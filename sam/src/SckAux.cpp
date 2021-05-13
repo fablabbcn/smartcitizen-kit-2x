@@ -677,6 +677,11 @@ void AuxBoards::updateDisplay(SckBase* base, bool force)
 	groove_OLED.update(base, force);
 }
 
+void AuxBoards::updateGPS()
+{
+	gps.update();
+}
+
 void AuxBoards::plot(String value, const char *title, const char *unit)
 {
 	if (title != NULL && unit != NULL) groove_OLED.plot(value, title, unit);
@@ -1793,6 +1798,11 @@ bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 	return true;
 }
 
+void Sck_GPS::update()
+{
+	gps_source->update();
+}
+
 bool PM_Grove_GPS::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -1884,6 +1894,11 @@ bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	return true;
 }
 
+void PM_Grove_GPS::update()
+{
+
+}
+
 bool XA111GPS::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -1905,7 +1920,9 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	//  Only ask for readings if last one is older than
 	if (millis() - lastReading < 500) return true;
 
-	while (i2cGps.available()) tinyGps.encode(i2cGps.read());
+	// TODO 
+	// this was moved to update funtion, check if it works OK
+	/* while (i2cGps.available()) tinyGps.encode(i2cGps.read()); */
 
 	// Time
 	r.timeValid = tinyGps.time.isValid();
@@ -1969,6 +1986,12 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	// TODO use power save mode between readings if posible
 
 	return true;
+}
+
+void XA111GPS::update()
+{
+	// Test with the GPS if this make sense here
+	while (i2cGps.available()) tinyGps.encode(i2cGps.read());
 }
 
 bool NEOM8UGPS::start()
@@ -2079,6 +2102,11 @@ bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
 	// TODO use power save mode between readings if posible
 
 	return true;
+}
+
+void NEOM8UGPS::update()
+{
+	ubloxGps.checkUblox();
 }
 
 bool Sck_DallasTemp::start()

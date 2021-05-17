@@ -327,6 +327,13 @@ void SckBase::reviewState()
 							sckOut("Retrying WiFi..."); 	// User feedback
 						}
 
+						// This error needs user intervention so feedback should be urgent
+						else if (!st.timeStat.ok) {
+								sckOut("ERROR: Without time we can not take readings!!!");
+								led.update(led.BLUE, led.PULSE_HARD_FAST);
+								st.error = ERROR_TIME;
+						}
+
 						// ERROR feedback should be on just for a limited amount of time, let's turn it off
 						else if (now - st.lastWiFiError > 10) led.update(led.BLUE, led.PULSE_SOFT);
 					}

@@ -708,6 +708,7 @@ void SckBase::saveConfig(bool defaults)
 
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
+	lastUserEvent = millis();
 
 	// Update state
 	st.mode = config.mode;
@@ -1022,8 +1023,6 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 	switch(wichMessage) {
 		case SAMMES_SET_CONFIG:
 		{
-
-				lastUserEvent = millis();
 				sckOut("Received new config from ESP");
 				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
 				deserializeJson(jsonBuffer, netBuff);

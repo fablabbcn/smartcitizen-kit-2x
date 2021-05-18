@@ -23,11 +23,11 @@ void SckLed::update(ColorName colorName, pulseModes pulse, bool force)
 	switch (pulseMode) {
 		case PULSE_STATIC:
 			break;
-		case PULSE_HARD_SLOW:
+		case PULSE_WARNING:
 			blinkON = true;
 			configureTimer5(slowInterval);
 			break;
-		case PULSE_HARD_FAST:
+		case PULSE_ERROR:
 			blinkON = true;
 			configureTimer5(fastInterval);
 			break;
@@ -73,6 +73,10 @@ void SckLed::tick()
 			analogWrite(pinRED, 255 - ledColor.r);
 			analogWrite(pinGREEN, 255 - ledColor.g);
 			analogWrite(pinBLUE, 255 - ledColor.b);
+		} else if (pulseMode == PULSE_WARNING) {
+			analogWrite(pinRED, 255 - (ledColor.r / 8));
+			analogWrite(pinGREEN, 255 - (ledColor.g / 8));
+			analogWrite(pinBLUE, 255 - (ledColor.b / 8));
 		} else {
 			pinMode(pinRED, OUTPUT);
 			pinMode(pinGREEN, OUTPUT);

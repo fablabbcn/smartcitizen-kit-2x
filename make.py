@@ -120,6 +120,7 @@ if 'flash' in sys.argv:
         for i in range(4):
             mySpeed = 115200 / pow(2, i)
             oneLine(' at ' + str(mySpeed) + '...')
+            time.sleep(1)
             if kit.flashESP(mySpeed, sys.stdout): 
                 OK()
                 break;

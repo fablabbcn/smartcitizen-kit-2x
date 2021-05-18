@@ -1496,10 +1496,11 @@ void SckBase::updateSensors()
 	uint32_t now = rtc.getEpoch();
 
 	// Speed based dynamic interval
-	if ( 	sensors[SENSOR_GPS_SPEED].enabled &&
-		now - sensors[SENSOR_GPS_SPEED].lastReadingTime >= (float)(dynamicInterval / 2) &&
-		getReading(&sensors[SENSOR_GPS_SPEED])) {
-			sensors[SENSOR_GPS_SPEED].lastReadingTime = now;
+	if ( 	sensors[SENSOR_GPS_SPEED].enabled && 				// If we have GPS
+		now - lastSpeedMonitoring >= (float)(dynamicInterval / 2) && 	// Check speed twice per dynamic interval
+		getReading(&sensors[SENSOR_GPS_SPEED])) { 			// We succeed on getting the reading 
+
+			lastSpeedMonitoring = now;
 			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
 
 			speedSmoothed = speedSmoothed + (SPEED_ALPHA * (speedFloat - speedSmoothed) / 10);

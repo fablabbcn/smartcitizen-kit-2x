@@ -1498,7 +1498,7 @@ void SckBase::updateSensors()
 	// Speed based dynamic interval
 	if ( 	sensors[SENSOR_GPS_SPEED].enabled && 				// If we have GPS
 		now - lastSpeedMonitoring >= (float)(dynamicInterval / 2) && 	// Check speed twice per dynamic interval
-		getReading(&sensors[SENSOR_GPS_SPEED])) { 			// We succeed on getting the reading 
+		getReading(&sensors[SENSOR_GPS_SPEED])) { 			// We succeed on getting the reading
 
 			lastSpeedMonitoring = now;
 			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
@@ -1508,7 +1508,7 @@ void SckBase::updateSensors()
 			sprintf(outBuff, "Current speed: %s (%f)", sensors[SENSOR_GPS_SPEED].reading.c_str(), speedFloat);
 			sckOut(PRIO_LOW);
 
-			// If high speed is detected enable dynamic interval 
+			// If high speed is detected enable dynamic interval
 			// We use non smoothed here because triggering dynamic has priority over static.
 			if (speedFloat > speed_threshold) {
 				st.dynamic = true;
@@ -1516,6 +1516,21 @@ void SckBase::updateSensors()
 			} else if (st.dynamic && speedSmoothed < speed_threshold) {
 				// After detecting low speed (on smoothed speed) wait some time before disabling dynamic interval
 				if (now - dynamicLast > DYNAMIC_TIMEOUT) st.dynamic = false;
+			}
+
+			// Debug speed readings to sdcard
+			if (config.debug.speed) {
+				if (!sdSelect()) return;
+				speedFile.file = sd.open(speedFile.name, FILE_WRITE);
+				if (speedFile.file) {
+					ISOtime();
+					speedFile.file.print(ISOtimeBuff);
+					speedFile.file.print(",");
+					speedFile.file.print(speedFloat);
+					speedFile.file.print(",");
+					speedFile.file.println(speedSmoothed);
+					speedFile.file.close();
+				} else st.cardPresent = false;
 			}
 
 	}

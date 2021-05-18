@@ -110,7 +110,7 @@ class AllCommands {
 			OneCom {100,	COM_NETINFO,		"netinfo",	"Shows network information",														netInfo_com},
 			OneCom {100,	COM_TIME,		"time",		"Shows/sets date and time: time [epoch time] [-sync]",											time_com},
 			OneCom {100,	COM_HELLO,		"hello",	"Sends MQTT hello to platform",														hello_com},
-			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages: debug [-sdcard] [-esp] [-oled] [-flash] [-telnet]", 								debug_com},
+			OneCom {100,	COM_DEBUG, 		"debug", 	"Toggle debug messages: debug [-sdcard] [-esp] [-oled] [-flash] [-telnet] [-speed]", 								debug_com},
 			OneCom {100,	COM_SHELL, 		"shell", 	"Shows or sets shell mode: shell [-on] [-off]",												shell_com},
 			OneCom {100,	COM_CUSTOM_MQTT,	"publish", 	"Publish custom mqtt message: mqtt [\"topic\" \"message\"]",										custom_mqtt_com},
 			OneCom {100,	COM_OFFLINE, 		"offline", 	"Configure offline periods and WiFi retry interval: [-retryint seconds] [-period start-hour end-hour (UTC 0-23)]",			offline_com},

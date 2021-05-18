@@ -46,7 +46,7 @@ struct Ntp { char server[64]="ntp.smartcitizen.me"; uint16_t port=80; };
 struct MAC { bool valid=false; char address[18]="not synced"; };
 struct BattConf { int16_t chargeCurrent=768; uint32_t battCapacity=2000; };
 struct Extra { bool ccsBaselineValid=false; uint16_t ccsBaseline; }; 			// Here we save variables that don't have an specific place
-struct Debug { bool sdcard=false; bool esp=false; bool oled=false; bool flash=false; bool telnet=false; };
+struct Debug { bool sdcard=false; bool esp=false; bool oled=false; bool flash=false; bool telnet=false; bool speed=false; };
 struct Offline { uint32_t retry = default_publish_interval * 5; int8_t start=-1; int8_t end=-1; };
 
 struct Configuration {

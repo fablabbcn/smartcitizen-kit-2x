@@ -140,6 +140,7 @@ class SckBase
 		SckFile configFile {"CONFIG.TXT"};
 		SckFile postFile {};
 		SckFile debugFile {"DEBUG.TXT"};
+		SckFile speedFile {"SPEED.CSV"};
 		SckFile infoFile {"INFO.TXT"};
 		// Sd card
 		bool sdSelect();

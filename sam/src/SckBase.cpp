@@ -1507,12 +1507,13 @@ void SckBase::updateSensors()
 			sprintf(outBuff, "Current speed: %s (%f)", sensors[SENSOR_GPS_SPEED].reading.c_str(), speedFloat);
 			sckOut(PRIO_LOW);
 
-			// If high speed is detected enable dynamic interval
-			if (speedSmoothed > speed_threshold) {
+			// If high speed is detected enable dynamic interval 
+			// We use non smoothed here because triggering dynamic has priority over static.
+			if (speedFloat > speed_threshold) {
 				st.dynamic = true;
 				dynamicLast = now;
-			} else if (st.dynamic) {
-				// After detecting low speed wait some time before disabling dynamic interval
+			} else if (st.dynamic && speedSmoothed < speed_threshold) {
+				// After detecting low speed (on smoothed speed) wait some time before disabling dynamic interval
 				if (now - dynamicLast > DYNAMIC_TIMEOUT) st.dynamic = false;
 			}
 

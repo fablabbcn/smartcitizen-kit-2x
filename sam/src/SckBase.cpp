@@ -1497,19 +1497,23 @@ void SckBase::updateSensors()
 	// Speed based dynamic interval
 	if ( 	sensors[SENSOR_GPS_SPEED].enabled && 				// If we have GPS
 		now - lastSpeedMonitoring >= (float)(dynamicInterval / 2) && 	// Check speed twice per dynamic interval
-		getReading(&sensors[SENSOR_GPS_SPEED])) { 			// We succeed on getting the reading
+		getReading(&sensors[SENSOR_GPS_SPEED]) && 			// We succeed on getting the readings
+		getReading(&sensors[SENSOR_GPS_FIX_QUALITY]) &&
+		getReading(&sensors[SENSOR_GPS_HDOP])) {
 
 			lastSpeedMonitoring = now;
 			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
-
 			speedSmoothed = speedSmoothed + (SPEED_ALPHA * (speedFloat - speedSmoothed) / 10);
 
-			sprintf(outBuff, "Current speed: %s (%f)", sensors[SENSOR_GPS_SPEED].reading.c_str(), speedFloat);
+			uint8_t fix = sensors[SENSOR_GPS_FIX_QUALITY].reading.toInt();
+			uint16_t hdop = sensors[SENSOR_GPS_HDOP].reading.toInt();
+
+			sprintf(outBuff, "Current speed: %d, fix: %i, hdop: %i", speedFloat, fix, hdop);
 			sckOut(PRIO_LOW);
 
-			// If high speed is detected enable dynamic interval
-			// We use non smoothed here because triggering dynamic has priority over static.
-			if (speedFloat > speed_threshold) {
+			// If high speed is detected, we have a good GPS fix and a decent hdop we enable dynamic interval
+			// We use non smoothed speed here because triggering dynamic has priority over static.
+			if (speedFloat > speed_threshold && fix > 0 && hdop < DYNAMIC_HDOP_THRESHOLD) {
 				st.dynamic = true;
 				dynamicLast = now;
 			} else if (st.dynamic && speedSmoothed < speed_threshold) {

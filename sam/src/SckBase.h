@@ -173,6 +173,7 @@ class SckBase
 		uint32_t dynamicLast = 0; 			// Last time that we detected enough speed to trigger dynamic interval
 		uint32_t lastSpeedMonitoring = 0; 		// Last time we check the speed to trigger dynamic interval
 		const uint8_t DYNAMIC_TIMEOUT = 60; 		// When low speed is detected let this time (seconds) pass before changing dynamic interval off. (This helps with noise in speed data).
+		const uint16_t DYNAMIC_HDOP_THRESHOLD = 300; 	// If HDOP is grater than this we ignore the reported speed (this help cleaning false high speed dynamic trigger's)
 		float speedSmoothed;
 		const float SPEED_ALPHA = 2; 			// 0-10 - small values -> more smooth, big values -> closer to original data.
 

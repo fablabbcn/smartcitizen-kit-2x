@@ -390,7 +390,7 @@ void SckList::_scanSectors()
 				if (_dataAvailableSect[PUB_SD] < 0) {
 					if (!_isSectPublished(i, PUB_SD)) {
 						if (debug) base->sckOut("");
-						GroupIndex sdGroup = _getUnpubGrpIdx(i, PUB_NET);
+						GroupIndex sdGroup = _getUnpubGrpIdx(i, PUB_SD);
 						if (sdGroup.group >= 0) {
 							if (debug) {
 								sprintf(base->outBuff, "Data not saved to sdcard founded on sector: %u", i);
@@ -496,7 +496,7 @@ int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte p
 {
 	if (debug) {
 		if (getAll) sprintf(base->outBuff, "F: Counting ALL groups in sector %u", wichSector);
-		else sprintf(base->outBuff, "F: Counting %s %s groups on sector %u", wichFlag == PUB_NET ? "network" : "sdcard", publishedState == PUBLISHED ? " published" : " un-published", wichSector);
+		else sprintf(base->outBuff, "F: Counting %s %s groups on sector %u", wichFlag == PUB_NET ? "network" : "sdcard", publishedState == PUBLISHED ? "published" : "un-published", wichSector);
 		base->sckOut();
 	}
 

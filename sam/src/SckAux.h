@@ -51,11 +51,15 @@
 
 // ADS Tester (Only supported in version 2.0 and greater)
 // This function is only for internal purposes
-// #define adsTest 	// Uncomment for enabling tester board support (remember selecting board lookup table in GasesBoardTester.h) 
+// #define adsTest 	// Uncomment for enabling tester board support (remember selecting board lookup table in GasesBoardTester.h)
 
 #ifdef adsTest
 #include "GasesBoardTester.h"
 #endif
+
+// Sparkfun library for SCD30 CO2 sensor
+#include <SparkFun_SCD30_Arduino_Library.h>
+
 
 extern TwoWire auxWire;
 
@@ -106,6 +110,10 @@ class AuxBoards
 			0x64,			// SENSOR_ATLAS_EC_SG,
 			0x61,			// SENSOR_ATLAS_DO,
 			0x61,			// SENSOR_ATLAS_DO_SAT,
+
+			0x61, 			// SENSOR_SCD30_CO2, 	--> Conflict with SENSOR_ATLAS_DO
+			0x61, 			// SENSOR_SCD30_TEMP, 	--> Conflict with SENSOR_ATLAS_DO
+			0x61, 			// SENSOR_SCD30_HUM, 	--> Conflict with SENSOR_ATLAS_DO
 
 			0x20,			// SENSOR_CHIRP_MOISTURE_RAW,
 			0x20,			// SENSOR_CHIRP_MOISTURE,
@@ -166,7 +174,7 @@ class AuxBoards
 			0x4b 			// SENSOR_ADS1X15_XX_X
 		};
 
-		bool start(SensorType wichSensor);
+		bool start(SckBase *base, SensorType wichSensor);
 		bool stop(SensorType wichSensor);
 		void getReading(SckBase *base, OneSensor *wichSensor);
 		bool getBusyState(SensorType wichSensor);
@@ -263,7 +271,7 @@ class Groove_OLED
 		const uint8_t lines = 12;
 		uint8_t currentLine = 1;
 
-		SensorType lastShown; 				
+		SensorType lastShown;
 		uint32_t showStartTime = 0;
 };
 
@@ -657,7 +665,7 @@ class Sck_ADS1X15
 		// double preVoltW = -99;
 		// double threshold = 0.05;
 		// uint8_t maxErrorsA = 5;
-		// uint8_t maxErrorsW = 5;		
+		// uint8_t maxErrorsW = 5;
 		void runTester(uint8_t wichChannel);
 		testerGasesBoard tester;
 		#endif
@@ -669,6 +677,32 @@ class Sck_ADS1X15
 
 	// TODO
 	// Test ADS1015
+};
+
+class Sck_SCD30
+{
+	public:
+		const byte deviceAddress = 0x61;
+		bool start(SckBase *base, SensorType wichSensor);
+		bool stop(SensorType wichSensor);
+		bool getReading(SensorType wichSensor);
+		uint16_t interval(uint16_t newInterval=0);
+		bool autoSelfCal(int8_t value=-1);
+		bool forcedRecalFactor(uint16_t newFactor=0);
+		float tempOffset(float userTemp=NULL, bool off=false);
+
+		uint16_t co2 = 0;
+		float temperature = 0;
+		float humidity = 0;
+
+		bool pressureCompensated = false;
+
+	private:
+		uint8_t enabled[3][2] = { {SENSOR_SCD30_CO2, 0}, {SENSOR_SCD30_TEMP, 0}, {SENSOR_SCD30_HUM, 0} };
+		bool _debug = false;
+		bool started = false;
+		uint16_t measInterval = 2; 	// "2-1800 seconds"
+		SCD30 sparkfun_scd30;
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

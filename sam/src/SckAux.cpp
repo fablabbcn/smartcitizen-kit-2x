@@ -25,11 +25,12 @@ Sck_ADS1X15 		ads48;
 Sck_ADS1X15 		ads49;
 Sck_ADS1X15 		ads4A;
 Sck_ADS1X15 		ads4B;
+Sck_SCD30 		scd30;
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
 
-bool AuxBoards::start(SensorType wichSensor)
+bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 {
 	if (!dataLoaded) {
 		data = eepromAuxData.read();
@@ -124,6 +125,9 @@ bool AuxBoards::start(SensorType wichSensor)
 		case SENSOR_ADS1X15_4B_1:
 		case SENSOR_ADS1X15_4B_2:
 		case SENSOR_ADS1X15_4B_3: 		return ads4B.start(0x4B); break;
+		case SENSOR_SCD30_CO2: 			return scd30.start(base, SENSOR_SCD30_CO2); break;
+		case SENSOR_SCD30_TEMP: 		return scd30.start(base, SENSOR_SCD30_TEMP); break;
+		case SENSOR_SCD30_HUM: 			return scd30.start(base, SENSOR_SCD30_HUM); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.start(); break;
 		default: break;
 	}
@@ -210,6 +214,9 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_ADS1X15_4B_1:
 		case SENSOR_ADS1X15_4B_2:
 		case SENSOR_ADS1X15_4B_3: 		return ads4B.stop(); break;
+		case SENSOR_SCD30_CO2: 			return scd30.stop(SENSOR_SCD30_CO2); break;
+		case SENSOR_SCD30_TEMP: 		return scd30.stop(SENSOR_SCD30_TEMP); break;
+		case SENSOR_SCD30_HUM: 			return scd30.stop(SENSOR_SCD30_HUM); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.stop(); break;
 		default: break;
 	}
@@ -298,6 +305,9 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_ADS1X15_4B_1: 		if (ads4B.getReading(1)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
 		case SENSOR_ADS1X15_4B_2: 		if (ads4B.getReading(2)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
 		case SENSOR_ADS1X15_4B_3: 		if (ads4B.getReading(3)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		case SENSOR_SCD30_CO2: 			if (scd30.getReading(SENSOR_SCD30_CO2)) { wichSensor->reading = String(scd30.co2); return; } break;
+		case SENSOR_SCD30_TEMP: 		if (scd30.getReading(SENSOR_SCD30_TEMP)) { wichSensor->reading = String(scd30.temperature); return; } break;
+		case SENSOR_SCD30_HUM: 			if (scd30.getReading(SENSOR_SCD30_HUM)) { wichSensor->reading = String(scd30.humidity); return; } break;
 		default: break;
 	}
 
@@ -381,7 +391,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				}
 
 				return F("\nTesting finished!");
-            
+
 			} else if (command.startsWith("autotest")) {
 
 				return String(gasBoard.autoTest());
@@ -503,8 +513,8 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			} else if (command.startsWith("help") || command.length() == 0) return F("Available commands:\r\n* get ver\r\n* reset (connect only the chirp to aux)\r\n* cal dryPoint wetPoint");
 			else return F("Unrecognized command!! please try again...");
 			break;
-		
-		} 
+
+		}
 		case SENSOR_ADS1X15_48_0:
 		case SENSOR_ADS1X15_48_1:
 		case SENSOR_ADS1X15_48_2:
@@ -529,7 +539,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 					// Get value
 					int wichValue = command.toInt();
 					ads48.setTesterCurrent(wichValue, wichChannel);
-				
+
 				} else if (command.startsWith("full")) {
 
 					ads48.runTester(wichChannel);
@@ -568,7 +578,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 					// Get value
 					int wichValue = command.toInt();
 					ads49.setTesterCurrent(wichValue, wichChannel);
-				
+
 				} else if (command.startsWith("full")) {
 
 					ads49.runTester(wichChannel);
@@ -608,7 +618,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 					// Get value
 					int wichValue = command.toInt();
 					ads4A.setTesterCurrent(wichValue, wichChannel);
-				
+
 				} else if (command.startsWith("full")) {
 
 					ads4A.runTester(wichChannel);
@@ -647,7 +657,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 					// Get value
 					int wichValue = command.toInt();
 					ads4B.setTesterCurrent(wichValue, wichChannel);
-				
+
 				} else if (command.startsWith("full")) {
 
 					ads4B.runTester(wichChannel);
@@ -661,6 +671,66 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			}
 			#endif
 			break;
+		}
+		case SENSOR_SCD30_CO2:
+		case SENSOR_SCD30_TEMP:
+		case SENSOR_SCD30_HUM: {
+
+			if (command.startsWith("interval")) {
+
+				command.replace("interval", "");
+				command.trim();
+
+				uint16_t newInterval = command.toInt();
+				scd30.interval(newInterval);
+				
+				return String F("Measuring Interval: ") + String(scd30.interval());
+
+			} else if (command.startsWith("autocal")) {
+				
+				command.replace("autocal", "");
+				command.trim();
+
+				if (command.startsWith("on")) scd30.autoSelfCal(1);
+				else if (command.startsWith("off")) scd30.autoSelfCal(0);
+
+				return String F("Auto Self Calibration: ") + String(scd30.autoSelfCal() ? "on" : "off");
+
+			} else if (command.startsWith("calfactor")) {
+
+				command.replace("calfactor", "");
+				command.trim();
+
+				uint16_t newFactor = command.toInt();
+
+				return String F("Forced Recalibration Factor: ") + String(scd30.forcedRecalFactor(newFactor) ? "Ok" : "Error!");
+
+			} else if (command.startsWith("caltemp")) {
+				
+				command.replace("caltemp", "");
+				command.trim();
+
+				float userTemp = NULL;
+				bool off = false;
+
+				if (command.startsWith("off")) off = true;
+				else {
+
+					if (command.length() > 0) userTemp = command.toFloat();
+				}
+
+				scd30.getReading(SENSOR_SCD30_TEMP);
+
+				return String F("Current temperature: ") + String(scd30.temperature) + F(" C") + F("\r\nTemperature offset: ") + String(scd30.tempOffset(userTemp, off)) + F(" C");
+			} else if (command.startsWith("pressure")) {
+
+				return String F("Pressure compensation on last boot: ") + String(scd30.pressureCompensated ? "True" : "False");
+
+			} else {
+				return F("Wrong commad!!\r\nOptions:\r\ninterval [2-1000 (seconds)]\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]\r\npressure");
+			}
+
+
 		} default: return "Unrecognized sensor!!!"; break;
 	}
 	return "Unknown error on control command!!!";
@@ -1286,7 +1356,6 @@ bool Atlas::start()
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	if (beginDone) return true;
-	beginDone = true;
 
 	// Protocol lock
 	if (!sendCommand((char*)"Plock,1")) return false;
@@ -1311,6 +1380,13 @@ bool Atlas::start()
 
 	} else if (DO) {
 
+		// ---- Check if this is really a Atlas DO sensor (allows sharing I2C addres 0x61 with SCD30 CO2 sensor)
+		if (sendCommand((char*)"i")) {
+			delay(shortWait);
+			getResponse();
+			if (!atlasResponse.startsWith("?I,DO")) return false;
+		} else return false;
+
 		// ---- Set parameters
 		if (sendCommand((char*)"O,?")) {
 			delay(shortWait);
@@ -1324,6 +1400,7 @@ bool Atlas::start()
 		} else return false;
 	}
 
+	beginDone = true;
 	detected = true;
 
 	goToSleep();
@@ -2283,7 +2360,7 @@ void Sck_ADS1X15::setTesterCurrent(int16_t wichCurrent, uint8_t wichChannel)
 	SerialUSB.println(tester.getCurrent(tester.electrode_A));
 	SerialUSB.print("ISB A: ");
 	this->getReading(adsChannelA);
-	SerialUSB.println(this->reading);	
+	SerialUSB.println(this->reading);
 
 }
 
@@ -2333,6 +2410,140 @@ void Sck_ADS1X15::runTester(uint8_t wichChannel)
 	SerialUSB.println("Run test finished!");
 }
 #endif
+
+bool Sck_SCD30::start(SckBase *base, SensorType wichSensor)
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	if (started) {
+		// Mark this specific metric as enabled
+		for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+		return true;
+	}
+
+	if (_debug) sparkfun_scd30.enableDebugging(SerialUSB);
+
+	// Without this delay sensor init fails sometimes
+	delay(500);
+
+	// Unset measbegin option to avoid begin() function to set measuring interval to default value of 2 seconds.
+	if (!sparkfun_scd30.begin(auxWire, false, false)) return false;
+
+	// Ambient pressure compensation
+	OneSensor *pressureSensor = &base->sensors[SENSOR_PRESSURE];
+	
+	if (pressureSensor->enabled && base->getReading(pressureSensor)) {
+		float pressureReading = pressureSensor->reading.toFloat();
+		uint16_t pressureInMillibar = pressureReading * 10;
+
+		if (pressureInMillibar > 700 && pressureInMillibar < 1200) {
+			if (sparkfun_scd30.setAmbientPressure(pressureInMillibar)) {
+				pressureCompensated = true;				
+			}
+		}
+	}
+
+	// Start measuring with this function respects the saved interval
+	if (!sparkfun_scd30.beginMeasuring()) return false;
+
+	// Mark this specific metric as enabled
+	for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+
+	started = true;
+	return true;
+}
+
+bool Sck_SCD30::stop(SensorType wichSensor)
+{
+	// Mark this specific metric as disabled
+	for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 0;
+
+	// Turn sensor off only if all 3 metrics are disabled
+	for (uint8_t i=0; i<3; i++) {
+		if (enabled[i][1] == 1) return false;
+	}
+
+	sparkfun_scd30.StopMeasurement();
+	started = false;
+	return true;
+}
+
+bool Sck_SCD30::getReading(SensorType wichSensor)
+{
+	switch (wichSensor)
+	{
+		case SENSOR_SCD30_CO2:
+			co2 = sparkfun_scd30.getCO2();
+			break;
+
+		case SENSOR_SCD30_TEMP:
+			temperature = sparkfun_scd30.getTemperature();
+			break;
+
+		case SENSOR_SCD30_HUM:
+			humidity = sparkfun_scd30.getHumidity();
+			break;
+
+		default:
+			return false;
+	}
+
+	return true;
+}
+
+uint16_t Sck_SCD30::interval(uint16_t newInterval)
+{
+	// Even if the sensor responds OK it doesn't seems to accept any value grater than 1000
+	if (newInterval >= 2 && newInterval <= 1800) sparkfun_scd30.setMeasurementInterval(newInterval);
+
+	uint16_t currentInterval;
+	sparkfun_scd30.getMeasurementInterval(&currentInterval);
+
+	// Restart measuring so we don't need to wait the current interval to finish (useful when you come from very long intervals)
+	sparkfun_scd30.StopMeasurement();
+	sparkfun_scd30.beginMeasuring();
+
+	return currentInterval;
+}
+
+bool Sck_SCD30::autoSelfCal(int8_t value)
+{
+	// Value: 0 -> disable, 1 -> enable, any other -> get current setting
+
+	if (value == 1)	sparkfun_scd30.setAutoSelfCalibration(true);
+	else if (value == 0) sparkfun_scd30.setAutoSelfCalibration(false);	
+
+	return sparkfun_scd30.getAutoSelfCalibration();
+}
+
+bool Sck_SCD30::forcedRecalFactor(uint16_t newFactor)
+{
+	// Cheking the saved factor on sensor always return 400 so for now we check if the value was received without error
+	if (newFactor >= 400 && newFactor <= 2000) {
+		return sparkfun_scd30.setAutoSelfCalibration(newFactor);
+	}
+
+	return false;
+}
+
+float Sck_SCD30::tempOffset(float userTemp, bool off)
+{
+	// We expect from user the REAL temperature measured during calibration 
+	// We calculate the difference against the sensor measured temperature to set the correct offset. Please wait for sensor to stabilize temperatures before aplying an offset.
+	// Temperature offset should always be positive (the sensor is generating heat)
+
+	uint16_t currentOffsetTemp;
+	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
+
+	getReading(SENSOR_SCD30_TEMP);
+
+	if (userTemp != NULL && temperature > userTemp) sparkfun_scd30.setTemperatureOffset(temperature - userTemp);
+	else if (off) sparkfun_scd30.setTemperatureOffset(0);
+
+	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
+
+	return currentOffsetTemp / 100.0;
+}
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )
 {

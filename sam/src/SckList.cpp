@@ -225,9 +225,6 @@ int8_t SckList::_setSectPublished(uint16_t wichSector, PubFlags wichFlag)
 		base->sckOut();
 	}
 
-	// Update sector status
-	_scanSectors();
-
 	return 1;
 }
 int8_t SckList::_closeSector(uint16_t wichSector)
@@ -239,8 +236,16 @@ int8_t SckList::_closeSector(uint16_t wichSector)
 	_setSectPublished(_currSector, PUB_NET);
 	_setSectPublished(_currSector, PUB_SD);
 
-	// _scanSectors will find the next availablew sector to be used
-	_scanSectors();
+	// Erase next sector and start using it
+	_currSector ++;
+	if (_currSector >= SCKLIST_SECTOR_NUM) _currSector = 0;
+	flash.eraseSector(_getSectAddr(_currSector));
+	_addr = _getSectAddr(_currSector) + 3;
+
+	if (debug) {
+		sprintf(base->outBuff, "F: Closed previous sector, now using %u", _currSector);
+		base->sckOut();
+	}
 
 	return 1;
 }
@@ -448,8 +453,7 @@ void SckList::_scanSectors()
 		}
 	}
 
-	// If we didn't find a empty sector that means the flash memory is full
-	// Start from first sector
+	// If we didn't find a empty sector that means the flash memory is full, then we start from first sector
 	_currSector = 0;
 	flash.eraseSector(_getSectAddr(_currSector));
 	_addr = _getSectAddr(_currSector) + 3;

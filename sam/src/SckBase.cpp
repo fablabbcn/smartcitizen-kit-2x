@@ -1503,22 +1503,32 @@ void SckBase::updateSensors()
 
 			lastSpeedMonitoring = now;
 			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
-			speedSmoothed = speedSmoothed + (SPEED_ALPHA * (speedFloat - speedSmoothed) / 10);
 
 			uint8_t fix = sensors[SENSOR_GPS_FIX_QUALITY].reading.toInt();
 			uint16_t hdop = sensors[SENSOR_GPS_HDOP].reading.toInt();
+			uint8_t satNum = sensors[SENSOR_GPS_SATNUM].reading.toInt();
 
-			sprintf(outBuff, "Current speed: %d, fix: %i, hdop: %i", speedFloat, fix, hdop);
+			sprintf(outBuff, "Current speed: %.2f, fix: %i, hdop: %i", speedFloat, fix, hdop);
 			sckOut(PRIO_LOW);
 
 			// If high speed is detected, we have a good GPS fix and a decent hdop we enable dynamic interval
 			// We use non smoothed speed here because triggering dynamic has priority over static.
 			if (speedFloat > speed_threshold && fix > 0 && hdop < DYNAMIC_HDOP_THRESHOLD) {
-				st.dynamic = true;
-				dynamicLast = now;
-			} else if (st.dynamic && speedSmoothed < speed_threshold) {
-				// After detecting low speed (on smoothed speed) wait some time before disabling dynamic interval
-				if (now - dynamicLast > DYNAMIC_TIMEOUT) st.dynamic = false;
+
+				// Only trigger dynamic interval after N counts of high speed in a row
+				if (dynamicCounter > DYNAMIC_COUNTER_THRESHOLD) {
+					sckOut("Entering dynamic interval mode!", PRIO_LOW);
+					st.dynamic = true;
+					dynamicLast = now;
+
+				} else dynamicCounter++;
+
+			} else {
+				// Reset counter
+				dynamicCounter = 0;
+
+				// After detecting low speed wait some time before disabling dynamic interval
+				if (st.dynamic && speedFloat < speed_threshold) st.dynamic = false;
 			}
 
 			// Debug speed readings to sdcard
@@ -1531,7 +1541,11 @@ void SckBase::updateSensors()
 					speedFile.file.print(",");
 					speedFile.file.print(speedFloat);
 					speedFile.file.print(",");
-					speedFile.file.println(speedSmoothed);
+					speedFile.file.print(fix);
+					speedFile.file.print(",");
+					speedFile.file.print(hdop);
+					speedFile.file.print(",");
+					speedFile.file.println(satNum);
 					speedFile.file.close();
 				} else st.cardPresent = false;
 			}

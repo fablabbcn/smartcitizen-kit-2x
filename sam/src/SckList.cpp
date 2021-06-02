@@ -1053,13 +1053,17 @@ void SckList::flashInfo(FlashInfo* info)
 		}
 
 		snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "|");
+		
+		if (strlen(base->outBuff) > 200) {
+			base->sckOut(PRIO_HIGH, false);
+			sprintf(base->outBuff, "");
+		}
+		
 		sectPrinted++;
 		if (sectPrinted == sectPerLine) {
 			base->sckOut(PRIO_HIGH, false);
 			sectPrinted = 0;
 		}
-
-
 	}
 	base->sckOut("\r\nSector state:\r\nu -> Used sector\r\nU -> In use sector\r\ne -> empty sector");
 	base->sckOut("\r\nReadings are shown after sector state in the form of: total(net-pending/sd-pending) (ej. |u78(65/45)|)");

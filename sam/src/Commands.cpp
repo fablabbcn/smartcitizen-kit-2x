@@ -546,8 +546,9 @@ void flash_com(SckBase* base, String parameters)
 
 			// Info for one specified sector
 			uint16_t sectV = sectC.toInt();
-			if (sectV < 0 || sectV > 2048) {
-				base->sckOut("Wrong sector number (0-2048)");
+			if (sectV < 0 || sectV >= SCKLIST_SECTOR_NUM) {
+				sprintf(base->outBuff, "Wrong sector number (0-%u)", SCKLIST_SECTOR_NUM);
+				base->sckOut();
 				return;
 			}
 			SckList::SectorInfo info = base->readingsList.sectorInfo(sectV);

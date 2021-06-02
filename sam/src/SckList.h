@@ -93,7 +93,7 @@ class SckList
 		uint16_t recover(uint16_t wichSector, PubFlags wichFlag); 	// Recover all the readings on specified sector and outputs them to the specified media, returns de number of recovered groups
 		SectorInfo sectorInfo(uint16_t wichSector);
 		void dumpSector(uint16_t wichSector, uint16_t howMany=SECTOR_SIZE);
-		FlashInfo flashInfo();
+		void flashInfo(FlashInfo* info);
 
 	private:
 

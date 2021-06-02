@@ -1002,11 +1002,9 @@ void SckList::dumpSector(uint16_t wichSector, uint16_t howMany) // listo
 	}
 	SerialUSB.println("");
 }
-SckList::FlashInfo SckList::flashInfo()
+void SckList::flashInfo(FlashInfo* info)
 {
 	if (debug) base->sckOut("F: Scanning flash memory sectors");
-
-	FlashInfo flashInfo;
 
 	bool firstEmpty = true;
 	uint8_t sectPerLine = 32;
@@ -1024,22 +1022,20 @@ SckList::FlashInfo SckList::flashInfo()
 
 				// Print uppercase U to indicate this is the current sector
 				firstEmpty = false;
-				flashInfo.sectFree++;
+				info->sectFree++;
 				snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "U");
 
 			} else {
 				// Print lowercase u to indicate this sector is used
-				flashInfo.sectUsed++;
+				info->sectUsed++;
 				snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "u");
 			}
 
 			SectorInfo sectInfo;
 			_countSectGroups(i, &sectInfo);
-			flashInfo.grpTotal += sectInfo.grpTotal;
-			flashInfo.grpPubNet += sectInfo.grpPubNet;
-			flashInfo.grpUnPubNet += sectInfo.grpUnPubNet;
-			flashInfo.grpPubSd += sectInfo.grpPubSd;
-			flashInfo.grpUnPubSd += sectInfo.grpUnPubSd;
+			info->grpTotal += sectInfo.grpTotal;
+			info->grpUnPubNet += sectInfo.grpUnPubNet;
+			info->grpUnPubSd += sectInfo.grpUnPubSd;
 
 			// Print the total of groups in the sector
 			snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "%u", sectInfo.grpTotal);
@@ -1051,7 +1047,7 @@ SckList::FlashInfo SckList::flashInfo()
 			else snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "_)");
 
 		} else if (state == SECTOR_EMPTY)  {
-			flashInfo.sectFree++;
+			info->sectFree++;
 			// Print an e to indicate an empty sector
 			snprintf(base->outBuff + strlen(base->outBuff), sizeof(base->outBuff), "e");
 		}
@@ -1065,10 +1061,9 @@ SckList::FlashInfo SckList::flashInfo()
 
 
 	}
-	base->sckOut("\r\nSector state:\r\nu -> Used sector\r\nU -> In use sector\r\ne -> empty sector\r\nReadings are shown after sector state in the form of: total(net-pending/sd-pending) (ej. |u78(65/45)|)");
+	base->sckOut("\r\nSector state:\r\nu -> Used sector\r\nU -> In use sector\r\ne -> empty sector");
+	base->sckOut("\r\nReadings are shown after sector state in the form of: total(net-pending/sd-pending) (ej. |u78(65/45)|)");
 
-	flashInfo.currSector = _currSector;
-
-	return flashInfo;
+	info->currSector = _currSector;
 }
 

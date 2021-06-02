@@ -461,7 +461,8 @@ void flash_com(SckBase* base, String parameters)
 	if (parameters.length() <= 0) {
 
 		base->sckOut("Scanning Flash memory (it can take a while!)");
-		SckList::FlashInfo info = base->readingsList.flashInfo();
+		SckList::FlashInfo info;
+		base->readingsList.flashInfo(&info);
 		sprintf(base->outBuff, "\r\n%u sectors in total, %u used and %u free.", SCKLIST_SECTOR_NUM, info.sectUsed, info.sectFree);
 		base->sckOut();
 		sprintf(base->outBuff, "%lu groups in total.\r\nNetwork: %lu pending to publish.\r\nSd-card: %lu pending to publish.", info.grpTotal, info.grpUnPubNet, info.grpUnPubSd);

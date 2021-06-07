@@ -471,7 +471,8 @@ bool SckList::_countSectGroups(uint16_t wichSector, SectorInfo* info)
 	// Sanity check
 	if (startAddr > uint32_t(SCKLIST_SECTOR_NUM * SECTOR_SIZE)) return false;;
 
-	uint32_t endAddr = startAddr + SECTOR_SIZE;
+	uint8_t minimalGroupSize = 11; 		// size (2) + flags (2) + timestamp (4) + readingSize (1) + sensorType (1) + reading (at least 1)
+	uint32_t endAddr = startAddr + SECTOR_SIZE - minimalGroupSize;
 	uint32_t address = startAddr + 3; 	// First tree bytes used for sector state and flags
 
 	// Read from the byte 2 until we found 0xFFFF or an unpublished group
@@ -508,8 +509,9 @@ int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte p
 
 	// Sanity check
 	if (startAddr > uint32_t(SCKLIST_SECTOR_NUM * SECTOR_SIZE)) return -1;
-
-	uint32_t endAddr = startAddr + SECTOR_SIZE;
+	
+	uint8_t minimalGroupSize = 11; 		// size (2) + flags (2) + timestamp (4) + readingSize (1) + sensorType (1) + reading (at least 1)
+	uint32_t endAddr = startAddr + SECTOR_SIZE - minimalGroupSize;
 	uint32_t address = startAddr + 3; 	// First tree bytes used for sector state and flags
 
 	// Get right addrs depending on requested flag
@@ -528,7 +530,6 @@ int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte p
 		// Check if group is NOT published
 		byte byteFlags = flash.readByte(address + addPositionFlag);
 		if (byteFlags == publishedState || getAll) groupTotal++;
-
 
 		address += groupSize;
 	}

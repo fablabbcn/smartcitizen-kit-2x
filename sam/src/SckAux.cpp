@@ -2005,7 +2005,7 @@ bool NEOM8UGPS::start()
 	ubloxGps.setUART1Output(0); 		// Disable the UART1 port output 
 	ubloxGps.setUART2Output(0); 		// Disable Set the UART2 port output
 	ubloxGps.setI2COutput(COM_TYPE_UBX); 	// Set the I2C port to output UBX only (turn off NMEA noise)
-	ubloxGps.setNavigationFrequency(1);
+	ubloxGps.setNavigationFrequency(4);
 	ubloxGps.setAutoPVT(true); 		// Tell the GPS to "send" each solution
 	ubloxGps.saveConfiguration(); 		// Save the current settings to flash and BBR
 

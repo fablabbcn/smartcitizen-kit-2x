@@ -677,9 +677,9 @@ void AuxBoards::updateDisplay(SckBase* base, bool force)
 	groove_OLED.update(base, force);
 }
 
-void AuxBoards::updateGPS()
+bool AuxBoards::updateGPS()
 {
-	gps.update();
+	return gps.update();
 }
 
 void AuxBoards::plot(String value, const char *title, const char *unit)
@@ -1798,9 +1798,9 @@ bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 	return true;
 }
 
-void Sck_GPS::update()
+bool Sck_GPS::update()
 {
-	gps_source->update();
+	return gps_source->update();
 }
 
 bool PM_Grove_GPS::start()
@@ -1894,9 +1894,9 @@ bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	return true;
 }
 
-void PM_Grove_GPS::update()
+bool PM_Grove_GPS::update()
 {
-
+	return true;
 }
 
 bool XA111GPS::start()
@@ -1988,10 +1988,12 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	return true;
 }
 
-void XA111GPS::update()
+bool XA111GPS::update()
 {
 	// Test with the GPS if this make sense here
 	while (i2cGps.available()) tinyGps.encode(i2cGps.read());
+
+	return true;
 }
 
 bool NEOM8UGPS::start()
@@ -2104,9 +2106,10 @@ bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
 	return true;
 }
 
-void NEOM8UGPS::update()
+bool NEOM8UGPS::update()
 {
 	ubloxGps.checkUblox();
+	return ubloxGps.getPVT();
 }
 
 bool Sck_DallasTemp::start()

@@ -177,7 +177,7 @@ class AuxBoards
 		void print(char *payload);
 		void updateDisplay(SckBase* base, bool force=false);
 		void plot(String value, const char *title=NULL, const char *unit=NULL);
-		void updateGPS();
+		bool updateGPS();
 
 		EepromAuxData data;
 		bool dataLoaded = false;
@@ -535,7 +535,7 @@ class GPS_Source
 	public:
 		virtual bool stop();
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
-		virtual void update();
+		virtual bool update();
 };
 
 class Sck_GPS
@@ -550,7 +550,7 @@ class Sck_GPS
 		bool start();
 		bool stop();
 		bool getReading(SckBase *base, SensorType wichSensor);
-		void update();
+		bool update();
 };
 
 class PM_Grove_GPS: public GPS_Source
@@ -561,7 +561,7 @@ class PM_Grove_GPS: public GPS_Source
 		bool start();
 		virtual bool stop();
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
-		virtual void update();
+		virtual bool update();
 
 	private:
 		static const uint8_t DATA_LEN = 40;
@@ -577,7 +577,7 @@ class XA111GPS: public GPS_Source
 		bool start();
 		virtual bool stop();
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
-		virtual void update();
+		virtual bool update();
 
 	private:
 		I2CGPS i2cGps;
@@ -593,7 +593,7 @@ class NEOM8UGPS: public GPS_Source
 		bool start();
 		virtual bool stop();
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
-		virtual void update();
+		virtual bool update();
 
 	private:
 		SFE_UBLOX_GNSS ubloxGps;

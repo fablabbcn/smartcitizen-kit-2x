@@ -177,6 +177,7 @@ class SckBase
 		const uint8_t DYNAMIC_TIMEOUT = 60; 		// When low speed is detected let this time (seconds) pass before changing dynamic interval off. (This helps with noise in speed data).
 		const uint16_t DYNAMIC_HDOP_THRESHOLD = 350; 	// If HDOP is grater than this we ignore the reported speed (this help cleaning false high speed dynamic trigger's)
 		const float SPEED_ALPHA = 2; 			// 0-10 - small values -> more smooth, big values -> closer to original data.
+		void updateDynamic(uint32_t now);
 
 	public:
 		const String hardwareVer = "2.1";

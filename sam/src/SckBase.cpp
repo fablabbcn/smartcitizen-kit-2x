@@ -1421,12 +1421,71 @@ void SckBase::configGCLK6()
 
 	NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
 }
+void SckBase::updateDynamic(uint32_t now)
+{
+	uint32_t startTimer = millis();
+
+	if (!getReading(&sensors[SENSOR_GPS_SPEED])) return;
+	if (!getReading(&sensors[SENSOR_GPS_FIX_QUALITY])) return;
+	if (!getReading(&sensors[SENSOR_GPS_HDOP])) return;
+
+	lastSpeedMonitoring = now;
+
+	float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
+	uint8_t fix = sensors[SENSOR_GPS_FIX_QUALITY].reading.toInt();
+	uint16_t hdop = sensors[SENSOR_GPS_HDOP].reading.toInt();
+
+	sprintf(outBuff, "Current speed: %.2f, fix: %i, hdop: %i", speedFloat, fix, hdop);
+	sckOut(PRIO_LOW);
+
+	// If high speed is detected, we have a good GPS fix and a decent hdop we enable dynamic interval
+	if (speedFloat > speed_threshold && fix > 0 && hdop < DYNAMIC_HDOP_THRESHOLD) {
+
+		// Only trigger dynamic interval after N counts of high speed in a row
+		if (dynamicCounter > DYNAMIC_COUNTER_THRESHOLD) {
+			if (!st.dynamic) sckOut("Entering dynamic interval mode!", PRIO_LOW);
+			st.dynamic = true;
+			dynamicLast = now;
+
+		} else { 
+			dynamicCounter++;
+		}
+
+	} else {
+		// Reset counter
+		dynamicCounter = 0;
+
+		// After detecting low speed wait some time before disabling dynamic interval
+		if (st.dynamic && (speedFloat < speed_threshold) && (now - dynamicLast > DYNAMIC_TIMEOUT)) {
+			sckOut("Turning dynamic interval off!", PRIO_LOW);
+			st.dynamic = false;
+		}
+	}
+
+	// Debug speed readings to sdcard
+	if (config.debug.speed) {
+		if (!sdSelect()) return;
+		speedFile.file = sd.open(speedFile.name, FILE_WRITE);
+		if (speedFile.file) {
+			ISOtime();
+			speedFile.file.print(ISOtimeBuff);
+			speedFile.file.print(",");
+			speedFile.file.print(speedFloat);
+			speedFile.file.print(",");
+			speedFile.file.print(fix);
+			speedFile.file.print(",");
+			speedFile.file.println(hdop);
+			speedFile.file.close();
+		} else st.cardPresent = false;
+	}
+}
 void SckBase::sleepLoop()
 {
 	uint16_t sleepPeriod = 3; 											// Only sleep if
 	uint32_t now = rtc.getEpoch();
 	while ( 	(config.readInterval - (now - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 		// No readings to take in the near future
 			((now - dynamicLast) > (config.sleepTimer * 60)) && 						// Dynamic interval wasn't triggered recently
+			(dynamicCounter == 0) && 									// Last speed was low
 			(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
 			(st.timeStat.ok) && 										// RTC is synced and working
 			((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 					// No recent user interaction (button, sdcard or USB events)
@@ -1452,8 +1511,6 @@ void SckBase::sleepLoop()
 		// If we have a screen update it
 		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
 	}
-
-	updateSensors();
 }
 
 // **** Sensors
@@ -1493,65 +1550,7 @@ void SckBase::updateSensors()
 	if (st.onSetup) return;
 
 	uint32_t now = rtc.getEpoch();
-
-	// Speed based dynamic interval
-	if ( 	sensors[SENSOR_GPS_SPEED].enabled && 				// If we have GPS
-		now - lastSpeedMonitoring >= (float)(dynamicInterval / 2) && 	// Check speed twice per dynamic interval
-		getReading(&sensors[SENSOR_GPS_SPEED]) && 			// We succeed on getting the readings
-		getReading(&sensors[SENSOR_GPS_FIX_QUALITY]) &&
-		getReading(&sensors[SENSOR_GPS_HDOP])) {
-
-			lastSpeedMonitoring = now;
-			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
-
-			uint8_t fix = sensors[SENSOR_GPS_FIX_QUALITY].reading.toInt();
-			uint16_t hdop = sensors[SENSOR_GPS_HDOP].reading.toInt();
-			uint8_t satNum = sensors[SENSOR_GPS_SATNUM].reading.toInt();
-
-			sprintf(outBuff, "Current speed: %.2f, fix: %i, hdop: %i", speedFloat, fix, hdop);
-			sckOut(PRIO_LOW);
-
-			// If high speed is detected, we have a good GPS fix and a decent hdop we enable dynamic interval
-			// We use non smoothed speed here because triggering dynamic has priority over static.
-			if (speedFloat > speed_threshold && fix > 0 && hdop < DYNAMIC_HDOP_THRESHOLD) {
-
-				// Only trigger dynamic interval after N counts of high speed in a row
-				if (dynamicCounter > DYNAMIC_COUNTER_THRESHOLD) {
-					sckOut("Entering dynamic interval mode!", PRIO_LOW);
-					st.dynamic = true;
-					dynamicLast = now;
-
-				} else dynamicCounter++;
-
-			} else {
-				// Reset counter
-				dynamicCounter = 0;
-
-				// After detecting low speed wait some time before disabling dynamic interval
-				if (st.dynamic && speedFloat < speed_threshold) st.dynamic = false;
-			}
-
-			// Debug speed readings to sdcard
-			if (config.debug.speed) {
-				if (!sdSelect()) return;
-				speedFile.file = sd.open(speedFile.name, FILE_WRITE);
-				if (speedFile.file) {
-					ISOtime();
-					speedFile.file.print(ISOtimeBuff);
-					speedFile.file.print(",");
-					speedFile.file.print(speedFloat);
-					speedFile.file.print(",");
-					speedFile.file.print(fix);
-					speedFile.file.print(",");
-					speedFile.file.print(hdop);
-					speedFile.file.print(",");
-					speedFile.file.println(satNum);
-					speedFile.file.close();
-				} else st.cardPresent = false;
-			}
-
-	}
-
+	if (sensors[SENSOR_GPS_SPEED].enabled) updateDynamic(now);
 	bool sensorsReady = false;
 
 	// Main reading loop

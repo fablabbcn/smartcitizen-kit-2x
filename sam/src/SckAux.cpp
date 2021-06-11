@@ -2083,9 +2083,8 @@ bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
 		case SENSOR_GPS_HDOP:
 		{
 			// Horizontal dilution of position
-			//FIXME this is PDOP not HDOP!!
 			r.hdopValid = true;
-			r.hdop = ubloxGps.getPDOP();
+			r.hdop = ubloxGps.getHorizontalDOP();
 			break;
 		}
 		case SENSOR_GPS_SATNUM:

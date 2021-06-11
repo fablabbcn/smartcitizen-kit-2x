@@ -323,52 +323,43 @@ void SckBase::reviewState()
 
 				} else if (!st.wifiStat.ok) {
 
-					// Check if we are in offline programmed hours
-					bool offlineHours = false;
-					if (config.offline.start >= 0 && config.offline.end >= 0 && millis() - lastUserEvent > (config.sleepTimer * 60000)) {
-						int8_t thisHour = rtc.getHours();
-						if (thisHour > config.offline.start && thisHour < config.offline.end) {
-							if (st.espON) ESPcontrol(ESP_OFF);
+					// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
+					if (st.wifiStat.retry()) { 
+
+						sckOut("Connecting to Wifi...");
+						if (!st.espON) ESPcontrol(ESP_ON); 	// Make sure the ESP is on
+
+					} else if (st.wifiStat.error) { 		// If error is declared something went wrong
+
+
+						uint32_t now = rtc.getEpoch();
+
+						// If error just happened don't go to sleep yet
+						if (st.lastWiFiError == 0) {
+
+							ESPcontrol(ESP_OFF); 				// Save battery
+							st.lastWiFiError = now; 			// Start counting time
+							st.wifiErrorCounter++; 				// Count errors
+							sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
 							led.update(led.BLUE, led.PULSE_WARNING);
-							offlineHours = true;
-						}
-					}
 
-					// We only try connecting if we are out off configured offline hours.
-					if (!offlineHours) {
+						// Retry WiFi to be sure that is not working
+						} else if (	(now - st.lastWiFiError) > config.offline.retry ||  	// Enough time has passed to try again
+								st.wifiErrorCounter < 2 || 				// Try 2 times before assuming WiFi is no present
+								millis() - lastUserEvent < 1000				// User event in the last second, this shouldn't enter more than once because wifi error declaration takes a lot more than one second
+							  ) {
 
-						if (st.wifiStat.retry()) { 			// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
+							// Reset and try again
+							st.lastWiFiError = 0;
+							st.wifiStat.reset();
+							sckOut("Retrying WiFi..."); 			// User feedback
 
-							if (!st.espON) ESPcontrol(ESP_ON); 	// Make sure the ESP is on
+						// Asume WiFi is down or not reachable
+						} else {
 
-						} else if (st.wifiStat.error) { 		// If error is declared something went wrong
-
-							uint32_t now = rtc.getEpoch();
-
-							// If error just happened
-							if (st.lastWiFiError == 0) {
-
-								ESPcontrol(ESP_OFF); 				// Save battery
-								st.lastWiFiError = now; 			// Start counting time
-								st.wifiErrorCounter++; 				// Count errors
-								sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
-								led.update(led.BLUE, led.PULSE_WARNING);
-
-							} else if (	(now - st.lastWiFiError) > config.offline.retry || 	// Enough time has passed to try again
-									st.wifiErrorCounter < 2 || 				// Try 2 times before assuming WiFi is no present
-									millis() - lastUserEvent < 1000				// User event in the last second, this shouldn't enter more than once after event because wifi error declaration takes a lot more than one second
-								) {
-
-								// Reset and try again
-								st.lastWiFiError = 0;
-								st.wifiStat.reset();
-								sckOut("Retrying WiFi..."); 	// User feedback
-
-							} else {
-
-								// Save battery
-								sleepLoop();
-							}
+							ESPcontrol(ESP_OFF); 				// Save battery
+							timeToPublish = false;
+							sleepLoop();
 						}
 					}
 
@@ -1049,7 +1040,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_WIFI_CONNECTED:
 
-			sckOut("Connected to wifi!!", PRIO_LOW);
+			sckOut("Connected to wifi!!");
 			st.wifiStat.setOk();
 			if (!timeSyncAfterBoot) {
 				if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
@@ -1483,7 +1474,8 @@ void SckBase::sleepLoop()
 {
 	uint16_t sleepPeriod = 3; 											// Only sleep if
 	uint32_t now = rtc.getEpoch();
-	while ( 	(config.readInterval - (now - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 		// No readings to take in the near future
+	while ( 	(!timeToPublish) &&										// No publish pending
+			(config.readInterval - (now - lastSensorUpdate) > (uint32_t)(sleepPeriod + 2)) && 		// No readings to take in the near future
 			((now - dynamicLast) > (config.sleepTimer * 60)) && 						// Dynamic interval wasn't triggered recently
 			(dynamicCounter == 0) && 									// Last speed was low
 			(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
@@ -1551,6 +1543,7 @@ void SckBase::updateSensors()
 
 	uint32_t now = rtc.getEpoch();
 	if (sensors[SENSOR_GPS_SPEED].enabled) updateDynamic(now);
+
 	bool sensorsReady = false;
 
 	// Main reading loop
@@ -1641,9 +1634,42 @@ void SckBase::updateSensors()
 		else if (st.mode == MODE_SD) readingsList.setPublished(justSaved, readingsList.PUB_NET);
 	}
 
+	// If we have readings pending to be published
 	if (readingsList.availableReadings[readingsList.PUB_NET]) {
-		if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) timeToPublish = true; 	// Time to publish
-		else if ((millis() - lastUserEvent < (config.sleepTimer * 60000)) || config.sleepTimer == 0) timeToPublish = true; 	// If there is recent user interaction we want to publish as often as posible.
+
+		// If its time (based on configured publish interval)
+		if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
+			
+			// Check if we are in offline programmed hours
+			bool offlineHours = false;
+			if (config.offline.start >= 0 && config.offline.end >= 0 && millis() - lastUserEvent > (config.sleepTimer * 60000)) {
+				int8_t thisHour = rtc.getHours();
+				if (thisHour > config.offline.start && thisHour < config.offline.end) {
+					if (st.espON) ESPcontrol(ESP_OFF);
+					led.update(led.BLUE, led.PULSE_WARNING);
+					offlineHours = true;
+				}
+			}
+
+			if (!offlineHours) {
+
+				if (st.wifiStat.error) {
+				
+					// If WiFi was failing check if enough time has passed to retry
+					if ((now - st.lastWiFiError) > config.offline.retry) {
+						timeToPublish = true;
+					}
+
+				} else {
+					timeToPublish = true;
+				}
+
+			}
+
+		} 
+
+		// If there is recent user interaction we want to publish as often as posible.
+		if ((millis() - lastUserEvent < (config.sleepTimer * 60000)) || config.sleepTimer == 0) timeToPublish = true;
 	}
 }
 bool SckBase::enableSensor(SensorType wichSensor)

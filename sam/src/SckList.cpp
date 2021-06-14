@@ -306,10 +306,10 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichF
 
 			if (byteFlags == NOT_PUBLISHED) {
 
-				// Store the group and and the next potencial
+				// Store the group and add the next potencial
 				thisGroup.group = potencialNextGroup.group;
 				thisGroup.address = potencialNextGroup.address;
-				potencialNextGroup = {(int16_t)wichSector, potencialNextGroup.group++, potencialNextGroup.address + groupSize};
+				potencialNextGroup = {(int16_t)wichSector, potencialNextGroup.group + 1, potencialNextGroup.address + groupSize};
 				founded = true;
 				if (debug) base->sckOut("Potencial next group OK!");
 			}
@@ -339,7 +339,7 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichF
 			byte byteFlags = flash.readByte(thisGroup.address + addPositionFlag);
 			if (byteFlags == NOT_PUBLISHED) {
 				// Store position of the next potencial group
-				potencialNextGroup = {(int16_t)wichSector, thisGroup.group++, thisGroup.address + groupSize};
+				potencialNextGroup = {(int16_t)wichSector, thisGroup.group + 1, thisGroup.address + groupSize};
 				break;
 			}
 
@@ -350,7 +350,7 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t wichSector, PubFlags wichF
 	
 
 	if (debug) {
-		sprintf(base->outBuff, "Found group with index: %i", thisGroup.group);
+		sprintf(base->outBuff, "Found group with index %i on sector %u", thisGroup.group, thisGroup.sector);
 		base->sckOut();
 	}
 
@@ -853,11 +853,6 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 }
 uint8_t SckList::setPublished(GroupIndex wichGroup, PubFlags wichFlag)
 {
-	if (debug) {
-		sprintf(base->outBuff, "F: Marking group %i in sector %u %s", wichGroup.group, wichGroup.sector, wichFlag == PUB_NET ? " as network published" : " as saved on sdcard");
-		base->sckOut();
-	}
-
 	// Sanity check
 	if (wichGroup.group < 0) return -1;
 

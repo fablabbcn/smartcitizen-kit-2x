@@ -693,7 +693,7 @@ void SckBase::saveConfig(bool defaults)
 			st.onSetup = false;
 			led.update(led.BLUE, led.PULSE_SOFT);
 			st.error = ERROR_NONE;
-			sendMessage(ESPMES_STOP_AP, "");
+			ESPcontrol(ESP_REBOOT);
 
 		} else {
 

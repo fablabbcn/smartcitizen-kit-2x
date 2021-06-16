@@ -205,7 +205,6 @@ class Sck_PM
 		bool started = false;
 		bool active = false;
 		uint16_t oneShotPeriod = 15;
-		const uint8_t minSeparationBetweenShots = 10;
 
 		bool start();
 		bool stop();

@@ -995,7 +995,7 @@ int16_t Sck_PM::oneShot()
 	if (!started) {
 
 		// Only start PM sensor again if last reading is old
-		if ((rtcNow - rtcReading) >= (uint8_t)(minSeparationBetweenShots - 2)) {
+		if ((rtcNow - rtcReading) >= (uint8_t)(oneShotPeriod)) {
 			start();
 		}
 

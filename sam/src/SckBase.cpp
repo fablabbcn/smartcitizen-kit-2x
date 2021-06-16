@@ -164,65 +164,67 @@ void SckBase::update()
 		}
 	}
 
+	if (millis() - generalUpdateTimer > 500) {
+
+		// Avoid ESP hangs
+		if (st.espBooting) {
+			if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
+		}
+
+		if (pendingSyncConfig) {
+			if (millis() - sendConfigTimer > 1000) {
+				sendConfigTimer = millis();
+				if (sendConfigCounter > 3) {
+					ESPcontrol(ESP_REBOOT);
+					sendConfigCounter = 0;
+				} else if (st.espON) {
+					if (!st.espBooting) sendConfig();
+					sendConfigCounter++;
+				} else {
+					ESPcontrol(ESP_ON);
+				}
+			}
+		}
+
+		if (sdInitPending) sdInit();
+
+		// SD card debug check file size and backup big files.
+		if (config.debug.sdcard) {
+			// Just do this every hour
+			if (rtc.getEpoch() % 3600 == 0) {
+				if (sdSelect()) {
+					debugFile.file = sd.open(debugFile.name, FILE_WRITE);
+					if (debugFile.file) {
+
+						uint32_t debugSize = debugFile.file.size();
+
+						// If file is bigger than 50mb rename the file.
+						if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
+						debugFile.file.close();
+
+					} else {
+						st.cardPresent = false;
+						st.cardPresentError = false;
+					}
+
+				}
+			}
+		}
+
+		// If we have a GPS update it and get time if needed
+		if (sensors[SENSOR_GPS_FIX_QUALITY].enabled){
+				auxBoards.updateGPS();
+				if (!st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
+		}
+
+		// If we have a screen update it
+		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
+	}
 }
 
 // **** Mode Control
 void SckBase::reviewState()
 {
-
-	// Avoid ESP hangs
-	if (st.espBooting) {
-		if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
-	}
-
-	if (pendingSyncConfig) {
-		if (millis() - sendConfigTimer > 1000) {
-			sendConfigTimer = millis();
-			if (sendConfigCounter > 3) {
-				ESPcontrol(ESP_REBOOT);
-				sendConfigCounter = 0;
-			} else if (st.espON) {
-				if (!st.espBooting) sendConfig();
-				sendConfigCounter++;
-			} else {
-				ESPcontrol(ESP_ON);
-			}
-		}
-	}
-
-	if (sdInitPending) sdInit();
-
-	// SD card debug check file size and backup big files.
-	if (config.debug.sdcard) {
-		// Just do this every hour
-		if (rtc.getEpoch() % 3600 == 0) {
-			if (sdSelect()) {
-				debugFile.file = sd.open(debugFile.name, FILE_WRITE);
-				if (debugFile.file) {
-
-					uint32_t debugSize = debugFile.file.size();
-
-					// If file is bigger than 50mb rename the file.
-					if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
-					debugFile.file.close();
-
-				} else {
-					st.cardPresent = false;
-					st.cardPresentError = false;
-				}
-
-			}
-		}
-	}
-
-	// If we have a GPS update it and get time if needed
-	if (sensors[SENSOR_GPS_FIX_QUALITY].enabled){
-		auxBoards.updateGPS();
-		if (!st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
-	}
-
-	// If we have a screen update it
-	if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/

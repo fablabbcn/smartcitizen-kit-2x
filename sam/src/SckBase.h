@@ -119,6 +119,7 @@ class SckBase
 		uint32_t sendConfigTimer = 0;
 		uint8_t sendConfigCounter = 0;
 		bool pendingSyncConfig = false;
+		uint32_t generalUpdateTimer = 0;
 
 		// Button
 		const uint16_t buttonLong = 5000;

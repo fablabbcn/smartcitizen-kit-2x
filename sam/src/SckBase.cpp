@@ -140,7 +140,7 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
-	if (millis() - reviewStateMillis > 500) {
+	if (millis() - reviewStateMillis > 100) {
 		reviewStateMillis = millis();
 		reviewState();
 	}
@@ -303,9 +303,6 @@ void SckBase::reviewState()
 			return;
 		}
 
-		// Read sensors (The only error that avoids reading is no time sync)
-		updateSensors();
-
 		if (st.mode == MODE_NET) {
 
 			// If We need conection now
@@ -359,6 +356,7 @@ void SckBase::reviewState()
 
 							ESPcontrol(ESP_OFF); 				// Save battery
 							timeToPublish = false;
+							lastPublishTime = rtc.getEpoch(); 		// Wait for another period before retry
 							sleepLoop();
 						}
 					}
@@ -411,12 +409,9 @@ void SckBase::reviewState()
 							// Mark reading as published
 							uint8_t readingNum = readingsList.setPublished(wichGroupPublishing, readingsList.PUB_NET);
 							wichGroupPublishing.group = -1;
+							timeToPublish = false;
 							sprintf(outBuff, "Network publish OK!! (%u readings)", readingNum);
 							sckOut();
-
-							// Continue as fast as posible with remaining readings
-							if (st.publishStat.retry()) netPublish();
-
 
 						} else if (st.publishStat.error) {
 
@@ -440,10 +435,13 @@ void SckBase::reviewState()
 				}
 			} else {
 
+				updateSensors();
 				sleepLoop();
 			}
 
 		} else if  (st.mode == MODE_SD) {
+
+			updateSensors();
 
 			if (st.espON && !pendingSyncConfig) ESPcontrol(ESP_OFF);
 
@@ -1084,8 +1082,6 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_PUBLISH_OK:
 
 			st.publishStat.setOk();
-			// Force reviewState: avoids loosing time on continous publishing
-			reviewState();
 			break;
 
 		case SAMMES_MQTT_PUBLISH_ERROR:
@@ -1637,8 +1633,9 @@ void SckBase::updateSensors()
 	// If we have readings pending to be published
 	if (readingsList.availableReadings[readingsList.PUB_NET]) {
 
-		// If its time (based on configured publish interval)
-		if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
+		// If its time (based on configured publish interval) or WiFi is connected and ready
+		if ( 	rtc.getEpoch() - lastPublishTime >= config.publishInterval ||
+			st.wifiStat.ok) {
 			
 			// Check if we are in offline programmed hours
 			bool offlineHours = false;

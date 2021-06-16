@@ -1841,6 +1841,14 @@ bool SckBase::netPublish()
 		timeToPublish = false; 		// There are no more readings available
 	}
 
+	// Wait for response or timeout
+	uint32_t timeout = millis();
+	while (millis() - timeout < 1000) {
+		ESPbusUpdate();
+		if (st.publishStat.ok || st.publishStat.error) break;
+		if (millis() - lastUserEvent < 1000) break;
+	}
+
 	return result;
 }
 bool SckBase::sdPublish()

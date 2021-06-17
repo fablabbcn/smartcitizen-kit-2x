@@ -337,10 +337,18 @@ void SckBase::reviewState()
 						if (st.lastWiFiError == 0) {
 
 							ESPcontrol(ESP_OFF); 				// Save battery
+							infoPublished = true; 				// We will try on next boot, publishing info is not high priority
 							st.lastWiFiError = now; 			// Start counting time
 							st.wifiErrorCounter++; 				// Count errors
-							sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
-							led.update(led.BLUE, led.PULSE_WARNING);
+
+							if (st.helloPending) {
+								sckOut("ERROR: Couldn't send hello to platform! ");
+								sckOut("No readings will be taken!!");
+								led.update(led.BLUE, led.PULSE_ERROR);
+							} else {
+								sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
+								led.update(led.BLUE, led.PULSE_WARNING);
+							}
 
 						// Retry WiFi to be sure that is not working
 						} else if (	(now - st.lastWiFiError) > config.offline.retry ||  	// Enough time has passed to try again

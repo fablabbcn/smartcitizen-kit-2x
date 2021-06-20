@@ -777,13 +777,13 @@ SckList::GroupIndex SckList::saveGroup()
 	availableReadings[PUB_NET] = true;
 	availableReadings[PUB_SD] = true;
 
+	int16_t thisGroup = _countSectGroups(_currSector, PUB_NET, NOT_PUBLISHED, true) - 1;
+	GroupIndex returnGroup = {_currSector, thisGroup, startAddress};
+
 	if (debug) {
-		sprintf(base->outBuff, "F: Saved %u sensors on sector %u", enabledSensors, _currSector);
+		sprintf(base->outBuff, "F: Saved %u readings on group %u in sector %u", enabledSensors, thisGroup, _currSector);
 		base->sckOut();
 	}
-
-	int16_t thisGroup = _countSectGroups(_currSector, PUB_NET, true);
-	GroupIndex returnGroup = {_currSector, thisGroup, startAddress};
 
 	if (sectorIsFull) {
 		if (debug) {

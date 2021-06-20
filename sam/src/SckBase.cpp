@@ -140,7 +140,7 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
-	if (millis() - reviewStateMillis > 100) {
+	if (millis() - reviewStateMillis > 250) {
 		reviewStateMillis = millis();
 		reviewState();
 	}
@@ -225,7 +225,6 @@ void SckBase::update()
 // **** Mode Control
 void SckBase::reviewState()
 {
-
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
 	/* bool espON */
@@ -1420,13 +1419,13 @@ void SckBase::configGCLK6()
 }
 void SckBase::updateDynamic(uint32_t now)
 {
-	uint32_t startTimer = millis();
+	// Only do the check once a second
+	if (millis() - lastSpeedMonitoring < 1000) return;
+	lastSpeedMonitoring = millis();
 
 	if (!getReading(&sensors[SENSOR_GPS_SPEED])) return;
 	if (!getReading(&sensors[SENSOR_GPS_FIX_QUALITY])) return;
 	if (!getReading(&sensors[SENSOR_GPS_HDOP])) return;
-
-	lastSpeedMonitoring = now;
 
 	float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
 	uint8_t fix = sensors[SENSOR_GPS_FIX_QUALITY].reading.toInt();
@@ -1539,24 +1538,25 @@ void SckBase::urbanStart()
 }
 void SckBase::updateSensors()
 {
-	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) {
+	uint32_t now = rtc.getEpoch();
+
+	if (!rtc.isConfigured() || now < 1514764800) {
 		sckOut("RTC ERROR when updating sensors!!!", PRIO_LOW);
-		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
+		epoch2iso(now, ISOtimeBuff);
 		st.timeStat.reset();
 	}
 	if (!st.timeStat.ok) return;
 	if (st.onSetup) return;
 
-	uint32_t now = rtc.getEpoch();
 	if (sensors[SENSOR_GPS_SPEED].enabled) updateDynamic(now);
 
 	bool sensorsReady = false;
 
 	// Main reading loop
-	uint32_t timeSinceLastSensorUpdate = rtc.getEpoch() - lastSensorUpdate;
+	uint32_t timeSinceLastSensorUpdate = now - lastSensorUpdate;
 	if ((st.dynamic && (timeSinceLastSensorUpdate >= dynamicInterval)) || timeSinceLastSensorUpdate >= config.readInterval) {
 
-		lastSensorUpdate = rtc.getEpoch();
+		lastSensorUpdate = now;
 
 		sckOut("\r\n-----------");
 		epoch2iso(lastSensorUpdate, ISOtimeBuff);
@@ -1644,7 +1644,7 @@ void SckBase::updateSensors()
 	if (readingsList.availableReadings[readingsList.PUB_NET]) {
 
 		// If its time (based on configured publish interval) or WiFi is connected and ready
-		if ( 	rtc.getEpoch() - lastPublishTime >= config.publishInterval ||
+		if ( 	now - lastPublishTime >= config.publishInterval ||
 			st.wifiStat.ok) {
 			
 			// Check if we are in offline programmed hours

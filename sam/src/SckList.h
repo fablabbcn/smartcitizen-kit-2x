@@ -128,7 +128,7 @@ class SckList
 		bool _countSectGroups(uint16_t wichSector, SectorInfo* info); 			// Counts groups in sector (indepently of their state). To count more that one type of groups in the sector this is more efficient.
 		int16_t _countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte publishedState, bool getAll=false);  	// Count specified groups on sector. To count different type of groups this is not efficient, try the previous function.
 		GroupIndex _getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag); 		// Returns the index of the first non-published group on the sector and aflag specified
-		bool _searchUnpubSect(PubFlags wichFlag); 				// Return first sector with unpublished data
+		bool _searchUnpubSect(PubFlags wichFlag, uint16_t startSector=0); 		// Return first sector with unpublished data
 		void _scanSectors();
 
 		// Group functions

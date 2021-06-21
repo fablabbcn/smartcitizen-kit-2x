@@ -363,7 +363,7 @@ void SckBase::reviewState()
 						// Asume WiFi is down or not reachable
 						} else {
 
-							ESPcontrol(ESP_OFF); 				// Save battery
+							if (st.espON) ESPcontrol(ESP_OFF); 				// Save battery
 							timeToPublish = false;
 							lastPublishTime = rtc.getEpoch(); 		// Wait for another period before retry
 							sleepLoop();
@@ -421,6 +421,19 @@ void SckBase::reviewState()
 							timeToPublish = false;
 							sprintf(outBuff, "Network publish OK!! (%u readings)", readingNum);
 							sckOut();
+
+							if (readingsList.availableReadings[readingsList.PUB_NET]) {
+
+								if (st.publishStat.retry()) netPublish();
+
+							} else {
+
+								// Turn off WiFi if is not going to be used soon
+								if (config.publishInterval >= 60) {
+									ESPcontrol(ESP_OFF);
+									st.wifiStat.reset();
+								}
+							}
 
 						} else if (st.publishStat.error) {
 
@@ -1661,22 +1674,23 @@ void SckBase::updateSensors()
 			if (!offlineHours) {
 
 				if (st.wifiStat.error) {
-				
 					// If WiFi was failing check if enough time has passed to retry
 					if ((now - st.lastWiFiError) > config.offline.retry) {
+						sckOut("After wifi error it's time to publish");
 						timeToPublish = true;
 					}
-
 				} else {
 					timeToPublish = true;
+					sckOut("it's time to publish");
 				}
-
 			}
-
 		} 
 
-		// If there is recent user interaction we want to publish as often as posible.
-		if ((millis() - lastUserEvent < (config.sleepTimer * 60000)) || config.sleepTimer == 0) timeToPublish = true;
+		//  3 minutes after user interaction we publish as soon readings are available (mostly to be responsive during oboarding process)
+		if ((millis() - lastUserEvent < 3 * 60000) || config.sleepTimer == 0) {
+			sckOut("Recent user interaction, it's time to publish");
+			timeToPublish = true;
+		}
 	}
 }
 bool SckBase::enableSensor(SensorType wichSensor)

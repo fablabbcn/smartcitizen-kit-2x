@@ -1520,6 +1520,8 @@ void SckBase::sleepLoop()
 
 		// If we have a screen update it
 		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
+
+		now = rtc.getEpoch();
 	}
 }
 

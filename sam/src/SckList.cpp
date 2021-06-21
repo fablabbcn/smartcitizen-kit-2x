@@ -100,6 +100,9 @@ int8_t SckList::_setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 	// Sanity check
 	if (flagsAddr == 0) return -1;
 
+	// If this is the last group report no more data is available
+	if (_dataAvailableSect[wichFlag] == _currSector && wichGroup.group == _lastGroup.group) availableReadings[wichFlag] = false;
+
 	// And write flags byte back
 	return flash.writeByte(flagsAddr, PUBLISHED);
 }
@@ -765,7 +768,7 @@ SckList::GroupIndex SckList::saveGroup()
 	availableReadings[PUB_SD] = true;
 
 	int16_t thisGroup = _countSectGroups(_currSector, PUB_NET, NOT_PUBLISHED, true) - 1;
-	GroupIndex returnGroup = {_currSector, thisGroup, startAddress};
+	_lastGroup = {_currSector, thisGroup, startAddress};
 
 	if (debug) {
 		sprintf(base->outBuff, "F: Saved %u readings on group %u in sector %u", enabledSensors, thisGroup, _currSector);
@@ -786,7 +789,7 @@ SckList::GroupIndex SckList::saveGroup()
 		}
 	}
 
-	return returnGroup;
+	return _lastGroup;
 }
 SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
 {

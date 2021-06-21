@@ -111,6 +111,7 @@ class SckList
 		int16_t _currSector = -1;
 		int16_t _dataAvailableSect[2] = {-1, -1};	// next sector with readings not published to network
 		GroupIndex potencialNextGroup = {-1,-1,0}; 	// To store potencial next groups to be published in batch mode
+		GroupIndex _lastGroup = {-1,-1,0}; 		// To store the last saved group
 
 		bool _append(char value);			// Appends a byte at the end of the list
 

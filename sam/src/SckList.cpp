@@ -381,7 +381,6 @@ bool SckList::_searchUnpubSect(PubFlags wichFlag, uint16_t startSector)
 	if (debug) base->sckOut(" no data found");
 
 	_dataAvailableSect[wichFlag] = _currSector;
-	availableReadings[wichFlag] = false; 		// This flag will be set to true when a group is saved
 	return false;
 }
 void SckList::_scanSectors()

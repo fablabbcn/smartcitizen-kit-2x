@@ -332,15 +332,6 @@ void SckBase::reviewState()
 
 						uint32_t now = rtc.getEpoch();
 
-						if (st.helloPending) {
-							sckOut("ERROR: Couldn't send hello to platform! ");
-							sckOut("No readings will be taken!!");
-							led.update(led.BLUE, led.PULSE_ERROR);
-						} else {
-							sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
-							led.update(led.BLUE, led.PULSE_WARNING);
-						}
-
 						// If error just happened don't go to sleep yet
 						if (st.lastWiFiError == 0) {
 
@@ -348,6 +339,15 @@ void SckBase::reviewState()
 							infoPublished = true; 				// We will try on next boot, publishing info is not high priority
 							st.lastWiFiError = now; 			// Start counting time
 							st.wifiErrorCounter++; 				// Count errors
+
+							if (st.helloPending) {
+								sckOut("ERROR: Couldn't send hello to platform! ");
+								sckOut("No readings will be taken!!");
+								led.update(led.BLUE, led.PULSE_ERROR);
+							} else {
+								sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
+								led.update(led.BLUE, led.PULSE_WARNING);
+							}
 
 						// Retry WiFi to be sure that is not working
 						} else if (	(now - st.lastWiFiError) > config.offline.retry ||  	// Enough time has passed to try again
@@ -1676,19 +1676,19 @@ void SckBase::updateSensors()
 				if (st.wifiStat.error) {
 					// If WiFi was failing check if enough time has passed to retry
 					if ((now - st.lastWiFiError) > config.offline.retry) {
-						sckOut("After wifi error it's time to publish");
+						sckOut("After wifi error it's time to publish", PRIO_LOW);
 						timeToPublish = true;
 					}
 				} else {
 					timeToPublish = true;
-					sckOut("it's time to publish");
+					sckOut("it's time to publish", PRIO_LOW);
 				}
 			}
 		} 
 
 		//  3 minutes after user interaction we publish as soon readings are available (mostly to be responsive during oboarding process)
 		if ((millis() - lastUserEvent < 3 * 60000) || config.sleepTimer == 0) {
-			sckOut("Recent user interaction, it's time to publish");
+			sckOut("Recent user interaction, it's time to publish", PRIO_LOW);
 			timeToPublish = true;
 		}
 	}

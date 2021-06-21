@@ -156,14 +156,6 @@ void SckBase::update()
 		while(!butState) buttonStillDown();
 	}
 
- 	// if more than 23 hours have passed since last reset and we are in the right hour-minute then reset
-	if (millis() > MS_23_HOURS) {
-		if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
-			sckOut("Sanity reset, bye!!");
-			sck_reset();
-		}
-	}
-
 	if (millis() - generalUpdateTimer > 500) {
 
 		// Avoid ESP hangs
@@ -1407,6 +1399,14 @@ void SckBase::updatePower()
 			battery.emergencyLowBatCounter = 0;
 			battery.lowBatCounter = 0;
 			led.chargeStatus = led.CHARGE_NULL;
+		}
+	}
+
+ 	// if more than 23 hours have passed since last reset and we are in the right hour-minute then reset
+	if (millis() > MS_23_HOURS) {
+		if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
+			sckOut("Sanity reset, bye!!");
+			sck_reset();
 		}
 	}
 }

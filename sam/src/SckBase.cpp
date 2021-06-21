@@ -332,6 +332,15 @@ void SckBase::reviewState()
 
 						uint32_t now = rtc.getEpoch();
 
+						if (st.helloPending) {
+							sckOut("ERROR: Couldn't send hello to platform! ");
+							sckOut("No readings will be taken!!");
+							led.update(led.BLUE, led.PULSE_ERROR);
+						} else {
+							sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
+							led.update(led.BLUE, led.PULSE_WARNING);
+						}
+
 						// If error just happened don't go to sleep yet
 						if (st.lastWiFiError == 0) {
 
@@ -339,15 +348,6 @@ void SckBase::reviewState()
 							infoPublished = true; 				// We will try on next boot, publishing info is not high priority
 							st.lastWiFiError = now; 			// Start counting time
 							st.wifiErrorCounter++; 				// Count errors
-
-							if (st.helloPending) {
-								sckOut("ERROR: Couldn't send hello to platform! ");
-								sckOut("No readings will be taken!!");
-								led.update(led.BLUE, led.PULSE_ERROR);
-							} else {
-								sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
-								led.update(led.BLUE, led.PULSE_WARNING);
-							}
 
 						// Retry WiFi to be sure that is not working
 						} else if (	(now - st.lastWiFiError) > config.offline.retry ||  	// Enough time has passed to try again

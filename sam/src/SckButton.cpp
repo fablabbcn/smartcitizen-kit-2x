@@ -27,6 +27,8 @@ void SckBase::buttonEvent()
 			if (st.mode == MODE_NET) {
 				ESPcontrol(ESP_REBOOT);
 				led.update(led.BLUE, led.PULSE_SOFT);
+				st.lastWiFiError = 0;
+				st.wifiStat.reset();
 			} else if (st.mode == MODE_SD) {
 				led.update(led.PINK, led.PULSE_SOFT);
 			} else {

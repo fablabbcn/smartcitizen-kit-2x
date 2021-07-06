@@ -75,7 +75,7 @@ void SckBase::setup()
 
 	// Flash storage
 	sckOut("Starting flash memory...");
-	led.update(led.WHITE, led.PULSE_HARD_FAST);
+	led.update(led.WHITE, led.PULSE_ERROR);
 	wichGroupPublishing.group = -1;  	// No group is being published yet
 	int8_t rcode = readingsList.setup();
 	if (rcode == 1) sckOut("Found problems on flash memory, it was formated...");
@@ -140,7 +140,7 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
-	if (millis() - reviewStateMillis > 500) {
+	if (millis() - reviewStateMillis > 250) {
 		reviewStateMillis = millis();
 		reviewState();
 	}
@@ -156,71 +156,67 @@ void SckBase::update()
 		while(!butState) buttonStillDown();
 	}
 
- 	// if more than 23 hours have passed since last reset and we are in the right hour-minute then reset
-	if (millis() > MS_23_HOURS) {
-		if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
-			sckOut("Sanity reset, bye!!");
-			sck_reset();
-		}
-	}
+	if (millis() - generalUpdateTimer > 500) {
 
+		// Avoid ESP hangs
+		if (st.espBooting) {
+			if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
+		}
+
+		if (pendingSyncConfig) {
+			if (millis() - sendConfigTimer > 1000) {
+				sendConfigTimer = millis();
+				if (sendConfigCounter > 3) {
+					ESPcontrol(ESP_REBOOT);
+					sendConfigCounter = 0;
+				} else if (st.espON) {
+					if (!st.espBooting) sendConfig();
+					sendConfigCounter++;
+				} else {
+					ESPcontrol(ESP_ON);
+				}
+			}
+		}
+
+		if (sdInitPending) sdInit();
+
+		// SD card debug check file size and backup big files.
+		if (config.debug.sdcard) {
+			// Just do this every hour
+			if (rtc.getEpoch() % 3600 == 0) {
+				if (sdSelect()) {
+					debugFile.file = sd.open(debugFile.name, FILE_WRITE);
+					if (debugFile.file) {
+
+						uint32_t debugSize = debugFile.file.size();
+
+						// If file is bigger than 50mb rename the file.
+						if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
+						debugFile.file.close();
+
+					} else {
+						st.cardPresent = false;
+						st.cardPresentError = false;
+					}
+
+				}
+			}
+		}
+
+		// If we have a GPS update it and get time if needed
+		if (sensors[SENSOR_GPS_FIX_QUALITY].enabled){
+				auxBoards.updateGPS();
+				if (!st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
+		}
+
+		// If we have a screen update it
+		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
+	}
 }
 
 // **** Mode Control
 void SckBase::reviewState()
 {
-
-	// Avoid ESP hangs
-	if (st.espBooting) {
-		if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
-	}
-
-	if (pendingSyncConfig) {
-		if (millis() - sendConfigTimer > 1000) {
-			sendConfigTimer = millis();
-			if (sendConfigCounter > 3) {
-				ESPcontrol(ESP_REBOOT);
-				sendConfigCounter = 0;
-			} else if (st.espON) {
-				if (!st.espBooting) sendConfig();
-				sendConfigCounter++;
-			} else {
-				ESPcontrol(ESP_ON);
-			}
-		}
-	}
-
-	if (sdInitPending) sdInit();
-
-	// SD card debug check file size and backup big files.
-	if (config.debug.sdcard) {
-		// Just do this every hour
-		if (rtc.getEpoch() % 3600 == 0) {
-			if (sdSelect()) {
-				debugFile.file = sd.open(debugFile.name, FILE_WRITE);
-				if (debugFile.file) {
-
-					uint32_t debugSize = debugFile.file.size();
-
-					// If file is bigger than 50mb rename the file.
-					if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
-					debugFile.file.close();
-
-				} else {
-					st.cardPresent = false;
-					st.cardPresentError = false;
-				}
-
-			}
-		}
-	}
-
-	// If we have a GPS get time if needed
-	if (sensors[SENSOR_GPS_FIX_QUALITY].enabled && !st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
-
-	// If we have a screen update it
-	if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
-
 	/* struct SckState { */
 	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
 	/* bool espON */
@@ -248,250 +244,236 @@ void SckBase::reviewState()
 
 		if (!st.onSetup) enterSetup();
 
-	} else if (st.mode == MODE_NET) {
+	} else if (st.mode == MODE_NET || st.mode == MODE_SD) {
 
-		updateSensors();
+		if (!st.timeStat.ok) {
 
-		// This error needs user intervention
-		if (!st.wifiSet) {
-			if (!st.wifiStat.error) {
-				sckOut("ERROR wifi is not configured!!!");
-				ESPcontrol(ESP_OFF);
-				led.update(led.BLUE, led.PULSE_HARD_FAST);
-				st.error = ERROR_NO_WIFI_CONFIG;
-				st.wifiStat.error = true;
+			// This error needs user intervention
+			if (!st.wifiSet) {
+				if (!st.wifiStat.error) {
+					sckOut("ERROR Time not synced and wifi is not configured!!!");
+					ESPcontrol(ESP_OFF);
+					if (st.mode == MODE_SD)	led.update(led.PINK, led.PULSE_ERROR);
+					else led.update(led.BLUE, led.PULSE_ERROR);
+					st.error = ERROR_NO_WIFI_CONFIG;
+					st.wifiStat.error = true;
+				}
+				return;
 			}
-			return;
-		}
-
-		// This error needs user intervention
-		if (!st.tokenSet) {
-			if (!st.tokenError) {
-				sckOut("ERROR token is not configured!!!");
-				ESPcontrol(ESP_OFF);
-				led.update(led.BLUE, led.PULSE_HARD_FAST);
-				st.error = ERROR_NO_TOKEN_CONFIG;
-				st.tokenError = true;
-			}
-			return;
-		}
-
-		if (st.helloPending || !st.timeStat.ok || timeToPublish || !infoPublished) {
 
 			if (!st.wifiStat.ok) {
 
-				updateSensors(); 				// To avoid reading delay while publishing sensors
+				if (st.wifiStat.retry()) { 			// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
 
-				// Check if we are in offline programmed hours
-				bool offlineHours = false;
-				if (config.offline.start >= 0 && config.offline.end >= 0 && millis() - lastUserEvent > (config.sleepTimer * 60000)) {
-					int8_t thisHour = rtc.getHours();
-					if (thisHour > config.offline.start && thisHour < config.offline.end) {
-						if (st.espON) ESPcontrol(ESP_OFF);
-						led.update(led.BLUE, led.PULSE_SOFT);
-						offlineHours = true;
-					}
+					sckOut("Time not synced, connecting to WiFi...");
+					if (!st.espON) ESPcontrol(ESP_ON); 	// Make sure the ESP is on
+
+				} else if (st.wifiStat.error) { 		// If error is declared something went wrong
+
+					// This error needs user intervention so feedback should be urgent
+					if (st.error != ERROR_TIME) sckOut("ERROR: Without time we can not take readings!!!");
+					if (st.mode == MODE_SD)	led.update(led.PINK, led.PULSE_ERROR);
+					else led.update(led.BLUE, led.PULSE_ERROR);
+					st.error = ERROR_TIME;
 				}
 
-				if (!offlineHours) {
+			} else if (st.timeStat.retry()) {
 
-					if (st.wifiStat.retry()) { 			// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
+				if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
 
+			} else if (st.timeStat.error) {
+
+				if (st.error != ERROR_TIME) sckOut("ERROR getting time from the network!!!");
+
+				ESPcontrol(ESP_REBOOT); 			// This also resets st.wifiStat
+				if (st.mode == MODE_SD)	led.update(led.PINK, led.PULSE_ERROR);
+				else led.update(led.BLUE, led.PULSE_ERROR);
+				led.update(led.BLUE, led.PULSE_ERROR);
+				st.error = ERROR_TIME;
+				st.timeStat.reset();
+			}
+
+			return;
+		}
+
+		if (st.mode == MODE_NET) {
+
+			// If We need conection now
+			if (st.helloPending || timeToPublish || !infoPublished) {
+
+				if (!st.tokenSet) {
+
+					if (!st.tokenError) {
+						sckOut("ERROR token is not configured!!!");
+						ESPcontrol(ESP_OFF);
+						led.update(led.BLUE, led.PULSE_WARNING);
+						st.error = ERROR_NO_TOKEN_CONFIG;
+						st.tokenError = true;
+					}
+
+				} else if (!st.wifiStat.ok) {
+
+					// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
+					if (st.wifiStat.retry()) { 
+
+						sckOut("Connecting to Wifi...");
 						if (!st.espON) ESPcontrol(ESP_ON); 	// Make sure the ESP is on
 
 					} else if (st.wifiStat.error) { 		// If error is declared something went wrong
 
+
 						uint32_t now = rtc.getEpoch();
 
-						// If error just happened
+						// If error just happened don't go to sleep yet
 						if (st.lastWiFiError == 0) {
 
 							ESPcontrol(ESP_OFF); 				// Save battery
-							st.lastWiFiError = now; 		// Start counting time
+							infoPublished = true; 				// We will try on next boot, publishing info is not high priority
+							st.lastWiFiError = now; 			// Start counting time
 							st.wifiErrorCounter++; 				// Count errors
-							sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
-							led.update(led.BLUE, led.PULSE_HARD_FAST);
-						}
 
-						else if (	(now - st.lastWiFiError) > config.offline.retry || 	// Enough time has passed to try again
+							if (st.helloPending) {
+								sckOut("ERROR: Couldn't send hello to platform! ");
+								sckOut("No readings will be taken!!");
+								led.update(led.BLUE, led.PULSE_ERROR);
+							} else {
+								sckOut("ERROR Can't publish without wifi!!!"); 	// User feedback
+								led.update(led.BLUE, led.PULSE_WARNING);
+							}
+
+						// Retry WiFi to be sure that is not working
+						} else if (	(now - st.lastWiFiError) > config.offline.retry ||  	// Enough time has passed to try again
 								st.wifiErrorCounter < 2 || 				// Try 2 times before assuming WiFi is no present
-								millis() - lastUserEvent < 1000				// User event in the last second, this shouldn't enter more than once after event because wifi error declaration takes a lot more than one second
-							) {
+								millis() - lastUserEvent < 1000				// User event in the last second, this shouldn't enter more than once because wifi error declaration takes a lot more than one second
+							  ) {
 
-							// Reset everything and try again
+							// Reset and try again
 							st.lastWiFiError = 0;
 							st.wifiStat.reset();
-							sckOut("Retrying WiFi..."); 	// User feedback
+							sckOut("Retrying WiFi..."); 			// User feedback
+
+						// Asume WiFi is down or not reachable
+						} else {
+
+							if (st.espON) ESPcontrol(ESP_OFF); 				// Save battery
+							timeToPublish = false;
+							lastPublishTime = rtc.getEpoch(); 		// Wait for another period before retry
+							sleepLoop();
 						}
-
-						// ERROR feedback should be on just for a limited amount of time, let's turn it off
-						else if (now - st.lastWiFiError > 10) led.update(led.BLUE, led.PULSE_SOFT);
 					}
-				}
-			} else {
-
-				led.update(led.BLUE, led.PULSE_SOFT);
-				st.wifiErrorCounter = 0;
-				st.error = ERROR_NONE;
-
-				if (st.helloPending) {
-
-					if (st.helloStat.retry()) {
-
-						if (sendMessage(ESPMES_MQTT_HELLO, ""))	sckOut("Hello sent!");
-
-					} else if (st.helloStat.error) {
-
-						sckOut("ERROR sending hello!!!");
-
-						ESPcontrol(ESP_REBOOT); 		// Try reseting ESP
-						led.update(led.BLUE, led.PULSE_HARD_FAST);
-						st.error = ERROR_MQTT;
-
-						st.helloStat.reset();
-					}
-
-				} else if (!st.timeStat.ok) {
-
-					if (st.timeStat.retry()) {
-
-						if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
-
-					} else if (st.timeStat.error) {
-
-						sckOut("ERROR getting time from the network!!!");
-
-						ESPcontrol(ESP_REBOOT);
-						led.update(led.BLUE, led.PULSE_HARD_FAST);
-						st.error = ERROR_TIME;
-
-						st.timeStat.reset();
-					}
-
-				} else if (!infoPublished) {
-
-					if (st.infoStat.retry()) {
-
-						if (publishInfo()) sckOut("Info sent!");
-
-					} else if (st.infoStat.error){
-
-						sckOut("ERROR sending kit info to platform!!!");
-						infoPublished = true; 		// We will try on next reset
-						st.infoStat.reset();
-						st.error = ERROR_MQTT;
-
-					}
-
-				} else if (timeToPublish) {
-
-					updateSensors(); 			// To avoid reading delay while publishing sensors
-					if (st.publishStat.ok) {
-
-						lastPublishTime = rtc.getEpoch();
-						st.publishStat.reset(); 		// Restart publish error counter
-
-						// Mark reading as published
-						uint8_t readingNum = readingsList.setPublished(wichGroupPublishing, readingsList.PUB_NET);
-						wichGroupPublishing.group = -1;
-						sprintf(outBuff, "Network publish OK!! (%u readings)", readingNum);
-						sckOut();
-
-						// Continue as fast as posible with remaining readings, or go to sleep
-						if (st.publishStat.retry()) netPublish();
-
-
-					} else if (st.publishStat.error) {
-
-						sckOut("Will retry on next publish interval!!!");
-
-						// Forget the index of the group we tried to publish
-						wichGroupPublishing.group = -1;
-
-						led.update(led.BLUE, led.PULSE_HARD_FAST);
-						st.error = ERROR_MQTT;
-
-						ESPcontrol(ESP_OFF);
-						timeToPublish = false;
-						lastPublishTime = rtc.getEpoch();
-						st.publishStat.reset(); 		// Restart publish error counter
-
-					} else {
-						if (st.publishStat.retry()) netPublish();
-					}
-				}
-			}
-		} else {
-
-			sleepLoop();
-
-		}
-	} else if  (st.mode == MODE_SD) {
-
-		updateSensors();
-
-		if (!st.cardPresent) {
-			if (!st.cardPresentError) {
-				sckOut("ERROR can't find SD card!!!");
-				if (st.espON) ESPcontrol(ESP_OFF);
-				led.update(led.PINK, led.PULSE_HARD_FAST);
-				st.error = ERROR_SD;
-				st.cardPresentError = true;
-			}
-			return;
-
-		} else if (!st.timeStat.ok) {
-
-			if (!st.wifiSet)  {
-				st.error = ERROR_TIME;
-				if (!st.wifiStat.error) {
-					sckOut("ERROR time is not synced and no wifi set!!!");
-					ESPcontrol(ESP_OFF);
-					led.update(led.PINK, led.PULSE_HARD_FAST);
-					st.wifiStat.error = true;
-				}
-			} else {
-
-				if (!st.wifiStat.ok) {
-
-					st.wifiStat.retry();
-
-					if (!st.espON) ESPcontrol(ESP_ON);
-					else if (st.wifiStat.error) {
-
-						sckOut("ERROR time is not synced!!!");
-
-						ESPcontrol(ESP_OFF);
-						led.update(led.PINK, led.PULSE_HARD_FAST);
-						st.error = ERROR_TIME;
-						st.wifiStat.reset();
-					}
-
 
 				} else {
 
-					if (st.timeStat.retry()) {
+					led.update(led.BLUE, led.PULSE_SOFT);
+					st.wifiErrorCounter = 0;
+					st.error = ERROR_NONE;
 
-						if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
+					if (st.helloPending) {
 
-					} else if (st.timeStat.error) {
+						if (st.helloStat.retry()) {
 
-						sckOut("ERROR time sync failed!!!");
-						st.timeStat.reset();
-						ESPcontrol(ESP_OFF);
-						led.update(led.PINK, led.PULSE_HARD_FAST);
-						st.error = ERROR_TIME;
+							if (sendMessage(ESPMES_MQTT_HELLO, ""))	sckOut("Hello sent!");
+
+						} else if (st.helloStat.error) {
+
+							sckOut("ERROR sending hello!!!");
+
+							ESPcontrol(ESP_REBOOT); 			// Try reseting ESP
+							led.update(led.BLUE, led.PULSE_ERROR); 	// This error is an exception (normally it would be Soft error) because in this case the user is probably doing the onboarding process
+							st.error = ERROR_MQTT;
+
+							st.helloStat.reset();
+						}
+
+					} else if (!infoPublished) {
+
+						if (st.infoStat.retry()) {
+
+							if (publishInfo()) sckOut("Info sent!");
+
+						} else if (st.infoStat.error){
+
+							sckOut("ERROR sending kit info to platform!!!");
+							infoPublished = true; 		// We will try on next reset
+							st.infoStat.reset();
+							st.error = ERROR_MQTT;
+
+						}
+
+					} else if (timeToPublish) {
+
+						if (st.publishStat.ok) {
+
+							lastPublishTime = rtc.getEpoch();
+							st.publishStat.reset(); 		// Restart publish error counter
+
+							// Mark reading as published
+							uint8_t readingNum = readingsList.setPublished(wichGroupPublishing, readingsList.PUB_NET);
+							wichGroupPublishing.group = -1;
+							timeToPublish = false;
+							sprintf(outBuff, "Network publish OK!! (%u readings)", readingNum);
+							sckOut();
+
+							if (readingsList.availableReadings[readingsList.PUB_NET]) {
+
+								if (st.publishStat.retry()) netPublish();
+
+							} else {
+
+								// Turn off WiFi if is not going to be used soon
+								if (config.publishInterval >= 60) {
+									ESPcontrol(ESP_OFF);
+									st.wifiStat.reset();
+								}
+							}
+
+						} else if (st.publishStat.error) {
+
+							sckOut("Will retry on next publish interval!!!");
+
+							// Forget the index of the group we tried to publish
+							wichGroupPublishing.group = -1;
+
+							led.update(led.BLUE, led.PULSE_WARNING);
+							st.error = ERROR_MQTT;
+
+							ESPcontrol(ESP_OFF);
+							timeToPublish = false;
+							lastPublishTime = rtc.getEpoch();
+							st.publishStat.reset(); 		// Restart publish error counter
+
+						} else {
+							if (st.publishStat.retry()) netPublish();
+						}
 					}
 				}
+			} else {
+
+				updateSensors();
+				sleepLoop();
 			}
 
-		} else {
+		} else if  (st.mode == MODE_SD) {
 
-			st.error = ERROR_NONE;
-			led.update(led.PINK, led.PULSE_SOFT);
-			sleepLoop();
+			updateSensors();
 
 			if (st.espON && !pendingSyncConfig) ESPcontrol(ESP_OFF);
+
+			if (!st.cardPresent) {
+				if (!st.cardPresentError) {
+					sckOut("ERROR can't find SD card!!!");
+					led.update(led.PINK, led.PULSE_WARNING);
+					st.error = ERROR_SD;
+					st.cardPresentError = true;
+				}
+				return;
+
+			} else {
+
+				st.error = ERROR_NONE;
+				led.update(led.PINK, led.PULSE_SOFT);
+				sleepLoop();
+			}
 		}
 	}
 }
@@ -698,6 +680,7 @@ void SckBase::saveConfig(bool defaults)
 
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
+	lastUserEvent = millis();
 
 	// Update state
 	st.mode = config.mode;
@@ -724,14 +707,14 @@ void SckBase::saveConfig(bool defaults)
 			st.onSetup = false;
 			led.update(led.BLUE, led.PULSE_SOFT);
 			st.error = ERROR_NONE;
-			sendMessage(ESPMES_STOP_AP, "");
+			ESPcontrol(ESP_REBOOT);
 
 		} else {
 
 			if (!st.wifiSet) sckOut("ERROR Wifi not configured: can't set Network Mode!!!");
 			if (!st.tokenSet) sckOut("ERROR Token not configured: can't set Network Mode!!!");
 			ESPcontrol(ESP_OFF);
-			led.update(led.BLUE, led.PULSE_HARD_FAST);
+			led.update(led.BLUE, led.PULSE_ERROR);
 			st.error = ERROR_NO_WIFI_CONFIG;
 		}
 
@@ -1012,8 +995,6 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 	switch(wichMessage) {
 		case SAMMES_SET_CONFIG:
 		{
-
-				lastUserEvent = millis();
 				sckOut("Received new config from ESP");
 				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
 				deserializeJson(jsonBuffer, netBuff);
@@ -1071,7 +1052,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		}
 		case SAMMES_WIFI_CONNECTED:
 
-			sckOut("Connected to wifi!!", PRIO_LOW);
+			sckOut("Connected to wifi!!");
 			st.wifiStat.setOk();
 			if (!timeSyncAfterBoot) {
 				if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
@@ -1115,8 +1096,6 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_PUBLISH_OK:
 
 			st.publishStat.setOk();
-			// Force reviewState: avoids loosing time on continous publishing
-			reviewState();
 			break;
 
 		case SAMMES_MQTT_PUBLISH_ERROR:
@@ -1422,6 +1401,14 @@ void SckBase::updatePower()
 			led.chargeStatus = led.CHARGE_NULL;
 		}
 	}
+
+ 	// if more than 23 hours have passed since last reset and we are in the right hour-minute then reset
+	if (millis() > MS_23_HOURS) {
+		if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
+			sckOut("Sanity reset, bye!!");
+			sck_reset();
+		}
+	}
 }
 void SckBase::configGCLK6()
 {
@@ -1443,12 +1430,72 @@ void SckBase::configGCLK6()
 
 	NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
 }
+void SckBase::updateDynamic(uint32_t now)
+{
+	// Only do the check once a second
+	if (millis() - lastSpeedMonitoring < 1000) return;
+	lastSpeedMonitoring = millis();
+
+	if (!getReading(&sensors[SENSOR_GPS_SPEED])) return;
+	if (!getReading(&sensors[SENSOR_GPS_FIX_QUALITY])) return;
+	if (!getReading(&sensors[SENSOR_GPS_HDOP])) return;
+
+	float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
+	uint8_t fix = sensors[SENSOR_GPS_FIX_QUALITY].reading.toInt();
+	uint16_t hdop = sensors[SENSOR_GPS_HDOP].reading.toInt();
+
+	sprintf(outBuff, "Current speed: %.2f, fix: %i, hdop: %i", speedFloat, fix, hdop);
+	sckOut(PRIO_LOW);
+
+	// If high speed is detected, we have a good GPS fix and a decent hdop we enable dynamic interval
+	if (speedFloat > speed_threshold && fix > 0 && hdop < DYNAMIC_HDOP_THRESHOLD) {
+
+		// Only trigger dynamic interval after N counts of high speed in a row
+		if (dynamicCounter > DYNAMIC_COUNTER_THRESHOLD) {
+			if (!st.dynamic) sckOut("Entering dynamic interval mode!", PRIO_LOW);
+			st.dynamic = true;
+			dynamicLast = now;
+
+		} else { 
+			dynamicCounter++;
+		}
+
+	} else {
+		// Reset counter
+		dynamicCounter = 0;
+
+		// After detecting low speed wait some time before disabling dynamic interval
+		if (st.dynamic && (speedFloat < speed_threshold) && (now - dynamicLast > DYNAMIC_TIMEOUT)) {
+			sckOut("Turning dynamic interval off!", PRIO_LOW);
+			st.dynamic = false;
+		}
+	}
+
+	// Debug speed readings to sdcard
+	if (config.debug.speed) {
+		if (!sdSelect()) return;
+		speedFile.file = sd.open(speedFile.name, FILE_WRITE);
+		if (speedFile.file) {
+			ISOtime();
+			speedFile.file.print(ISOtimeBuff);
+			speedFile.file.print(",");
+			speedFile.file.print(speedFloat);
+			speedFile.file.print(",");
+			speedFile.file.print(fix);
+			speedFile.file.print(",");
+			speedFile.file.println(hdop);
+			speedFile.file.close();
+		} else st.cardPresent = false;
+	}
+}
 void SckBase::sleepLoop()
 {
 	uint16_t sleepPeriod = 3; 											// Only sleep if
-	while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > (uint32_t)(sleepPeriod + 1)) && 	// No readings to take in the near future
-			!st.dynamic && 											// No dynamic interval active
-			!timeToPublish && 										// We don't need to publish yet
+	uint32_t now = rtc.getEpoch();
+	while ( 	(!timeToPublish) &&										// No publish pending
+			(config.readInterval - (now - lastSensorUpdate) > (uint32_t)(sleepPeriod + 2)) && 		// No readings to take in the near future
+			((now - dynamicLast) > (config.sleepTimer * 60)) && 						// Dynamic interval wasn't triggered recently
+			(dynamicCounter == 0) && 									// Last speed was low
 			(pendingSensorsLinkedList.size() == 0) && 							// No sensor to wait to
 			(st.timeStat.ok) && 										// RTC is synced and working
 			((millis() - lastUserEvent) > (config.sleepTimer * 60000)) && 					// No recent user interaction (button, sdcard or USB events)
@@ -1473,9 +1520,9 @@ void SckBase::sleepLoop()
 
 		// If we have a screen update it
 		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
-	}
 
-	updateSensors();
+		now = rtc.getEpoch();
+	}
 }
 
 // **** Sensors
@@ -1486,7 +1533,7 @@ void SckBase::urbanStart()
 	if (urban.present()) {
 
 		sckOut("Urban board detected");
-		
+
 		// Try to start enabled sensors
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
@@ -1494,7 +1541,7 @@ void SckBase::urbanStart()
 		}
 
 	} else {
-		
+
 		sckOut("No urban board detected!!");
 
 		// Disable all urban sensors
@@ -1506,35 +1553,25 @@ void SckBase::urbanStart()
 }
 void SckBase::updateSensors()
 {
-	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) {
+	uint32_t now = rtc.getEpoch();
+
+	if (!rtc.isConfigured() || now < 1514764800) {
 		sckOut("RTC ERROR when updating sensors!!!", PRIO_LOW);
-		epoch2iso(rtc.getEpoch(), ISOtimeBuff);
+		epoch2iso(now, ISOtimeBuff);
 		st.timeStat.reset();
 	}
 	if (!st.timeStat.ok) return;
 	if (st.onSetup) return;
 
-	uint32_t now = rtc.getEpoch();
-
-	// Speed based interval
-	st.dynamic = false;
-	if ( 	sensors[SENSOR_GPS_SPEED].enabled && 
-		now - sensors[SENSOR_GPS_SPEED].lastReadingTime >= (float)(dynamicInterval / 2) && 
-		getReading(&sensors[SENSOR_GPS_SPEED])) {
-			sensors[SENSOR_GPS_SPEED].lastReadingTime = now;
-			float speedFloat = sensors[SENSOR_GPS_SPEED].reading.toFloat();
-			sprintf(outBuff, "Current speed: %s (%f)", sensors[SENSOR_GPS_SPEED].reading.c_str(), speedFloat);
-			sckOut(PRIO_LOW);
-			if (speedFloat > speed_threshold) st.dynamic = true;
-	}
+	if (sensors[SENSOR_GPS_SPEED].enabled) updateDynamic(now);
 
 	bool sensorsReady = false;
 
 	// Main reading loop
-	uint32_t timeSinceLastSensorUpdate = rtc.getEpoch() - lastSensorUpdate;
+	uint32_t timeSinceLastSensorUpdate = now - lastSensorUpdate;
 	if ((st.dynamic && (timeSinceLastSensorUpdate >= dynamicInterval)) || timeSinceLastSensorUpdate >= config.readInterval) {
 
-		lastSensorUpdate = rtc.getEpoch();
+		lastSensorUpdate = now;
 
 		sckOut("\r\n-----------");
 		epoch2iso(lastSensorUpdate, ISOtimeBuff);
@@ -1551,7 +1588,7 @@ void SckBase::updateSensors()
 			// Check if it is enabled
 			if (wichSensor->enabled && wichSensor->priority != 250) {
 
-				if ( 	(lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval) || 
+				if ( 	(lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval) ||
 					(st.dynamic && ((lastSensorUpdate - wichSensor->lastReadingTime) >= dynamicInterval))) { 	// Is time to read it?
 
 					wichSensor->lastReadingTime = lastSensorUpdate; 	// Update sensor reading time
@@ -1618,9 +1655,44 @@ void SckBase::updateSensors()
 		else if (st.mode == MODE_SD) readingsList.setPublished(justSaved, readingsList.PUB_NET);
 	}
 
+	// If we have readings pending to be published
 	if (readingsList.availableReadings[readingsList.PUB_NET]) {
-		if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) timeToPublish = true; 	// Time to publish
-		else if ((millis() - lastUserEvent < (config.sleepTimer * 60000)) || config.sleepTimer == 0) timeToPublish = true; 	// If there is recent user interaction we want to publish as often as posible.
+
+		// If its time (based on configured publish interval) or WiFi is connected and ready
+		if ( 	now - lastPublishTime >= config.publishInterval ||
+			st.wifiStat.ok) {
+			
+			// Check if we are in offline programmed hours
+			bool offlineHours = false;
+			if (config.offline.start >= 0 && config.offline.end >= 0 && millis() - lastUserEvent > (config.sleepTimer * 60000)) {
+				int8_t thisHour = rtc.getHours();
+				if (thisHour > config.offline.start && thisHour < config.offline.end) {
+					if (st.espON) ESPcontrol(ESP_OFF);
+					led.update(led.BLUE, led.PULSE_WARNING);
+					offlineHours = true;
+				}
+			}
+
+			if (!offlineHours) {
+
+				if (st.wifiStat.error) {
+					// If WiFi was failing check if enough time has passed to retry
+					if ((now - st.lastWiFiError) > config.offline.retry) {
+						sckOut("After wifi error it's time to publish", PRIO_LOW);
+						timeToPublish = true;
+					}
+				} else {
+					timeToPublish = true;
+					sckOut("it's time to publish", PRIO_LOW);
+				}
+			}
+		} 
+
+		//  3 minutes after user interaction we publish as soon readings are available (mostly to be responsive during oboarding process)
+		if ((millis() - lastUserEvent < 3 * 60000) || config.sleepTimer == 0) {
+			sckOut("Recent user interaction, it's time to publish", PRIO_LOW);
+			timeToPublish = true;
+		}
 	}
 }
 bool SckBase::enableSensor(SensorType wichSensor)
@@ -1795,6 +1867,14 @@ bool SckBase::netPublish()
 		timeToPublish = false; 		// There are no more readings available
 	}
 
+	// Wait for response or timeout
+	uint32_t timeout = millis();
+	while (millis() - timeout < 1000) {
+		ESPbusUpdate();
+		if (st.publishStat.ok || st.publishStat.error) break;
+		if (millis() - lastUserEvent < 1000) break;
+	}
+
 	return result;
 }
 bool SckBase::sdPublish()
@@ -1882,7 +1962,7 @@ bool SckBase::sdPublish()
 	}
 
 	sckOut("ERROR failed publishing to SD card");
-	led.update(led.PINK, led.PULSE_HARD_FAST);
+	led.update(led.PINK, led.PULSE_ERROR);
 	return false;
 }
 

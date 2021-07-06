@@ -119,6 +119,7 @@ class SckBase
 		uint32_t sendConfigTimer = 0;
 		uint8_t sendConfigCounter = 0;
 		bool pendingSyncConfig = false;
+		uint32_t generalUpdateTimer = 0;
 
 		// Button
 		const uint16_t buttonLong = 5000;
@@ -140,6 +141,7 @@ class SckBase
 		SckFile configFile {"CONFIG.TXT"};
 		SckFile postFile {};
 		SckFile debugFile {"DEBUG.TXT"};
+		SckFile speedFile {"SPEED.CSV"};
 		SckFile infoFile {"INFO.TXT"};
 		// Sd card
 		bool sdSelect();
@@ -169,6 +171,14 @@ class SckBase
 		LinkedList<SensorType> pendingSensorsLinkedList;
 
 		SckList::GroupIndex wichGroupPublishing; 	// Index of the group beeing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
+		uint32_t dynamicLast = 0; 			// Last time that we detected enough speed to trigger dynamic interval
+		uint8_t dynamicCounter = 0;
+		const uint8_t DYNAMIC_COUNTER_THRESHOLD = 3; 	// Number of high speed repetitions that triggers dynamic interval
+		uint32_t lastSpeedMonitoring = 0; 		// Last time we check the speed to trigger dynamic interval
+		const uint8_t DYNAMIC_TIMEOUT = 60; 		// When low speed is detected let this time (seconds) pass before changing dynamic interval off. (This helps with noise in speed data).
+		const uint16_t DYNAMIC_HDOP_THRESHOLD = 350; 	// If HDOP is grater than this we ignore the reported speed (this help cleaning false high speed dynamic trigger's)
+		const float SPEED_ALPHA = 2; 			// 0-10 - small values -> more smooth, big values -> closer to original data.
+		void updateDynamic(uint32_t now);
 
 	public:
 		const String hardwareVer = "2.1";
@@ -288,4 +298,3 @@ bool I2Cdetect(TwoWire *_Wire, byte address);
 void ISR_button();
 void ISR_sdDetect();
 void ext_reset();
-

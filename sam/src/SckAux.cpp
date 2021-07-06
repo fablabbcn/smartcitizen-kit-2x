@@ -747,6 +747,11 @@ void AuxBoards::updateDisplay(SckBase* base, bool force)
 	groove_OLED.update(base, force);
 }
 
+bool AuxBoards::updateGPS()
+{
+	return gps.update();
+}
+
 void AuxBoards::plot(String value, const char *title, const char *unit)
 {
 	if (title != NULL && unit != NULL) groove_OLED.plot(value, title, unit);
@@ -1870,6 +1875,11 @@ bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
 	return true;
 }
 
+bool Sck_GPS::update()
+{
+	return gps_source->update();
+}
+
 bool PM_Grove_GPS::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -1961,6 +1971,11 @@ bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	return true;
 }
 
+bool PM_Grove_GPS::update()
+{
+	return true;
+}
+
 bool XA111GPS::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -1982,7 +1997,9 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	//  Only ask for readings if last one is older than
 	if (millis() - lastReading < 500) return true;
 
-	while (i2cGps.available()) tinyGps.encode(i2cGps.read());
+	// TODO 
+	// this was moved to update funtion, check if it works OK
+	/* while (i2cGps.available()) tinyGps.encode(i2cGps.read()); */
 
 	// Time
 	r.timeValid = tinyGps.time.isValid();
@@ -2048,14 +2065,24 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	return true;
 }
 
+bool XA111GPS::update()
+{
+	// Test with the GPS if this make sense here
+	while (i2cGps.available()) tinyGps.encode(i2cGps.read());
+
+	return true;
+}
+
 bool NEOM8UGPS::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	if (!ubloxGps.begin(auxWire)) return false;
 
+	ubloxGps.setUART1Output(0); 		// Disable the UART1 port output 
+	ubloxGps.setUART2Output(0); 		// Disable Set the UART2 port output
 	ubloxGps.setI2COutput(COM_TYPE_UBX); 	// Set the I2C port to output UBX only (turn off NMEA noise)
-	ubloxGps.setNavigationFrequency(1);
+	ubloxGps.setNavigationFrequency(4);
 	ubloxGps.setAutoPVT(true); 		// Tell the GPS to "send" each solution
 	ubloxGps.saveConfiguration(); 		// Save the current settings to flash and BBR
 
@@ -2133,7 +2160,6 @@ bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
 		case SENSOR_GPS_HDOP:
 		{
 			// Horizontal dilution of position
-			//FIXME this is PDOP not HDOP!!
 			r.hdopValid = true;
 			r.hdop = ubloxGps.getPDOP();
 			break;
@@ -2154,6 +2180,12 @@ bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
 	// TODO use power save mode between readings if posible
 
 	return true;
+}
+
+bool NEOM8UGPS::update()
+{
+	ubloxGps.checkUblox();
+	return ubloxGps.getPVT();
 }
 
 bool Sck_DallasTemp::start()

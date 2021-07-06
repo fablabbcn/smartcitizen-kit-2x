@@ -155,7 +155,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 			thisType = base->sensors.sensorsPriorized(i);
 			if (base->sensors[thisType].enabled) {
 
-				snprintf(base->outBuff, sizeof(base->outBuff), "%s (%lu sec)", base->sensors[thisType].title, (base->sensors[thisType].everyNint * base->config.readInterval));
+				snprintf(base->outBuff, sizeof(base->outBuff), "%s -> every %i int (%lu sec)", base->sensors[thisType].title, base->sensors[thisType].everyNint, (base->sensors[thisType].everyNint * base->config.readInterval));
 				base->sckOut(PRIO_MED, false);
 
 				if (base->sensors[SENSOR_GROVE_OLED].enabled && base->config.sensors[thisType].oled_display)  base->sckOut(" - oled");
@@ -461,7 +461,8 @@ void flash_com(SckBase* base, String parameters)
 	if (parameters.length() <= 0) {
 
 		base->sckOut("Scanning Flash memory (it can take a while!)");
-		SckList::FlashInfo info = base->readingsList.flashInfo();
+		SckList::FlashInfo info;
+		base->readingsList.flashInfo(&info);
 		sprintf(base->outBuff, "\r\n%u sectors in total, %u used and %u free.", SCKLIST_SECTOR_NUM, info.sectUsed, info.sectFree);
 		base->sckOut();
 		sprintf(base->outBuff, "%lu groups in total.\r\nNetwork: %lu pending to publish.\r\nSd-card: %lu pending to publish.", info.grpTotal, info.grpUnPubNet, info.grpUnPubSd);
@@ -545,8 +546,9 @@ void flash_com(SckBase* base, String parameters)
 
 			// Info for one specified sector
 			uint16_t sectV = sectC.toInt();
-			if (sectV < 0 || sectV > 2048) {
-				base->sckOut("Wrong sector number (0-2048)");
+			if (sectV < 0 || sectV >= SCKLIST_SECTOR_NUM) {
+				sprintf(base->outBuff, "Wrong sector number (0-%u)", SCKLIST_SECTOR_NUM);
+				base->sckOut();
 				return;
 			}
 			SckList::SectorInfo info = base->readingsList.sectorInfo(sectV);
@@ -900,6 +902,12 @@ void debug_com(SckBase* base, String parameters)
 			base->sckOut();
 			saveNeeded = true;
 		}
+		if (parameters.indexOf("-speed") >= 0) {
+			base->config.debug.speed = !base->config.debug.speed;
+			sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
+			base->sckOut();
+			saveNeeded = true;
+		}
 	// Get
 	} else {
 		sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
@@ -915,6 +923,9 @@ void debug_com(SckBase* base, String parameters)
 		base->sckOut();
 
 		sprintf(base->outBuff, "Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
+		base->sckOut();
+
+		sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
 		base->sckOut();
 	}
 	if (saveNeeded) base->saveConfig();

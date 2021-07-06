@@ -27,8 +27,8 @@ public:
 
 	enum pulseModes {
 		PULSE_SOFT,
-		PULSE_HARD_SLOW,
-		PULSE_HARD_FAST,
+		PULSE_WARNING,
+		PULSE_ERROR,
 		PULSE_STATIC
 	};
 

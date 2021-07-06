@@ -159,7 +159,7 @@ void SckESP::SAMbusUpdate()
 			// Get content from first package (1 byte less than the rest)
 			memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
 
-			// Het the rest of the packages (if they exist)
+			// Get the rest of the packages (if they exist)
 			for (uint8_t i=0; i<netPack[0]-1; i++) {
 				if (manager.recvfromAckTimeout(netPack, &len, 500))	{
 					memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE) + (NETPACK_CONTENT_SIZE - 1)], &netPack[1], NETPACK_CONTENT_SIZE);
@@ -418,8 +418,6 @@ bool SckESP::mqttPublishRaw()
 		// 		12:28,
 		// 		10:4.45
 		// }
-
-		debugOUT(String(netBuff));
 
 		if (MQTTclient.publish(pubTopic, netBuff)) {
 			debugOUT(F("MQTT readings published OK !!!"));

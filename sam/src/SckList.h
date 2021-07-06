@@ -93,7 +93,7 @@ class SckList
 		uint16_t recover(uint16_t wichSector, PubFlags wichFlag); 	// Recover all the readings on specified sector and outputs them to the specified media, returns de number of recovered groups
 		SectorInfo sectorInfo(uint16_t wichSector);
 		void dumpSector(uint16_t wichSector, uint16_t howMany=SECTOR_SIZE);
-		FlashInfo flashInfo();
+		void flashInfo(FlashInfo* info);
 
 	private:
 
@@ -111,6 +111,7 @@ class SckList
 		int16_t _currSector = -1;
 		int16_t _dataAvailableSect[2] = {-1, -1};	// next sector with readings not published to network
 		GroupIndex potencialNextGroup = {-1,-1,0}; 	// To store potencial next groups to be published in batch mode
+		GroupIndex _lastGroup = {-1,-1,0}; 		// To store the last saved group
 
 		bool _append(char value);			// Appends a byte at the end of the list
 
@@ -128,6 +129,7 @@ class SckList
 		bool _countSectGroups(uint16_t wichSector, SectorInfo* info); 			// Counts groups in sector (indepently of their state). To count more that one type of groups in the sector this is more efficient.
 		int16_t _countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte publishedState, bool getAll=false);  	// Count specified groups on sector. To count different type of groups this is not efficient, try the previous function.
 		GroupIndex _getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag); 		// Returns the index of the first non-published group on the sector and aflag specified
+		bool _searchUnpubSect(PubFlags wichFlag, uint16_t startSector=0); 		// Return first sector with unpublished data
 		void _scanSectors();
 
 		// Group functions

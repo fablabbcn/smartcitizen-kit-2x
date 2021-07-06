@@ -44,7 +44,10 @@
 #include <SparkFun_I2C_GPS_Arduino_Library.h>
 
 // Library for SparkFun u-Blox NEO-M8U GPS
-#include "SparkFun_Ublox_Arduino_Library.h"
+#ifdef ID
+#undef ID 	// Fix conflict with define on SPIMemory.h
+#endif
+#include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 
 // Adafruit library for ADS1x15 12/16 bits ADC
 #include <Adafruit_ADS1015.h>
@@ -182,6 +185,7 @@ class AuxBoards
 		void print(char *payload);
 		void updateDisplay(SckBase* base, bool force=false);
 		void plot(String value, const char *title=NULL, const char *unit=NULL);
+		bool updateGPS();
 
 		EepromAuxData data;
 		bool dataLoaded = false;
@@ -539,6 +543,7 @@ class GPS_Source
 	public:
 		virtual bool stop();
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+		virtual bool update();
 };
 
 class Sck_GPS
@@ -553,6 +558,7 @@ class Sck_GPS
 		bool start();
 		bool stop();
 		bool getReading(SckBase *base, SensorType wichSensor);
+		bool update();
 };
 
 class PM_Grove_GPS: public GPS_Source
@@ -563,6 +569,7 @@ class PM_Grove_GPS: public GPS_Source
 		bool start();
 		virtual bool stop();
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+		virtual bool update();
 
 	private:
 		static const uint8_t DATA_LEN = 40;
@@ -578,6 +585,7 @@ class XA111GPS: public GPS_Source
 		bool start();
 		virtual bool stop();
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+		virtual bool update();
 
 	private:
 		I2CGPS i2cGps;
@@ -593,9 +601,10 @@ class NEOM8UGPS: public GPS_Source
 		bool start();
 		virtual bool stop();
 		virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+		virtual bool update();
 
 	private:
-		SFE_UBLOX_GPS ubloxGps;
+		SFE_UBLOX_GNSS ubloxGps;
 		uint32_t lastReading = 0;
 
 };

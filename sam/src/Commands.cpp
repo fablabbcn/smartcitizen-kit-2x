@@ -792,10 +792,10 @@ void config_com(SckBase* base, String parameters)
 
 	Configuration currentConfig = base->getConfig();
 
-	sprintf(base->outBuff, "Mode: %s\r\nPublish interval: %lu", base->modeTitles[currentConfig.mode], currentConfig.publishInterval);
+	sprintf(base->outBuff, "Mode: %s\r\nPublish interval (s): %lu", base->modeTitles[currentConfig.mode], currentConfig.publishInterval);
 	base->sckOut();
 
-	sprintf(base->outBuff, "Reading interval: %lu", currentConfig.readInterval);
+	sprintf(base->outBuff, "Reading interval (s): %lu", currentConfig.readInterval);
 	base->sckOut();
 
 	if (currentConfig.credentials.set) sprintf(base->outBuff, "Wifi credentials: %s - %s", currentConfig.credentials.ssid, currentConfig.credentials.pass);
@@ -803,7 +803,7 @@ void config_com(SckBase* base, String parameters)
 	base->sckOut();
 
 	if (currentConfig.token.set) sprintf(base->outBuff, "Token: %s", currentConfig.token.token);
-	else sprintf(base->outBuff, "Token not configuredn");
+	else sprintf(base->outBuff, "Token: not configured");
 	base->sckOut();
 
 	sprintf(base->outBuff, "Mac address:  %s", base->config.mac.address);

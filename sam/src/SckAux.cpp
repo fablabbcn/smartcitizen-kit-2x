@@ -703,7 +703,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				uint16_t newFactor = command.toInt();
 
-				return String F("Forced Recalibration Factor: ") + String(scd30.forcedRecalFactor(newFactor) ? "Ok" : "Error!");
+				return String F("Forced Recalibration Factor: ") + String(scd30.forcedRecalFactor(newFactor));
 
 			} else if (command.startsWith("caltemp")) {
 				
@@ -727,7 +727,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				return String F("Pressure compensation on last boot: ") + String(scd30.pressureCompensated ? "True" : "False");
 
 			} else {
-				return F("Wrong commad!!\r\nOptions:\r\ninterval [2-1000 (seconds)]\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]\r\npressure");
+				return F("Wrong command!!\r\nOptions:\r\ninterval [2-1000 (seconds)]\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]\r\npressure");
 			}
 
 
@@ -2548,14 +2548,18 @@ bool Sck_SCD30::autoSelfCal(int8_t value)
 	return sparkfun_scd30.getAutoSelfCalibration();
 }
 
-bool Sck_SCD30::forcedRecalFactor(uint16_t newFactor)
+uint16_t Sck_SCD30::forcedRecalFactor(uint16_t newFactor)
 {
-	// Cheking the saved factor on sensor always return 400 so for now we check if the value was received without error
 	if (newFactor >= 400 && newFactor <= 2000) {
-		return sparkfun_scd30.setAutoSelfCalibration(newFactor);
+		// Maybe not needed, but done for safety
+		sparkfun_scd30.setAutoSelfCalibration(false);
+		// Send command to SCD30
+		sparkfun_scd30.setForcedRecalibrationFactor(newFactor);
 	}
-
-	return false;
+	uint16_t saved_value = 0;
+	// Check saved value
+	sparkfun_scd30.getForcedRecalibration(&saved_value);
+	return saved_value;
 }
 
 float Sck_SCD30::tempOffset(float userTemp, bool off)

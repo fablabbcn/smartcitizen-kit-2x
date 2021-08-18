@@ -95,7 +95,7 @@ class AllCommands {
 			OneCom {20,	COM_GET_VERSION, 	"version",	"Shows versions and Hardware ID",				 									getVersion_com},
 			OneCom {30,	COM_RESET_CAUSE,	"rcause",	"Show last reset cause (debug)",													resetCause_com},
 			OneCom {40,	COM_OUTLEVEL,		"outlevel",	"Shows/sets output level: outlevel [0:silent, 1:normal, 2:verbose]",									outlevel_com},
-			OneCom {50,	COM_HELP,		"help",		"Duhhhh!!",																help_com},
+			OneCom {50,	COM_HELP,		"help",		"Display this help",																help_com},
 			OneCom {60,	COM_PINMUX,		"pinmux",	"Shows SAMD pin mapping status",													pinmux_com},
 			OneCom {90,	COM_FLASH,		"flash",	"Shows and manage flash memory state [no-param -> info] [-format (be carefull)] [-dump sect-num (0-2040)] [-sector sect-num] [-recover sect-num/all net/sd]", flash_com},
 			OneCom {80,	COM_LIST_SENSOR,	"sensor",	"Shows/sets sensor state or interval: sensor sensor-name [-enable or -disable] [-interval interval(seconds)] [-oled]",			sensorConfig_com},

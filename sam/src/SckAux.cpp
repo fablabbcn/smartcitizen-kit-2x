@@ -853,7 +853,7 @@ bool Groove_OLED::start()
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-	u8g2_oled.setBusClock(1000000); 	// 1000000 -> 68 ms for a full buffer redraw
+	u8g2_oled.setBusClock(100000);
 	u8g2_oled.begin();
 	u8g2_oled.drawXBM( 16, 16, 96, 96, scLogo);
 	u8g2_oled.sendBuffer();

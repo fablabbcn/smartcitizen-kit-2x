@@ -498,7 +498,7 @@ void SckBase::enterSetup()
 void SckBase::inputUpdate()
 {
 
-	if (SerialUSB.available()) {
+	while (SerialUSB.available()) {
 
 		char buff = SerialUSB.read();
 		uint16_t blen = serialBuff.length();

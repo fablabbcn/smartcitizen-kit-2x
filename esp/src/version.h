@@ -1,1 +1,1 @@
-const String ESPverNum = "0.9.2";
+const String ESPverNum = "0.9.8";

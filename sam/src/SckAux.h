@@ -697,7 +697,7 @@ class Sck_SCD30
 		bool getReading(SensorType wichSensor);
 		uint16_t interval(uint16_t newInterval=0);
 		bool autoSelfCal(int8_t value=-1);
-		bool forcedRecalFactor(uint16_t newFactor=0);
+		uint16_t forcedRecalFactor(uint16_t newFactor=0);
 		float tempOffset(float userTemp=NULL, bool off=false);
 
 		uint16_t co2 = 0;

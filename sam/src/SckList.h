@@ -94,6 +94,8 @@ class SckList
 		SectorInfo sectorInfo(uint16_t wichSector);
 		void dumpSector(uint16_t wichSector, uint16_t howMany=SECTOR_SIZE);
 		void flashInfo(FlashInfo* info);
+		uint32_t getFlashCapacity();
+		bool testFlash();
 
 	private:
 

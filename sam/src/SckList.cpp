@@ -1078,4 +1078,24 @@ void SckList::flashInfo(FlashInfo* info)
 
 	info->currSector = _currSector;
 }
+uint32_t SckList::getFlashCapacity()
+{
+	return flash.getCapacity();
+}
+bool SckList::testFlash()
+{
+	String writeSRT = "testing the flash!";
 
+	// Inside first sector
+	uint32_t fAddress = 1000;
+	flash.writeStr(fAddress, writeSRT);
+
+	String readSTR;
+	flash.readStr(fAddress, readSTR);
+
+	// Erase first sector to leave it clean
+	flash.eraseSector(_getSectAddr(0));
+
+	if (!readSTR.equals(writeSRT)) return false;
+	return true;
+}

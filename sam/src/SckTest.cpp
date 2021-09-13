@@ -61,7 +61,7 @@ void SckTest::test_full()
 	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_STATIC);
 	if (!test_user()) errors++;
 
-	testBase->outputLevel = OUT_SILENT;
+	testBase->config.outLevel = OUT_SILENT;
 
 	// Test battery
 	if (test_battery() > 0) {
@@ -200,7 +200,7 @@ void SckTest::test_button()
 				break;
 
 			case TEST_GREEN:
-				testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_HARD_SLOW);
+				testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_ERROR);
 				SerialUSB.println("Changing Led to blue..\r\nButton and led test finished OK");
 				butLedState = TEST_FINISHED;
 				break;
@@ -283,22 +283,22 @@ uint8_t SckTest::test_sdcard()
 
 	// Create a file write to it, close it, reopen read from it and delete it
 	File testFile;
-	char testFileName[9] = "test.txt";
 
-	if (testBase->sd.exists(testFileName)) testBase->sd.remove(testFileName);
-	testFile = testBase->sd.open(testFileName, FILE_WRITE);
+	if (testBase->sd.exists("TEST.TXT")) testBase->sd.remove("TEST.TXT");
+	testFile = testBase->sd.open("TEST.TXT", FILE_WRITE);
 	testFile.println("testing");
 	testFile.close();
 
 	delay(100);
 
-	testFile = testBase->sd.open(testFileName, FILE_READ);
+	testFile = testBase->sd.open("TEST.TXT", FILE_READ);
 	char testString[8];
 	testFile.read(testString, 9);
 	testFile.close();
-	String strTest = String(testString);
-	testBase->sd.remove(testFileName);
 
+	testBase->sd.remove("TEST.TXT");
+
+	String strTest = String(testString);
 	if (!strTest.startsWith("testing")) {
 		SerialUSB.println("ERROR writing/reading sdcard!!!");
 		return 1;
@@ -498,9 +498,9 @@ bool SckTest::connect_ESP()
 
 	SerialUSB.println("\r\nTesting ESP and WIFI connectivity...");
 
-	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_HARD_SLOW);
+	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_ERROR);
 	uint32_t started = millis();
-	testBase->outputLevel = OUT_VERBOSE;
+	testBase->config.outLevel = OUT_VERBOSE;
 	while (!testBase->st.wifiStat.ok) {
 
 		testBase->update();
@@ -511,7 +511,7 @@ bool SckTest::connect_ESP()
 			return false;
 		}
 	}
-	testBase->outputLevel = OUT_SILENT;
+	testBase->config.outLevel = OUT_SILENT;
 
 	SerialUSB.println("Wifi connection OK");
 	test_report.tests[TEST_WIFI_TIME] = (millis() - started) / 1000;
@@ -560,15 +560,15 @@ bool SckTest::publishResult()
 
 	// Get MAC address
 	testBase->sendMessage(ESPMES_GET_NETINFO);
-	while (testBase->macAddress.length() < 2) {
+	while (!testBase->config.mac.valid) {
 		testBase->update();
 		testBase->inputUpdate();
 	}
-	test_report.mac = testBase->macAddress;
+	test_report.mac = testBase->config.mac.address;
 
 	// build json
-	StaticJsonBuffer<2048> jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	StaticJsonDocument<2048> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 
 	json["time"] = test_report.time;
 
@@ -576,15 +576,15 @@ bool SckTest::publishResult()
 	json["mac"] = test_report.mac;
 	json["errors"] = errors;
 
-	JsonArray& jsonReport = json.createNestedArray("tests");
+	JsonArray jsonReport = json.createNestedArray("tests");
 
 	for (uint8_t i=0; i<TEST_COUNT; i++) {
-		JsonObject& nested = jsonReport.createNestedObject();
+		JsonObject nested = jsonReport.createNestedObject();
 		nested[String(i)] = test_report.tests[i];
 	}
 
 	sprintf(testBase->netBuff, "%c", ESPMES_MQTT_INVENTORY);
-	json.printTo(&testBase->netBuff[1], json.measureLength() + 1);
+	serializeJson(json, &testBase->netBuff[1], NETBUFF_SIZE - 1);
 
 	uint32_t started = millis();
 	testBase->st.publishStat.reset();
@@ -616,9 +616,7 @@ bool SckTest::publishResult()
 		sprintf(reportFileName, "%lx.json", test_report.id[4]);
 
 		reportFile = testBase->sd.open(reportFileName, FILE_WRITE);
-		char jsonPrint[json.measureLength() + 1];
-		json.printTo(jsonPrint, json.measureLength() + 1);
-		reportFile.print(jsonPrint);
+		serializeJsonPretty(json, reportFile);
 		reportFile.close();
 		SerialUSB.println("Report saved to sdcard");
 	} else {

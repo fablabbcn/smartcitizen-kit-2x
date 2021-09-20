@@ -1537,7 +1537,10 @@ void SckBase::urbanStart()
 		// Try to start enabled sensors
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->location == BOARD_URBAN && config.sensors[wichSensor->type].enabled) enableSensor(wichSensor->type);
+			if (wichSensor->location == BOARD_URBAN) {
+				if (config.sensors[wichSensor->type].enabled) enableSensor(wichSensor->type);
+				else sensors[wichSensor->type].enabled = false;
+			}
 		}
 
 	} else {

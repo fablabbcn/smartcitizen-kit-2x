@@ -53,13 +53,50 @@ bool SckList::_flashFormat()
 bool SckList::_append(char value)
 {
 	if (!flash.writeByte(_addr, value)) {
-		sprintf(base->outBuff, "F: Error writing on address %lu", _addr);
+		sprintf(base->outBuff, "F: Unknown error writing on flash address %lu", _addr);
 		base->sckOut();
 		return false;
 	}
 
 	_addr++;
 	return true;
+}
+bool SckList::_write(uint32_t wichAddr, char value)
+{
+	bool err = false;
+	String msg;
+
+	// Get the sector we are writing to
+	uint16_t wichSector = wichAddr / SECTOR_SIZE;
+
+	// Check we are not writing on blank space
+	if (wichSector == _currSector) {
+		
+		// In current sector we should be writing before the current address
+		if (wichAddr > _addr) {
+			err = true;
+			msg = "Outside boundaries";
+		}
+
+	} else {
+
+		// If we are not in the current sector and the sector is empty we shouldn't be writing on it
+		if (_getSectState(wichSector) == SECTOR_EMPTY) {
+			err = true;
+			msg = "Outside boundaries",
+		}
+	}
+
+	// Write the value
+	if (!flash.writeByte(wichAddr, value)) {
+		err = true;
+		msg = "Unknown";
+	}
+	
+	sprintf(base->outBuff, "F: %s error writing on flash address %lu", msg, wichAddr);
+	base->sckOut();
+
+	return !err;
 }
 
 // Group functions
@@ -104,7 +141,7 @@ int8_t SckList::_setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 	if (_dataAvailableSect[wichFlag] == _currSector && wichGroup.group == _lastGroup.group) availableReadings[wichFlag] = false;
 
 	// And write flags byte back
-	return flash.writeByte(flagsAddr, PUBLISHED);
+	return _write(flagsAddr, PUBLISHED);
 }
 int8_t SckList::_isGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 {
@@ -214,7 +251,7 @@ int8_t SckList::_setSectPublished(uint16_t wichSector, PubFlags wichFlag)
 	if (_countSectGroups(wichSector, wichFlag, NOT_PUBLISHED) > 0) return -1;
 
 	// And write flags byte
-	if (!flash.writeByte(flagsAddr, PUBLISHED)) return -1;
+	if (!_write(flagsAddr, PUBLISHED)) return -1;
 
 
 	if (debug) {
@@ -230,7 +267,7 @@ int8_t SckList::_setSectPublished(uint16_t wichSector, PubFlags wichFlag)
 int8_t SckList::_closeSector(uint16_t wichSector)
 {
 	// Mark sector as full
-	flash.writeByte(_getSectAddr(wichSector), SECTOR_USED);
+	_write(_getSectAddr(wichSector), SECTOR_USED);
 
 
 	// Erase next sector and start using it

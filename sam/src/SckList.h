@@ -116,6 +116,7 @@ class SckList
 		GroupIndex _lastGroup = {-1,-1,0}; 		// To store the last saved group
 
 		bool _append(char value);			// Appends a byte at the end of the list
+		bool _write(uint32_t wichAddr, char value); 	// Writes a byte to a specific address
 
 		// Flash memory functions
 		int8_t _flashStart();

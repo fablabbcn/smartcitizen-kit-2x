@@ -175,7 +175,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 		SensorType ext_pm[] = { SENSOR_EXT_A_PM_1, SENSOR_EXT_A_PM_25, SENSOR_EXT_A_PM_10, SENSOR_EXT_B_PM_1, SENSOR_EXT_B_PM_25, SENSOR_EXT_B_PM_10 };
 		SensorType ext_pn[] = { SENSOR_EXT_A_PN_03, SENSOR_EXT_A_PN_05, SENSOR_EXT_A_PN_1, SENSOR_EXT_A_PN_25, SENSOR_EXT_A_PN_5, SENSOR_EXT_A_PN_10, SENSOR_EXT_B_PN_03, SENSOR_EXT_B_PN_05, SENSOR_EXT_B_PN_1, SENSOR_EXT_B_PN_25, SENSOR_EXT_B_PN_5, SENSOR_EXT_B_PN_10 };
 		SensorType *pm_sensors[] = { urban_pm, urban_pn, ext_pm, ext_pn };
-		uint8_t group_size[] = { 3, 6, 9, 18 };
+		uint8_t group_size[] = { 3, 6, 6, 12 };
 
 		// Find out if sensor belongs to a PM group
 		SensorType *groupToChange = NULL;
@@ -202,7 +202,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 				base->config.sensors[sensorToChange].enabled = true;
 
 				// Just for PM/PN enable the rest of sensors in the same group
-				for (uint8_t i=0; i<groupToChange_size; i++) {
+				for (uint8_t i=1; i<groupToChange_size; i++) {
 					// Enable them in runtime
 					base->sensors[groupToChange[i]].enabled = true;
 
@@ -213,6 +213,10 @@ void sensorConfig_com(SckBase* base, String parameters)
 					base->sckOut();
 				}
 				saveNeeded = true;
+			} else {
+				sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
+				if (groupToChange > 0) sprintf(base->outBuff, "%s and its sensor group", base->outBuff);
+				base->sckOut();
 			}
 
 		} else if (parameters.indexOf("-disable") >=0) {
@@ -223,7 +227,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 			base->config.sensors[sensorToChange].enabled = false;
 
 			// Just for PM/PN disable the rest of sensors in the same group
-			for (uint8_t i=0; i<groupToChange_size; i++) {
+			for (uint8_t i=1; i<groupToChange_size; i++) {
 				// Disable them in runtime
 				base->sensors[groupToChange[i]].enabled = false;
 

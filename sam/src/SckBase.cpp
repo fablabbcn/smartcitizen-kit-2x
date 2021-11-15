@@ -1205,6 +1205,9 @@ bool SckBase::sdInit()
 }
 bool SckBase::sdDetect()
 {
+	uint32_t debounceTime = 100;
+	if (millis() - lastUserEvent < debounceTime) return false;
+
 	lastUserEvent = millis();
 	st.cardPresent = !digitalRead(pinCARD_DETECT);
 	st.cardPresentError = false;

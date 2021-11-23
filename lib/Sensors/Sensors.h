@@ -96,6 +96,8 @@ enum SensorType
 
 	SENSOR_SHT31_TEMP,
 	SENSOR_SHT31_HUM,
+	SENSOR_SHT35_TEMP,
+	SENSOR_SHT35_HUM,
 
 	SENSOR_RANGE_LIGHT,
 	SENSOR_RANGE_DISTANCE,
@@ -280,6 +282,8 @@ class AllSensors
 
 			OneSensor { BOARD_AUX,		0,	SENSOR_SHT31_TEMP,			"EXT_TEMP",		"Ext Temperature",				79,		true,		false,		1,			"C"},
 			OneSensor { BOARD_AUX,		0,	SENSOR_SHT31_HUM,			"EXT_HUM",		"Ext Humidity",					80,		true,		false,		1,			"%"},
+			OneSensor { BOARD_AUX,		0,	SENSOR_SHT35_TEMP,			"EXT_TEMP_SHT35",	"Ext SHT35 Temperature",			0,		true,		false,		1,			"C"},
+			OneSensor { BOARD_AUX,		0,	SENSOR_SHT35_HUM,			"EXT_HUM_SHT35",	"Ext SHT35 Humidity",				0,		true,		false,		1,			"%"},
 
 			OneSensor { BOARD_AUX,		100,	SENSOR_RANGE_LIGHT,			"EXT_RANGE_LIGHT",	"Ext Range Light",				0,		true,		false,		1,			"Lux"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_RANGE_DISTANCE,			"EXT_RANGE_DIST",	"Ext Range Distance",				98,		true,		false,		1,			"mm"},

@@ -376,9 +376,10 @@ bool Sck_BH1730FVC::get()
 // SHT31 (Temperature and Humidity)
 // TODO Implement calibration routine
 // TODO implement heater controller
-Sck_SHT31::Sck_SHT31(TwoWire *localWire)
+Sck_SHT31::Sck_SHT31(TwoWire *localWire, uint8_t customAddress)
 {
 	_Wire = localWire;
+	address = customAddress;
 }
 bool Sck_SHT31::start()
 {

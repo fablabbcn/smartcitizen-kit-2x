@@ -85,9 +85,9 @@ class Sck_SHT31
 		bool sendComm(uint16_t comm);
 		uint8_t crc8(const uint8_t *data, int len);
 	public:
-		uint8_t address = 0x44;
+		uint8_t address;
 		// Conntructor
-		Sck_SHT31(TwoWire *localWire);
+		Sck_SHT31(TwoWire *localWire, uint8_t customAddress=0x44);
 
 		float temperature;
 		float humidity;

@@ -156,6 +156,8 @@ class AuxBoards
 
 			0x44,			// SENSOR_SHT31_TEMP,
 			0x44,			// SENSOR_SHT31_HUM,
+			0x45,			// SENSOR_SHT35_TEMP,
+			0x45,			// SENSOR_SHT35_HUM,
 
 			0x29,			// SENSOR_RANGE_LIGHT,
 			0x29,			// SENSOR_RANGE_DISTANCE,

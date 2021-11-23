@@ -15,6 +15,7 @@ PMsensor		pmSensorB = PMsensor(SLOT_B);
 PM_DallasTemp 		pmDallasTemp;
 Sck_DallasTemp 		dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
+Sck_SHT31 		sht35 = Sck_SHT31(&auxWire, 0x45);
 Sck_Range 		range;
 Sck_BME680 		bme680;
 Sck_GPS 		gps;
@@ -96,6 +97,8 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 			if (sht31.start() && !gasBoard.start()) return true;
 			else return false;
 			break;
+		case SENSOR_SHT35_TEMP:
+		case SENSOR_SHT35_HUM: 			return sht35.start(); break;
 		case SENSOR_RANGE_DISTANCE: 		return range.start(); break;
 		case SENSOR_RANGE_LIGHT: 		return range.start(); break;
 		case SENSOR_BME680_TEMPERATURE:		return bme680.start(); break;
@@ -185,6 +188,8 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_DALLAS_TEMP: 		return dallasTemp.stop(); break;
 		case SENSOR_SHT31_TEMP:
 		case SENSOR_SHT31_HUM: 			return sht31.stop(); break;
+		case SENSOR_SHT35_TEMP:
+		case SENSOR_SHT35_HUM: 			return sht35.stop(); break;
 		case SENSOR_RANGE_DISTANCE: 		return range.stop(); break;
 		case SENSOR_RANGE_LIGHT: 		return range.stop(); break;
 		case SENSOR_BME680_TEMPERATURE:		return bme680.stop(); break;
@@ -276,6 +281,8 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_DALLAS_TEMP: 		if (dallasTemp.getReading()) 			{ wichSensor->reading = String(dallasTemp.reading); return; } break;
 		case SENSOR_SHT31_TEMP: 		if (sht31.getReading()) 				{ wichSensor->reading = String(sht31.temperature); return; } break;
 		case SENSOR_SHT31_HUM: 			if (sht31.getReading()) 				{ wichSensor->reading = String(sht31.humidity); return; } break;
+		case SENSOR_SHT35_TEMP: 		if (sht35.getReading()) 				{ wichSensor->reading = String(sht35.temperature); return; } break;
+		case SENSOR_SHT35_HUM: 			if (sht35.getReading()) 				{ wichSensor->reading = String(sht35.humidity); return; } break;
 		case SENSOR_RANGE_DISTANCE: 		if (range.getReading(SENSOR_RANGE_DISTANCE)) 	{ wichSensor->reading = String(range.readingDistance); return; } break;
 		case SENSOR_RANGE_LIGHT: 		if (range.getReading(SENSOR_RANGE_LIGHT)) 	{ wichSensor->reading = String(range.readingLight); return; } break;
 		case SENSOR_BME680_TEMPERATURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.temperature); return; } break;

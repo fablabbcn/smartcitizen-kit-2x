@@ -406,8 +406,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 			break;
 
-		}
-		case SENSOR_ATLAS_PH:
+		} case SENSOR_ATLAS_PH:
 		case SENSOR_ATLAS_EC:
 		case SENSOR_ATLAS_EC_TDS:
 		case SENSOR_ATLAS_EC_SAL:
@@ -514,13 +513,12 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			else return F("Unrecognized command!! please try again...");
 			break;
 
-		}
-		case SENSOR_ADS1X15_48_0:
+		} case SENSOR_ADS1X15_48_0:
 		case SENSOR_ADS1X15_48_1:
 		case SENSOR_ADS1X15_48_2:
-		case SENSOR_ADS1X15_48_3:{
-		  	#ifdef adsTest
-		  	if (command.startsWith("test")) {
+		case SENSOR_ADS1X15_48_3: {
+#ifdef adsTest
+			if (command.startsWith("test")) {
 				command.replace("test", "");
 				command.trim();
 
@@ -551,15 +549,14 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				return F("\nCurrent set!");
 			}
-			#endif
+#endif
 			break;
-		  }
-		  case SENSOR_ADS1X15_49_0:
-		  case SENSOR_ADS1X15_49_1:
-		  case SENSOR_ADS1X15_49_2:
-		  case SENSOR_ADS1X15_49_3:{
-		  	#ifdef adsTest
-		  	if (command.startsWith("test")) {
+		} case SENSOR_ADS1X15_49_0:
+		case SENSOR_ADS1X15_49_1:
+		case SENSOR_ADS1X15_49_2:
+		case SENSOR_ADS1X15_49_3: {
+#ifdef adsTest
+			if (command.startsWith("test")) {
 				command.replace("test", "");
 				command.trim();
 
@@ -590,16 +587,14 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				return F("\nCurrent set!");
 			}
-			#endif
+#endif
 			break;
-		  }
-		  case SENSOR_ADS1X15_4A_0:
-		  case SENSOR_ADS1X15_4A_1:
-		  case SENSOR_ADS1X15_4A_2:
-		  case SENSOR_ADS1X15_4A_3:
-		  {
-		  	#ifdef adsTest
-		  	if (command.startsWith("test")) {
+		} case SENSOR_ADS1X15_4A_0:
+		case SENSOR_ADS1X15_4A_1:
+		case SENSOR_ADS1X15_4A_2:
+		case SENSOR_ADS1X15_4A_3: {
+#ifdef adsTest
+			if (command.startsWith("test")) {
 				command.replace("test", "");
 				command.trim();
 
@@ -630,15 +625,14 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				return F("\nCurrent set!");
 			}
-			#endif
+#endif
 			break;
-		  }
-		  case SENSOR_ADS1X15_4B_0:
-		  case SENSOR_ADS1X15_4B_1:
-		  case SENSOR_ADS1X15_4B_2:
-		  case SENSOR_ADS1X15_4B_3: {
-		  	#ifdef adsTest
-		  	if (command.startsWith("test")) {
+		} case SENSOR_ADS1X15_4B_0:
+		case SENSOR_ADS1X15_4B_1:
+		case SENSOR_ADS1X15_4B_2:
+		case SENSOR_ADS1X15_4B_3: {
+#ifdef adsTest
+			if (command.startsWith("test")) {
 				command.replace("test", "");
 				command.trim();
 
@@ -669,7 +663,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				return F("\nCurrent set!");
 			}
-			#endif
+#endif
 			break;
 		}
 		case SENSOR_SCD30_CO2:
@@ -683,11 +677,11 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
 				uint16_t newInterval = command.toInt();
 				scd30.interval(newInterval);
-				
+
 				return String F("Measuring Interval: ") + String(scd30.interval());
 
 			} else if (command.startsWith("autocal")) {
-				
+
 				command.replace("autocal", "");
 				command.trim();
 
@@ -706,7 +700,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				return String F("Forced Recalibration Factor: ") + String(scd30.forcedRecalFactor(newFactor));
 
 			} else if (command.startsWith("caltemp")) {
-				
+
 				command.replace("caltemp", "");
 				command.trim();
 
@@ -1311,7 +1305,7 @@ bool WaterTemp_DS18B20::stop()
 float WaterTemp_DS18B20::getReading()
 {
 
- 	while (!DS_bridge.wireSearch(addr)) {
+	while (!DS_bridge.wireSearch(addr)) {
 
 		DS_bridge.wireResetSearch();
 		DS_bridge.wireReset();
@@ -1997,7 +1991,7 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
 	//  Only ask for readings if last one is older than
 	if (millis() - lastReading < 500) return true;
 
-	// TODO 
+	// TODO
 	// this was moved to update funtion, check if it works OK
 	/* while (i2cGps.available()) tinyGps.encode(i2cGps.read()); */
 
@@ -2079,7 +2073,7 @@ bool NEOM8UGPS::start()
 
 	if (!ubloxGps.begin(auxWire)) return false;
 
-	ubloxGps.setUART1Output(0); 		// Disable the UART1 port output 
+	ubloxGps.setUART1Output(0); 		// Disable the UART1 port output
 	ubloxGps.setUART2Output(0); 		// Disable Set the UART2 port output
 	ubloxGps.setI2COutput(COM_TYPE_UBX); 	// Set the I2C port to output UBX only (turn off NMEA noise)
 	ubloxGps.setNavigationFrequency(4);
@@ -2463,14 +2457,14 @@ bool Sck_SCD30::start(SckBase *base, SensorType wichSensor)
 
 	// Ambient pressure compensation
 	OneSensor *pressureSensor = &base->sensors[SENSOR_PRESSURE];
-	
+
 	if (pressureSensor->enabled && base->getReading(pressureSensor)) {
 		float pressureReading = pressureSensor->reading.toFloat();
 		uint16_t pressureInMillibar = pressureReading * 10;
 
 		if (pressureInMillibar > 700 && pressureInMillibar < 1200) {
 			if (sparkfun_scd30.setAmbientPressure(pressureInMillibar)) {
-				pressureCompensated = true;				
+				pressureCompensated = true;
 			}
 		}
 	}
@@ -2543,7 +2537,7 @@ bool Sck_SCD30::autoSelfCal(int8_t value)
 	// Value: 0 -> disable, 1 -> enable, any other -> get current setting
 
 	if (value == 1)	sparkfun_scd30.setAutoSelfCalibration(true);
-	else if (value == 0) sparkfun_scd30.setAutoSelfCalibration(false);	
+	else if (value == 0) sparkfun_scd30.setAutoSelfCalibration(false);
 
 	return sparkfun_scd30.getAutoSelfCalibration();
 }
@@ -2564,7 +2558,7 @@ uint16_t Sck_SCD30::forcedRecalFactor(uint16_t newFactor)
 
 float Sck_SCD30::tempOffset(float userTemp, bool off)
 {
-	// We expect from user the REAL temperature measured during calibration 
+	// We expect from user the REAL temperature measured during calibration
 	// We calculate the difference against the sensor measured temperature to set the correct offset. Please wait for sensor to stabilize temperatures before aplying an offset.
 	// Temperature offset should always be positive (the sensor is generating heat)
 

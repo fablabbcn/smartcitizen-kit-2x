@@ -314,7 +314,7 @@ void SckBase::reviewState()
 				} else if (!st.wifiStat.ok) {
 
 					// After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
-					if (st.wifiStat.retry()) { 
+					if (st.wifiStat.retry()) {
 
 						sckOut("Connecting to Wifi...");
 						if (!st.espON) ESPcontrol(ESP_ON); 	// Make sure the ESP is on
@@ -1459,7 +1459,7 @@ void SckBase::updateDynamic(uint32_t now)
 			st.dynamic = true;
 			dynamicLast = now;
 
-		} else { 
+		} else {
 			dynamicCounter++;
 		}
 
@@ -1667,7 +1667,7 @@ void SckBase::updateSensors()
 		// If its time (based on configured publish interval) or WiFi is connected and ready
 		if ( 	now - lastPublishTime >= config.publishInterval ||
 			st.wifiStat.ok) {
-			
+
 			// Check if we are in offline programmed hours
 			bool offlineHours = false;
 			if (config.offline.start >= 0 && config.offline.end >= 0 && millis() - lastUserEvent > (config.sleepTimer * 60000)) {
@@ -1692,7 +1692,7 @@ void SckBase::updateSensors()
 					sckOut("it's time to publish", PRIO_LOW);
 				}
 			}
-		} 
+		}
 
 		//  3 minutes after user interaction we publish as soon readings are available (mostly to be responsive during oboarding process)
 		if ((millis() - lastUserEvent < 3 * 60000) || config.sleepTimer == 0) {

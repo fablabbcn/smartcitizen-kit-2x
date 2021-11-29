@@ -157,7 +157,7 @@ class SckBase
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
 		void goToSleep(uint32_t sleepPeriod=3000); 	// sleepPeriod in ms
-		void configGCLK6(); 			// Taken from https://github.com/arduino-libraries/ArduinoLowPower
+		void configGCLK6(); 				// Taken from https://github.com/arduino-libraries/ArduinoLowPower
 		void sleepLoop();
 
 		// **** Sensors

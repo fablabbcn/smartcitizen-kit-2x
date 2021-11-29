@@ -30,9 +30,6 @@ void ISR_button() {
 void ISR_sdDetect() {
 	base.sdDetect();
 }
-// void ISR_alarm() {
-// 	base.wakeUp();
-// };
 
 void setup() {
 

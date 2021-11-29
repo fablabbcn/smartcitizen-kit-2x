@@ -43,7 +43,7 @@ void AllCommands::wildCard(SckBase* base, String strIn)
 void reset_com(SckBase* base, String parameters)
 {
 
-	base->sck_reset();
+	base->sckReset();
 }
 void getVersion_com(SckBase* base, String parameters)
 {
@@ -706,7 +706,7 @@ void power_com(SckBase* base, String parameters)
 				base->sckOut();
 				while (!SerialUSB.available())
 					;
-				base->sck_reset();
+				base->sckReset();
 			} else {
 				sprintf(base->outBuff, "Wrong battery capacity");
 			}

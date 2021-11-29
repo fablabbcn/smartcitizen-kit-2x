@@ -269,7 +269,7 @@ class SckBase
 		SckFile monitorFile {"MONITOR.CSV"};
 
 		// Power
-		void sck_reset();
+		void sckReset();
 		SckBatt battery;
 		SckCharger charger;
 		bool sckOFF = false;

@@ -860,7 +860,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 						SerialUSB.write(SerialESP.read());
 					}
 					if (millis() - flashTimeout > 1000) {
-						if (millis() - startTimeout > 10000) sck_reset();  // Initial 10 seconds for the flashing to start
+						if (millis() - startTimeout > 10000) sckReset();  // Initial 10 seconds for the flashing to start
 					}
 				}
 				break;
@@ -1251,7 +1251,7 @@ bool SckBase::saveInfo()
 
 
 // **** Power
-void SckBase::sck_reset()
+void SckBase::sckReset()
 {
 	// Save updated CCS sensor baseline
 	if (I2Cdetect(&Wire, urban.sck_ccs811.address)) {
@@ -1409,7 +1409,7 @@ void SckBase::updatePower()
 	if (millis() > MS_23_HOURS) {
 		if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
 			sckOut("Sanity reset, bye!!");
-			sck_reset();
+			sckReset();
 		}
 	}
 }

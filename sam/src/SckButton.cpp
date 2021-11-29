@@ -52,7 +52,7 @@ void SckBase::buttonStillDown()
 
 		// Factory defaults
 		saveConfig(true);
-		sck_reset();
+		sckReset();
 
 	} else if (pressedTime >= buttonLong && !sckOFF) {
 
@@ -70,7 +70,7 @@ void SckBase::butFeedback()
 {
 	lastUserEvent = millis();
 	if (!butState){
-		if (sckOFF) sck_reset();
+		if (sckOFF) sckReset();
 		if (!st.onSetup) {
 			if (st.mode == MODE_NET) led.update(led.BLUE2, led.PULSE_STATIC);
 			else if (st.mode == MODE_SD) led.update(led.PINK2, led.PULSE_STATIC);

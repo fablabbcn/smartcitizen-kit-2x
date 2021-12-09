@@ -68,6 +68,9 @@ void SckBase::setup()
 	digitalWrite(pinCS_FLASH, HIGH);
 	pinMode(pinCARD_DETECT, INPUT_PULLUP);
 
+	// Print last reset cause
+	printResetCause();
+
 	// SD card
 	sckOut("Setting up SDcard interrupt");
 	attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
@@ -1527,6 +1530,35 @@ void SckBase::sleepLoop()
 		now = rtc.getEpoch();
 	}
 }
+void SckBase::printResetCause()
+{
+	uint8_t resetCause = PM->RCAUSE.reg;
+
+	sckOut("Last reset cause: ", PRIO_HIGH, false);
+
+	switch(resetCause){
+		case 1:
+			sckOut("POR: Power On Reset");
+			break;
+		case 2:
+			sckOut("BOD12: Brown Out 12 Detector Reset");
+			break;
+		case 4:
+			sckOut("BOD33: Brown Out 33 Detector Reset");
+			break;
+		case 16:
+			sckOut("EXT: External Reset");
+			break;
+		case 32:
+			sckOut("WDT: Watchdog Reset");
+			break;
+		case 64:
+			sckOut("SYST: System Reset Request");
+			break;
+	}
+
+}
+
 
 // **** Sensors
 void SckBase::urbanStart()

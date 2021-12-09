@@ -270,6 +270,7 @@ class SckBase
 
 		// Power
 		void sckReset();
+		void printResetCause();
 		SckBatt battery;
 		SckCharger charger;
 		bool sckOFF = false;

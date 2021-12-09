@@ -793,6 +793,7 @@ bool SckBase::publishInfo()
 		/* 	"mac":"AB:45:2D:33:98", */
 		/* 	"esp_ver":"0.3.0-ce87e64", */
 		/* 	"esp_bd":"2018-07-17T06:55:06Z" */
+		/* 	"reset_cause":32 */
 		/* } */
 
 		if (!st.espON) {
@@ -801,6 +802,7 @@ bool SckBase::publishInfo()
 		}
 
 		getUniqueID();
+		String resetCause = String(PM->RCAUSE.reg);
 
 		StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
 		JsonObject json = jsonBuffer.to<JsonObject>();
@@ -813,6 +815,7 @@ bool SckBase::publishInfo()
 		json["mac"] = config.mac.address;
 		json["esp_ver"] = ESPversion.c_str();
 		json["esp_bd"] = ESPbuildDate.c_str();
+		json["reset_cause"] = resetCause.c_str();
 
 		sprintf(netBuff, "%c", ESPMES_MQTT_INFO);
 		serializeJson(json, &netBuff[1], NETBUFF_SIZE);

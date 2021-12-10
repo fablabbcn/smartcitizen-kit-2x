@@ -118,6 +118,8 @@ void SckBase::setup()
 	// Power management configuration
 	charger.setup(this);
 	battery.setup();
+	sckWDT(WDT_SETUP); 	// Setup Watchdog
+	sckWDT(WDT_ENABLE); 	// and enable it
 
 	// Urban board
 	urbanStart();
@@ -151,6 +153,7 @@ void SckBase::update()
 	if (millis() - updatePowerMillis > 1000) {
 		updatePowerMillis = millis();
 		updatePower();
+		sckWDT(WDT_CLEAR);
 	}
 
 	if (butState != butOldState) {
@@ -1530,7 +1533,80 @@ void SckBase::sleepLoop()
 		// If we have a screen update it
 		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
 
+		// Watchdog clear
+		sckWDT(WDT_CLEAR);
+
 		now = rtc.getEpoch();
+	}
+}
+void SckBase::sckWDT(WDT_com wdt_com)
+{
+	switch (wdt_com)
+	{
+		case WDT_SETUP:
+		{
+			// Setup watchdog (after 16 seconds the SCK will be reseted if no WDT_CLEAR has been issued)
+			sckOut("Setting up Watchdog", PRIO_LOW);
+
+			// Generic clock generator 2, divisor = 32 (2^(DIV+1)) = 0x4 (DIV)
+			GCLK->GENDIV.reg = GCLK_GENDIV_ID(2) | GCLK_GENDIV_DIV(0x4);
+			// Enable clock generator 2 using 32.768kHz oscillator.
+			// With /32 divisor we get 1024Hz clock.
+			GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(2) |
+				GCLK_GENCTRL_GENEN |
+				GCLK_GENCTRL_SRC_OSCULP32K |
+				GCLK_GENCTRL_DIVSEL;
+			while(GCLK->STATUS.bit.SYNCBUSY);
+
+			// WDT clock = clock gen 2
+			GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID_WDT |
+				GCLK_CLKCTRL_CLKEN |
+				GCLK_CLKCTRL_GEN_GCLK2;
+			
+			break;
+		}
+		case WDT_ENABLE:
+		{
+			if (!WDT_enabled) {
+				sckOut("Enabling Watchdog", PRIO_LOW);
+
+				// Set WDT overflow period to 16 sec (0x8 - 0xb)
+				WDT->CONFIG.bit.PER = 0xb;
+				while(WDT->STATUS.bit.SYNCBUSY);
+
+				// Start watchdog
+				WDT->CTRL.bit.ENABLE = 1;
+				while(WDT->STATUS.bit.SYNCBUSY);
+
+				WDT_enabled = true;
+			}
+
+			break;
+		}
+		case WDT_DISABLE:
+		{
+			if (WDT_enabled) {
+				sckOut("Disabling Watchdog", PRIO_LOW);
+
+				// Disable watchdog
+				WDT->CTRL.bit.ENABLE = 0;
+				while (WDT->STATUS.bit.SYNCBUSY);
+
+				WDT_enabled = false;
+			}
+
+			break;
+		}
+		case WDT_CLEAR:
+		{
+			sckOut("Watchdog cleared", PRIO_LOW);
+
+			// Clear watchdog
+			while(WDT->STATUS.bit.SYNCBUSY); 	// This takes ~ 5.8 ms
+			WDT->CLEAR.reg = WDT_CLEAR_CLEAR_KEY; 	// Clear WTD bit
+
+			break;
+		}
 	}
 }
 void SckBase::printResetCause()
@@ -1559,7 +1635,6 @@ void SckBase::printResetCause()
 			sckOut("SYST: System Reset Request");
 			break;
 	}
-
 }
 
 

@@ -35,6 +35,9 @@ int8_t SckList::_flashStart()
 }
 bool SckList::_flashFormat()
 {
+	// Disable Watchdog
+	base->sckWDT(base->WDT_DISABLE);
+	
 	base->sckOut("Formating... be patient, don't turn off your kit!", PRIO_HIGH);
 
 	if (!flash.eraseChip()) {
@@ -46,6 +49,10 @@ bool SckList::_flashFormat()
 	_addr = 3;
 
 	base->sckOut("Flash memory formated OK, please power cycle your kit. (not just reset)", PRIO_HIGH);
+
+	// Reenable Watchdog
+	base->sckWDT(base->WDT_ENABLE);
+	
 	return true;
 }
 
@@ -667,8 +674,14 @@ uint8_t SckList::_formatNET(GroupIndex wichGroup, char* buffer)
 // Public fnctions
 int8_t SckList::setup()
 {
+	// Disable Watchdog
+	base->sckWDT(base->WDT_DISABLE);
+
 	debug = base->config.debug.flash;
 	return _flashStart();
+
+	// Reenable Watchdog
+	base->sckWDT(base->WDT_ENABLE);
 }
 bool SckList::flashFormat()
 {

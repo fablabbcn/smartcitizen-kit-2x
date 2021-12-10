@@ -365,6 +365,9 @@ void monitorSensor_com(SckBase* base, String parameters)
 
 	}
 
+	// Disable Watchdog
+	base->sckWDT(base->WDT_DISABLE);
+
 	// Titles
 	strncpy(base->outBuff, "", 240);
 	if (printTime) sprintf(base->outBuff, "%s\t", "Time");
@@ -393,8 +396,8 @@ void monitorSensor_com(SckBase* base, String parameters)
 		}
 
 		if (printMs) {
-			snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%lu\t", base->outBuff, millis() - lastMillis);
-			lastMillis = millis();
+			snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%lu\t", base->outBuff, provLastMillis - lastMillis);
+			lastMillis = provLastMillis;
 		}
 
 		bool theFirst = true;
@@ -437,10 +440,16 @@ void monitorSensor_com(SckBase* base, String parameters)
 	}
 	if (sdSave) base->monitorFile.file.close();
 	if (base->urban.sck_pm.started) base->urban.sck_pm.stop();
+
+	// Reenable Watchdog
+	base->sckWDT(base->WDT_ENABLE);
 }
 void flash_com(SckBase* base, String parameters)
 {
 	if (parameters.length() <= 0) {
+
+		// Disable Watchdog
+		base->sckWDT(base->WDT_DISABLE);
 
 		base->sckOut("Scanning Flash memory (it can take a while!)");
 		SckList::FlashInfo info;
@@ -451,6 +460,9 @@ void flash_com(SckBase* base, String parameters)
 		base->sckOut();
 		sprintf(base->outBuff, "Using sector number: %u\r\n", info.currSector);
 		base->sckOut();
+
+		// Reenable Watchdog
+		base->sckWDT(base->WDT_ENABLE);
 
 	} else {
 		// Format: flash -format
@@ -466,6 +478,8 @@ void flash_com(SckBase* base, String parameters)
 		int16_t recoI = parameters.indexOf("-recover");
 		if (recoI >= 0) {
 			
+			// Disable Watchdog
+			base->sckWDT(base->WDT_DISABLE);
 
 			// Enter shell mode to avoid interferences
 			bool alreadyOnShell = base->st.onShell;
@@ -504,6 +518,9 @@ void flash_com(SckBase* base, String parameters)
 			} else totalRecovered = base->readingsList.recover(sectV, thisFlag);
 			sprintf(base->outBuff, "Recovered %lu groups.", totalRecovered);
 			base->sckOut();
+
+			// Reenable Watchdog
+			base->sckWDT(base->WDT_ENABLE);
 
 			// Exit shell mode
 			if (!alreadyOnShell) base->st.onShell = false;

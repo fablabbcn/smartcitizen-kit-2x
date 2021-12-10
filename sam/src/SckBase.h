@@ -159,6 +159,7 @@ class SckBase
 		void goToSleep(uint32_t sleepPeriod=3000); 	// sleepPeriod in ms
 		void configGCLK6(); 				// Taken from https://github.com/arduino-libraries/ArduinoLowPower
 		void sleepLoop();
+		bool WDT_enabled = false;
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 			// seconds
@@ -274,6 +275,8 @@ class SckBase
 		SckBatt battery;
 		SckCharger charger;
 		bool sckOFF = false;
+		enum WDT_com { WDT_SETUP, WDT_ENABLE, WDT_DISABLE, WDT_CLEAR };
+		void sckWDT(WDT_com wdt_com); 
 
 		// Misc
 		void getUniqueID();

@@ -889,6 +889,8 @@ bool Sck_PM::start()
 	digitalWrite(pinPM_ENABLE, HIGH);
 	SerialPM.begin(9600);
 
+	readingCount = 0;
+
 	uint32_t startTimer = millis();
 	while (millis() - startTimer < 4000) {
 		delay(50);
@@ -988,6 +990,8 @@ bool Sck_PM::update()
 		}
 
 		if (debug) Serial.println("PM: Readings received OK");
+		readingCount++;
+
 		// Get the values
 		pm1 = (buff[2]<<8) + buff[3];
 		pm25 = (buff[4]<<8) + buff[5];
@@ -1009,6 +1013,9 @@ bool Sck_PM::update()
 			SerialUSB.print("PM: pm10 -> ");
 			SerialUSB.println(pm10);
 		}
+
+		if (readingCount < 3) update();
+
 		lastReading = millis();
 		lastFail = 0;
 		active = true;

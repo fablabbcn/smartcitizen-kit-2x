@@ -151,6 +151,7 @@ class Sck_PM
 {
 	private:
 		bool detectionFailed = false;
+		int readingCount = 0;
 		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
 

@@ -212,6 +212,7 @@ class Sck_PM
 		void getReading(SckBase *base, OneSensor *wichSensor);
 		int16_t oneShot();
 		bool reset();
+		bool debug = false;
 };
 
 // VOC ans ECO2 - CCS811

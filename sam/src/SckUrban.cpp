@@ -164,6 +164,17 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 				}
 
 		}
+		case SENSOR_PM_1:
+		case SENSOR_PM_25:
+		case SENSOR_PM_10:
+		{
+				if (command.startsWith("debug")) {
+					sck_pm.debug = !sck_pm.debug;
+					sprintf(base->outBuff, "PM debug: %s", sck_pm.debug  ? "true" : "false");
+					base->sckOut();
+					return true;
+				}
+		}
 		default: break;
 	}
 
@@ -867,8 +878,12 @@ bool Sck_MPL3115A2::getTemperature()
 // PM sensor
 bool Sck_PM::start()
 {
+	if (debug) Serial.println("PM: Starting sensor");
 	if (started) return true;
-	if (detectionFailed) return false;
+	if (detectionFailed) {
+		if (debug) Serial.println("PM: No sensor detected");
+		return false;
+	}
 
 	pinMode(pinPM_ENABLE, OUTPUT);
 	digitalWrite(pinPM_ENABLE, HIGH);
@@ -878,6 +893,7 @@ bool Sck_PM::start()
 	while (millis() - startTimer < 4000) {
 		delay(50);
 		if (SerialPM.available()) {
+			if (debug) Serial.println("PM: Started OK");
 			started = true;
 			rtcStarted = rtc->getEpoch();
 			return true;
@@ -885,10 +901,12 @@ bool Sck_PM::start()
 	}
 	stop();
 	detectionFailed = true;
+	if (debug) Serial.println("PM: No answer on serial port");
 	return false;
 }
 bool Sck_PM::stop()
 {
+	if (debug) Serial.println("PM: Stoping sensor");
 	digitalWrite(pinPM_ENABLE, LOW);
 	SerialPM.end();
 	started = false;
@@ -899,8 +917,15 @@ bool Sck_PM::stop()
 }
 bool Sck_PM::update()
 {
-	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
-	if (millis() - lastFail < 1000) return false; 		// We need at least one second after las fail
+	if (debug) Serial.println("PM: updating data...");
+	if (millis() - lastReading < 1000) {
+		if (debug) Serial.println("PM: Less than one sec after last update, data is still valid...");
+		return true; 	// PM sensor only delivers one reading per second
+	}
+	if (millis() - lastFail < 1000) {
+		if (debug) Serial.println("PM: Sensor lastFail is less than one second...");
+		return false; 		// We need at least one second after las fail
+	}
 
 	// Wait for new readings
 	uint32_t startPoint = millis();
@@ -909,9 +934,12 @@ bool Sck_PM::update()
 			// Timeout
 			lastFail = millis();
 
+			if (debug) Serial.println("PM: Time out waiting for data!!");
+
 			// After 10 seconds declare the PM innactive
 			if (millis() - lastReading < 10000) {
 				active = false;
+				if (debug) Serial.println("PM: No data received in 10 seconds, setting PM as innactive");
 			}
 			return false;
 		}
@@ -925,7 +953,10 @@ bool Sck_PM::update()
 	startPoint = millis();
 	while (sc1 != 0x42) {
 		sc1 = SerialPM.read();
-		if (millis() - startPoint > 1500) return false;
+		if (millis() - startPoint > 1500) {
+			if (debug) Serial.println("PM: Time out waiting for start char");
+			return false;
+		}
 	}
 	sum += sc1;
 
@@ -944,6 +975,7 @@ bool Sck_PM::update()
 
 		// Is buffer complete?
 		if (howMany < 30) {
+			if (debug) Serial.println("PM: received less data than expected");
 			return false;
 		}
 
@@ -951,9 +983,11 @@ bool Sck_PM::update()
 		uint16_t checkSum = (buff[28]<<8) + buff[29];
 		for(int i=0; i<(buffLong - 2); i++) sum += buff[i];
 		if(sum != checkSum) {
+			if (debug) Serial.println("PM: Checksum error");
 			return false;
 		}
 
+		if (debug) Serial.println("PM: Readings received OK");
 		// Get the values
 		pm1 = (buff[2]<<8) + buff[3];
 		pm25 = (buff[4]<<8) + buff[5];
@@ -965,19 +999,33 @@ bool Sck_PM::update()
 		pn5 = (buff[22]<<8) + buff[23];
 		pn10 = (buff[24]<<8) + buff[25];
 
+		if (debug) {
+			SerialUSB.print(readingCount);
+			SerialUSB.println(" readings taken since the sensor started");
+			SerialUSB.print("PM: pm1 -> ");
+			SerialUSB.println(pm1);
+			SerialUSB.print("PM: pm25 -> ");
+			SerialUSB.println(pm25);
+			SerialUSB.print("PM: pm10 -> ");
+			SerialUSB.println(pm10);
+		}
 		lastReading = millis();
 		lastFail = 0;
 		active = true;
 
 		return true;
 	}
+	if (debug) Serial.println("PM: Error receving second char");
 	return false;
 }
 void Sck_PM::getReading(SckBase *base, OneSensor *wichSensor)
 {
 	if (base->st.dynamic || (base->config.readInterval < (uint32_t)(oneShotPeriod * 2))) {
 
-		if (!started) start();
+		if (!started) {
+			if (debug) Serial.println("PM: PM is off starting sensor...");
+			start();
+		}
 
 		if (update()) wichSensor->state = 0;
 		else wichSensor->state = -1;
@@ -1032,6 +1080,7 @@ int16_t Sck_PM::oneShot()
 }
 bool Sck_PM::reset()
 {
+	if (debug) Serial.println("PM: Reseting PM sensor");
 	digitalWrite(pinPM_ENABLE, LOW);
 	delay(200);
 	digitalWrite(pinPM_ENABLE, HIGH);
@@ -1147,4 +1196,3 @@ bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
 	if (ccs.setDriveMode(driveMode) != CCS811Core::CCS811_Stat_SUCCESS) return false;
 	return true;
 }
-

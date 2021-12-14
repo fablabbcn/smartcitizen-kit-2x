@@ -35,7 +35,7 @@ def enablePrint():
 if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv or len(sys.argv) < 2 or (not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv):
     if not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv:
         print('\nYou need to specify at least one action!!!\n')
-    print('USAGE:\n\nbuild.py [options] action[s] target[s] -p port -f')
+    print('USAGE:\n\nmake.py [options] action[s] target[s] -p port -f')
     print('\noptions: -v: verbose -k: keep configuration')
     print('actions: boot (only for sam), build, flash')
     print('targets: sam, esp [-p port [-f]]')
@@ -89,7 +89,6 @@ if 'boot' in sys.argv:
         ERROR('Failed building SCK bootloader!!!')
     os.chdir('../..')
 
-
 if 'build' in sys.argv:
     if 'sam' in sys.argv or 'all' in sys.argv:
         oneLine('Building SAM firmware... ')
@@ -100,7 +99,6 @@ if 'build' in sys.argv:
         oneLine('Building ESP firmware... ')
         if kit.buildESP(sys.stdout): OK()
         else: ERROR()
-
 
 if 'flash' in sys.argv:
     if not 'build' in sys.argv:

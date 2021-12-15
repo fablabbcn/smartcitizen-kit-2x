@@ -1279,8 +1279,14 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
 	digitalWrite(pinESP_RX_WIFI, LOW);
 	digitalWrite(pinESP_TX_WIFI, LOW);
 
-	// Stop PM sensor
-	if (urban.sck_pm.started) urban.sck_pm.stop();
+	// Stop PM sensor unless we are in dynamic mode or sensor reading interval is less than two times the oneShot period
+	uint32_t PMintervalInSeconds = sensors[SENSOR_PM_1].everyNint * config.readInterval;
+	if ( 	!st.dynamic && 
+		PMintervalInSeconds > (uint32_t)(urban.sck_pm.oneShotPeriod * 2) &&
+		urban.sck_pm.started ) {
+
+		urban.sck_pm.stop();
+	}
 
 	if (sckOFF) {
 

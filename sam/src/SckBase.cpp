@@ -552,7 +552,7 @@ void SckBase::inputUpdate()
 // **** Output
 void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine)
 {
-	if (strOut.equals(outBuff)) {
+	if (strOut.equals(outBuff) && (config.outLevel + priority > 1)) {
 		outRepetitions++;
 		if (outRepetitions >= 10) {
 			sckOut("Last message repeated 10 times");
@@ -566,7 +566,7 @@ void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine)
 }
 void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 {
-	if (strncmp(strOut, outBuff, strlen(strOut)) == 0) {
+	if (strncmp(strOut, outBuff, strlen(strOut)) == 0 && (config.outLevel + priority > 1)) {
 		outRepetitions++;
 		if (outRepetitions >= 10) {
 			sckOut("Last message repeated 10 times");

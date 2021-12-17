@@ -63,6 +63,8 @@
 // Sparkfun library for SCD30 CO2 sensor
 #include <SparkFun_SCD30_Arduino_Library.h>
 
+// Sparkfun library for SCD41 CO2 sensor
+#include <SparkFun_SCD4x_Arduino_Library.h>
 
 extern TwoWire auxWire;
 
@@ -117,6 +119,10 @@ class AuxBoards
 			0x61, 			// SENSOR_SCD30_CO2, 	--> Conflict with SENSOR_ATLAS_DO
 			0x61, 			// SENSOR_SCD30_TEMP, 	--> Conflict with SENSOR_ATLAS_DO
 			0x61, 			// SENSOR_SCD30_HUM, 	--> Conflict with SENSOR_ATLAS_DO
+
+			0x62, 			// SENSOR_SCD41_CO2,
+			0x62, 			// SENSOR_SCD41_TEMP,
+			0x62, 			// SENSOR_SCD41_HUM,
 
 			0x20,			// SENSOR_CHIRP_MOISTURE_RAW,
 			0x20,			// SENSOR_CHIRP_MOISTURE,
@@ -714,6 +720,32 @@ class Sck_SCD30
 		bool started = false;
 		uint16_t measInterval = 2; 	// "2-1800 seconds"
 		SCD30 sparkfun_scd30;
+};
+
+class Sck_SCD41
+{
+	public:
+		const byte deviceAddress = 0x62;
+		bool start(SckBase *base, SensorType wichSensor);
+		bool stop(SensorType wichSensor);
+		bool getReading(SensorType wichSensor);
+		// uint16_t interval(uint16_t newInterval=0);
+		bool autoSelfCal(int8_t value=-1);
+		uint16_t forcedRecalFactor(uint16_t newFactor=0);
+		float tempOffset(float userTemp=NULL, bool off=false);
+
+		uint16_t co2 = 0;
+		float temperature = 0;
+		float humidity = 0;
+
+		bool pressureCompensated = false;
+
+	private:
+		uint8_t enabled[3][2] = { {SENSOR_SCD41_CO2, 0}, {SENSOR_SCD41_TEMP, 0}, {SENSOR_SCD41_HUM, 0} };
+		bool _debug = true;
+		bool started = false;
+		// uint16_t measInterval = 2; 	// "2-1800 seconds"
+		SCD4x sparkfun_scd41 = SCD4x(SCD4x_SENSOR_SCD41);
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

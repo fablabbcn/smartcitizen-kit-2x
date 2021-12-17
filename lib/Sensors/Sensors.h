@@ -136,6 +136,11 @@ enum SensorType
 	SENSOR_SCD30_TEMP,
 	SENSOR_SCD30_HUM,
 
+	SENSOR_SCD41_CO2,
+	SENSOR_SCD41_TEMP,
+	SENSOR_SCD41_HUM,
+
+
 	// Actuators (This is temp)
 	SENSOR_GROVE_OLED,
 
@@ -321,6 +326,10 @@ class AllSensors
 			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_CO2,			"SCD30_CO2",		"SCD30 CO2", 					158,		true,		true,		1,			"ppm"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_TEMP,			"SCD30_TEMP",		"SCD30 Temperature", 				160,		true,		true,		1,			"C"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_HUM,			"SCD30_HUM",		"SCD30 Humidity", 				161,		true,		true,		1,			"%"},
+
+			OneSensor { BOARD_AUX,		100,	SENSOR_SCD41_CO2,			"SCD41_CO2",		"SCD41 CO2", 					0,		true,		true,		1,			"ppm"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_SCD41_TEMP,			"SCD41_TEMP",		"SCD41 Temperature", 				0,		true,		true,		1,			"C"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_SCD41_HUM,			"SCD41_HUM",		"SCD41 Humidity", 				0,		true,		true,		1,			"%"},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

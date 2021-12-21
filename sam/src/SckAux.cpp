@@ -711,13 +711,14 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				command.replace("caltemp", "");
 				command.trim();
 
-				float userTemp = NULL;
+				float userTemp;
 				bool off = false;
 
 				if (command.startsWith("off")) off = true;
 				else {
 
-					if (command.length() > 0) userTemp = command.toFloat();
+					if (command.length() > 0 && isDigit(command.charAt(0))) userTemp = command.toFloat();
+					else return F("Wrong temperature value, try again.");
 				}
 
 				scd30.getReading(SENSOR_SCD30_TEMP);
@@ -2574,7 +2575,7 @@ float Sck_SCD30::tempOffset(float userTemp, bool off)
 
 	getReading(SENSOR_SCD30_TEMP);
 
-	if (userTemp != NULL && temperature > userTemp) sparkfun_scd30.setTemperatureOffset(temperature - userTemp);
+	if (temperature > userTemp) sparkfun_scd30.setTemperatureOffset(temperature - userTemp);
 	else if (off) sparkfun_scd30.setTemperatureOffset(0);
 
 	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);

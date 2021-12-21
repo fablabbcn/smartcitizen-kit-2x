@@ -700,7 +700,7 @@ class Sck_SCD30
 		uint16_t interval(uint16_t newInterval=0);
 		bool autoSelfCal(int8_t value=-1);
 		uint16_t forcedRecalFactor(uint16_t newFactor=0);
-		float tempOffset(float userTemp=NULL, bool off=false);
+		float tempOffset(float userTemp, bool off=false);
 
 		uint16_t co2 = 0;
 		float temperature = 0;

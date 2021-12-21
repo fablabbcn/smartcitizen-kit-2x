@@ -929,6 +929,9 @@ bool Sck_PM::update()
 		return false; 		// We need at least one second after las fail
 	}
 
+	// Empty Serial buffer
+	while (SerialPM.available()) SerialPM.read();
+
 	// Wait for new readings
 	uint32_t startPoint = millis();
 	while(SerialPM.available() < (buffLong + 2)) {

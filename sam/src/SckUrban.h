@@ -182,11 +182,11 @@ class Sck_PM
 
 		// 30-31: Sum of each byte from start_1 ... error_code 
 
-		unsigned char buff[buffLong];
 		uint32_t rtcStarted = 0;
 		uint32_t rtcStopped = 0;
 		uint32_t rtcReading = 0;
 		RTCZero* rtc;
+		bool sendCmd(byte cmd, byte data);
 
 	public:
 		Sck_PM(RTCZero* myrtc) {

@@ -1096,6 +1096,65 @@ bool Sck_PM::reset()
 	digitalWrite(pinPM_ENABLE, HIGH);
 	return true;
 }
+bool Sck_PM::sendCmd(byte cmd, byte data)
+{
+	// Based on datasheet: Appendix B：Transport Protocol Passive Mode
+
+	if (debug) {
+		Serial.print("PM: Sending command: ");
+		Serial.print(cmd);
+		Serial.print(" with data: ");
+		Serial.println(data);
+	}
+
+	uint8_t msgLong = 7;
+	unsigned char buff[msgLong];
+
+	buff[0] = 0x42; // start_byte_1 
+	buff[1] = 0x4d; // start_byte_2 
+	buff[3] = cmd;  // Command
+	buff[4] = 0x00; // Data 1 (DATAH)
+	buff[5] = data; // Data 2 (DATAL)
+
+	// Checksum
+	uint16_t sum = 0;
+	for(uint8_t i=0; i<(msgLong - 2); i++) sum += buff[i];
+	buff[6] = ((sum >> 8) & 0xFF); 	// Verify byte 1 (LRCH)
+	buff[7] = (sum & 0xFF) ; 	// Verify byte 2 (LRCL)
+
+	// Send message
+	for (uint8_t i=0; i<msgLong; i++) SerialPM.print(buff[i]);
+
+	delay(5); // Is this needed???
+
+	// Get response
+	uint8_t resLong = 8;
+	unsigned char res[resLong];
+	for (uint8_t i=0; i<resLong; i++) res[i] = SerialPM.read();
+
+	// Checksum
+	sum = 0;
+	uint16_t checkSum = (res[resLong - 2]<<8) + (res[resLong - 2]);
+	for(int i=0; i<(resLong - 2); i++) sum += res[i];
+	if(sum != checkSum) {
+		if (debug) Serial.println("PM: Checksum error on command response");
+		return false;
+	}
+
+	// Check response
+	if ( 	(res[0] != 0x42) ||
+		(res[1] != 0x4d) ||
+		(res[2] != 0x00) ||
+		(res[3] != 0x04) ||
+		(res[5] != cmd)  ||
+		(res[6] != data)) {
+	
+		if (debug) Serial.println("PM: Error on command response");
+		return false;
+	}
+
+	return true;
+}
 
 // VOC and ECO2
 bool Sck_CCS811::start()

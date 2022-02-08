@@ -655,6 +655,10 @@ void SckBase::loadConfig()
 		sckOut();
 		urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
 	}
+
+	// PMS sensor warmUpperiod and powerSave config
+	urban.sck_pm.warmUpPeriod = config.extra.pmWarmUpPeriod;
+	urban.sck_pm.powerSave = config.extra.pmPowerSave;
 }
 void SckBase::saveConfig(bool defaults)
 {
@@ -1278,15 +1282,6 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
 	digitalWrite(pinESP_GPIO0, LOW);
 	digitalWrite(pinESP_RX_WIFI, LOW);
 	digitalWrite(pinESP_TX_WIFI, LOW);
-
-	// Stop PM sensor unless we are in dynamic mode or sensor reading interval is less than two times the oneShot period
-	uint32_t PMintervalInSeconds = sensors[SENSOR_PM_1].everyNint * config.readInterval;
-	if ( 	!st.dynamic && 
-		PMintervalInSeconds > (uint32_t)(urban.sck_pm.oneShotPeriod * 2) &&
-		urban.sck_pm.started ) {
-
-		urban.sck_pm.stop();
-	}
 
 	if (sckOFF) {
 

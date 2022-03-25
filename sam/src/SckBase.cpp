@@ -655,6 +655,10 @@ void SckBase::loadConfig()
 		sckOut();
 		urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
 	}
+
+	// PMS sensor warmUpperiod and powerSave config
+	urban.sck_pm.warmUpPeriod = config.extra.pmWarmUpPeriod;
+	urban.sck_pm.powerSave = config.extra.pmPowerSave;
 }
 void SckBase::saveConfig(bool defaults)
 {
@@ -1278,9 +1282,6 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
 	digitalWrite(pinESP_GPIO0, LOW);
 	digitalWrite(pinESP_RX_WIFI, LOW);
 	digitalWrite(pinESP_TX_WIFI, LOW);
-
-	// Stop PM sensor
-	if (urban.sck_pm.started) urban.sck_pm.stop();
 
 	if (sckOFF) {
 

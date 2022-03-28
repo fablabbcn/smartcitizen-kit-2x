@@ -1695,8 +1695,8 @@ void SckBase::updateSensors()
 			}
 		} 
 
-		//  3 minutes after user interaction we publish as soon readings are available (mostly to be responsive during oboarding process)
-		if ((millis() - lastUserEvent < 3 * 60000) || config.sleepTimer == 0) {
+		//  10 minutes after user interaction we publish as soon readings are available (mostly to be responsive during oboarding process)
+		if ((millis() - lastUserEvent < 10 * 60000) || config.sleepTimer == 0) {
 			sckOut("Recent user interaction, it's time to publish", PRIO_LOW);
 			timeToPublish = true;
 		}

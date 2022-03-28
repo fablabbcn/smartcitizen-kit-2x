@@ -131,6 +131,8 @@ if 'flash' in sys.argv:
 
     if '-k' in sys.argv and len(kit.mode) > 0:
         oneLine("Reconfiguring kit...")
+        time.sleep(1)
+
         if 'network' in kit.mode: 
             if kit.netConfig(): OK()
             else: ERROR()

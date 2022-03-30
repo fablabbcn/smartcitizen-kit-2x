@@ -1406,8 +1406,8 @@ void SckBase::updatePower()
 		}
 	}
 
- 	// if more than 23 hours have passed since last reset and we are in the right hour-minute then reset
-	if (millis() > MS_23_HOURS) {
+ 	// if more than one minute have passed since last reset and we are in the right hour-minute then reset
+	if (millis() > 70000) {
 		if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
 			sckOut("Sanity reset, bye!!");
 			sck_reset();

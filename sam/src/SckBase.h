@@ -151,7 +151,6 @@ class SckBase
 		bool infoSaved = false;
 
 		// Power
-		#define MS_23_HOURS 82800000
 		uint8_t wakeUP_H = 3;
 		uint8_t wakeUP_M = 0;
 		void updatePower();

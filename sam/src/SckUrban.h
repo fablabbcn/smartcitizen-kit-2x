@@ -150,11 +150,22 @@ class Sck_MPL3115A2
 class Sck_PM
 {
 	private:
-		bool detectionFailed = false;
-		uint32_t lastFail = 0;
 		uint32_t lastReading = 0;
 
-		static const uint8_t buffLong = 30; 	// Excluding both start chars
+		static const uint8_t buffLong = 31; // + Start_byte_1 = 32
+		uint8_t buffer[buffLong];
+
+		const byte PM_START_BYTE_1 		= 0x42;
+		const byte PM_START_BYTE_2 		= 0x4d;
+
+		const byte PM_CMD_GET_PASSIVE_READING 	= 0xe2;
+		const byte PM_CMD_CHANGE_MODE 		= 0xe1;
+		const byte PM_CMD_SLEEP_ACTION 		= 0xe4;
+
+		const byte PM_MODE_PASSIVE 		= 0x00;
+		const byte PM_MODE_ACTIVE 		= 0x01;
+		const byte PM_SLEEP 			= 0x00;
+		const byte PM_WAKEUP 			= 0x01;
 
 		// Serial transmission from PMS
 		// 0: Start char 1 0x42 (fixed)
@@ -181,16 +192,21 @@ class Sck_PM
 
 		// 30-31: Sum of each byte from start_1 ... error_code 
 
-		unsigned char buff[buffLong];
-		uint32_t rtcStarted = 0;
-		uint32_t rtcStopped = 0;
-		uint32_t rtcReading = 0;
 		RTCZero* rtc;
+		bool started = false;
+		uint32_t wakeUpTime = 0;
+
+		bool fillBuffer();
+		bool processBuffer();
+		bool sendCmd(byte cmd, byte data=0x00, bool checkResponse=true);
+		bool sleep();
+		bool wake();
 
 	public:
 		Sck_PM(RTCZero* myrtc) {
 			rtc = myrtc;
 		}
+
 		// Readings
 		uint16_t pm1;
 		uint16_t pm25;
@@ -202,16 +218,19 @@ class Sck_PM
 		uint16_t pn5;
 		uint16_t pn10;
 
-		bool started = false;
-		bool active = false;
-		uint16_t oneShotPeriod = 15;
+		// Other data provided by the sensor
+		uint8_t version = 0;
+		uint8_t errorCode; 	// Not documented on Datasheet
+
+		// Default values for this are in config.h 
+		bool powerSave; 	// If true the sensor will be turned off between readings.
+		uint32_t warmUpPeriod; 	// Wait this time (sec) before taking readings to let sensor stabilize
 
 		bool start();
 		bool stop();
-		bool update();
-		void getReading(SckBase *base, OneSensor *wichSensor);
-		int16_t oneShot();
-		bool reset();
+		bool getReading(OneSensor *wichSensor, SckBase *base);
+		bool debug = false;
+		bool monitor = false;
 };
 
 // VOC ans ECO2 - CCS811

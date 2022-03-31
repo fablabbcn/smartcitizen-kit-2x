@@ -97,15 +97,15 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude()) 		{ wichSensor->reading = String(sck_mpl3115A2.altitude); return; } break;
 		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure()) 		{ wichSensor->reading = String(sck_mpl3115A2.pressure); return; } break;
 		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature()) 		{ wichSensor->reading = String(sck_mpl3115A2.temperature); return; } break;
-		case SENSOR_PM_1: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm1); return;
-		case SENSOR_PM_25: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm25); return;
-		case SENSOR_PM_10: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pm10); return;
-		case SENSOR_PN_03: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn03); return;
-		case SENSOR_PN_05: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn05); return;
-		case SENSOR_PN_1: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn1); return;
-		case SENSOR_PN_25: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn25); return;
-		case SENSOR_PN_5: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn5); return;
-		case SENSOR_PN_10: 			sck_pm.getReading(base, wichSensor); if (wichSensor->state == -1) break; if (wichSensor->state == 0) wichSensor->reading = String(sck_pm.pn10); return;
+		case SENSOR_PM_1: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pm1); } return;
+		case SENSOR_PM_25: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pm25); } return;
+		case SENSOR_PM_10: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pm10); } return;
+		case SENSOR_PN_03: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn03); } return;
+		case SENSOR_PN_05: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn05); } return;
+		case SENSOR_PN_1: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn1); } return;
+		case SENSOR_PN_25: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn25); } return;
+		case SENSOR_PN_5: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn5); } return;
+		case SENSOR_PN_10: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn10); } return;
 		default: break;
 	}
 	wichSensor->reading = "null";
@@ -163,6 +163,66 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					return "\r\n";
 				}
 
+		}
+		case SENSOR_PM_1:
+		case SENSOR_PM_25:
+		case SENSOR_PM_10:
+		{
+				if (command.startsWith("debug")) {
+
+					command.replace("debug", "");
+					command.trim();
+					if (command.startsWith("1")) sck_pm.debug = true;
+					else if (command.startsWith("0")) sck_pm.debug = false;
+
+					sprintf(base->outBuff, "%s", sck_pm.debug  ? "true" : "false");
+					base->sckOut();
+					return true;
+
+				} else if (command.startsWith("powersave")) {
+
+					bool oldValue = sck_pm.powerSave;
+					command.replace("powersave", "");
+					command.trim();
+					if (command.startsWith("1")) sck_pm.powerSave = true;
+					else if (command.startsWith("0")) sck_pm.powerSave = false;
+
+					sprintf(base->outBuff, "%s", sck_pm.powerSave  ? "true" : "false");
+					base->sckOut();
+					
+					if (oldValue != sck_pm.powerSave) {
+						base->config.extra.pmPowerSave = sck_pm.powerSave;
+						base->saveConfig();
+					}
+					return true;
+
+				} else if (command.startsWith("warmup")) {
+					
+					uint32_t oldValue = sck_pm.warmUpPeriod;
+					command.replace("warmup", "");
+					command.trim();
+
+					// If user provide a value set new period
+					if (command.length() > 0) {
+						int newPeriod = command.toInt();
+						sck_pm.warmUpPeriod = newPeriod;
+					} 
+
+					sprintf(base->outBuff, "%u seconds", sck_pm.warmUpPeriod);
+					base->sckOut();
+
+					if (oldValue != sck_pm.warmUpPeriod) {
+						base->config.extra.pmWarmUpPeriod = sck_pm.warmUpPeriod;
+						base->saveConfig();
+					}
+					return true;
+
+				} else if (command.startsWith("help") || command.length() == 0) {
+
+					sprintf(base->outBuff, "Available commands:\r\n* powersave: [0-1] Sets powersave (turn off PMS after reading it)\r\n* warmup [seconds] Changes warm up period for sensor\r\n* debug [0-1] Sets debug messages");
+					base->sckOut();
+					return "\r\n";
+				}
 		}
 		default: break;
 	}
@@ -867,174 +927,244 @@ bool Sck_MPL3115A2::getTemperature()
 // PM sensor
 bool Sck_PM::start()
 {
+	if (debug) Serial.println("PM: Starting sensor");
 	if (started) return true;
-	if (detectionFailed) return false;
 
 	pinMode(pinPM_ENABLE, OUTPUT);
 	digitalWrite(pinPM_ENABLE, HIGH);
 	SerialPM.begin(9600);
+	delay(250);
+	SerialPM.setTimeout(1500);
 
-	uint32_t startTimer = millis();
-	while (millis() - startTimer < 4000) {
-		delay(50);
-		if (SerialPM.available()) {
-			started = true;
-			rtcStarted = rtc->getEpoch();
-			return true;
+	if (fillBuffer()) {
+		started = true;
+		wakeUpTime = rtc->getEpoch();
+		if (debug) Serial.println("PM: Started OK");
+
+		if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE)) {
+			if (debug) Serial.println("PM: Failed setting passive mode");
+			stop();
+			return false;
 		}
+
+		return true;
 	}
+
+	if (debug) Serial.println("PM: serial port didn't started correctly");
 	stop();
-	detectionFailed = true;
 	return false;
 }
 bool Sck_PM::stop()
 {
+	if (debug) Serial.println("PM: Stoping sensor");
 	digitalWrite(pinPM_ENABLE, LOW);
 	SerialPM.end();
 	started = false;
-	rtcStopped = rtc->getEpoch();
-	detectionFailed = false;
+	wakeUpTime = 0;
+	return true;
+}
+bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
+{
+	// If last reading is recent doesn't make sense to get a new one
+	if (millis() - lastReading < 1000 && !monitor) {
+		if (debug) Serial.println("PM: Less than one second after last update, data is still valid...");
+		return true;
+	}
+
+	// Check if sensor is on
+	if (!started) start();
+
+	// Check if sensor is sleeping
+	if (wakeUpTime == 0) wake();
+	
+	// Are we still warming up?
+	uint32_t now = rtc->getEpoch();
+	uint32_t warmUpPassed = now - wakeUpTime;
+	if (warmUpPassed < warmUpPeriod) {
+		wichSensor->state = warmUpPeriod - warmUpPassed; 	// Report how many seconds are missing to cover the warm up period
+		if (debug) Serial.println("PM: Still on warm up period");
+		return false;
+	}
+	
+	if (!wake()) return false;
+
+	if (!sendCmd(PM_CMD_GET_PASSIVE_READING, 0x00, false)) return false;
+
+	if (!fillBuffer()) return false;
+
+	if (!processBuffer()) return false;
+
+	// Only go to sleep if these conditions are met
+	if ( 	powerSave &&  									// PowerSave is enabled
+		((wichSensor->everyNint * base->config.readInterval) > (warmUpPeriod * 2)) && 	// Reading interval is twice the warmUpPeriod
+		!base->st.dynamic && 								// We are not in dynamic mode
+		!monitor) { 									// We are not in monitor mode
+
+		if (debug) Serial.println("PM: going to sleep");
+		if (!sleep()) return false;
+	}
+
+	monitor = false;
 
 	return true;
 }
-bool Sck_PM::update()
+bool Sck_PM::fillBuffer()
 {
-	if (millis() - lastReading < 1000) return true; 	// PM sensor only delivers one reading per second
-	if (millis() - lastFail < 1000) return false; 		// We need at least one second after las fail
-
-	// Wait for new readings
-	uint32_t startPoint = millis();
-	while(SerialPM.available() < (buffLong + 2)) {
-		if (millis() - startPoint > 1500) {
-			// Timeout
-			lastFail = millis();
-
-			// After 10 seconds declare the PM innactive
-			if (millis() - lastReading < 10000) {
-				active = false;
-			}
-			return false;
-		}
+	// Wait for start char 1 (0x42)
+	if (!SerialPM.find(PM_START_BYTE_1)) {
+		if (debug) Serial.println("PM: Timeout waiting for data start");
+		return false;
 	}
 
+	size_t readedBytes = SerialPM.readBytes(buffer, buffLong);
 
+	// Did we get all needed bytes?
+	if (readedBytes < buffLong - 1) {
+		if (debug) Serial.println("PM: Error: received less data than expected");
+		return false;
+	}
+	return true;
+}
+bool Sck_PM::processBuffer()
+{
+	if (buffer[0] != PM_START_BYTE_2) {
+		if (debug) Serial.println("PM: Error on received data");
+		return false;
+	}
+
+	// Checksum
+	uint16_t checkSum = (buffer[buffLong - 2]<<8) + buffer[buffLong - 1];
+	uint16_t sum = 0x42; // Start_byte_1 is not included in buffer, but it needs to be on the sum
+	for(int i=0; i<(buffLong - 2); i++) sum += buffer[i];
+	if(sum != checkSum) {
+		if (debug) Serial.println("PM: Checksum error");
+		return false;
+	}
+
+	// Get the values
+	pm1 = (buffer[3]<<8) + buffer[4];
+	pm25 = (buffer[5]<<8) + buffer[6];
+	pm10 = (buffer[7]<<8) + buffer[8];
+	pn03 = (buffer[15]<<8) + buffer[16];
+	pn05 = (buffer[17]<<8) + buffer[18];
+	pn1 = (buffer[19]<<8) + buffer[20];
+	pn25 = (buffer[21]<<8) + buffer[22];
+	pn5 = (buffer[23]<<8) + buffer[24];
+	pn10 = (buffer[25]<<8) + buffer[26];
+
+	// This values are just for debug
+	version = buffer[27];
+	errorCode = buffer[28];
+
+	if (debug) {
+		Serial.print("PM: version: ");
+		Serial.println(version);
+		Serial.print("PM: Error code: ");
+		Serial.println(errorCode);
+	}
+
+	lastReading = millis();
+	return true;
+}
+bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
+{
+	// Based on datasheet: Appendix B：Transport Protocol Passive Mode
+
+	if (debug) {
+		Serial.print("PM: Sending command: 0x");
+		Serial.print(cmd, HEX);
+		Serial.print(" with data: 0x");
+		Serial.println(data, HEX);
+	}
+
+	uint8_t msgLong = 7;
+	unsigned char buff[msgLong];
+
+	buff[0] = PM_START_BYTE_1;
+	buff[1] = PM_START_BYTE_2;
+	buff[2] = cmd;  // Command
+	buff[3] = 0x00; // Data 1 (DATAH)
+	buff[4] = data; // Data 2 (DATAL)
+
+	// Checksum
 	uint16_t sum = 0;
+	for(uint8_t i=0; i<(msgLong - 2); i++) sum += buff[i];
+	buff[5] = ((sum >> 8) & 0xFF); 	// Verify byte 1 (LRCH)
+	buff[6] = (sum & 0xFF) ; 	// Verify byte 2 (LRCL)
 
-	// Search for start char 1
-	byte sc1 = 0;
-	startPoint = millis();
-	while (sc1 != 0x42) {
-		sc1 = SerialPM.read();
-		if (millis() - startPoint > 1500) return false;
+	// Send message
+	SerialPM.write(buff, msgLong);
+
+	// When asking for readings we don't check response
+	if (!checkResponse) return true;
+
+	// Wait for start char 1 (0x42)
+	if (!SerialPM.find(PM_START_BYTE_1)) {
+		if (debug) Serial.println("PM: Timeout waiting for response");
+		return false;
 	}
-	sum += sc1;
 
-	// Confirm we receive start char 2
-	byte sc2 = 0;
-	sc2 = SerialPM.read();
+	// Get response
+	uint8_t resLong = 7;
+	unsigned char res[resLong];
+	uint8_t received = SerialPM.readBytes(res, resLong);
 
-	if (sc2 == 0x4d) {
+	// Checksum
+	sum = 0x42;
+	uint16_t checkSum = (res[resLong - 2]<<8) + (res[resLong - 1]);
+	for(int i=0; i<(resLong - 2); i++) sum += res[i];
+	if(sum != checkSum) {
+		if (debug) Serial.println("PM: Checksum error on command response");
+		Serial.println(sum);
+		Serial.println(checkSum);
+		return false;
+	}
 
-		rtcReading = rtc->getEpoch();
+	// Check response
+	if ( 	(res[0] != 0x4d) ||
+		(res[1] != 0x00) ||
+		(res[2] != 0x04) ||
+		(res[3] != cmd)  ||
+		(res[4] != data)) {
+	
+		if (debug) Serial.println("PM: Error on command response");
+		return false;
+	}
 
-		sum += sc2;
+	return true;
+}
+bool Sck_PM::sleep()
+{
+	if (debug) Serial.println("PM: Sending sensor to sleep");
 
-		unsigned char buff[buffLong];
-		byte howMany =  SerialPM.readBytes(buff, buffLong);
-
-		// Is buffer complete?
-		if (howMany < 30) {
-			return false;
-		}
-
-		// Checksum
-		uint16_t checkSum = (buff[28]<<8) + buff[29];
-		for(int i=0; i<(buffLong - 2); i++) sum += buff[i];
-		if(sum != checkSum) {
-			return false;
-		}
-
-		// Get the values
-		pm1 = (buff[2]<<8) + buff[3];
-		pm25 = (buff[4]<<8) + buff[5];
-		pm10 = (buff[6]<<8) + buff[7];
-		pn03 = (buff[14]<<8) + buff[15];
-		pn05 = (buff[16]<<8) + buff[17];
-		pn1 = (buff[18]<<8) + buff[19];
-		pn25 = (buff[20]<<8) + buff[21];
-		pn5 = (buff[22]<<8) + buff[23];
-		pn10 = (buff[24]<<8) + buff[25];
-
-		lastReading = millis();
-		lastFail = 0;
-		active = true;
-
+	if (wakeUpTime == 0) {
+		if (debug) Serial.println("PM: Sensor is already sleeping");
 		return true;
 	}
-	return false;
-}
-void Sck_PM::getReading(SckBase *base, OneSensor *wichSensor)
-{
-	if (base->st.dynamic || (base->config.readInterval < (uint32_t)(oneShotPeriod * 2))) {
 
-		if (!started) start();
-
-		if (update()) wichSensor->state = 0;
-		else wichSensor->state = -1;
-
-	} else {
-		wichSensor->state = oneShot();
-	}
-	return;
-}
-int16_t Sck_PM::oneShot()
-{
-	int16_t pendingSeconds = oneShotPeriod;
-	uint32_t rtcNow = rtc->getEpoch();
-
-	if (detectionFailed) return -1;
-	if (!started) {
-
-		// Only start PM sensor again if last reading is old
-		if ((rtcNow - rtcReading) >= (uint8_t)(oneShotPeriod)) {
-			start();
-		}
-
-		// Or... reading is ready
-		else pendingSeconds = 0;
-
-	} else {
-
-		pendingSeconds = oneShotPeriod - (rtcNow - rtcStarted);
-
-		// Fix the problem generated by updating RTC after starting the PM sensor
-		if (pendingSeconds > oneShotPeriod) rtcStarted = rtcNow;
-
-		// If PM is on and requested period has passed
-		if (pendingSeconds <= 0) {
-
-			// Get reading
-			if (update()) {
-
-				// Stop PM, reading is ready
-				stop();
-				pendingSeconds = 0;
-
-			} else {
-
-				// return Error
-				return -1;
-			}
-		}
+	if (!sendCmd(PM_CMD_SLEEP_ACTION, PM_SLEEP)) {
+		if (debug) Serial.println("PM: Error on going to sleep");
+		return false;
 	}
 
-	return (int16_t)pendingSeconds;
+	wakeUpTime = 0;
+	return true;
 }
-bool Sck_PM::reset()
+bool Sck_PM::wake()
 {
-	digitalWrite(pinPM_ENABLE, LOW);
-	delay(200);
-	digitalWrite(pinPM_ENABLE, HIGH);
+	if (debug) Serial.println("PM: Waking up sensor");
+
+	if (wakeUpTime > 0) {
+		if (debug) Serial.println("PM: Sensor is already waked up");
+		return true;
+	}
+
+	if (!sendCmd(PM_CMD_SLEEP_ACTION, PM_WAKEUP, false)) {
+		if (debug) Serial.println("PM: Error on waking up");
+		return false;
+	}
+
+	wakeUpTime = rtc->getEpoch();
 	return true;
 }
 
@@ -1147,4 +1277,3 @@ bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
 	if (ccs.setDriveMode(driveMode) != CCS811Core::CCS811_Stat_SUCCESS) return false;
 	return true;
 }
-

@@ -425,31 +425,23 @@ void monitorSensor_com(SckBase* base, String parameters)
 
 			OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 
-			if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) {
-				if (!base->urban.sck_pm.started) base->urban.sck_pm.start();
-				if (PMreadingReady || base->urban.sck_pm.update()) {
-					String thisReading;
-					if (wichSensor.type == SENSOR_PM_1) thisReading = String(base->urban.sck_pm.pm1);
-					else if (wichSensor.type == SENSOR_PM_25) thisReading = String(base->urban.sck_pm.pm25);
-					else if (wichSensor.type == SENSOR_PM_10) thisReading = String(base->urban.sck_pm.pm10);
-					snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t%s", base->outBuff, thisReading.c_str());
-					PMreadingReady = true;
-					printit++;
+			// PM sensor needs to be notified that we are in monitor mode
+			if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) base->urban.sck_pm.monitor = true;
+
+			base->getReading(&wichSensor);
+
+			if (wichSensor.state == 0) {
+				snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t%s", base->outBuff, wichSensor.reading.c_str());
+
+				if (theFirst && oled) {
+					base->plot(wichSensor.reading);
+					theFirst = false;
 				}
-			} else {
-				base->getReading(&wichSensor);
-				if (wichSensor.state == 0) {
-					snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t%s", base->outBuff, wichSensor.reading.c_str());
+				printit++;
 
-					if (theFirst && oled) {
-						base->plot(wichSensor.reading);
-						theFirst = false;
-					}
-					printit++;
-
-				} else snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s", base->outBuff, "none");
-			}
+			} else snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s", base->outBuff, "none");
 		}
+
 		// If we are missing sensors we don't print the output
 		if (printit == index) {
 			lastMillis = provLastMillis;
@@ -458,7 +450,6 @@ void monitorSensor_com(SckBase* base, String parameters)
 		}
 	}
 	if (sdSave) base->monitorFile.file.close();
-	if (base->urban.sck_pm.started) base->urban.sck_pm.stop();
 }
 void flash_com(SckBase* base, String parameters)
 {

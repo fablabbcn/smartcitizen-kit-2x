@@ -987,6 +987,8 @@ bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 	}
 	
 
+	// Empty SerialPM internal buffer
+	while (SerialPM.available()) SerialPM.read();
 	if (!sendCmd(PM_CMD_GET_PASSIVE_READING, 0x00, false)) return false;
 
 	if (!fillBuffer()) return false;

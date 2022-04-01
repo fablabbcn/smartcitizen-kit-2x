@@ -965,9 +965,11 @@ bool Sck_PM::stop()
 }
 bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 {
+	uint32_t now = rtc->getEpoch();
+
 	// If last reading is recent doesn't make sense to get a new one
-	if (millis() - lastReading < 1000 && !monitor) {
-		if (debug) Serial.println("PM: Less than one second after last update, data is still valid...");
+	if (now - lastReading < warmUpPeriod && !monitor) {
+		if (debug) Serial.println("PM: Less than warmUp period since last update, data is still valid...");
 		return true;
 	}
 
@@ -978,7 +980,6 @@ bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 	if (wakeUpTime == 0) wake();
 	
 	// Are we still warming up?
-	uint32_t now = rtc->getEpoch();
 	uint32_t warmUpPassed = now - wakeUpTime;
 	if (warmUpPassed < warmUpPeriod) {
 		wichSensor->state = warmUpPeriod - warmUpPassed; 	// Report how many seconds are missing to cover the warm up period
@@ -986,7 +987,6 @@ bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 		return false;
 	}
 	
-	if (!wake()) return false;
 
 	if (!sendCmd(PM_CMD_GET_PASSIVE_READING, 0x00, false)) return false;
 
@@ -1065,7 +1065,7 @@ bool Sck_PM::processBuffer()
 		Serial.println("PM: Reading data received OK");
 	}
 
-	lastReading = millis();
+	lastReading = rtc->getEpoch();
 	return true;
 }
 bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)

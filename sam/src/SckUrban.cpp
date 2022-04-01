@@ -1023,6 +1023,7 @@ bool Sck_PM::fillBuffer()
 		if (debug) Serial.println("PM: Error: received less data than expected");
 		return false;
 	}
+	if (debug) Serial.println("PM: Buffer filled OK");
 	return true;
 }
 bool Sck_PM::processBuffer()
@@ -1061,6 +1062,7 @@ bool Sck_PM::processBuffer()
 		Serial.println(version);
 		Serial.print("PM: Error code: ");
 		Serial.println(errorCode);
+		Serial.println("PM: Reading data received OK");
 	}
 
 	lastReading = millis();
@@ -1129,6 +1131,11 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 	
 		if (debug) Serial.println("PM: Error on command response");
 		return false;
+	if (debug) {
+		Serial.print("PM: Success on command 0x");
+		Serial.print(res[3], HEX);
+		Serial.print(" with data: 0x");
+		Serial.println(res[4], HEX);
 	}
 
 	return true;

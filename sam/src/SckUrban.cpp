@@ -983,12 +983,24 @@ bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 	if (warmUpPassed < warmUpPeriod) {
 		wichSensor->state = warmUpPeriod - warmUpPassed; 	// Report how many seconds are missing to cover the warm up period
 		if (debug) Serial.println("PM: Still on warm up period");
+
+		// Old sensors seem to wakeUp on active mode so we need to set them to passive each time.
+		if (SerialPM.available()) {
+			if (debug) Serial.println("PM: This seems to be an old sensor... changing to passive mode");
+			oldSensor = true;
+			while (SerialPM.available()) SerialPM.read();
+			if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE, true)) {
+				if (debug) Serial.println("PM: Failed setting passive mode");
+				stop();
+				return false;
+			}
+		}
 		return false;
 	}
-	
 
 	// Empty SerialPM internal buffer
 	while (SerialPM.available()) SerialPM.read();
+	
 	if (!sendCmd(PM_CMD_GET_PASSIVE_READING, 0x00, false)) return false;
 
 	if (!fillBuffer()) return false;
@@ -1002,6 +1014,7 @@ bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 		!monitor) { 									// We are not in monitor mode
 
 		if (debug) Serial.println("PM: going to sleep");
+		if (oldSensor) delay(50); 	// Old sensors don't work without a small delay between commands
 		if (!sleep()) return false;
 	}
 
@@ -1024,6 +1037,7 @@ bool Sck_PM::fillBuffer()
 		if (debug) Serial.println("PM: Error: received less data than expected");
 		return false;
 	}
+
 	if (debug) Serial.println("PM: Buffer filled OK");
 	return true;
 }

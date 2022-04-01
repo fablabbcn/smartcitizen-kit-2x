@@ -934,19 +934,18 @@ bool Sck_PM::start()
 	digitalWrite(pinPM_ENABLE, HIGH);
 	SerialPM.begin(9600);
 	delay(250);
-	SerialPM.setTimeout(1500);
+	SerialPM.setTimeout(5000);
 
 	if (fillBuffer()) {
 		started = true;
 		wakeUpTime = rtc->getEpoch();
 		if (debug) Serial.println("PM: Started OK");
 
-		if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE)) {
+		if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE, true)) {
 			if (debug) Serial.println("PM: Failed setting passive mode");
 			stop();
 			return false;
 		}
-
 		return true;
 	}
 
@@ -1093,6 +1092,11 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 	for(uint8_t i=0; i<(msgLong - 2); i++) sum += buff[i];
 	buff[5] = ((sum >> 8) & 0xFF); 	// Verify byte 1 (LRCH)
 	buff[6] = (sum & 0xFF) ; 	// Verify byte 2 (LRCL)
+
+	// Clear buffer
+	if (retries > 0) {
+		while (SerialPM.available()) SerialPM.read();
+	}
 
 	// Send message
 	SerialPM.write(buff, msgLong);

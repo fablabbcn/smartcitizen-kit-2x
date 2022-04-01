@@ -1103,7 +1103,14 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 	// Wait for start char 1 (0x42)
 	if (!SerialPM.find(PM_START_BYTE_1)) {
 		if (debug) Serial.println("PM: Timeout waiting for response");
-		return false;
+		if (retries < MAX_RETRIES) {
+			if (debug) Serial.println("PM: Retrying command");
+			retries++;
+			return sendCmd(cmd, data, checkResponse);
+		} else {
+			retries = 0;
+			return false;
+		}
 	}
 
 	// Get response
@@ -1117,9 +1124,14 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 	for(int i=0; i<(resLong - 2); i++) sum += res[i];
 	if(sum != checkSum) {
 		if (debug) Serial.println("PM: Checksum error on command response");
-		Serial.println(sum);
-		Serial.println(checkSum);
-		return false;
+		if (retries < MAX_RETRIES) {
+			if (debug) Serial.println("PM: Retrying command");
+			retries++;
+			return sendCmd(cmd, data, checkResponse);
+		} else {
+			retries = 0;
+			return false;
+		}
 	}
 
 	// Check response
@@ -1130,7 +1142,16 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 		(res[4] != data)) {
 	
 		if (debug) Serial.println("PM: Error on command response");
-		return false;
+		if (retries < MAX_RETRIES) {
+			if (debug) Serial.println("PM: Retrying command");
+			retries++;
+			return sendCmd(cmd, data, checkResponse);
+		} else {
+			retries = 0;
+			return false;
+		}
+	}
+
 	if (debug) {
 		Serial.print("PM: Success on command 0x");
 		Serial.print(res[3], HEX);

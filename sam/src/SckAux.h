@@ -176,7 +176,9 @@ class AuxBoards
 			0x48, 			// SENSOR_ADS1X15_XX_X
 			0x49, 			// SENSOR_ADS1X15_XX_X
 			0x4a, 			// SENSOR_ADS1X15_XX_X
-			0x4b 			// SENSOR_ADS1X15_XX_X
+			0x4b, 			// SENSOR_ADS1X15_XX_X
+
+			0x53			// SENSOR_SI115X_*
 		};
 
 		bool start(SckBase *base, SensorType wichSensor);
@@ -714,6 +716,23 @@ class Sck_SCD30
 		bool started = false;
 		uint16_t measInterval = 2; 	// "2-1800 seconds"
 		SCD30 sparkfun_scd30;
+};
+
+class Sck_SI115X
+{
+	public:
+		const byte deviceAddress = 0x53;
+		bool start();
+		bool stop();
+		bool getReading(SensorType wichSensor);
+		bool debug = true;
+		float uv;
+		uint16_t visible;
+		uint16_t ir;
+		uint16_t proximity;
+
+	private:
+		bool started = false;
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

@@ -1,7 +1,7 @@
 #include "SckAux.h"
 
 GasesBoard		gasBoard;
-GrooveI2C_ADC		grooveI2C_ADC;
+GrooveI2C_ADC	grooveI2C_ADC;
 INA219			ina219;
 Groove_OLED		groove_OLED;
 WaterTemp_DS18B20 	waterTemp_DS18B20;
@@ -12,21 +12,22 @@ Atlas 			atlasTEMP = Atlas(SENSOR_ATLAS_TEMPERATURE);
 Moisture 		moistureChirp;
 PMsensor		pmSensorA = PMsensor(SLOT_A);
 PMsensor		pmSensorB = PMsensor(SLOT_B);
-PM_DallasTemp 		pmDallasTemp;
-Sck_DallasTemp 		dallasTemp;
+PM_DallasTemp 	pmDallasTemp;
+Sck_DallasTemp 	dallasTemp;
 Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
 Sck_SHT31 		sht35 = Sck_SHT31(&auxWire, 0x45);
 Sck_Range 		range;
 Sck_BME680 		bme680;
 Sck_GPS 		gps;
-PM_Grove_GPS 		pmGroveGps;
+PM_Grove_GPS 	pmGroveGps;
 XA111GPS 		xa1110gps;
 NEOM8UGPS 		neoM8uGps;
-Sck_ADS1X15 		ads48;
-Sck_ADS1X15 		ads49;
-Sck_ADS1X15 		ads4A;
-Sck_ADS1X15 		ads4B;
+Sck_ADS1X15 	ads48;
+Sck_ADS1X15 	ads49;
+Sck_ADS1X15 	ads4A;
+Sck_ADS1X15 	ads4B;
 Sck_SCD30 		scd30;
+Sck_SI115X 		si115x;
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
@@ -132,6 +133,10 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 		case SENSOR_SCD30_TEMP: 		return scd30.start(base, SENSOR_SCD30_TEMP); break;
 		case SENSOR_SCD30_HUM: 			return scd30.start(base, SENSOR_SCD30_HUM); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.start(); break;
+		case SENSOR_SI115X_UV: 			
+		case SENSOR_SI115X_IR:
+		case SENSOR_SI115X_VISIBLE:
+		case SENSOR_SI115X_PROX:		return si115x.start(); break;
 		default: break;
 	}
 
@@ -223,6 +228,10 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_SCD30_TEMP: 		return scd30.stop(SENSOR_SCD30_TEMP); break;
 		case SENSOR_SCD30_HUM: 			return scd30.stop(SENSOR_SCD30_HUM); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.stop(); break;
+		case SENSOR_SI115X_UV: 			
+		case SENSOR_SI115X_IR:
+		case SENSOR_SI115X_VISIBLE:
+		case SENSOR_SI115X_PROX:		return si115x.stop(); break;
 		default: break;
 	}
 
@@ -315,6 +324,10 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_SCD30_CO2: 			if (scd30.getReading(SENSOR_SCD30_CO2)) { wichSensor->reading = String(scd30.co2); return; } break;
 		case SENSOR_SCD30_TEMP: 		if (scd30.getReading(SENSOR_SCD30_TEMP)) { wichSensor->reading = String(scd30.temperature); return; } break;
 		case SENSOR_SCD30_HUM: 			if (scd30.getReading(SENSOR_SCD30_HUM)) { wichSensor->reading = String(scd30.humidity); return; } break;
+		case SENSOR_SI115X_UV: 			if (si115x.getReading(SENSOR_SI115X_UV)) { wichSensor->reading = String(si115x.uv); return; } break;
+		case SENSOR_SI115X_IR: 			if (si115x.getReading(SENSOR_SI115X_IR)) { wichSensor->reading = String(si115x.ir); return; } break;
+		case SENSOR_SI115X_VISIBLE: 	if (si115x.getReading(SENSOR_SI115X_VISIBLE)) { wichSensor->reading = String(si115x.visible); return; } break;
+		case SENSOR_SI115X_PROX:		if (si115x.getReading(SENSOR_SI115X_PROX)) { wichSensor->reading = String(si115x.proximity); return; } break;
 		default: break;
 	}
 
@@ -732,6 +745,24 @@ String AuxBoards::control(SensorType wichSensor, String command)
 				return F("Wrong command!!\r\nOptions:\r\ninterval [2-1000 (seconds)]\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]\r\npressure");
 			}
 
+
+		} 
+		case SENSOR_SI115X_UV: 			
+		case SENSOR_SI115X_IR:
+		case SENSOR_SI115X_VISIBLE:
+		case SENSOR_SI115X_PROX: {
+			if (command.startsWith("debug")) {
+
+				command.replace("debug", "");
+				command.trim();
+				if (command.startsWith("1")) si115x.debug = true;
+				else if (command.startsWith("0")) si115x.debug = false;
+				return String F("Debug: ") + String F(si115x.debug  ? "true" : "false");
+			
+			} else if (command.startsWith("help") || command.length() == 0) {
+
+				return F("Available commands:\r\n* debug [0-1] Sets debug messages");
+			}
 
 		} default: return "Unrecognized sensor!!!"; break;
 	}
@@ -2581,6 +2612,56 @@ float Sck_SCD30::tempOffset(float userTemp, bool off)
 	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
 
 	return currentOffsetTemp / 100.0;
+}
+
+bool Sck_SI115X::start()
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	if (started) {
+		if (debug) Serial.println("SI: Sensor already started");
+		return true;
+	}
+
+	if (false) return false;
+
+	if (debug) Serial.println("SI: Started OK");
+	
+	started = true;
+	return true;
+}
+
+bool Sck_SI115X::stop()
+{
+	started = false;
+	return true;
+}
+
+bool Sck_SI115X::getReading(SensorType wichSensor)
+{
+	switch (wichSensor) {
+
+		case SENSOR_SI115X_UV:
+			uv = 0;
+			break;
+
+		case SENSOR_SI115X_IR:
+			visible = 0;
+			break;
+		
+		case SENSOR_SI115X_VISIBLE:
+			ir = 0;
+			break;
+
+		case SENSOR_SI115X_PROX:
+			proximity = 0;
+			break;
+
+		default:
+			return false;
+	}
+
+	return true;
 }
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )

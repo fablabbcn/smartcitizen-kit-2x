@@ -1,37 +1,127 @@
 #include "SckAux.h"
 
-GasesBoard		gasBoard;
+GasesBoard			gasBoard;
 GrooveI2C_ADC		grooveI2C_ADC;
-INA219			ina219;
-Groove_OLED		groove_OLED;
+Groove_OLED			groove_OLED;
 WaterTemp_DS18B20 	waterTemp_DS18B20;
-Atlas			atlasPH = Atlas(SENSOR_ATLAS_PH);
-Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
-Atlas			atlasDO = Atlas(SENSOR_ATLAS_DO);
-Atlas 			atlasTEMP = Atlas(SENSOR_ATLAS_TEMPERATURE);
-Moisture 		moistureChirp;
-PMsensor		pmSensorA = PMsensor(SLOT_A);
-PMsensor		pmSensorB = PMsensor(SLOT_B);
+Atlas				atlasPH = Atlas(SENSOR_ATLAS_PH);
+Atlas				atlasEC = Atlas(SENSOR_ATLAS_EC);
+Atlas				atlasDO = Atlas(SENSOR_ATLAS_DO);
+Atlas 				atlasTEMP = Atlas(SENSOR_ATLAS_TEMPERATURE);
+Moisture 			moistureChirp;
+PMsensor			pmSensorA = PMsensor(SLOT_A);
+PMsensor			pmSensorB = PMsensor(SLOT_B);
 PM_DallasTemp 		pmDallasTemp;
 Sck_DallasTemp 		dallasTemp;
-Sck_SHT31 		sht31 = Sck_SHT31(&auxWire);
-Sck_SHT31 		sht35 = Sck_SHT31(&auxWire, 0x45);
-Sck_Range 		range;
-Sck_BME680 		bme680;
-Sck_GPS 		gps;
+Sck_SHT31 			sht31 = Sck_SHT31(&auxWire);
+Sck_SHT31 			sht35 = Sck_SHT31(&auxWire, 0x45);
+Sck_BME680 			bme680;
+Sck_GPS 			gps;
 PM_Grove_GPS 		pmGroveGps;
-XA111GPS 		xa1110gps;
-NEOM8UGPS 		neoM8uGps;
-Sck_ADS1X15 		ads48;
-Sck_ADS1X15 		ads49;
-Sck_ADS1X15 		ads4A;
-Sck_ADS1X15 		ads4B;
-Sck_SCD30 		scd30;
+XA111GPS 			xa1110gps;
+NEOM8UGPS 			neoM8uGps;
+
+// #include <Sck_ADS1X15.h>
+// #include <Sck_SCD30.h>
+// #include "Sck_INA219.h"
+// #include "Sck_VL6180.h"
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
 
-bool AuxBoards::start(SckBase *base, SensorType wichSensor)
+// AuxBoards::AuxBoards()
+// {
+// 	deviceCatalog[DEVICE_ADS1X15] = &sck_ads1x15;
+// 	deviceCatalog[DEVICE_SCD30] = &sck_scd30;
+// }
+
+// void AuxBoards::detect(SckBase* base)
+// {
+// 	// TODO
+// 	// Iterar por los diferentes buses I2C
+// 	// Sacar esto de AUX y meterlo en sensors --> pensar como organizarlo
+//
+// 	uint8_t channels; 
+// 										
+// 	// TCA9548 Multiplexer can be configured with 8 different I2C address from 0x70 to 0x77 (https://www.ti.com/lit/ds/symlink/tca9548a.pdf page 16)
+// 	// I2C hubs in the same level as a multiplexer are not supported, you should use the multiplexer channels instead.
+// 	for (int8_t mux=-1; mux<8; mux++) {
+//
+// 		if (mux < 0) channels = 1; 	// Scan Default I2C bus (no multiplexer)
+// 		else if (I2Cdetect(&auxWire, mux + MUX_BASE_ADDRESS)) channels = 8; 	// Search for multiplexers Address 0x70-0x77 (8 channels per multiplexer)
+// 		else channels = 0;
+//
+// 		for (uint8_t chann=0; chann<channels; chann++) {
+//
+// 			if (mux >= 0) selectMuxChannel(mux + MUX_BASE_ADDRESS, chann);
+//
+// 			// Iterate over possible I2C addresses (0x00 - 0x07 and 0x78 - 0x7F are reserved I2C addresses)
+// 			for (byte ad=0x08; ad<0x78; ad++) {
+//
+// 				if (I2Cdetect(&auxWire, ad)) {
+//
+// 					// Iterate over all known devices
+// 					for (uint8_t dev=0; dev<DEVICE_COUNT; dev++) {
+//
+// 						// Iterate over the I2C address list of this device
+// 						for(uint8_t devAd=0; devAd<sizeof(deviceCatalog[dev]->addressList); devAd++) {
+//
+// 							// If this device has this address
+// 							if (deviceCatalog[dev]->addressList[devAd] == ad) {
+//
+// 								sckPrintf("Enabling %s on %i.%u -> 0x%X...", deviceCatalog[dev]->name, mux, chann, ad);
+//
+// 								// Create device
+// 								if (newDevice(base, deviceCatalog[dev], ad)) sckPrintfln("OK");
+// 								else sckPrintfln("FAILED");
+// 							}
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+//
+// 	sckPrintfln("Active sensors: %u", base->activeSensorsNum);
+// }
+
+// void AuxBoards::selectMuxChannel(byte address, uint8_t channel)
+// {
+// 	if (channel > 7) return;
+//
+// 	auxWire.beginTransmission(address);
+// 	auxWire.write(1 << channel);
+// 	auxWire.endTransmission();  
+// }
+
+// bool AuxBoards::newDevice(SckBase* base, DeviceInfo *info, byte address)
+// {
+// 	Device *_control;
+//
+// 	switch(info->type)
+// 	{
+// 		case DEVICE_ADS1X15: 
+// 			{ 
+// 				_control = new Ctrl_ADS1X15();
+// 				break;
+// 			}
+// 		case DEVICE_SCD30:
+// 			{
+// 				_control = new Ctrl_SCD30();
+// 				break;
+// 			}
+// 	}
+//
+// 	if (_control->start(address)) {
+// 		base->activeSensors[base->activeSensorsNum] = _control;
+// 		base->activeSensorsNum++;
+// 		return true;
+// 	}
+//
+// 	return false;
+// }
+
+bool AuxBoards::start(SckBase *base, MetricType wichSensor)
 {
 	if (!dataLoaded) {
 		data = eepromAuxData.read();
@@ -44,6 +134,7 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 		}
 	}
 
+	// TODO replace this with a for loop that checks over deviceList
 	switch (wichSensor) {
 
 		case SENSOR_GASESBOARD_SLOT_1A:
@@ -55,10 +146,10 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 		case SENSOR_GASESBOARD_HUMIDITY:
 		case SENSOR_GASESBOARD_TEMPERATURE: 	return gasBoard.start(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.start(); break;
-		case SENSOR_INA219_BUSVOLT:
-		case SENSOR_INA219_SHUNT:
-		case SENSOR_INA219_CURRENT:
-		case SENSOR_INA219_LOADVOLT: 		return ina219.start(); break;
+		// case SENSOR_INA219_BUSVOLT:
+		// case SENSOR_INA219_SHUNT:
+		// case SENSOR_INA219_CURRENT:
+		// case SENSOR_INA219_LOADVOLT: 		return ina219.start(); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.start(); break;
 		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.start(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.start();
@@ -99,8 +190,8 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 			break;
 		case SENSOR_SHT35_TEMP:
 		case SENSOR_SHT35_HUM: 			return sht35.start(); break;
-		case SENSOR_RANGE_DISTANCE: 		return range.start(); break;
-		case SENSOR_RANGE_LIGHT: 		return range.start(); break;
+		// case SENSOR_RANGE_DISTANCE: 	return range.start(SENSOR_RANGE_DISTANCE); break;
+		// case SENSOR_RANGE_LIGHT: 		return range.start(SENSOR_RANGE_LIGHT); break;
 		case SENSOR_BME680_TEMPERATURE:		return bme680.start(); break;
 		case SENSOR_BME680_HUMIDITY:		return bme680.start(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.start(); break;
@@ -112,25 +203,25 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 		case SENSOR_GPS_SPEED:
 		case SENSOR_GPS_HDOP:
 		case SENSOR_GPS_SATNUM:			return gps.start(); break;
-		case SENSOR_ADS1X15_48_0:
-		case SENSOR_ADS1X15_48_1:
-		case SENSOR_ADS1X15_48_2:
-		case SENSOR_ADS1X15_48_3: 		return ads48.start(0x48); break;
-		case SENSOR_ADS1X15_49_0:
-		case SENSOR_ADS1X15_49_1:
-		case SENSOR_ADS1X15_49_2:
-		case SENSOR_ADS1X15_49_3: 		return ads49.start(0x49); break;
-		case SENSOR_ADS1X15_4A_0:
-		case SENSOR_ADS1X15_4A_1:
-		case SENSOR_ADS1X15_4A_2:
-		case SENSOR_ADS1X15_4A_3: 		return ads4A.start(0x4A); break;
-		case SENSOR_ADS1X15_4B_0:
-		case SENSOR_ADS1X15_4B_1:
-		case SENSOR_ADS1X15_4B_2:
-		case SENSOR_ADS1X15_4B_3: 		return ads4B.start(0x4B); break;
-		case SENSOR_SCD30_CO2: 			return scd30.start(base, SENSOR_SCD30_CO2); break;
-		case SENSOR_SCD30_TEMP: 		return scd30.start(base, SENSOR_SCD30_TEMP); break;
-		case SENSOR_SCD30_HUM: 			return scd30.start(base, SENSOR_SCD30_HUM); break;
+		// case SENSOR_ADS1X15_48_0:
+		// case SENSOR_ADS1X15_48_1:
+		// case SENSOR_ADS1X15_48_2:
+		// case SENSOR_ADS1X15_48_3: 		return ads48.start(); break;
+		// case SENSOR_ADS1X15_49_0:
+		// case SENSOR_ADS1X15_49_1:
+		// case SENSOR_ADS1X15_49_2:
+		// case SENSOR_ADS1X15_49_3: 		return ads49.start(); break;
+		// case SENSOR_ADS1X15_4A_0:
+		// case SENSOR_ADS1X15_4A_1:
+		// case SENSOR_ADS1X15_4A_2:
+		// case SENSOR_ADS1X15_4A_3: 		return ads4A.start(); break;
+		// case SENSOR_ADS1X15_4B_0:
+		// case SENSOR_ADS1X15_4B_1:
+		// case SENSOR_ADS1X15_4B_2:
+		// case SENSOR_ADS1X15_4B_3: 		return ads4B.start(); break;
+		// case SENSOR_SCD30_CO2: 			return scd30.start(base, SENSOR_SCD30_CO2); break;
+		// case SENSOR_SCD30_TEMP: 		return scd30.start(base, SENSOR_SCD30_TEMP); break;
+		// case SENSOR_SCD30_HUM: 			return scd30.start(base, SENSOR_SCD30_HUM); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.start(); break;
 		default: break;
 	}
@@ -138,8 +229,9 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 	return false;
 }
 
-bool AuxBoards::stop(SensorType wichSensor)
+bool AuxBoards::stop(MetricType wichSensor)
 {
+	// TODO replace this with a for loop that checks over deviceList
 	switch (wichSensor) {
 
 		case SENSOR_GASESBOARD_SLOT_1A:
@@ -151,10 +243,10 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_GASESBOARD_HUMIDITY:
 		case SENSOR_GASESBOARD_TEMPERATURE: 	return gasBoard.stop(); break;
 		case SENSOR_GROOVE_I2C_ADC: 		return grooveI2C_ADC.stop(); break;
-		case SENSOR_INA219_BUSVOLT:
-		case SENSOR_INA219_SHUNT:
-		case SENSOR_INA219_CURRENT:
-		case SENSOR_INA219_LOADVOLT: 		return ina219.stop(); break;
+		// case SENSOR_INA219_BUSVOLT:
+		// case SENSOR_INA219_SHUNT:
+		// case SENSOR_INA219_CURRENT:
+		// case SENSOR_INA219_LOADVOLT: 		return ina219.stop(); break;
 		case SENSOR_WATER_TEMP_DS18B20:		return waterTemp_DS18B20.stop(); break;
 		case SENSOR_ATLAS_TEMPERATURE: 		return atlasTEMP.stop(); break;
 		case SENSOR_ATLAS_PH:			return atlasPH.stop();
@@ -190,8 +282,8 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_SHT31_HUM: 			return sht31.stop(); break;
 		case SENSOR_SHT35_TEMP:
 		case SENSOR_SHT35_HUM: 			return sht35.stop(); break;
-		case SENSOR_RANGE_DISTANCE: 		return range.stop(); break;
-		case SENSOR_RANGE_LIGHT: 		return range.stop(); break;
+		// case SENSOR_RANGE_DISTANCE: 	return range.stop(SENSOR_RANGE_DISTANCE); break;
+		// case SENSOR_RANGE_LIGHT: 		return range.stop(SENSOR_RANGE_LIGHT); break;
 		case SENSOR_BME680_TEMPERATURE:		return bme680.stop(); break;
 		case SENSOR_BME680_HUMIDITY:		return bme680.stop(); break;
 		case SENSOR_BME680_PRESSURE:		return bme680.stop(); break;
@@ -203,25 +295,25 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_GPS_SPEED:
 		case SENSOR_GPS_HDOP:
 		case SENSOR_GPS_SATNUM:			return gps.stop(); break;
-		case SENSOR_ADS1X15_48_0:
-		case SENSOR_ADS1X15_48_1:
-		case SENSOR_ADS1X15_48_2:
-		case SENSOR_ADS1X15_48_3: 		return ads48.stop(); break;
-		case SENSOR_ADS1X15_49_0:
-		case SENSOR_ADS1X15_49_1:
-		case SENSOR_ADS1X15_49_2:
-		case SENSOR_ADS1X15_49_3: 		return ads49.stop(); break;
-		case SENSOR_ADS1X15_4A_0:
-		case SENSOR_ADS1X15_4A_1:
-		case SENSOR_ADS1X15_4A_2:
-		case SENSOR_ADS1X15_4A_3: 		return ads4A.stop(); break;
-		case SENSOR_ADS1X15_4B_0:
-		case SENSOR_ADS1X15_4B_1:
-		case SENSOR_ADS1X15_4B_2:
-		case SENSOR_ADS1X15_4B_3: 		return ads4B.stop(); break;
-		case SENSOR_SCD30_CO2: 			return scd30.stop(SENSOR_SCD30_CO2); break;
-		case SENSOR_SCD30_TEMP: 		return scd30.stop(SENSOR_SCD30_TEMP); break;
-		case SENSOR_SCD30_HUM: 			return scd30.stop(SENSOR_SCD30_HUM); break;
+		// case SENSOR_ADS1X15_48_0:
+		// case SENSOR_ADS1X15_48_1:
+		// case SENSOR_ADS1X15_48_2:
+		// case SENSOR_ADS1X15_48_3: 		return ads48.stop(); break;
+		// case SENSOR_ADS1X15_49_0:
+		// case SENSOR_ADS1X15_49_1:
+		// case SENSOR_ADS1X15_49_2:
+		// case SENSOR_ADS1X15_49_3: 		return ads49.stop(); break;
+		// case SENSOR_ADS1X15_4A_0:
+		// case SENSOR_ADS1X15_4A_1:
+		// case SENSOR_ADS1X15_4A_2:
+		// case SENSOR_ADS1X15_4A_3: 		return ads4A.stop(); break;
+		// case SENSOR_ADS1X15_4B_0:
+		// case SENSOR_ADS1X15_4B_1:
+		// case SENSOR_ADS1X15_4B_2:
+		// case SENSOR_ADS1X15_4B_3: 		return ads4B.stop(); break;
+		// case SENSOR_SCD30_CO2: 			return scd30.stop(SENSOR_SCD30_CO2); break;
+		// case SENSOR_SCD30_TEMP: 		return scd30.stop(SENSOR_SCD30_TEMP); break;
+		// case SENSOR_SCD30_HUM: 			return scd30.stop(SENSOR_SCD30_HUM); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.stop(); break;
 		default: break;
 	}
@@ -232,6 +324,8 @@ bool AuxBoards::stop(SensorType wichSensor)
 void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 {
 	wichSensor->state = 0;
+
+	// TODO replace this with a for loop that checks over deviceList
 	switch (wichSensor->type) {
 		case SENSOR_GASESBOARD_SLOT_1A:	 	wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_A)); return;
 		case SENSOR_GASESBOARD_SLOT_1W: 	wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_W)); return;
@@ -242,10 +336,10 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_GASESBOARD_HUMIDITY: 	wichSensor->reading = String(gasBoard.getHumidity()); return;
 		case SENSOR_GASESBOARD_TEMPERATURE: 	wichSensor->reading = String(gasBoard.getTemperature()); return;
 		case SENSOR_GROOVE_I2C_ADC: 		wichSensor->reading = String(grooveI2C_ADC.getReading()); return;
-		case SENSOR_INA219_BUSVOLT: 		wichSensor->reading = String(ina219.getReading(ina219.BUS_VOLT)); return;
-		case SENSOR_INA219_SHUNT: 		wichSensor->reading = String(ina219.getReading(ina219.SHUNT_VOLT)); return;
-		case SENSOR_INA219_CURRENT: 		wichSensor->reading = String(ina219.getReading(ina219.CURRENT)); return;
-		case SENSOR_INA219_LOADVOLT: 		wichSensor->reading = String(ina219.getReading(ina219.LOAD_VOLT)); return;
+		// case SENSOR_INA219_BUSVOLT: 		wichSensor->reading = String(ina219.getReading(ina219.BUS_VOLT)); return;
+		// case SENSOR_INA219_SHUNT: 		wichSensor->reading = String(ina219.getReading(ina219.SHUNT_VOLT)); return;
+		// case SENSOR_INA219_CURRENT: 		wichSensor->reading = String(ina219.getReading(ina219.CURRENT)); return;
+		// case SENSOR_INA219_LOADVOLT: 		wichSensor->reading = String(ina219.getReading(ina219.LOAD_VOLT)); return;
 		case SENSOR_WATER_TEMP_DS18B20:		wichSensor->reading = String(waterTemp_DS18B20.getReading()); return;
 		case SENSOR_ATLAS_TEMPERATURE: 		if (atlasTEMP.getReading()) 	{ wichSensor->reading = String(atlasTEMP.newReading[0]); return; } break;
 		case SENSOR_ATLAS_PH:			if (atlasPH.getReading()) 	{ wichSensor->reading = String(atlasPH.newReading[0]); return; } break;
@@ -283,8 +377,8 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_SHT31_HUM: 			if (sht31.getReading()) 				{ wichSensor->reading = String(sht31.humidity); return; } break;
 		case SENSOR_SHT35_TEMP: 		if (sht35.getReading()) 				{ wichSensor->reading = String(sht35.temperature); return; } break;
 		case SENSOR_SHT35_HUM: 			if (sht35.getReading()) 				{ wichSensor->reading = String(sht35.humidity); return; } break;
-		case SENSOR_RANGE_DISTANCE: 		if (range.getReading(SENSOR_RANGE_DISTANCE)) 	{ wichSensor->reading = String(range.readingDistance); return; } break;
-		case SENSOR_RANGE_LIGHT: 		if (range.getReading(SENSOR_RANGE_LIGHT)) 	{ wichSensor->reading = String(range.readingLight); return; } break;
+		// case SENSOR_RANGE_DISTANCE: 		if (range.getReading(SENSOR_RANGE_DISTANCE)) 	{ wichSensor->reading = String(range.readingDistance); return; } break;
+		// case SENSOR_RANGE_LIGHT: 		if (range.getReading(SENSOR_RANGE_LIGHT)) 	{ wichSensor->reading = String(range.readingLight); return; } break;
 		case SENSOR_BME680_TEMPERATURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.temperature); return; } break;
 		case SENSOR_BME680_HUMIDITY:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.humidity); return; } break;
 		case SENSOR_BME680_PRESSURE:		if (bme680.getReading()) 			{ wichSensor->reading = String(bme680.pressure); return; } break;
@@ -296,25 +390,25 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_GPS_SPEED: 			if (gps.getReading(base, SENSOR_GPS_SPEED)) 		{ wichSensor->reading = String(gps.r.speed, 2); return; } break;
 		case SENSOR_GPS_HDOP: 			if (gps.getReading(base, SENSOR_GPS_HDOP)) 		{ wichSensor->reading = String(gps.r.hdop, 2); return; } break;
 		case SENSOR_GPS_SATNUM:			if (gps.getReading(base, SENSOR_GPS_SATNUM)) 		{ wichSensor->reading = String(gps.r.satellites); return; } break;
-		case SENSOR_ADS1X15_48_0: 		if (ads48.getReading(0)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
-		case SENSOR_ADS1X15_48_1: 		if (ads48.getReading(1)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
-		case SENSOR_ADS1X15_48_2: 		if (ads48.getReading(2)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
-		case SENSOR_ADS1X15_48_3: 		if (ads48.getReading(3)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
-		case SENSOR_ADS1X15_49_0: 		if (ads49.getReading(0)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
-		case SENSOR_ADS1X15_49_1: 		if (ads49.getReading(1)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
-		case SENSOR_ADS1X15_49_2: 		if (ads49.getReading(2)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
-		case SENSOR_ADS1X15_49_3: 		if (ads49.getReading(3)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
-		case SENSOR_ADS1X15_4A_0: 		if (ads4A.getReading(0)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
-		case SENSOR_ADS1X15_4A_1: 		if (ads4A.getReading(1)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
-		case SENSOR_ADS1X15_4A_2: 		if (ads4A.getReading(2)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
-		case SENSOR_ADS1X15_4A_3: 		if (ads4A.getReading(3)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
-		case SENSOR_ADS1X15_4B_0: 		if (ads4B.getReading(0)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
-		case SENSOR_ADS1X15_4B_1: 		if (ads4B.getReading(1)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
-		case SENSOR_ADS1X15_4B_2: 		if (ads4B.getReading(2)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
-		case SENSOR_ADS1X15_4B_3: 		if (ads4B.getReading(3)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
-		case SENSOR_SCD30_CO2: 			if (scd30.getReading(SENSOR_SCD30_CO2)) { wichSensor->reading = String(scd30.co2); return; } break;
-		case SENSOR_SCD30_TEMP: 		if (scd30.getReading(SENSOR_SCD30_TEMP)) { wichSensor->reading = String(scd30.temperature); return; } break;
-		case SENSOR_SCD30_HUM: 			if (scd30.getReading(SENSOR_SCD30_HUM)) { wichSensor->reading = String(scd30.humidity); return; } break;
+		// case SENSOR_ADS1X15_48_0: 		if (ads48.getReading(0)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_48_1: 		if (ads48.getReading(1)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_48_2: 		if (ads48.getReading(2)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_48_3: 		if (ads48.getReading(3)) 			{ wichSensor->reading = String(ads48.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_49_0: 		if (ads49.getReading(0)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_49_1: 		if (ads49.getReading(1)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_49_2: 		if (ads49.getReading(2)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_49_3: 		if (ads49.getReading(3)) 			{ wichSensor->reading = String(ads49.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_4A_0: 		if (ads4A.getReading(0)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_4A_1: 		if (ads4A.getReading(1)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_4A_2: 		if (ads4A.getReading(2)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_4A_3: 		if (ads4A.getReading(3)) 			{ wichSensor->reading = String(ads4A.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_4B_0: 		if (ads4B.getReading(0)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_4B_1: 		if (ads4B.getReading(1)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_4B_2: 		if (ads4B.getReading(2)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		// case SENSOR_ADS1X15_4B_3: 		if (ads4B.getReading(3)) 			{ wichSensor->reading = String(ads4B.reading, 6); return;} break;
+		// case SENSOR_SCD30_CO2: 			if (scd30.getReading(SENSOR_SCD30_CO2)) { wichSensor->reading = String(scd30.co2); return; } break;
+		// case SENSOR_SCD30_TEMP: 		if (scd30.getReading(SENSOR_SCD30_TEMP)) { wichSensor->reading = String(scd30.temperature); return; } break;
+		// case SENSOR_SCD30_HUM: 			if (scd30.getReading(SENSOR_SCD30_HUM)) { wichSensor->reading = String(scd30.humidity); return; } break;
 		default: break;
 	}
 
@@ -322,7 +416,7 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 	wichSensor->state = -1;
 }
 
-bool AuxBoards::getBusyState(SensorType wichSensor)
+bool AuxBoards::getBusyState(MetricType wichSensor)
 {
 
 	switch(wichSensor) {
@@ -338,7 +432,7 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 	}
 }
 
-String AuxBoards::control(SensorType wichSensor, String command)
+String AuxBoards::control(MetricType wichSensor, String command)
 {
 	switch(wichSensor) {
 		case SENSOR_GASESBOARD_SLOT_1A:
@@ -520,220 +614,220 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			else return F("Unrecognized command!! please try again...");
 			break;
 
-		} case SENSOR_ADS1X15_48_0:
-		case SENSOR_ADS1X15_48_1:
-		case SENSOR_ADS1X15_48_2:
-		case SENSOR_ADS1X15_48_3: {
-#ifdef adsTest
-			if (command.startsWith("test")) {
-				command.replace("test", "");
-				command.trim();
+ 		}// case SENSOR_ADS1X15_48_0:
+// 		case SENSOR_ADS1X15_48_1:
+// 		case SENSOR_ADS1X15_48_2:
+// 		case SENSOR_ADS1X15_48_3: {
+// #ifdef adsTest
+// 			if (command.startsWith("test")) {
+// 				command.replace("test", "");
+// 				command.trim();
+//
+// 				// Get channels
+// 				String channelSTR = String(command.charAt(0));
+// 				uint8_t wichChannel = channelSTR.toInt();
+//
+// 				command.remove(0,1);
+// 				command.trim();
+//
+// 				if (command.startsWith("set")) {
+//
+// 					command.replace("set", "");
+// 					command.trim();
+//
+// 					// Get value
+// 					int wichValue = command.toInt();
+// 					ads48.setTesterCurrent(wichValue, wichChannel);
+//
+// 				} else if (command.startsWith("full")) {
+//
+// 					ads48.runTester(wichChannel);
+//
+// 				} else {
+//
+// 					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
+// 				}
+//
+// 				return F("\nCurrent set!");
+// 			}
+// #endif
+// 			break;
+// 		} case SENSOR_ADS1X15_49_0:
+// 		case SENSOR_ADS1X15_49_1:
+// 		case SENSOR_ADS1X15_49_2:
+// 		case SENSOR_ADS1X15_49_3: {
+// #ifdef adsTest
+// 			if (command.startsWith("test")) {
+// 				command.replace("test", "");
+// 				command.trim();
+//
+// 				// Get channels
+// 				String channelSTR = String(command.charAt(0));
+// 				uint8_t wichChannel = channelSTR.toInt();
+//
+// 				command.remove(0,1);
+// 				command.trim();
+//
+// 				if (command.startsWith("set")) {
+//
+// 					command.replace("set", "");
+// 					command.trim();
+//
+// 					// Get value
+// 					int wichValue = command.toInt();
+// 					ads49.setTesterCurrent(wichValue, wichChannel);
+//
+// 				} else if (command.startsWith("full")) {
+//
+// 					ads49.runTester(wichChannel);
+//
+// 				} else {
+//
+// 					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
+// 				}
+//
+// 				return F("\nCurrent set!");
+// 			}
+// #endif
+// 			break;
+// 		} case SENSOR_ADS1X15_4A_0:
+// 		case SENSOR_ADS1X15_4A_1:
+// 		case SENSOR_ADS1X15_4A_2:
+// 		case SENSOR_ADS1X15_4A_3: {
+// #ifdef adsTest
+// 			if (command.startsWith("test")) {
+// 				command.replace("test", "");
+// 				command.trim();
+//
+// 				// Get channels
+// 				String channelSTR = String(command.charAt(0));
+// 				uint8_t wichChannel = channelSTR.toInt();
+//
+// 				command.remove(0,1);
+// 				command.trim();
+//
+// 				if (command.startsWith("set")) {
+//
+// 					command.replace("set", "");
+// 					command.trim();
+//
+// 					// Get value
+// 					int wichValue = command.toInt();
+// 					ads4A.setTesterCurrent(wichValue, wichChannel);
+//
+// 				} else if (command.startsWith("full")) {
+//
+// 					ads4A.runTester(wichChannel);
+//
+// 				} else {
+//
+// 					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
+// 				}
+//
+// 				return F("\nCurrent set!");
+// 			}
+// #endif
+// 			break;
+// 		} case SENSOR_ADS1X15_4B_0:
+// 		case SENSOR_ADS1X15_4B_1:
+// 		case SENSOR_ADS1X15_4B_2:
+// 		case SENSOR_ADS1X15_4B_3: {
+// #ifdef adsTest
+// 			if (command.startsWith("test")) {
+// 				command.replace("test", "");
+// 				command.trim();
+//
+// 				// Get channels
+// 				String channelSTR = String(command.charAt(0));
+// 				uint8_t wichChannel = channelSTR.toInt();
+//
+// 				command.remove(0,1);
+// 				command.trim();
+//
+// 				if (command.startsWith("set")) {
+//
+// 					command.replace("set", "");
+// 					command.trim();
+//
+// 					// Get value
+// 					int wichValue = command.toInt();
+// 					ads4B.setTesterCurrent(wichValue, wichChannel);
+//
+// 				} else if (command.startsWith("full")) {
+//
+// 					ads4B.runTester(wichChannel);
+//
+// 				} else {
+//
+// 					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
+// 				}
+//
+// 				return F("\nCurrent set!");
+// 			 }
+// #endif
+// 			break;
+// 		}
+		// case SENSOR_SCD30_CO2:
+		// case SENSOR_SCD30_TEMP:
+		// case SENSOR_SCD30_HUM: {
 
-				// Get channels
-				String channelSTR = String(command.charAt(0));
-				uint8_t wichChannel = channelSTR.toInt();
-
-				command.remove(0,1);
-				command.trim();
-
-				if (command.startsWith("set")) {
-
-					command.replace("set", "");
-					command.trim();
-
-					// Get value
-					int wichValue = command.toInt();
-					ads48.setTesterCurrent(wichValue, wichChannel);
-
-				} else if (command.startsWith("full")) {
-
-					ads48.runTester(wichChannel);
-
-				} else {
-
-					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
-				}
-
-				return F("\nCurrent set!");
-			}
-#endif
-			break;
-		} case SENSOR_ADS1X15_49_0:
-		case SENSOR_ADS1X15_49_1:
-		case SENSOR_ADS1X15_49_2:
-		case SENSOR_ADS1X15_49_3: {
-#ifdef adsTest
-			if (command.startsWith("test")) {
-				command.replace("test", "");
-				command.trim();
-
-				// Get channels
-				String channelSTR = String(command.charAt(0));
-				uint8_t wichChannel = channelSTR.toInt();
-
-				command.remove(0,1);
-				command.trim();
-
-				if (command.startsWith("set")) {
-
-					command.replace("set", "");
-					command.trim();
-
-					// Get value
-					int wichValue = command.toInt();
-					ads49.setTesterCurrent(wichValue, wichChannel);
-
-				} else if (command.startsWith("full")) {
-
-					ads49.runTester(wichChannel);
-
-				} else {
-
-					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
-				}
-
-				return F("\nCurrent set!");
-			}
-#endif
-			break;
-		} case SENSOR_ADS1X15_4A_0:
-		case SENSOR_ADS1X15_4A_1:
-		case SENSOR_ADS1X15_4A_2:
-		case SENSOR_ADS1X15_4A_3: {
-#ifdef adsTest
-			if (command.startsWith("test")) {
-				command.replace("test", "");
-				command.trim();
-
-				// Get channels
-				String channelSTR = String(command.charAt(0));
-				uint8_t wichChannel = channelSTR.toInt();
-
-				command.remove(0,1);
-				command.trim();
-
-				if (command.startsWith("set")) {
-
-					command.replace("set", "");
-					command.trim();
-
-					// Get value
-					int wichValue = command.toInt();
-					ads4A.setTesterCurrent(wichValue, wichChannel);
-
-				} else if (command.startsWith("full")) {
-
-					ads4A.runTester(wichChannel);
-
-				} else {
-
-					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
-				}
-
-				return F("\nCurrent set!");
-			}
-#endif
-			break;
-		} case SENSOR_ADS1X15_4B_0:
-		case SENSOR_ADS1X15_4B_1:
-		case SENSOR_ADS1X15_4B_2:
-		case SENSOR_ADS1X15_4B_3: {
-#ifdef adsTest
-			if (command.startsWith("test")) {
-				command.replace("test", "");
-				command.trim();
-
-				// Get channels
-				String channelSTR = String(command.charAt(0));
-				uint8_t wichChannel = channelSTR.toInt();
-
-				command.remove(0,1);
-				command.trim();
-
-				if (command.startsWith("set")) {
-
-					command.replace("set", "");
-					command.trim();
-
-					// Get value
-					int wichValue = command.toInt();
-					ads4B.setTesterCurrent(wichValue, wichChannel);
-
-				} else if (command.startsWith("full")) {
-
-					ads4B.runTester(wichChannel);
-
-				} else {
-
-					return F("Unrecognized test command!!\r\nOptions:\r\ntest set value (-1400/+1400 nA)\r\ntest slot full (test the full cycle)");
-				}
-
-				return F("\nCurrent set!");
-			}
-#endif
-			break;
-		}
-		case SENSOR_SCD30_CO2:
-		case SENSOR_SCD30_TEMP:
-		case SENSOR_SCD30_HUM: {
-
-			if (command.startsWith("interval")) {
-
-				command.replace("interval", "");
-				command.trim();
-
-				uint16_t newInterval = command.toInt();
-				scd30.interval(newInterval);
-
-				return String F("Measuring Interval: ") + String(scd30.interval());
-
-			} else if (command.startsWith("autocal")) {
-
-				command.replace("autocal", "");
-				command.trim();
-
-				if (command.startsWith("on")) scd30.autoSelfCal(1);
-				else if (command.startsWith("off")) scd30.autoSelfCal(0);
-
-				return String F("Auto Self Calibration: ") + String(scd30.autoSelfCal() ? "on" : "off");
-
-			} else if (command.startsWith("calfactor")) {
-
-				command.replace("calfactor", "");
-				command.trim();
-
-				uint16_t newFactor = command.toInt();
-
-				return String F("Forced Recalibration Factor: ") + String(scd30.forcedRecalFactor(newFactor));
-
-			} else if (command.startsWith("caltemp")) {
-
-				command.replace("caltemp", "");
-				command.trim();
-
-				float userTemp;
-				bool off = false;
-
-				if (command.startsWith("off")) off = true;
-				else {
-
-					if (command.length() > 0 && isDigit(command.charAt(0))) userTemp = command.toFloat();
-					else return F("Wrong temperature value, try again.");
-				}
-
-				scd30.getReading(SENSOR_SCD30_TEMP);
-
-				return String F("Current temperature: ") + String(scd30.temperature) + F(" C") + F("\r\nTemperature offset: ") + String(scd30.tempOffset(userTemp, off)) + F(" C");
-			} else if (command.startsWith("pressure")) {
-
-				return String F("Pressure compensation on last boot: ") + String(scd30.pressureCompensated ? "True" : "False");
-
-			} else {
-				return F("Wrong command!!\r\nOptions:\r\ninterval [2-1000 (seconds)]\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]\r\npressure");
-			}
+			// if (command.startsWith("interval")) {
+			//
+			// 	command.replace("interval", "");
+			// 	command.trim();
+			//
+			// 	uint16_t newInterval = command.toInt();
+			// 	scd30.interval(newInterval);
+			//
+			// 	return String F("Measuring Interval: ") + String(scd30.interval());
+			//
+			// } else if (command.startsWith("autocal")) {
+			//
+			// 	command.replace("autocal", "");
+			// 	command.trim();
+			//
+			// 	if (command.startsWith("on")) scd30.autoSelfCal(1);
+			// 	else if (command.startsWith("off")) scd30.autoSelfCal(0);
+			//
+			// 	return String F("Auto Self Calibration: ") + String(scd30.autoSelfCal() ? "on" : "off");
+			//
+			// } else if (command.startsWith("calfactor")) {
+			//
+			// 	command.replace("calfactor", "");
+			// 	command.trim();
+			//
+			// 	uint16_t newFactor = command.toInt();
+			//
+			// 	return String F("Forced Recalibration Factor: ") + String(scd30.forcedRecalFactor(newFactor));
+			//
+			// } else if (command.startsWith("caltemp")) {
+			//
+			// 	command.replace("caltemp", "");
+			// 	command.trim();
+			//
+			// 	float userTemp;
+			// 	bool off = false;
+			//
+			// 	if (command.startsWith("off")) off = true;
+			// 	else {
+			//
+			// 		if (command.length() > 0 && isDigit(command.charAt(0))) userTemp = command.toFloat();
+			// 		else return F("Wrong temperature value, try again.");
+			// 	}
+			//
+			// 	scd30.getReading(SENSOR_SCD30_TEMP);
+			//
+			// 	return String F("Current temperature: ") + String(scd30.temperature) + F(" C") + F("\r\nTemperature offset: ") + String(scd30.tempOffset(userTemp, off)) + F(" C");
+			// } else if (command.startsWith("pressure")) {
+			//
+			// 	return String F("Pressure compensation on last boot: ") + String(scd30.pressureCompensated ? "True" : "False");
+			//
+			// } else {
+			// 	return F("Wrong command!!\r\nOptions:\r\ninterval [2-1000 (seconds)]\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]\r\npressure");
+			// }
 
 
-		} default: return "Unrecognized sensor!!!"; break;
+		/*}*/ default: return "Unrecognized sensor!!!"; break;
 	}
 	return "Unknown error on control command!!!";
 }
@@ -796,59 +890,6 @@ float GrooveI2C_ADC::getReading()
 	}
 
 	return data * V_REF * 2.0 / 4096.0;
-}
-
-bool INA219::start()
-{
-
-	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
-
-	ada_ina219.begin(&auxWire);
-
-	// By default the initialization will use the largest range (32V, 2A).
-	ada_ina219.setCalibration_32V_1A();
-	// ada_ina219.setCalibration_16V_400mA();
-
-	return true;
-}
-
-bool INA219::stop()
-{
-	// TODO check if there is a way to minimize power consumption
-	return true;
-}
-
-float INA219::getReading(typeOfReading wichReading)
-{
-
-	switch(wichReading) {
-		case BUS_VOLT: {
-
-			return ada_ina219.getBusVoltage_V();
-			break;
-
-		} case SHUNT_VOLT: {
-
-			return ada_ina219.getShuntVoltage_mV();
-			break;
-
-		} case CURRENT: {
-
-			return ada_ina219.getCurrent_mA();
-			break;
-
-		} case LOAD_VOLT: {
-
-			float busvoltage 	= ada_ina219.getBusVoltage_V();
-			float shuntvoltage 	= ada_ina219.getShuntVoltage_mV();
-
-			return busvoltage + (shuntvoltage / 1000);
-			break;
-
-		}
-	}
-
-	return 0;
 }
 
 bool Groove_OLED::start()
@@ -1112,13 +1153,13 @@ void Groove_OLED::displayReading(SckBase* base)
 {
 	if (base->rtc.getEpoch() - showStartTime <= showTime) return;
 
-	SensorType sensorToShow = SENSOR_COUNT;
+	MetricType sensorToShow = SENSOR_COUNT;
 	uint8_t cycles = 0;
 
 	// Find next sensor to show
 	for (uint8_t i=lastShown+1; i<SENSOR_COUNT; i++) {
 
-		SensorType thisSensor = static_cast<SensorType>(i);
+		MetricType thisSensor = static_cast<MetricType>(i);
 
 		if (base->sensors[thisSensor].enabled &&
 				base->sensors[thisSensor].oled_display &&
@@ -1641,7 +1682,7 @@ bool Moisture::stop()
 	return true;
 }
 
-bool Moisture::getReading(SensorType wichSensor)
+bool Moisture::getReading(MetricType wichSensor)
 {
 	uint32_t started = millis();
 	while (chirp.isBusy()) {
@@ -1855,7 +1896,7 @@ bool Sck_GPS::stop()
 	return true;
 }
 
-bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
+bool Sck_GPS::getReading(SckBase *base, MetricType wichSensor)
 {
 	// Use time from gps to set RTC if time is not set or older than 1 hour
 	if (((millis() - base->lastTimeSync) > 3600000 || base->lastTimeSync == 0)) {
@@ -1907,7 +1948,7 @@ bool PM_Grove_GPS::stop()
 	return true;
 }
 
-bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
+bool PM_Grove_GPS::getReading(MetricType wichSensor, GpsReadings &r)
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
@@ -1992,7 +2033,7 @@ bool XA111GPS::stop()
 	return true;
 }
 
-bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
+bool XA111GPS::getReading(MetricType wichSensor, GpsReadings &r)
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
@@ -2098,7 +2139,7 @@ bool NEOM8UGPS::stop()
 	return true;
 }
 
-bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
+bool NEOM8UGPS::getReading(MetricType wichSensor, GpsReadings &r)
 {
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
@@ -2232,41 +2273,6 @@ bool Sck_DallasTemp::getReading()
 	return true;
 }
 
-bool Sck_Range::start()
-{
-	if (alreadyStarted) return true;
-
-	if(vl6180x.VL6180xInit() != 0) return false;
-
-	vl6180x.VL6180xDefautSettings();
-
-	alreadyStarted = true;
-
-	return true;
-}
-
-bool Sck_Range::stop()
-{
-	alreadyStarted = false;
-	return true;
-}
-
-bool Sck_Range::getReading(SensorType wichSensor)
-{
-	switch(wichSensor)
-{
-	case SENSOR_RANGE_DISTANCE:
-		readingDistance = vl6180x.getDistance();
-		break;
-	case SENSOR_RANGE_LIGHT:
-		readingLight = vl6180x.getAmbientLight(GAIN_1);
-		break;
-	default:
-		return false;
-}
-	return true;
-}
-
 bool Sck_BME680::start()
 {
 	if (alreadyStarted) return true;
@@ -2298,290 +2304,6 @@ bool Sck_BME680::getReading()
 	return true;
 }
 
-bool Sck_ADS1X15::start(uint8_t address)
-{
-	if (!I2Cdetect(&auxWire, address)) return false;
-
-	if (started) return true;
-
-	ads.begin(address);
-	started = true;
-	return true;
-}
-
-bool Sck_ADS1X15::stop()
-{
-	started = false;
-	return true;
-}
-
-bool Sck_ADS1X15::getReading(uint8_t wichChannel)
-{
-	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
-
-	// Reset gain
-	ads.setGain(GAIN_TWOTHIRDS);
-	double voltage_range = 6.144;
-
-	// Get value with full range
-	uint16_t value = ads.readADC_SingleEnded(wichChannel);
-
-	// If value is under 4.096v increase the gain depending on voltage
-	if (value < 21845) {
-		if (value > 10922) {
-
-			// 1x gain, 4.096V
-			ads.setGain(GAIN_ONE);
-			voltage_range = 4.096;
-
-		} else if (value > 5461) {
-
-			// 2x gain, 2.048V
-			ads.setGain(GAIN_TWO);
-			voltage_range = 2.048;
-
-		} else if (value > 2730) {
-
-			// 4x gain, 1.024V
-			ads.setGain(GAIN_FOUR);
-			voltage_range = 1.024;
-
-		} else if (value > 1365) {
-
-			// 8x gain, 0.25V
-			ads.setGain(GAIN_EIGHT);
-			voltage_range = 0.512;
-
-		} else {
-
-			// 16x gain, 0.125V
-			ads.setGain(GAIN_SIXTEEN);
-			voltage_range = 0.256;
-		}
-
-		// Get the value again
-		value = ads.readADC_SingleEnded(wichChannel);
-	}
-
-	reading = (float)value / 32768 * voltage_range;
-	return true;
-}
-
-#ifdef adsTest
-void Sck_ADS1X15::setTesterCurrent(int16_t wichCurrent, uint8_t wichChannel)
-{
-	// Support both combinations of ADC channels:
-	// wichChannel = 0 (default) -> WE in ADS_Ch0 and AE in ADS_Ch1
-	// wichChannel = 1 			 -> WE in ADS_Ch2 and AE in ADS_Ch3
-	if (wichChannel > 0) {
-		adsChannelW = 2;
-		adsChannelA = 3;
-	}
-
-	SerialUSB.print("Setting test current to: ");
-	SerialUSB.println(wichCurrent);
-
-	tester.setCurrent(tester.electrode_W, wichCurrent);
-	tester.setCurrent(tester.electrode_A, wichCurrent);
-
-	SerialUSB.print("Tester Electrode W: ");
-	SerialUSB.println(tester.getCurrent(tester.electrode_W));
-	SerialUSB.print("ISB W:");
-	this->getReading(adsChannelW);
-	SerialUSB.println(this->reading);
-
-	SerialUSB.print("Tester Electrode A: ");
-	SerialUSB.println(tester.getCurrent(tester.electrode_A));
-	SerialUSB.print("ISB A: ");
-	this->getReading(adsChannelA);
-	SerialUSB.println(this->reading);
-
-}
-
-void Sck_ADS1X15::runTester(uint8_t wichChannel)
-{
-	// Support both combinations of ADC channels:
-	// wichChannel = 0 (default) -> WE in ADS_Ch0 and AE in ADS_Ch1
-	// wichChannel = 1 			 -> WE in ADS_Ch2 and AE in ADS_Ch3
-	if (wichChannel > 0) {
-		adsChannelW = 2;
-		adsChannelA = 3;
-	}
-
-	// Print headers
-	SerialUSB.println("testW,readW,testA,readA");
-
-	// Output from -1400 to +1400 nA
-	for (int16_t i=-1400; i<1400; i++) {
-		tester.setCurrent(tester.electrode_W, i);
-		double currVoltW = -10;
-
-		if (this->getReading(adsChannelW))  currVoltW = this->reading;
-		else SerialUSB.println("Error in Working electrode");
-
-		// if (preVoltW != -99) if ((currVoltW - preVoltW) < threshold) maxErrorsW--;
-		// preVoltW = currVoltW;
-		// if (maxErrorsW == 0) SerialUSB.println("Working electrode fail !!!");
-
-		tester.setCurrent(tester.electrode_A, i);
-		double currVoltA = -10;
-
-		if (this->getReading(adsChannelA)) currVoltA = this->reading;
-		else SerialUSB.println("Error in Working electrode");
-
-		// if (preVoltA != -99) if ((currVoltA - preVoltA) < threshold) maxErrorsA--;
-		// preVoltA = currVoltA;
-		// if (maxErrorsA == 0) SerialUSB.println("Auxiliary electrode fail !!!");
-
-		SerialUSB.print(tester.getCurrent(tester.electrode_W));
-		SerialUSB.print(",");
-		SerialUSB.print(currVoltW, 8);
-		SerialUSB.print(",");
-		SerialUSB.print(tester.getCurrent(tester.electrode_A));
-		SerialUSB.print(",");
-		SerialUSB.println(currVoltA, 8);
-	}
-	SerialUSB.println("Run test finished!");
-}
-#endif
-
-bool Sck_SCD30::start(SckBase *base, SensorType wichSensor)
-{
-	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
-
-	if (started) {
-		// Mark this specific metric as enabled
-		for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
-		return true;
-	}
-
-	if (_debug) sparkfun_scd30.enableDebugging(SerialUSB);
-
-	// Without this delay sensor init fails sometimes
-	delay(500);
-
-	// Unset measbegin option to avoid begin() function to set measuring interval to default value of 2 seconds.
-	if (!sparkfun_scd30.begin(auxWire, false, false)) return false;
-
-	// Ambient pressure compensation
-	OneSensor *pressureSensor = &base->sensors[SENSOR_PRESSURE];
-
-	if (pressureSensor->enabled && base->getReading(pressureSensor)) {
-		float pressureReading = pressureSensor->reading.toFloat();
-		uint16_t pressureInMillibar = pressureReading * 10;
-
-		if (pressureInMillibar > 700 && pressureInMillibar < 1200) {
-			if (sparkfun_scd30.setAmbientPressure(pressureInMillibar)) {
-				pressureCompensated = true;
-			}
-		}
-	}
-
-	// Start measuring with this function respects the saved interval
-	if (!sparkfun_scd30.beginMeasuring()) return false;
-
-	// Mark this specific metric as enabled
-	for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
-
-	started = true;
-	return true;
-}
-
-bool Sck_SCD30::stop(SensorType wichSensor)
-{
-	// Mark this specific metric as disabled
-	for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 0;
-
-	// Turn sensor off only if all 3 metrics are disabled
-	for (uint8_t i=0; i<3; i++) {
-		if (enabled[i][1] == 1) return false;
-	}
-
-	sparkfun_scd30.StopMeasurement();
-	started = false;
-	return true;
-}
-
-bool Sck_SCD30::getReading(SensorType wichSensor)
-{
-	switch (wichSensor)
-	{
-		case SENSOR_SCD30_CO2:
-			co2 = sparkfun_scd30.getCO2();
-			break;
-
-		case SENSOR_SCD30_TEMP:
-			temperature = sparkfun_scd30.getTemperature();
-			break;
-
-		case SENSOR_SCD30_HUM:
-			humidity = sparkfun_scd30.getHumidity();
-			break;
-
-		default:
-			return false;
-	}
-
-	return true;
-}
-
-uint16_t Sck_SCD30::interval(uint16_t newInterval)
-{
-	// Even if the sensor responds OK it doesn't seems to accept any value grater than 1000
-	if (newInterval >= 2 && newInterval <= 1800) sparkfun_scd30.setMeasurementInterval(newInterval);
-
-	uint16_t currentInterval;
-	sparkfun_scd30.getMeasurementInterval(&currentInterval);
-
-	// Restart measuring so we don't need to wait the current interval to finish (useful when you come from very long intervals)
-	sparkfun_scd30.StopMeasurement();
-	sparkfun_scd30.beginMeasuring();
-
-	return currentInterval;
-}
-
-bool Sck_SCD30::autoSelfCal(int8_t value)
-{
-	// Value: 0 -> disable, 1 -> enable, any other -> get current setting
-
-	if (value == 1)	sparkfun_scd30.setAutoSelfCalibration(true);
-	else if (value == 0) sparkfun_scd30.setAutoSelfCalibration(false);
-
-	return sparkfun_scd30.getAutoSelfCalibration();
-}
-
-uint16_t Sck_SCD30::forcedRecalFactor(uint16_t newFactor)
-{
-	if (newFactor >= 400 && newFactor <= 2000) {
-		// Maybe not needed, but done for safety
-		sparkfun_scd30.setAutoSelfCalibration(false);
-		// Send command to SCD30
-		sparkfun_scd30.setForcedRecalibrationFactor(newFactor);
-	}
-	uint16_t saved_value = 0;
-	// Check saved value
-	sparkfun_scd30.getForcedRecalibration(&saved_value);
-	return saved_value;
-}
-
-float Sck_SCD30::tempOffset(float userTemp, bool off)
-{
-	// We expect from user the REAL temperature measured during calibration
-	// We calculate the difference against the sensor measured temperature to set the correct offset. Please wait for sensor to stabilize temperatures before aplying an offset.
-	// Temperature offset should always be positive (the sensor is generating heat)
-
-	uint16_t currentOffsetTemp;
-	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
-
-	getReading(SENSOR_SCD30_TEMP);
-
-	if (temperature > userTemp) sparkfun_scd30.setTemperatureOffset(temperature - userTemp);
-	else if (off) sparkfun_scd30.setTemperatureOffset(0);
-
-	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
-
-	return currentOffsetTemp / 100.0;
-}
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )
 {

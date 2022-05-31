@@ -1,5 +1,6 @@
 #include "Commands.h"
 #include "SckBase.h"
+#include "Utils.h"
 
 
 void AllCommands::in(SckBase* base, String strIn)
@@ -31,7 +32,7 @@ void AllCommands::in(SckBase* base, String strIn)
 	}
 
 	if (reqComm < COM_COUNT) com_list[reqComm].function(base, strIn);
-	else base->sckOut("Unrecognized command!!");
+	else sckPrintfln("Unrecognized command!!");
 }
 void AllCommands::wildCard(SckBase* base, String strIn)
 {
@@ -48,10 +49,8 @@ void reset_com(SckBase* base, String parameters)
 void getVersion_com(SckBase* base, String parameters)
 {
 	base->getUniqueID();
-	sprintf(base->outBuff, "Hardware Version: %s\r\nSAM Hardware ID: %s\r\nSAM version: %s\r\nSAM build date: %s", base->hardwareVer.c_str(), base->uniqueID_str, base->SAMversion.c_str(), base->SAMbuildDate.c_str());
-	base->sckOut();
-	sprintf(base->outBuff, "ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s", base->config.mac.address, base->ESPversion.c_str(), base->ESPbuildDate.c_str());
-	base->sckOut();
+	sckPrintfln("Hardware Version: %s\r\nSAM Hardware ID: %s\r\nSAM version: %s\r\nSAM build date: %s", base->hardwareVer.c_str(), base->uniqueID_str, base->SAMversion.c_str(), base->SAMbuildDate.c_str());
+	sckPrintfln("ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s", base->config.mac.address, base->ESPversion.c_str(), base->ESPbuildDate.c_str());
 }
 void resetCause_com(SckBase* base, String parameters)
 {
@@ -60,57 +59,29 @@ void resetCause_com(SckBase* base, String parameters)
 
 	switch(resetCause){
 		case 1:
-			base->sckOut("POR: Power On Reset");
+			sckPrintfln("POR: Power On Reset");
 			break;
 		case 2:
-			base->sckOut("BOD12: Brown Out 12 Detector Reset");
+			sckPrintfln("BOD12: Brown Out 12 Detector Reset");
 			break;
 		case 4:
-			base->sckOut("BOD33: Brown Out 33 Detector Reset");
+			sckPrintfln("BOD33: Brown Out 33 Detector Reset");
 			break;
 		case 16:
-			base->sckOut("EXT: External Reset");
+			sckPrintfln("EXT: External Reset");
 			break;
 		case 32:
-			base->sckOut("WDT: Watchdog Reset");
+			sckPrintfln("WDT: Watchdog Reset");
 			break;
 		case 64:
-			base->sckOut("SYST: System Reset Request");
+			sckPrintfln("SYST: System Reset Request");
 			break;
-	}
-}
-void outlevel_com(SckBase* base, String parameters)
-{
-
-	// get
-	if (parameters.length() <= 0) {
-
-		sprintf(base->outBuff, "Current output level: %s", base->outLevelTitles[base->config.outLevel]);
-		base->sckOut();
-
-		// set
-	} else {
-
-		uint8_t newLevel = parameters.toInt();
-
-		// Parameter sanity check
-		if (newLevel >= 0 && newLevel < OUT_COUNT) {
-			OutLevels thisLevel = static_cast<OutLevels>(newLevel);
-			base->config.outLevel = thisLevel;
-			sprintf(base->outBuff, "New output level: %s", base->outLevelTitles[newLevel]);
-			base->sckOut();
-			base->saveConfig();
-		} else {
-			base->sckOut("unrecognized output level!!");
-			return;
-		}
 	}
 }
 void help_com(SckBase* base, String parameters)
 {
-
 	// TODO manage multiline help. Maybe a simple general help and a per command help: "help config"
-	base->sckOut();
+	sckPrintfln("");
 	for (uint8_t i=0; i < COM_COUNT; ++i) {
 
 		CommandType thisType = static_cast<CommandType>(i);
@@ -119,16 +90,15 @@ void help_com(SckBase* base, String parameters)
 		String sep = "            ";
 		sep.remove(sep.length() -String(thisCommand->title).length());
 
-		sprintf(base->outBuff, "%s:%s%s", thisCommand->title, sep.c_str(), thisCommand->help);
-		base->sckOut();
+		sckPrintfln("%s:%s%s", thisCommand->title, sep.c_str(), thisCommand->help);
 	}
 }
 void pinmux_com(SckBase* base, String parameters)
 {
-
+	char pbuff[240];
 	for (uint8_t pin=0; pin<PINS_COUNT; pin++) {  // For all defined pins
-		pinmux_report(pin, base->outBuff, 0);
-		base->sckOut();
+		pinmux_report(pin, pbuff, 0);
+		sckPrintfln(pbuff);
 	}
 }
 void sensorConfig_com(SckBase* base, String parameters)
@@ -136,49 +106,48 @@ void sensorConfig_com(SckBase* base, String parameters)
 	// Get
 	if (parameters.length() <= 0) {
 
-		SensorType thisType = SENSOR_COUNT;
+		MetricType thisType = SENSOR_COUNT;
 
-		sprintf(base->outBuff, "\r\nDisabled\r\n----------");
-		base->sckOut();
+		sckPrintfln("\r\nDisabled\r\n----------");
+
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 			thisType = base->sensors.sensorsPriorized(i);
 
-			if (!base->sensors[thisType].enabled) base->sckOut(base->sensors[thisType].title);
+			if (!base->sensors[thisType].enabled) sckPrintfln(base->sensors[thisType].title);
 		}
 
-		sprintf(base->outBuff, "\r\nEnabled\r\n----------");
-		base->sckOut();
+		sckPrintfln("\r\nEnabled\r\n----------");
+
 		// Get sensor type
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 			thisType = base->sensors.sensorsPriorized(i);
 			if (base->sensors[thisType].enabled) {
 
-				snprintf(base->outBuff, sizeof(base->outBuff), "%s -> every %i int (%lu sec)", base->sensors[thisType].title, base->sensors[thisType].everyNint, (base->sensors[thisType].everyNint * base->config.readInterval));
-				base->sckOut(PRIO_MED, false);
+				sckPrintf("%s -> every %i int (%lu sec)", base->sensors[thisType].title, base->sensors[thisType].everyNint, (base->sensors[thisType].everyNint * base->config.readInterval));
 
-				if (base->sensors[SENSOR_GROVE_OLED].enabled && base->config.sensors[thisType].oled_display)  base->sckOut(" - oled");
-				else base->sckOut(" ");
+				if (base->sensors[SENSOR_GROVE_OLED].enabled && base->config.sensors[thisType].oled_display)  sckPrintfln(" - oled");
+				else sckPrintfln(" ");
 			}
 		}
 
 	} else {
 
 		int16_t sensorEndIndex = parameters.indexOf("-") - 1;
-		SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(0, sensorEndIndex));
+		MetricType sensorToChange = base->sensors.getTypeFromString(parameters.substring(0, sensorEndIndex));
 		bool saveNeeded = false;
 
 		// PM and PN sensors are grouped to make changes to the full group
-		SensorType urban_pm[] = { SENSOR_PM_1, SENSOR_PM_25, SENSOR_PM_10 };
-		SensorType urban_pn[] = { SENSOR_PN_03, SENSOR_PN_05, SENSOR_PN_1, SENSOR_PN_25, SENSOR_PN_5, SENSOR_PN_10 };
-		SensorType ext_pm[] = { SENSOR_EXT_A_PM_1, SENSOR_EXT_A_PM_25, SENSOR_EXT_A_PM_10, SENSOR_EXT_B_PM_1, SENSOR_EXT_B_PM_25, SENSOR_EXT_B_PM_10 };
-		SensorType ext_pn[] = { SENSOR_EXT_A_PN_03, SENSOR_EXT_A_PN_05, SENSOR_EXT_A_PN_1, SENSOR_EXT_A_PN_25, SENSOR_EXT_A_PN_5, SENSOR_EXT_A_PN_10, SENSOR_EXT_B_PN_03, SENSOR_EXT_B_PN_05, SENSOR_EXT_B_PN_1, SENSOR_EXT_B_PN_25, SENSOR_EXT_B_PN_5, SENSOR_EXT_B_PN_10 };
-		SensorType *pm_sensors[] = { urban_pm, urban_pn, ext_pm, ext_pn };
+		MetricType urban_pm[] = { SENSOR_PM_1, SENSOR_PM_25, SENSOR_PM_10 };
+		MetricType urban_pn[] = { SENSOR_PN_03, SENSOR_PN_05, SENSOR_PN_1, SENSOR_PN_25, SENSOR_PN_5, SENSOR_PN_10 };
+		MetricType ext_pm[] = { SENSOR_EXT_A_PM_1, SENSOR_EXT_A_PM_25, SENSOR_EXT_A_PM_10, SENSOR_EXT_B_PM_1, SENSOR_EXT_B_PM_25, SENSOR_EXT_B_PM_10 };
+		MetricType ext_pn[] = { SENSOR_EXT_A_PN_03, SENSOR_EXT_A_PN_05, SENSOR_EXT_A_PN_1, SENSOR_EXT_A_PN_25, SENSOR_EXT_A_PN_5, SENSOR_EXT_A_PN_10, SENSOR_EXT_B_PN_03, SENSOR_EXT_B_PN_05, SENSOR_EXT_B_PN_1, SENSOR_EXT_B_PN_25, SENSOR_EXT_B_PN_5, SENSOR_EXT_B_PN_10 };
+		MetricType *pm_sensors[] = { urban_pm, urban_pn, ext_pm, ext_pn };
 		uint8_t group_size[] = { 3, 6, 6, 12 };
 
 		// Find out if sensor belongs to a PM group
-		SensorType *groupToChange = NULL;
+		MetricType *groupToChange = NULL;
 		uint8_t groupToChange_size = 0;
 		for (uint8_t i=0; i<4; i++) {
 			for(uint8_t ii=0; ii<group_size[i]; ii++) {
@@ -190,7 +159,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 		}
 
 		if (sensorToChange == SENSOR_COUNT) {
-			base->sckOut("ERROR sensor not found");
+			sckPrintfln("ERROR sensor not found");
 			return;
 		}
 
@@ -209,14 +178,13 @@ void sensorConfig_com(SckBase* base, String parameters)
 					// Enable them also in config to make changes persistent
 					base->config.sensors[groupToChange[i]].enabled = true;
 
-					sprintf(base->outBuff, "Enabling %s", base->sensors[groupToChange[i]].title);
-					base->sckOut();
+					sckPrintfln("Enabling %s", base->sensors[groupToChange[i]].title);
 				}
 				saveNeeded = true;
 			} else {
-				sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
-				if (groupToChange > 0) sprintf(base->outBuff, "%s and its sensor group", base->outBuff);
-				base->sckOut();
+				sckPrintf("Failed enabling %s", base->sensors[sensorToChange].title);
+				if (groupToChange > 0) sckPrintfln(" and its sensor group");
+				else sckPrintfln("");
 			}
 
 		} else if (parameters.indexOf("-disable") >=0) {
@@ -234,8 +202,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 				// Disable them also in config to make changes persistent
 				base->config.sensors[groupToChange[i]].enabled = false;
 
-				sprintf(base->outBuff, "Disabling %s", base->sensors[groupToChange[i]].title);
-				base->sckOut();
+				sckPrintfln("Disabling %s", base->sensors[groupToChange[i]].title);
 			}
 			saveNeeded = true;
 		}
@@ -245,8 +212,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 			base->config.sensors[sensorToChange].oled_display = !base->config.sensors[sensorToChange].oled_display;
 			base->sensors[sensorToChange].oled_display = base->config.sensors[sensorToChange].oled_display;
 
-			snprintf(base->outBuff, sizeof(base->outBuff), "%s will %s on oled display", base->sensors[sensorToChange].title, base->config.sensors[sensorToChange].oled_display ? "be displayed" : "not show");
-			base->sckOut();
+			sckPrintfln("%s will %s on oled display", base->sensors[sensorToChange].title, base->config.sensors[sensorToChange].oled_display ? "be displayed" : "not show");
 
 			saveNeeded = true;
 
@@ -263,25 +229,23 @@ void sensorConfig_com(SckBase* base, String parameters)
 			uint8_t newEveryNint = intervalInt / base->config.readInterval;
 			if (newEveryNint < 1) newEveryNint = 1;
 
-			base->sckOut("The sensor read interval is calculated as a multiple of general read interval (" + String(base->config.readInterval) + ")");
+			sckPrintfln("The sensor read interval is calculated as a multiple of general read interval (%u)", base->config.readInterval);
 			if (newEveryNint < 255) {
 				if (groupToChange_size > 0) {
 					// Just for PM/PN change all the sensors in the same group
 					for (uint8_t i=0; i<groupToChange_size; i++) {
 						base->sensors[groupToChange[i]].everyNint = newEveryNint;
 						base->config.sensors[groupToChange[i]].everyNint = newEveryNint;
-						sprintf(base->outBuff, "Changing interval of %s to %lu", base->sensors[groupToChange[i]].title, base->sensors[groupToChange[i]].everyNint * base->config.readInterval);
-						base->sckOut();
+						sckPrintfln("Changing interval of %s to %lu", base->sensors[groupToChange[i]].title, base->sensors[groupToChange[i]].everyNint * base->config.readInterval);
 					}
 				} else {
 					base->sensors[sensorToChange].everyNint = newEveryNint;
 					base->config.sensors[sensorToChange].everyNint = newEveryNint;
-					sprintf(base->outBuff, "Changing interval of %s to %lu", base->sensors[sensorToChange].title, base->sensors[sensorToChange].everyNint * base->config.readInterval);
-					base->sckOut();
+					sckPrintfln("Changing interval of %s to %lu", base->sensors[sensorToChange].title, base->sensors[sensorToChange].everyNint * base->config.readInterval);
 				}
 				saveNeeded = true;
 			} else {
-				base->sckOut("Wrong new interval!!!");
+				sckPrintfln("Wrong new interval!!!");
 			}
 		}
 		if (saveNeeded) base->saveConfig();
@@ -289,29 +253,27 @@ void sensorConfig_com(SckBase* base, String parameters)
 }
 void readSensor_com(SckBase* base, String parameters)
 {
-	SensorType wichType = base->sensors.getTypeFromString(parameters);
+	MetricType wichType = base->sensors.getTypeFromString(parameters);
 	OneSensor sensorToRead = base->sensors[wichType];
 
 	if (!sensorToRead.enabled) {
-		sprintf(base->outBuff, "%s sensor is disabled!!!", sensorToRead.title);
-		base->sckOut();
+		sckPrintfln("%s sensor is disabled!!!", sensorToRead.title);
 		return;
 	} else base->getReading(&sensorToRead);
 
-	if (sensorToRead.state == 0) sprintf(base->outBuff, "%s: %s %s", sensorToRead.title, sensorToRead.reading.c_str(), sensorToRead.unit);
-	else if (sensorToRead.state == -1) sprintf(base->outBuff, "ERROR reading %s sensor!!!", sensorToRead.title);
-	else sprintf(base->outBuff, "Your reading will be ready in %i seconds try again!!", sensorToRead.state);
-	base->sckOut();
+	if (sensorToRead.state == 0) sckPrintfln("%s: %s %s", sensorToRead.title, sensorToRead.reading.c_str(), sensorToRead.unit);
+	else if (sensorToRead.state == -1) sckPrintfln("ERROR reading %s sensor!!!", sensorToRead.title);
+	else sckPrintfln("Your reading will be ready in %i seconds try again!!", sensorToRead.state);
 }
 void controlSensor_com(SckBase* base, String parameters)
 {
-	SensorType wichSensor = base->sensors.getTypeFromString(parameters);
+	MetricType wichSensor = base->sensors.getTypeFromString(parameters);
 
 	if (parameters.length() < 1) {
-		base->sckOut("ERROR No command received!! please try again...");
+		sckPrintfln("ERROR No command received!! please try again...");
 		return;
 	} else if (wichSensor == SENSOR_COUNT) {
-		base->sckOut("ERROR Sensor not found!!!");
+		sckPrintfln("ERROR Sensor not found!!!");
 		return;
 	} else {
 		base->controlSensor(wichSensor, base->sensors.removeSensorName(parameters));
@@ -319,7 +281,7 @@ void controlSensor_com(SckBase* base, String parameters)
 }
 void monitorSensor_com(SckBase* base, String parameters)
 {
-	SensorType sensorsToMonitor[SENSOR_COUNT];
+	MetricType sensorsToMonitor[SENSOR_COUNT];
 	uint8_t index = 0;
 	bool sdSave = false;
 	bool printTime = true;
@@ -331,7 +293,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 		parameters.replace("-sd", "");
 		parameters.trim();
 		if (!base->st.cardPresent) {
-			base->sckOut("ERROR No sd card found!!!");
+			sckPrintfln("ERROR No sd card found!!!");
 			return;
 		}
 		base->monitorFile.file = base->sd.open(base->monitorFile.name, FILE_WRITE);
@@ -366,21 +328,20 @@ void monitorSensor_com(SckBase* base, String parameters)
 				parameters.trim();
 			}
 
-			SensorType thisSensorType = base->sensors.getTypeFromString(thisSensor);
+			MetricType thisSensorType = base->sensors.getTypeFromString(thisSensor);
 
 			if (base->sensors[thisSensorType].enabled) {
 				sensorsToMonitor[index] = thisSensorType;
 				index ++;
 			} else {
-				sprintf(base->outBuff, "%s is disabled, enable it first!!!", base->sensors[thisSensorType].title);
-				base->sckOut();
+				sckPrintfln("%s is disabled, enable it first!!!", base->sensors[thisSensorType].title);
 				return;
 			}
 		}
 	} else {
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			if (base->sensors[static_cast<SensorType>(i)].enabled) {
-				sensorsToMonitor[index] = static_cast<SensorType>(i);
+			if (base->sensors[static_cast<MetricType>(i)].enabled) {
+				sensorsToMonitor[index] = static_cast<MetricType>(i);
 				index++;
 			}
 		}
@@ -388,16 +349,17 @@ void monitorSensor_com(SckBase* base, String parameters)
 	}
 
 	// Titles
-	strncpy(base->outBuff, "", 240);
-	if (printTime) sprintf(base->outBuff, "%s\t", "Time");
-	if (printMs) snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s\t", base->outBuff, "Miliseconds");
+	uint8_t tbuffSize = 240;
+	char tbuff[tbuffSize];
+	if (printTime) snprintf(tbuff, tbuffSize, "%s\t", "Time");
+	if (printMs) snprintf(tbuff, tbuffSize, "%s%s\t", tbuff, "Miliseconds");
 	for (uint8_t i=0; i<index; i++) {
-		sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
-		if (i < index - 1) snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t", base->outBuff);
-		if (oled && i==0) base->plot(base->sensors[sensorsToMonitor[i]].reading, base->sensors[sensorsToMonitor[i]].title, base->sensors[sensorsToMonitor[i]].unit);
+		snprintf(tbuff, tbuffSize, "%s%s", tbuff, base->sensors[sensorsToMonitor[i]].title);
+		if (i < index - 1) snprintf(tbuff, tbuffSize, "%s\t", tbuff);
+		if (oled && i==0) plot(base->sensors[sensorsToMonitor[i]].reading, base->sensors[sensorsToMonitor[i]].title, base->sensors[sensorsToMonitor[i]].unit);
 	}
-	if (sdSave) base->monitorFile.file.println(base->outBuff);
-	base->sckOut();
+	sckPrintfln(tbuff);
+	if (sdSave) base->monitorFile.file.println(tbuff);
 
 	// Readings
 	uint32_t lastMillis = millis();
@@ -407,15 +369,15 @@ void monitorSensor_com(SckBase* base, String parameters)
 		bool PMreadingReady = false;
 		uint8_t printit = 0;
 
-		sprintf(base->outBuff, "%s", "");
+		snprintf(tbuff, tbuffSize, "%s", "");
 
 		if (printTime) {
 			base->ISOtime();
-			snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s\t", base->outBuff, base->ISOtimeBuff);
+			snprintf(tbuff, tbuffSize, "%s\t", base->ISOtimeBuff);
 		}
 
 		if (printMs) {
-			snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%lu\t", base->outBuff, millis() - lastMillis);
+			snprintf(tbuff, tbuffSize, "%s%lu\t", tbuff, millis() - lastMillis);
 			lastMillis = millis();
 		}
 
@@ -431,22 +393,22 @@ void monitorSensor_com(SckBase* base, String parameters)
 			base->getReading(&wichSensor);
 
 			if (wichSensor.state == 0) {
-				snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t%s", base->outBuff, wichSensor.reading.c_str());
+				snprintf(tbuff, tbuffSize, "%s\t%s", tbuff, wichSensor.reading.c_str());
 
 				if (theFirst && oled) {
-					base->plot(wichSensor.reading);
+					plot(wichSensor.reading);
 					theFirst = false;
 				}
 				printit++;
 
-			} else snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s", base->outBuff, "none");
+			} else snprintf(tbuff, tbuffSize, "%s%s", tbuff, "none");
 		}
 
-		// If we are missing sensors we don't print the output
+		// Only print if we are not missing sensors
 		if (printit == index) {
 			lastMillis = provLastMillis;
-			if (sdSave) base->monitorFile.file.println(base->outBuff);
-			base->sckOut();
+			if (sdSave) base->monitorFile.file.println(tbuff);
+			sckPrintfln(tbuff);
 		}
 	}
 	if (sdSave) base->monitorFile.file.close();
@@ -455,15 +417,12 @@ void flash_com(SckBase* base, String parameters)
 {
 	if (parameters.length() <= 0) {
 
-		base->sckOut("Scanning Flash memory (it can take a while!)");
+		sckPrintfln("Scanning Flash memory (it can take a while!)");
 		SckList::FlashInfo info;
 		base->readingsList.flashInfo(&info);
-		sprintf(base->outBuff, "\r\n%u sectors in total, %u used and %u free.", SCKLIST_SECTOR_NUM, info.sectUsed, info.sectFree);
-		base->sckOut();
-		sprintf(base->outBuff, "%lu groups in total.\r\nNetwork: %lu pending to publish.\r\nSd-card: %lu pending to publish.", info.grpTotal, info.grpUnPubNet, info.grpUnPubSd);
-		base->sckOut();
-		sprintf(base->outBuff, "Using sector number: %u\r\n", info.currSector);
-		base->sckOut();
+		sckPrintfln("\r\n%u sectors in total, %u used and %u free.", SCKLIST_SECTOR_NUM, info.sectUsed, info.sectFree);
+		sckPrintfln("%lu groups in total.\r\nNetwork: %lu pending to publish.\r\nSd-card: %lu pending to publish.", info.grpTotal, info.grpUnPubNet, info.grpUnPubSd);
+		sckPrintfln("Using sector number: %u\r\n", info.currSector);
 
 	} else {
 		// Format: flash -format
@@ -497,7 +456,7 @@ void flash_com(SckBase* base, String parameters)
 			else {
 				sectV = sectC.toInt();
 				if (sectV < 0 || sectV > SCKLIST_SECTOR_NUM) {
-					base->sckOut("Wrong sector number (0-2048)");
+					sckPrintfln("Wrong sector number (0-2048)");
 					return;
 				}
 			}
@@ -515,8 +474,7 @@ void flash_com(SckBase* base, String parameters)
 					totalRecovered += base->readingsList.recover(i, thisFlag);
 				}
 			} else totalRecovered = base->readingsList.recover(sectV, thisFlag);
-			sprintf(base->outBuff, "Recovered %lu groups.", totalRecovered);
-			base->sckOut();
+			sckPrintfln("Recovered %lu groups.", totalRecovered);
 
 			// Exit shell mode
 			if (!alreadyOnShell) base->st.onShell = false;
@@ -528,7 +486,7 @@ void flash_com(SckBase* base, String parameters)
 			String dumpC = parameters.substring(dumpI+6);
 			uint16_t dumpV = dumpC.toInt();
 			if (dumpV < 0 || dumpV > SCKLIST_SECTOR_NUM) {
-				base->sckOut("Wrong sector number (0-2048)");
+				sckPrintfln("Wrong sector number (0-2048)");
 				return;
 			}
 			base->readingsList.dumpSector(dumpV);
@@ -542,35 +500,23 @@ void flash_com(SckBase* base, String parameters)
 			// Info for one specified sector
 			uint16_t sectV = sectC.toInt();
 			if (sectV < 0 || sectV >= SCKLIST_SECTOR_NUM) {
-				sprintf(base->outBuff, "Wrong sector number (0-%u)", SCKLIST_SECTOR_NUM);
-				base->sckOut();
+				sckPrintfln("Wrong sector number (0-%u)", SCKLIST_SECTOR_NUM);
 				return;
 			}
 			SckList::SectorInfo info = base->readingsList.sectorInfo(sectV);
-			sprintf(base->outBuff, "\r\nSector %u in address %lu is: %s", sectV, info.addr, info.used ? "Used" : (info.current ? "In use" : "Free"));
-			base->sckOut();
-			sprintf(base->outBuff, "Sector %u fully published to network: %s", sectV, info.pubNet ? "true" : "false" );
-			base->sckOut();
-			sprintf(base->outBuff, "Sector %u fully published to sd-card: %s", sectV, info.pubSd ? "true" : "false" );
-			base->sckOut();
-			sprintf(base->outBuff, "Net published groups: %u", info.grpPubNet);
-			base->sckOut();
-			sprintf(base->outBuff, "Net un-published groups: %u", info.grpUnPubNet);
-			base->sckOut();
-			sprintf(base->outBuff, "Sd saved groups: %u", info.grpPubSd);
-			base->sckOut();
-			sprintf(base->outBuff, "Sd not saved groups: %u", info.grpUnPubSd);
-			base->sckOut();
-			sprintf(base->outBuff, "Total groups: %u", info.grpTotal);
-			base->sckOut();
-			sprintf(base->outBuff, "Freespace: %u bytes", info.freeSpace);
-			base->sckOut();
+			sckPrintfln("\r\nSector %u in address %lu is: %s", sectV, info.addr, info.used ? "Used" : (info.current ? "In use" : "Free"));
+			sckPrintfln("Sector %u fully published to network: %s", sectV, info.pubNet ? "true" : "false" );
+			sckPrintfln("Sector %u fully published to sd-card: %s", sectV, info.pubSd ? "true" : "false" );
+			sckPrintfln("Net published groups: %u", info.grpPubNet);
+			sckPrintfln("Net un-published groups: %u", info.grpUnPubNet);
+			sckPrintfln("Sd saved groups: %u", info.grpPubSd);
+			sckPrintfln("Sd not saved groups: %u", info.grpUnPubSd);
+			sckPrintfln("Total groups: %u", info.grpTotal);
+			sckPrintfln("Freespace: %u bytes", info.freeSpace);
 			base->epoch2iso(info.firstTime, base->ISOtimeBuff);
-			sprintf(base->outBuff, "First group: %s", base->ISOtimeBuff);
-			base->sckOut();
+			sckPrintfln("First group: %s", base->ISOtimeBuff);
 			base->epoch2iso(info.lastTime, base->ISOtimeBuff);
-			sprintf(base->outBuff, "Last group:  %s\r\n", base->ISOtimeBuff);
-			base->sckOut();
+			sckPrintfln("Last group:  %s\r\n", base->ISOtimeBuff);
 		}
 	}
 }
@@ -578,18 +524,17 @@ extern "C" char *sbrk(int i);
 void freeRAM_com(SckBase* base, String parameters)
 {
 
-	char stack_dummy = 0;
-	uint32_t free = &stack_dummy - sbrk(0);
-	sprintf(base->outBuff, "Free RAM: %lu bytes", free);
-	base->sckOut();
+	char stack_dummy;
+	uint32_t free = &stack_dummy - reinterpret_cast<char*>(sbrk(0));
+	sckPrintfln("Free RAM: %lu bytes", free);
 }
 void i2cDetect_com(SckBase* base, String parameters)
 {
 
 	for (uint8_t wichWire=0; wichWire<2; wichWire++) {
 
-		if (wichWire == 0) base->sckOut("Searching for devices on internal I2C bus...");
-		else base->sckOut("\r\nSearching for devices on auxiliary I2C bus...");
+		if (wichWire == 0) sckPrintfln("Searching for devices on internal I2C bus...");
+		else sckPrintfln("\r\nSearching for devices on auxiliary I2C bus...");
 
 		uint8_t nDevices = 0;
 		for(uint8_t address = 1; address < 127; address++ ) {
@@ -604,16 +549,13 @@ void i2cDetect_com(SckBase* base, String parameters)
 			}
 
 			if (error == 0) {
-				sprintf(base->outBuff, "I2C device found at address 0x%02x!!", address);
-				base->sckOut();
+				sckPrintfln("I2C device found at address 0x%02x!!", address);
 				nDevices++;
 			} else if (error==4) {
-				sprintf(base->outBuff, "Unknow error at address 0x%02x!!", address);
-				base->sckOut();
+				sckPrintfln("Unknow error at address 0x%02x!!", address);
 			}
 		}
-		sprintf(base->outBuff, "Found %u devices", nDevices);
-		base->sckOut();
+		sckPrintfln("Found %u devices", nDevices);
 	}
 }
 void power_com(SckBase* base, String parameters)
@@ -623,49 +565,28 @@ void power_com(SckBase* base, String parameters)
 	int16_t extraI = parameters.indexOf("-info");
 	if (parameters.length() <= 0 || extraI >= 0) {
 
-		if (base->config.sleepTimer == 0) sprintf (base->outBuff, "Sleep disabled");
-		else sprintf(base->outBuff, "Sleep after: %u min", base->config.sleepTimer);
-		base->sckOut();
+		if (base->config.sleepTimer == 0) sckPrintfln("Sleep disabled");
+		else sckPrintfln("Sleep after: %u min", base->config.sleepTimer);
 
 		if (base->battery.present) {
-			sprintf(base->outBuff, "Battery: %u%% (%lumAh) - %0.2fv (%s)", base->battery.percent(&base->charger), base->config.battConf.battCapacity, base->battery.voltage(), base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
+			sckPrintfln("Battery: %u%% (%lumAh) - %0.2fv (%s)", base->battery.percent(&base->charger), base->config.battConf.battCapacity, base->battery.voltage(), base->charger.chargeStatusTitles[base->charger.getChargeStatus()]);
 		} else {
-			sprintf(base->outBuff, "Battery: NOT present");
+			sckPrintfln("Battery: NOT present");
 		}
-		base->sckOut();
 
-		sprintf(base->outBuff, "USB: %s", base->charger.VBUSStatusTitles[base->charger.getVBUSstatus()]);
-		base->sckOut();
+		sckPrintfln("USB: %s", base->charger.VBUSStatusTitles[base->charger.getVBUSstatus()]);
 
 		if (extraI >= 0) {
 
-			sprintf(base->outBuff, "OTG: %s", base->charger.enTitles[base->charger.OTG()]);
-			base->sckOut();
-
-			sprintf(base->outBuff, "Charge: %s", base->charger.enTitles[base->charger.chargeState()]);
-			base->sckOut();
-
-			sprintf(base->outBuff, "Batfet: %s", base->charger.enTitles[base->charger.batfetState()]);
-			base->sckOut();
-
-			sprintf(base->outBuff, "Charger current limit: %u mA", base->charger.chargerCurrentLimit());
-			base->sckOut();
-
-			sprintf(base->outBuff, "Input current limit: %u mA", base->charger.inputCurrentLimit());
-			base->sckOut();
-
-			sprintf(base->outBuff, "I2c watchdog timer: %u sec (0: disabled)", base->charger.I2Cwatchdog());
-			base->sckOut();
-
-			sprintf(base->outBuff, "Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
-			base->sckOut();
-
-			sprintf(base->outBuff, "Min system voltage: %0.2f volts", base->charger.sysMinVolt());
-			base->sckOut();
-
-			sprintf(base->outBuff, "Battery lower than %0.2f: %s", base->charger.sysMinVolt(), base->charger.getBatLowerSysMin() ? "true" : "false");
-			base->sckOut();
-
+			sckPrintfln("OTG: %s", base->charger.enTitles[base->charger.OTG()]);
+			sckPrintfln("Charge: %s", base->charger.enTitles[base->charger.chargeState()]);
+			sckPrintfln("Batfet: %s", base->charger.enTitles[base->charger.batfetState()]);
+			sckPrintfln("Charger current limit: %u mA", base->charger.chargerCurrentLimit());
+			sckPrintfln("Input current limit: %u mA", base->charger.inputCurrentLimit());
+			sckPrintfln("I2c watchdog timer: %u sec (0: disabled)", base->charger.I2Cwatchdog());
+			sckPrintfln("Charging safety timer: %u hours (0: disabled)", base->charger.chargeTimer());
+			sckPrintfln("Min system voltage: %0.2f volts", base->charger.sysMinVolt());
+			sckPrintfln("Battery lower than %0.2f: %s", base->charger.sysMinVolt(), base->charger.getBatLowerSysMin() ? "true" : "false");
 		}
 
 	// Set
@@ -693,15 +614,13 @@ void power_com(SckBase* base, String parameters)
 			if (batcapInt > 200 && batcapInt < 20000) {
 				base->config.battConf.battCapacity = batcapInt;
 				base->saveConfig();
-				sprintf(base->outBuff, "New battery capacity: %lu\r\nWe need to reset for changes to take effect\r\nClick any key.", base->config.battConf.battCapacity);
-				base->sckOut();
+				sckPrintfln("New battery capacity: %lu\r\nWe need to reset for changes to take effect\r\nClick any key.", base->config.battConf.battCapacity);
 				while (!SerialUSB.available())
 					;
 				base->sck_reset();
 			} else {
-				sprintf(base->outBuff, "Wrong battery capacity");
+				sckPrintfln("Wrong battery capacity");
 			}
-			base->sckOut();
 		}
 
 		int16_t sleepI = parameters.indexOf("-sleep");
@@ -713,13 +632,11 @@ void power_com(SckBase* base, String parameters)
 				base->config.sleepTimer = sleepInt;
 				base->saveConfig();
 				base->lastUserEvent = millis();
-				sprintf(base->outBuff, "New sleep timer period: %u.", base->config.sleepTimer);
+				sckPrintfln("New sleep timer period: %u.", base->config.sleepTimer);
 			} else {
-				sprintf(base->outBuff, "Wrong sleep timer period (0-480)");
+				sckPrintfln("Wrong sleep timer period (0-480)");
 			}
-			base->sckOut();
 		}
-
 	}
 }
 void config_com(SckBase* base, String parameters)
@@ -779,32 +696,24 @@ void config_com(SckBase* base, String parameters)
 			}
 			base->saveConfig();
 		}
-		sprintf(base->outBuff, "-- New config --\r\n");
-		base->sckOut();
+		sckPrintfln("-- New config --\r\n");
+	}
 
-		// Get
-	} else base->outBuff[0] = 0;
-
+	// Get
 	Configuration currentConfig = base->getConfig();
 
-	sprintf(base->outBuff, "Mode: %s\r\nPublish interval (s): %lu", base->modeTitles[currentConfig.mode], currentConfig.publishInterval);
-	base->sckOut();
+	sckPrintfln("Mode: %s\r\nPublish interval (s): %lu", base->modeTitles[currentConfig.mode], currentConfig.publishInterval);
+	sckPrintfln("Reading interval (s): %lu", currentConfig.readInterval);
 
-	sprintf(base->outBuff, "Reading interval (s): %lu", currentConfig.readInterval);
-	base->sckOut();
+	if (currentConfig.credentials.set) sckPrintfln("Wifi credentials: %s - %s", currentConfig.credentials.ssid, currentConfig.credentials.pass);
+	else sckPrintfln("Wifi credentials: not configured");
 
-	if (currentConfig.credentials.set) sprintf(base->outBuff, "Wifi credentials: %s - %s", currentConfig.credentials.ssid, currentConfig.credentials.pass);
-	else sprintf(base->outBuff, "Wifi credentials: not configured");
-	base->sckOut();
+	if (currentConfig.token.set) sckPrintfln("Token: %s", currentConfig.token.token);
+	else sckPrintfln("Token: not configured");
 
-	if (currentConfig.token.set) sprintf(base->outBuff, "Token: %s", currentConfig.token.token);
-	else sprintf(base->outBuff, "Token: not configured");
-	base->sckOut();
+	sckPrintfln("Mac address:  %s", base->config.mac.address);
 
-	sprintf(base->outBuff, "Mac address:  %s", base->config.mac.address);
-	base->sckOut();
-
-	if (resetMsg) base->sckOut("\r\n** Please reset your kit **");
+	if (resetMsg) sckPrintfln("\r\n** Please reset your kit **");
 }
 void esp_com(SckBase* base, String parameters)
 {
@@ -819,7 +728,7 @@ void esp_com(SckBase* base, String parameters)
 		base->ESPcontrol(base->ESP_FLASH);
 	} else if (parameters.equals("-sleep")) base->ESPcontrol(base->ESP_SLEEP);
 	else if (parameters.equals("-wake")) base->ESPcontrol(base->ESP_WAKEUP);
-	else base->sckOut("Unrecognized command , try help!!");
+	else sckPrintfln("Unrecognized command , try help!!");
 }
 void netInfo_com(SckBase* base, String parameters)
 {
@@ -830,15 +739,14 @@ void time_com(SckBase* base, String parameters)
 {
 
 	base->epoch2iso(base->rtc.getEpoch(), base->ISOtimeBuff);
-	base->sckOut();
+	sckPrintfln("");
 
 	if (parameters.length() <= 0) {
 
 		if (base->ISOtime()) {
-			sprintf(base->outBuff, "Time: %s", base->ISOtimeBuff);
-			base->sckOut();
+			sckPrintfln("Time: %s", base->ISOtimeBuff);
 		} else {
-			base->sckOut("Time is not synced, trying to sync...");
+			sckPrintfln("Time is not synced, trying to sync...");
 			base->sendMessage(ESPMES_GET_TIME, "");
 		}
 	}
@@ -849,7 +757,7 @@ void time_com(SckBase* base, String parameters)
 			base->ESPcontrol(base->ESP_ON);
 			delay(200);
 		}
-		if (base->sendMessage(ESPMES_GET_TIME, "")) base->sckOut("Asking time to ESP...");
+		if (base->sendMessage(ESPMES_GET_TIME, "")) sckPrintfln("Asking time to ESP...");
 	}
 
 	// Receive Epoch time and sync
@@ -858,8 +766,8 @@ void time_com(SckBase* base, String parameters)
 void hello_com(SckBase* base, String parameters)
 {
 
-	if (base->sendMessage(ESPMES_MQTT_HELLO, "")) base->sckOut("Hello sent!");
-	base->sckOut("Waiting for MQTT hello response...");
+	if (base->sendMessage(ESPMES_MQTT_HELLO, "")) sckPrintfln("Hello sent!");
+	sckPrintfln("Waiting for MQTT hello response...");
 }
 void debug_com(SckBase* base, String parameters)
 {
@@ -868,60 +776,43 @@ void debug_com(SckBase* base, String parameters)
 	if (parameters.length() > 0) {
 		if (parameters.indexOf("-sdcard") >= 0) {
 			base->config.debug.sdcard = !base->config.debug.sdcard;
-			sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
-			base->sckOut();
+			sckPrintfln("SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
 			saveNeeded = true;
 		}
 		if (parameters.indexOf("-esp") >= 0) {
 			base->config.debug.esp = !base->config.debug.esp;
-			sprintf(base->outBuff, "ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
-			base->sckOut();
+			sckPrintfln("ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
 			saveNeeded = true;
 		}
 		if (parameters.indexOf("-oled") >= 0) {
 			base->config.debug.oled = !base->config.debug.oled;
-			sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
-			base->sckOut();
+			sckPrintfln("Oled display debug: %s", base->config.debug.oled ? "true" : "false");
 			saveNeeded = true;
 		}
 		if (parameters.indexOf("-flash") >= 0) {
 			base->readingsList.debug = !base->readingsList.debug;
 			base->config.debug.flash = !base->config.debug.flash;
-			sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
-			base->sckOut();
+			sckPrintfln("Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
 			saveNeeded = true;
 		}
 		if (parameters.indexOf("-telnet") >= 0) {
 			base->config.debug.telnet = !base->config.debug.telnet;
-			sprintf(base->outBuff, "Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
-			base->sckOut();
+			sckPrintfln("Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
 			saveNeeded = true;
 		}
 		if (parameters.indexOf("-speed") >= 0) {
 			base->config.debug.speed = !base->config.debug.speed;
-			sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
-			base->sckOut();
+			sckPrintfln("Speed debug: %s", base->config.debug.speed ? "true" : "false");
 			saveNeeded = true;
 		}
 	// Get
 	} else {
-		sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
-		base->sckOut();
-
-		sprintf(base->outBuff, "ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
-		base->sckOut();
-
-		sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
-		base->sckOut();
-
-		sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
-		base->sckOut();
-
-		sprintf(base->outBuff, "Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
-		base->sckOut();
-
-		sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
-		base->sckOut();
+		sckPrintfln("SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
+		sckPrintfln("ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
+		sckPrintfln("Oled display debug: %s", base->config.debug.oled ? "true" : "false");
+		sckPrintfln("Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
+		sckPrintfln("Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
+		sckPrintfln("Speed debug: %s", base->config.debug.speed ? "true" : "false");
 	}
 	if (saveNeeded) base->saveConfig();
 }
@@ -941,8 +832,7 @@ void shell_com(SckBase* base, String parameters)
 			}
 		}
 	}
-	sprintf(base->outBuff, "Shell mode: %s", base->st.onShell ? "on" : "off");
-	base->sckOut();
+	sckPrintfln("Shell mode: %s", base->st.onShell ? "on" : "off");
 }
 void custom_mqtt_com(SckBase* base, String parameters)
 {
@@ -965,7 +855,7 @@ void offline_com(SckBase* base, String parameters)
 			if (retryIntV >= minimal_publish_interval && retryIntV <= max_publish_interval) {
 				base->config.offline.retry = retryIntV;
 				saveNeeded = true;
-			} else base->sckOut("Wrong retry interval!!!");
+			} else sckPrintfln("Wrong retry interval!!!");
 		}
 
 		int16_t startIntI = parameters.indexOf("-period");
@@ -987,17 +877,15 @@ void offline_com(SckBase* base, String parameters)
 				base->config.offline.start = start;
 				base->config.offline.end = end;
 				saveNeeded = true;
-			} else base->sckOut("Wrong start or end offline times!!");
+			} else sckPrintfln("Wrong start or end offline times!!");
 		}
 	} 
 
 	// Print parameters
-	sprintf(base->outBuff, "WiFi retry period: %lu", base->config.offline.retry);
-	base->sckOut();
+	sckPrintfln("WiFi retry period: %lu", base->config.offline.retry);
 
-	if (base->config.offline.start < 0 || base->config.offline.end < 0) sprintf(base->outBuff, "No offline period configured");
-	else sprintf(base->outBuff, "Offline period: %u - %u (UTC)", base->config.offline.start, base->config.offline.end);
-	base->sckOut();
+	if (base->config.offline.start < 0 || base->config.offline.end < 0) sckPrintfln("No offline period configured");
+	else sckPrintfln("Offline period: %u - %u (UTC)", base->config.offline.start, base->config.offline.end);
 
 	if (saveNeeded) base->saveConfig();
 }
@@ -1012,8 +900,7 @@ void mqttConfig_com(SckBase* base, String parameters)
 			if (serverC.length() < 64) {
 				serverC.toCharArray(base->config.mqtt.server, 64);
 			} else {
-				sprintf(base->outBuff, "Mqtt host name should be less than 64 chars");
-				base->sckOut();
+				sckPrintfln("Mqtt host name should be less than 64 chars");
 			}
 		}
 
@@ -1023,8 +910,7 @@ void mqttConfig_com(SckBase* base, String parameters)
 			uint16_t portV = portC.toInt();
 			if (portV > 0) base->config.mqtt.port = portV;
 			else {
-				sprintf(base->outBuff, "Error setting Mqtt server port");
-				base->sckOut();
+				sckPrintfln("Error setting Mqtt server port");
 			}
 		}
 		base->saveConfig();
@@ -1033,11 +919,8 @@ void mqttConfig_com(SckBase* base, String parameters)
 	// Get
 	Configuration currentConfig = base->getConfig();
 
-	sprintf(base->outBuff, "Mqtt Host: %s", currentConfig.mqtt.server);
-	base->sckOut();
-	sprintf(base->outBuff, "Mqtt Port: %u", currentConfig.mqtt.port);
-	base->sckOut();
-	
+	sckPrintfln("Mqtt Host: %s", currentConfig.mqtt.server);
+	sckPrintfln("Mqtt Port: %u", currentConfig.mqtt.port);
 }
 void ntpConfig_com(SckBase* base, String parameters)
 {
@@ -1050,8 +933,7 @@ void ntpConfig_com(SckBase* base, String parameters)
 			if (serverC.length() < 64) {
 				serverC.toCharArray(base->config.ntp.server, 64);
 			} else {
-				sprintf(base->outBuff, "NTP host name should be less than 64 chars");
-				base->sckOut();
+				sckPrintfln("NTP host name should be less than 64 chars");
 			}
 		}
 
@@ -1061,8 +943,7 @@ void ntpConfig_com(SckBase* base, String parameters)
 			uint16_t portV = portC.toInt();
 			if (portV > 0) base->config.ntp.port = portV;
 			else {
-				sprintf(base->outBuff, "Error setting NTP server port");
-				base->sckOut();
+				sckPrintfln("Error setting NTP server port");
 			}
 		}
 		base->saveConfig();
@@ -1071,9 +952,6 @@ void ntpConfig_com(SckBase* base, String parameters)
 	// Get
 	Configuration currentConfig = base->getConfig();
 
-	sprintf(base->outBuff, "NTP Host: %s", currentConfig.ntp.server);
-	base->sckOut();
-	sprintf(base->outBuff, "NTP Port: %u", currentConfig.ntp.port);
-	base->sckOut();
-	
+	sckPrintfln("NTP Host: %s", currentConfig.ntp.server);
+	sckPrintfln("NTP Port: %u", currentConfig.ntp.port);
 }

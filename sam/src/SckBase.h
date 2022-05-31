@@ -97,7 +97,6 @@ class SckBase
 		// Input/Output
 		String serialBuff;
 		String previousCommand;
-		uint8_t outRepetitions = 0;
 
 		// **** ESP control
 		uint32_t espStarted;
@@ -167,7 +166,7 @@ class SckBase
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish(); 				//  Publishes the provided group of readings to sdcard (if available)
-		LinkedList<SensorType> pendingSensorsLinkedList;
+		LinkedList<MetricType> pendingSensorsLinkedList;
 
 		SckList::GroupIndex wichGroupPublishing; 	// Index of the group beeing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
 		uint32_t dynamicLast = 0; 			// Last time that we detected enough speed to trigger dynamic interval
@@ -208,11 +207,14 @@ class SckBase
 		friend class SckButton;
 
 		// **** Sensors
+		Sensors newSensors;
+		char readingBuf[32];
+		// -----
 		AllSensors sensors;
 		bool getReading(OneSensor *wichSensor);
-		bool controlSensor(SensorType wichSensorType, String wichCommand);
-		bool enableSensor(SensorType wichSensor);
-		bool disableSensor(SensorType wichSensor);
+		bool controlSensor(MetricType wichSensorType, String wichCommand);
+		bool enableSensor(MetricType wichSensor);
+		bool disableSensor(MetricType wichSensor);
 		bool writeHeader = false;
 
 		// Urban board
@@ -244,15 +246,6 @@ class SckBase
 		String ipAddress;
 		char hostname[17];
 		void mqttCustom(const char *topic, const char *payload);
-
-		// Output
-		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent", "Normal", "Verbose"	};
-		char outBuff[240];
-		void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true); 		// Accepts String object
-		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
-		void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
-		void prompt();
-		void plot(String value, const char *title=NULL, const char *unit=NULL);
 
 		// Button
 		volatile bool butState = true;
@@ -293,7 +286,7 @@ class SckBase
 #endif
 };
 
-bool I2Cdetect(TwoWire *_Wire, byte address);
+// bool I2Cdetect(TwoWire *_Wire, byte address);
 void ISR_button();
 void ISR_sdDetect();
 void ext_reset();

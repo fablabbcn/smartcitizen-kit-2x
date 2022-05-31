@@ -1,14 +1,17 @@
 #include "SckBase.h"
+#include "Utils.h"
 
 void SckBase::buttonEvent()
 {
 	if (!butState){
 		// Button Down
-		sckOut("Button Down", PRIO_LOW);
+		// TODO print this only in button-debug mode
+		// sckPrintfln("Button Down");
 
 	} else {
 		// Button Up
-		sckOut("Button Up", PRIO_LOW);
+		// TODO print this only in button-debug mode
+		// sckPrintfln("Button Up");
 
 		if (sckOFF) {
 			
@@ -45,8 +48,8 @@ void SckBase::buttonStillDown()
 
 	if (pressedTime >= buttonVeryLong) {
 
-		sprintf(outBuff, "Button pressed for %lu milliseconds: Very long press", pressedTime);
-		sckOut(PRIO_LOW);
+		// TODO print this only in button-debug mode
+		// sckPrintfln("Button pressed for %lu milliseconds: Very long press", pressedTime);
 
 		sckOFF = false;
 
@@ -56,8 +59,8 @@ void SckBase::buttonStillDown()
 
 	} else if (pressedTime >= buttonLong && !sckOFF) {
 
-		sprintf(outBuff, "Button pressed for %lu milliseconds: Long press", pressedTime);
-		sckOut(PRIO_LOW);
+		// TODO print this only in button-debug mode
+		// sckPrintfln("Button pressed for %lu milliseconds: Long press", pressedTime);
 
 		sckOFF = true;
 		led.off();

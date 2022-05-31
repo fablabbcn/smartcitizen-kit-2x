@@ -34,35 +34,35 @@ enum SensorState
 	SENSOR_ERROR
 };
 
-// Light
-class Sck_BH1730FVC
-{
-	// Datasheet
-	// https://www.mouser.es/datasheet/2/348/bh1730fvc-e-1018573.pdf
-
-	private:
-		bool updateValues();
-		
-		// Config values
-		uint8_t ITIME; 			// Integration Time (datasheet page 9)
-		float ITIME_ms;
-		const uint8_t ITIME_max = 252;
-		const uint8_t ITIME_min = 1;
-		const uint16_t goUp = 32768; 	// On the high part
-		float Tmt; 			// Measurement time (datasheet page 9)
-		const float Tint = 2.8; 	// Internal Clock Period (datasheet page 4 --> 2.8 typ -- 4.0 max)
-		uint8_t Gain = 1;
-
-		float DATA0; 			// Visible Light
-		float DATA1; 			// Infrared Light
-	public:
-		bool debug = false;
-		uint8_t address = 0x29;
-		int reading;
-		bool start();
-		bool stop();
-		bool get();
-};
+// // Light
+// class Sck_BH1730FVC
+// {
+// 	// Datasheet
+// 	// https://www.mouser.es/datasheet/2/348/bh1730fvc-e-1018573.pdf
+//
+// 	private:
+// 		bool updateValues();
+// 		
+// 		// Config values
+// 		uint8_t ITIME; 			// Integration Time (datasheet page 9)
+// 		float ITIME_ms;
+// 		const uint8_t ITIME_max = 252;
+// 		const uint8_t ITIME_min = 1;
+// 		const uint16_t goUp = 32768; 	// On the high part
+// 		float Tmt; 			// Measurement time (datasheet page 9)
+// 		const float Tint = 2.8; 	// Internal Clock Period (datasheet page 4 --> 2.8 typ -- 4.0 max)
+// 		uint8_t Gain = 1;
+//
+// 		float DATA0; 			// Visible Light
+// 		float DATA1; 			// Infrared Light
+// 	public:
+// 		bool debug = false;
+// 		uint8_t address = 0x29;
+// 		int reading;
+// 		bool start();
+// 		bool stop();
+// 		bool get();
+// };
 
 // Temperature and Humidity
 class Sck_SHT31
@@ -121,7 +121,7 @@ class Sck_Noise
 		int32_t readingFFT[FFT_NUM];
 		bool start();
 		bool stop();
-		bool getReading(SensorType wichSensor);
+		bool getReading(MetricType wichSensor);
 
 };
 
@@ -284,15 +284,15 @@ class SckUrban
 		}
 
 		bool present();
-		bool start(SensorType wichSensor);
-		bool stop(SensorType wichSensor);
+		bool start(MetricType wichSensor);
+		bool stop(MetricType wichSensor);
 
 		// String getReading(); https://stackoverflow.com/questions/14840173/c-same-function-parameters-with-different-return-type
 		void getReading(SckBase *base, OneSensor *wichSensor);
-		bool control(SckBase *base, SensorType wichSensor, String command);
+		bool control(SckBase *base, MetricType wichSensor, String command);
 
 		// Light
-		Sck_BH1730FVC sck_bh1730fvc;
+		// Sck_BH1730FVC sck_bh1730fvc;
 
 		// Temperature and Humidity
 		Sck_SHT31 sck_sht31 = Sck_SHT31(&Wire);

@@ -31,31 +31,31 @@ void SckTest::test_full()
 	testBase->st.onShell = true;
 	
 	testBase->ESPcontrol(testBase->ESP_REBOOT);
-	SerialUSB.println("Waiting for ESP first boot...");
-	SerialUSB.println("May take some time due to flash formating");
-	SerialUSB.println("Please don't disconnect the SCK");
+	sckPrintfln("Waiting for ESP first boot...");
+	sckPrintfln("May take some time due to flash formating");
+	sckPrintfln("Please don't disconnect the SCK");
 	uint32_t startWaiting = millis();
 	while (testBase->st.espBooting) {
-		if (millis() % 1000 == 0) SerialUSB.print('.'); delay(1);
+		if (millis() % 1000 == 0) sckPrintf('.'); delay(1);
 		if (millis() - startWaiting > 120000) {
-			SerialUSB.println("ESP is taking too long to wakeup");
-			SerialUSB.println("Please reflash ESP chip and try again");
+			sckPrintfln("ESP is taking too long to wakeup");
+			sckPrintfln("Please reflash ESP chip and try again");
 		}
 		testBase->inputUpdate();
 	}
 
 	/* testBase->ESPcontrol(testBase->ESP_OFF); */
-	SerialUSB.println("\r\n********************************");
-	SerialUSB.println("Starting SmartCitizenKit test...");
+	sckPrintfln("\r\n********************************");
+	sckPrintfln("Starting SmartCitizenKit test...");
 
 	// Get SAM id
 	testBase->getUniqueID();
-	SerialUSB.print("SAM id: ");
+	sckPrintf("SAM id: ");
 	for (uint8_t i=0; i<4; i++) {
 		test_report.id[i] = testBase->uniqueID[i];
-		SerialUSB.print(test_report.id[i], HEX);
+		sckPrintf(test_report.id[i], HEX);
 	}
-	SerialUSB.println();
+	sckPrintfln("");
 
 	// At the beginning the kit will be in static blue waiting for user clicks
 	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_STATIC);
@@ -65,7 +65,7 @@ void SckTest::test_full()
 
 	// Test battery
 	if (test_battery() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_battery();
@@ -73,7 +73,7 @@ void SckTest::test_full()
 
 	// Test SDcard
 	if (test_sdcard() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_sdcard();
@@ -81,7 +81,7 @@ void SckTest::test_full()
 
 	// Test Flash memory
 	if (test_flash() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_flash();
@@ -89,7 +89,7 @@ void SckTest::test_full()
 
 	// Test SHT temp and hum
 	if (test_SHT() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_SHT();
@@ -97,7 +97,7 @@ void SckTest::test_full()
 
 	// Test Light
 	if (test_Light() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_Light();
@@ -105,7 +105,7 @@ void SckTest::test_full()
 
 	// Test Pressure
 	if (test_Pressure() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_Pressure();
@@ -113,7 +113,7 @@ void SckTest::test_full()
 
 	// Test Noise
 	if (test_Noise() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_Noise();
@@ -121,7 +121,7 @@ void SckTest::test_full()
 
 	// Test Air Quality
 	if (test_VOC() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_VOC();
@@ -129,7 +129,7 @@ void SckTest::test_full()
 
 	// Test PM sensor
 	if (test_PM() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_PM();
@@ -137,7 +137,7 @@ void SckTest::test_full()
 
 	// Test auxiliary I2C bus
 	if (test_auxWire() > 0) {
-		SerialUSB.println("Retrying...");
+		sckPrintfln("Retrying...");
 		delay(500);
 		title = false;
 		errors += test_auxWire();
@@ -147,23 +147,23 @@ void SckTest::test_full()
 	if (!connect_ESP()) errors++;
 	else {
 		if (!publishResult()) {
-			SerialUSB.println("Retrying...");
+			sckPrintfln("Retrying...");
 			delay(500);
 			if (!publishResult()) errors++;
 		}
 	}
 
-	SerialUSB.println("\r\n********************************");
+	sckPrintfln("\r\n********************************");
 	if (errors > 0) {
 		testBase->led.update(testBase->led.RED, testBase->led.PULSE_STATIC);
-		SerialUSB.print("\r\nERROR... ");
-		SerialUSB.print(errors);
-		SerialUSB.println(" tests failed!!!");
+		sckPrintf("\r\nERROR... ");
+		sckPrintf(errors);
+		sckPrintfln(" tests failed!!!");
 	} else {
 		testBase->led.update(testBase->led.GREEN, testBase->led.PULSE_STATIC);
-		SerialUSB.println("\r\nTesting finished, all tests OK");
+		sckPrintfln("\r\nTesting finished, all tests OK");
 	}
-	SerialUSB.println("\r\n********************************");
+	sckPrintfln("\r\n********************************");
 	while(true);
 }
 
@@ -172,7 +172,7 @@ bool SckTest::test_user()
 	// Test button and led
 	// Starts with the led blinking in blue, waiting for user action
 	// Every time the user clicks the button the led will change color Blue ->  Red -> Green ->
-	SerialUSB.println("\r\nPlease click the button until the led is blue again...");
+	sckPrintfln("\r\nPlease click the button until the led is blue again...");
 	while (butLedState != TEST_FINISHED) {
 		testBase->inputUpdate();
 	}
@@ -189,19 +189,19 @@ void SckTest::test_button()
 
 			case TEST_BLUE:
 				testBase->led.update(testBase->led.RED, testBase->led.PULSE_STATIC);
-				SerialUSB.println("Changing Led to red...");
+				sckPrintfln("Changing Led to red...");
 				butLedState = TEST_RED;
 				break;
 
 			case TEST_RED:
 				testBase->led.update(testBase->led.GREEN, testBase->led.PULSE_STATIC);
-				SerialUSB.println("Changing Led to green..");
+				sckPrintfln("Changing Led to green..");
 				butLedState = TEST_GREEN;
 				break;
 
 			case TEST_GREEN:
 				testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_ERROR);
-				SerialUSB.println("Changing Led to blue..\r\nButton and led test finished OK");
+				sckPrintfln("Changing Led to blue..\r\nButton and led test finished OK");
 				butLedState = TEST_FINISHED;
 				break;
 			default: break;
@@ -211,7 +211,7 @@ void SckTest::test_button()
 
 uint8_t SckTest::test_battery()
 {
-	if (title) SerialUSB.println("\r\nTesting battery");
+	if (title) sckPrintfln("\r\nTesting battery");
 
 	uint8_t battErrors = 0;
 
@@ -227,7 +227,7 @@ uint8_t SckTest::test_battery()
 	}
 
 	if (!testBase->battery.present) {
-		SerialUSB.println("ERROR no battery detected!!");
+		sckPrintfln("ERROR no battery detected!!");
 		return 1; // No point on doing tests if no battery present
 	} else {
 		// Turn on charger and wait to be sure charging has started
@@ -239,23 +239,23 @@ uint8_t SckTest::test_battery()
 	}
 
 	if (!testBase->getReading(&testBase->sensors[SENSOR_BATT_VOLTAGE]) || testBase->sensors[SENSOR_BATT_VOLTAGE].reading.toFloat() <= 0) {
-		SerialUSB.println("ERROR reading battery voltage!");
+		sckPrintfln("ERROR reading battery voltage!");
 		battErrors++;
 	} else {
 		test_report.tests[TEST_BATT_VOLT] = testBase->sensors[SENSOR_BATT_VOLTAGE].reading.toFloat();
-		SerialUSB.print("Battery voltage: ");
-		SerialUSB.print(test_report.tests[TEST_BATT_VOLT]);
-		SerialUSB.println(" V");
+		sckPrintf("Battery voltage: ");
+		sckPrintf(test_report.tests[TEST_BATT_VOLT]);
+		sckPrintfln(" V");
 	}
 
 	if (testBase->charger.getChargeStatus() != testBase->charger.CHRG_FAST_CHARGING) {
-		SerialUSB.println("ERROR battery is not charging!!");
+		sckPrintfln("ERROR battery is not charging!!");
 		battErrors++;
 	} else {
 		test_report.tests[TEST_BATT_CHG] = 1;
-		SerialUSB.print("Charger status: ");
-		SerialUSB.println(testBase->charger.chargeStatusTitles[testBase->charger.getChargeStatus()]);
-		SerialUSB.println("Battery test finished OK");
+		sckPrintf("Charger status: ");
+		sckPrintfln(testBase->charger.chargeStatusTitles[testBase->charger.getChargeStatus()]);
+		sckPrintfln("Battery test finished OK");
 	}
 
 	title = true;
@@ -265,10 +265,10 @@ uint8_t SckTest::test_battery()
 uint8_t SckTest::test_sdcard()
 {
 
-	if (title) SerialUSB.println("\r\nTesting SDcard...");
+	if (title) sckPrintfln("\r\nTesting SDcard...");
 	testBase->sdDetect();
 	if (!testBase->st.cardPresent) {
-		SerialUSB.println("ERROR No SD card detected!!!");
+		sckPrintfln("ERROR No SD card detected!!!");
 		return 1;
 	}
 
@@ -276,7 +276,7 @@ uint8_t SckTest::test_sdcard()
 	digitalWrite(pinCS_SDCARD, LOW);
 
 	if (!testBase->sdInit()) {
-		SerialUSB.println(F("ERROR Cant't start Sdcard!!!"));
+		sckPrintfln(F("ERROR Cant't start Sdcard!!!"));
 		return 1;
 	}
 
@@ -300,11 +300,11 @@ uint8_t SckTest::test_sdcard()
 
 	String strTest = String(testString);
 	if (!strTest.startsWith("testing")) {
-		SerialUSB.println("ERROR writing/reading sdcard!!!");
+		sckPrintfln("ERROR writing/reading sdcard!!!");
 		return 1;
 	} else {
 		test_report.tests[TEST_SD] = 1;
-		SerialUSB.println("SDcard test finished OK");
+		sckPrintfln("SDcard test finished OK");
 	}
 
 	title = true;
@@ -313,69 +313,66 @@ uint8_t SckTest::test_sdcard()
 
 uint8_t SckTest::test_flash()
 {
-	if (title) SerialUSB.println("\r\nTesting Flash memory...");
+	if (title) sckPrintfln("\r\nTesting Flash memory...");
 
 	uint32_t fCapacity = testBase->readingsList.getFlashCapacity();
 	if (fCapacity > 0) {
-		SerialUSB.print("Found flash chip with ");
-		SerialUSB.print(fCapacity);
-		SerialUSB.println(" bytes of size.");
+		sckPrintf("Found flash chip with ");
+		sckPrintf(fCapacity);
+		sckPrintfln(" bytes of size.");
 	} else {
-		SerialUSB.println("ERROR recognizing flash chip!!!");
+		sckPrintfln("ERROR recognizing flash chip!!!");
 		return 1;
 	}
 
 	if (!testBase->readingsList.testFlash()) {
-		SerialUSB.println("ERROR writing/reading flash chip!!!");
+		sckPrintfln("ERROR writing/reading flash chip!!!");
 		return 1;
 	}
 
 	test_report.tests[TEST_FLASH] = 1;
-	SerialUSB.println("Flash memory test finished OK");
+	sckPrintfln("Flash memory test finished OK");
 	title = true;
 	return 0;
 }
 
 uint8_t SckTest::test_SHT()
 {
-	if (title) SerialUSB.println("\r\nTesting SHT31 sensor...");
+	if (title) sckPrintfln("\r\nTesting SHT31 sensor...");
 
 	uint8_t shtErrors = 0;
 	if (!testBase->getReading(&testBase->sensors[SENSOR_TEMPERATURE])) {
-		SerialUSB.println("ERROR reading SHT31 temperature sensor");
+		sckPrintfln("ERROR reading SHT31 temperature sensor");
 		shtErrors ++;
 	} else {
 		test_report.tests[TEST_TEMP] = testBase->sensors[SENSOR_TEMPERATURE].reading.toFloat();
-		sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_TEMPERATURE].title, test_report.tests[TEST_TEMP], testBase->sensors[SENSOR_TEMPERATURE].unit);
-		SerialUSB.println(testBase->outBuff);
+		sckPrintfln("%s: %.2f %s", testBase->sensors[SENSOR_TEMPERATURE].title, test_report.tests[TEST_TEMP], testBase->sensors[SENSOR_TEMPERATURE].unit);
 	}
 
 	if (!testBase->getReading(&testBase->sensors[SENSOR_HUMIDITY])) {
-		SerialUSB.println("ERROR reading SHT31 humidity sensor");
+		sckPrintfln("ERROR reading SHT31 humidity sensor");
 		shtErrors ++;
 	} else {
 		test_report.tests[TEST_HUM] = testBase->sensors[SENSOR_HUMIDITY].reading.toFloat();
-		sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_HUMIDITY].title, test_report.tests[TEST_HUM], testBase->sensors[SENSOR_HUMIDITY].unit);
-		SerialUSB.println(testBase->outBuff);
+		sckPrintfln("%s: %.2f %s", testBase->sensors[SENSOR_HUMIDITY].title, test_report.tests[TEST_HUM], testBase->sensors[SENSOR_HUMIDITY].unit);
 	}
 
-	if (shtErrors == 0) SerialUSB.println("SHT31 sensors test finished OK");
+	if (shtErrors == 0) sckPrintfln("SHT31 sensors test finished OK");
 	title = true;
 	return shtErrors;
 }
 
 uint8_t SckTest::test_Light()
 {
-	if (title) SerialUSB.println("\r\nTesting Light sensor...");
+	if (title) sckPrintfln("\r\nTesting Light sensor...");
 
 	if (!testBase->getReading(&testBase->sensors[SENSOR_LIGHT])) {
-		SerialUSB.println("ERROR reading Light sensor");
+		sckPrintfln("ERROR reading Light sensor");
 		return 1;
 	} else {
 		test_report.tests[TEST_LIGHT] = testBase->sensors[SENSOR_LIGHT].reading.toFloat();
-		sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_LIGHT].title, test_report.tests[TEST_LIGHT], testBase->sensors[SENSOR_LIGHT].unit);
-		SerialUSB.println(testBase->outBuff);
-		SerialUSB.println("Light sensor test finished OK");
+		sckPrintfln("%s: %.2f %s", testBase->sensors[SENSOR_LIGHT].title, test_report.tests[TEST_LIGHT], testBase->sensors[SENSOR_LIGHT].unit);
+		sckPrintfln("Light sensor test finished OK");
 	}
 
 	title = true;
@@ -384,16 +381,15 @@ uint8_t SckTest::test_Light()
 
 uint8_t SckTest::test_Pressure()
 {
-	if (title) SerialUSB.println("\r\nTesting Pressure sensor...");
+	if (title) sckPrintfln("\r\nTesting Pressure sensor...");
 
 	if (!testBase->getReading(&testBase->sensors[SENSOR_PRESSURE])) {
-		SerialUSB.println("ERROR reading Barometric Pressure sensor");
+		sckPrintfln("ERROR reading Barometric Pressure sensor");
 		return 1;
 	} else {
 		test_report.tests[TEST_PRESS] = testBase->sensors[SENSOR_PRESSURE].reading.toFloat();
-		sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_PRESSURE].title, test_report.tests[TEST_PRESS], testBase->sensors[SENSOR_PRESSURE].unit);
-		SerialUSB.println(testBase->outBuff);
-		SerialUSB.println("Pressure sensor test finished OK");
+		sckPrintfln("%s: %.2f %s", testBase->sensors[SENSOR_PRESSURE].title, test_report.tests[TEST_PRESS], testBase->sensors[SENSOR_PRESSURE].unit);
+		sckPrintfln("Pressure sensor test finished OK");
 	}
 
 	title = true;
@@ -402,39 +398,35 @@ uint8_t SckTest::test_Pressure()
 
 uint8_t SckTest::test_Noise()
 {
-	SerialUSB.println("\r\nTesting Noise sensor...");
+	sckPrintfln("\r\nTesting Noise sensor...");
 
 	if (!testBase->getReading(&testBase->sensors[SENSOR_NOISE_DBA])) {
-		SerialUSB.println("ERROR reading Noise sensor");
+		sckPrintfln("ERROR reading Noise sensor");
 		return 1;
 	} else {
 		test_report.tests[TEST_NOISE] = testBase->sensors[SENSOR_NOISE_DBA].reading.toFloat();
-		sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_NOISE_DBA].title, test_report.tests[TEST_NOISE], testBase->sensors[SENSOR_NOISE_DBA].unit);
-		SerialUSB.println(testBase->outBuff);
-		SerialUSB.println("Noise sensor test finished OK");
+		sckPrintfln("%s: %.2f %s", testBase->sensors[SENSOR_NOISE_DBA].title, test_report.tests[TEST_NOISE], testBase->sensors[SENSOR_NOISE_DBA].unit);
+		sckPrintfln("Noise sensor test finished OK");
 	}
 	return 0;
 }
 
 uint8_t SckTest::test_PM()
 {
-	if (title) SerialUSB.println("\r\nTesting PM sensor...");
+	if (title) sckPrintfln("\r\nTesting PM sensor...");
 
 	if (testBase->urban.sck_pm.update()) {
 
 		test_report.tests[TEST_PM_1] = (float)testBase->urban.sck_pm.pm1;
 		test_report.tests[TEST_PM_25] = (float)testBase->urban.sck_pm.pm25;
 		test_report.tests[TEST_PM_10] = (float)testBase->urban.sck_pm.pm10;
-		sprintf(testBase->outBuff, "%s: %.0f %s", testBase->sensors[SENSOR_PM_1].title, test_report.tests[TEST_PM_1], testBase->sensors[SENSOR_PM_1].unit);
-		SerialUSB.println(testBase->outBuff);
-		sprintf(testBase->outBuff, "%s: %.0f %s", testBase->sensors[SENSOR_PM_25].title, test_report.tests[TEST_PM_25], testBase->sensors[SENSOR_PM_25].unit);
-		SerialUSB.println(testBase->outBuff);
-		sprintf(testBase->outBuff, "%s: %.0f %s", testBase->sensors[SENSOR_PM_10].title, test_report.tests[TEST_PM_10], testBase->sensors[SENSOR_PM_10].unit);
-		SerialUSB.println(testBase->outBuff);
-		SerialUSB.println("PMS sensors test finished OK");
+		sckPrintfln("%s: %.0f %s", testBase->sensors[SENSOR_PM_1].title, test_report.tests[TEST_PM_1], testBase->sensors[SENSOR_PM_1].unit);
+		sckPrintfln("%s: %.0f %s", testBase->sensors[SENSOR_PM_25].title, test_report.tests[TEST_PM_25], testBase->sensors[SENSOR_PM_25].unit);
+		sckPrintfln("%s: %.0f %s", testBase->sensors[SENSOR_PM_10].title, test_report.tests[TEST_PM_10], testBase->sensors[SENSOR_PM_10].unit);
+		sckPrintfln("PMS sensors test finished OK");
 
 	} else {
-		SerialUSB.println("ERROR reading PM sensor");
+		sckPrintfln("ERROR reading PM sensor");
 		return 3;
 	}
 
@@ -444,18 +436,16 @@ uint8_t SckTest::test_PM()
 
 uint8_t SckTest::test_VOC()
 {
-	if (title) SerialUSB.println("\r\nTesting Air Quality sensor...");
+	if (title) sckPrintfln("\r\nTesting Air Quality sensor...");
 
 	if (testBase->urban.sck_ccs811.getReading(testBase)) {
 		test_report.tests[TEST_VOCS] = testBase->urban.sck_ccs811.VOCgas;
 		test_report.tests[TEST_ECO2] = testBase->urban.sck_ccs811.ECO2gas;
-		sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_CCS811_VOCS].title, test_report.tests[TEST_VOCS], testBase->sensors[SENSOR_CCS811_VOCS].unit);
-		SerialUSB.println(testBase->outBuff);
-		sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_CCS811_ECO2].title, test_report.tests[TEST_ECO2], testBase->sensors[SENSOR_CCS811_ECO2].unit);
-		SerialUSB.println(testBase->outBuff);
-		SerialUSB.println("Air Quality sensor test finished OK");
+		sckPrintfln("%s: %.2f %s", testBase->sensors[SENSOR_CCS811_VOCS].title, test_report.tests[TEST_VOCS], testBase->sensors[SENSOR_CCS811_VOCS].unit);
+		sckPrintfln("%s: %.2f %s", testBase->sensors[SENSOR_CCS811_ECO2].title, test_report.tests[TEST_ECO2], testBase->sensors[SENSOR_CCS811_ECO2].unit);
+		sckPrintfln("Air Quality sensor test finished OK");
 	} else {
-		SerialUSB.println("ERROR reading Air Quality VOCS-ECO2 sensor");
+		sckPrintfln("ERROR reading Air Quality VOCS-ECO2 sensor");
 		return 2;
 	}
 
@@ -465,22 +455,21 @@ uint8_t SckTest::test_VOC()
 
 uint8_t SckTest::test_auxWire()
 {
-	if (title) SerialUSB.println("\r\nTesting auxiliary I2C bus...");
+	if (title) sckPrintfln("\r\nTesting auxiliary I2C bus...");
 
 	// Check if a external SHT was detected a get reading
 	if (!testBase->sensors[SENSOR_SHT31_TEMP].enabled) {
-		SerialUSB.println("ERROR No external SHT31 sensor found on Auxiliary I2C bus!!!");
+		sckPrintfln("ERROR No external SHT31 sensor found on Auxiliary I2C bus!!!");
 		return 1;
 	}
 
 	if (!testBase->getReading(&testBase->sensors[SENSOR_SHT31_TEMP])) {
-		SerialUSB.println("ERROR reading external SHT31 sensor");
+		sckPrintfln("ERROR reading external SHT31 sensor");
 		return 1;
 	} else {
 		test_report.tests[TEST_AUXWIRE] = 1;
-		sprintf(testBase->outBuff, "%s: %s %s", testBase->sensors[SENSOR_SHT31_TEMP].title, testBase->sensors[SENSOR_SHT31_TEMP].reading.c_str(), testBase->sensors[SENSOR_SHT31_TEMP].unit);
-		SerialUSB.println(testBase->outBuff);
-		SerialUSB.println("Auxiliary I2C bus test finished OK");
+		sckPrintfln("%s: %s %s", testBase->sensors[SENSOR_SHT31_TEMP].title, testBase->sensors[SENSOR_SHT31_TEMP].reading.c_str(), testBase->sensors[SENSOR_SHT31_TEMP].unit);
+		sckPrintfln("Auxiliary I2C bus test finished OK");
 	}
 	title = true;
 	return 0;
@@ -496,7 +485,7 @@ bool SckTest::connect_ESP()
 	testBase->config.token.set = true;
 	testBase->saveConfig();
 
-	SerialUSB.println("\r\nTesting ESP and WIFI connectivity...");
+	sckPrintfln("\r\nTesting ESP and WIFI connectivity...");
 
 	testBase->led.update(testBase->led.BLUE, testBase->led.PULSE_ERROR);
 	uint32_t started = millis();
@@ -507,20 +496,20 @@ bool SckTest::connect_ESP()
 		testBase->inputUpdate();
 		delay(1);
 		if (millis() - started > 80000) {
-			SerialUSB.println("ERROR timeout on wifi connection");
+			sckPrintfln("ERROR timeout on wifi connection");
 			return false;
 		}
 	}
 	testBase->config.outLevel = OUT_SILENT;
 
-	SerialUSB.println("Wifi connection OK");
+	sckPrintfln("Wifi connection OK");
 	test_report.tests[TEST_WIFI_TIME] = (millis() - started) / 1000;
 	return true;
 }
 
 bool SckTest::publishResult()
 {
-	SerialUSB.println();
+	sckPrintfln();
 
 		/* {"time":"2018-07-17T06:55:06Z"               // time */
 		/* "id":"45f90530-504e4b4b-372e314a-ff031e17",  // SAM id */
@@ -590,7 +579,7 @@ bool SckTest::publishResult()
 	testBase->st.publishStat.reset();
 	while (!testBase->sendMessage()) {
 		if (millis() - started > 15000) {
-			SerialUSB.println("ERROR sending test report to ESP");
+			sckPrintfln("ERROR sending test report to ESP");
 			return false;
 		}
 		delay(500);
@@ -600,14 +589,14 @@ bool SckTest::publishResult()
 
 	while (!testBase->st.publishStat.ok) {
 		if (testBase->st.publishStat.error) {
-			SerialUSB.println("ERROR on publishing test results");
+			sckPrintfln("ERROR on publishing test results");
 			return false;
 		}
 		testBase->update();
 		testBase->inputUpdate();
 	}
 
-	SerialUSB.println("Test results sent to platform");
+	sckPrintfln("Test results sent to platform");
 
 	testBase->sdDetect();
 	if (testBase->st.cardPresent && testBase->sdInit()) {
@@ -618,9 +607,9 @@ bool SckTest::publishResult()
 		reportFile = testBase->sd.open(reportFileName, FILE_WRITE);
 		serializeJsonPretty(json, reportFile);
 		reportFile.close();
-		SerialUSB.println("Report saved to sdcard");
+		sckPrintfln("Report saved to sdcard");
 	} else {
-		SerialUSB.println("ERROR Failed to save report to sdcard");
+		sckPrintfln("ERROR Failed to save report to sdcard");
 		return false;
 	}
 

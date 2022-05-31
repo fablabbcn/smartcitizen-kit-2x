@@ -1,5 +1,6 @@
 #include "SckUrban.h"
 #include "SckBase.h"
+#include "Utils.h"
 
 // Hardware Serial UART PM
 Uart SerialPM (&sercom5, pinPM_SERIAL_RX, pinPM_SERIAL_TX, SERCOM_RX_PAD_1, UART_TX_PAD_0);
@@ -9,7 +10,7 @@ void SERCOM5_Handler() {
 
 bool SckUrban::present()
 {
-	if (sck_bh1730fvc.start()) return true;
+	// if (sck_bh1730fvc.start()) return true;
 	if (sck_sht31.start()) return true;
 	if (sck_mpl3115A2.start()) return true;
 	if (sck_ccs811.start()) return true;
@@ -17,10 +18,10 @@ bool SckUrban::present()
 
 	return false;
 }
-bool SckUrban::start(SensorType wichSensor)
+bool SckUrban::start(MetricType wichSensor)
 {
 	switch(wichSensor) {
-		case SENSOR_LIGHT: 				if (sck_bh1730fvc.start()) return true; break;
+		// case SENSOR_LIGHT: 				if (sck_bh1730fvc.start()) return true; break;
 		case SENSOR_TEMPERATURE:
 		case SENSOR_HUMIDITY: 				if (sck_sht31.start()) return true; break;
 		case SENSOR_NOISE_DBA:
@@ -46,10 +47,10 @@ bool SckUrban::start(SensorType wichSensor)
 
 	return false;
 }
-bool SckUrban::stop(SensorType wichSensor)
+bool SckUrban::stop(MetricType wichSensor)
 {
 	switch(wichSensor) {
-		case SENSOR_LIGHT: 				if (sck_bh1730fvc.stop()) return true; break;
+		// case SENSOR_LIGHT: 				if (sck_bh1730fvc.stop()) return true; break;
 		case SENSOR_TEMPERATURE:
 		case SENSOR_HUMIDITY: 				if (sck_sht31.stop()) return true; break;
 		case SENSOR_NOISE_DBA:
@@ -80,7 +81,7 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 {
 	wichSensor->state = 0;
 	switch(wichSensor->type) {
-		case SENSOR_LIGHT:			if (sck_bh1730fvc.get()) 			{ wichSensor->reading = String(sck_bh1730fvc.reading); return; } break;
+		// case SENSOR_LIGHT:			if (sck_bh1730fvc.get()) 			{ wichSensor->reading = String(sck_bh1730fvc.reading); return; } break;
 		case SENSOR_TEMPERATURE: 		if (sck_sht31.getReading()) 			{ wichSensor->reading = String(sck_sht31.temperature); return; } break;
 		case SENSOR_HUMIDITY: 			if (sck_sht31.getReading()) 			{ wichSensor->reading = String(sck_sht31.humidity); return; } break;
 		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading(SENSOR_NOISE_DBA)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
@@ -111,7 +112,7 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 	wichSensor->reading = "null";
 	wichSensor->state = -1;
 }
-bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
+bool SckUrban::control(SckBase *base, MetricType wichSensor, String command)
 {
 
 	switch (wichSensor) {
@@ -122,8 +123,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 		{
 				if (command.startsWith("debug")) {
 					sck_noise.debugFlag = !sck_noise.debugFlag;
-					sprintf(base->outBuff, "Noise debug: %s", sck_noise.debugFlag  ? "true" : "false");
-					base->sckOut();
+					sckPrintfln("Noise debug: %s", sck_noise.debugFlag  ? "true" : "false");
 					return true;
 				}
 		} case SENSOR_CCS811_VOCS:
@@ -140,8 +140,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					command.trim();
 
 					if (command.length() == 0) {
-						sprintf(base->outBuff, "Current drive mode: %u", sck_ccs811.driveMode);
-						base->sckOut();
+						sckPrintfln("Current drive mode: %u", sck_ccs811.driveMode);
 						return "\r\n";
 					}
 
@@ -158,8 +157,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 
 				} else if (command.startsWith("help") || command.length() == 0) {
 
-					sprintf(base->outBuff, "Available commands:\r\n* compensate (toggles temp/hum compensation)\r\n* mode [0-4] (0-idle, 1-1s, 2-10s, 3-60s, 4-raw)");
-					base->sckOut();
+					sckPrintfln("Available commands:\r\n* compensate (toggles temp/hum compensation)\r\n* mode [0-4] (0-idle, 1-1s, 2-10s, 3-60s, 4-raw)");
 					return "\r\n";
 				}
 
@@ -175,8 +173,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					if (command.startsWith("1")) sck_pm.debug = true;
 					else if (command.startsWith("0")) sck_pm.debug = false;
 
-					sprintf(base->outBuff, "%s", sck_pm.debug  ? "true" : "false");
-					base->sckOut();
+					sckPrintfln("%s", sck_pm.debug  ? "true" : "false");
 					return true;
 
 				} else if (command.startsWith("powersave")) {
@@ -187,8 +184,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					if (command.startsWith("1")) sck_pm.powerSave = true;
 					else if (command.startsWith("0")) sck_pm.powerSave = false;
 
-					sprintf(base->outBuff, "%s", sck_pm.powerSave  ? "true" : "false");
-					base->sckOut();
+					sckPrintfln("%s", sck_pm.powerSave  ? "true" : "false");
 					
 					if (oldValue != sck_pm.powerSave) {
 						base->config.extra.pmPowerSave = sck_pm.powerSave;
@@ -208,8 +204,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 						sck_pm.warmUpPeriod = newPeriod;
 					} 
 
-					sprintf(base->outBuff, "%u seconds", sck_pm.warmUpPeriod);
-					base->sckOut();
+					sckPrintfln("%u seconds", sck_pm.warmUpPeriod);
 
 					if (oldValue != sck_pm.warmUpPeriod) {
 						base->config.extra.pmWarmUpPeriod = sck_pm.warmUpPeriod;
@@ -219,219 +214,218 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 
 				} else if (command.startsWith("help") || command.length() == 0) {
 
-					sprintf(base->outBuff, "Available commands:\r\n* powersave: [0-1] Sets powersave (turn off PMS after reading it)\r\n* warmup [seconds] Changes warm up period for sensor\r\n* debug [0-1] Sets debug messages");
-					base->sckOut();
+					sckPrintfln("Available commands:\r\n* powersave: [0-1] Sets powersave (turn off PMS after reading it)\r\n* warmup [seconds] Changes warm up period for sensor\r\n* debug [0-1] Sets debug messages");
 					return "\r\n";
 				}
 		}
 		default: break;
 	}
 
-	base->sckOut("Sensor not recognized!!");
+	sckPrintfln("Sensor not recognized!!");
 	return false;
 }
 
-// Light
-bool Sck_BH1730FVC::start()
-{
-	if (!I2Cdetect(&Wire, address)) return false;
-	return true;
-}
-bool Sck_BH1730FVC::stop()
-{
-	// 0x00 register - CONTROL
-	uint8_t CONTROL = B000000;
-	// ADC_INTR: 	5	0:Interrupt is inactive.
-	// 			1:Interrupt is active.
-	// ADC_VALID:	4	0:ADC data is not updated after last reading.
-	// 			1:ADC data is updated after last reading.
-	// ONE_TIME:	3	0:ADC measurement is continuous.
-	// 			1:ADC measurement is one time.
-	// 			ADC	transits to power down automatically.
-	// DATA_SEL:	2	0:ADC measurement Type0 and Type1.
-	// 			1:ADC measurement Type0 only.
-	// ADC_EN:	1	0:ADC measurement stop.
-	// 			1:ADC measurement start.
-	// POWER:	0	0:ADC power down.
-	// 			1:ADC power on.
-
-	// Send Configuration
-	// This will save around 150 uA
-	Wire.beginTransmission(address);
-	Wire.write(0x80);
-	Wire.write(CONTROL);
-	Wire.endTransmission();
-
-	return true;
-}
-bool Sck_BH1730FVC::updateValues()
-{
-	// Datasheet http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1730fvc-e.pdf
-
-	// 0x00 register - CONTROL
-	uint8_t CONTROL = B000011;
-	// ADC_INTR: 	5	0:Interrupt is inactive.
-	// 			1:Interrupt is active.
-	// ADC_VALID:	4	0:ADC data is not updated after last reading.
-	// 			1:ADC data is updated after last reading.
-	// ONE_TIME:	3	0:ADC measurement is continuous.
-	// 			1:ADC measurement is one time.
-	// 			ADC	transits to power down automatically.
-	// DATA_SEL:	2	0:ADC measurement Type0 and Type1.
-	// 			1:ADC measurement Type0 only.
-	// ADC_EN:	1	0:ADC measurement stop.
-	// 			1:ADC measurement start.
-	// POWER:	0	0:ADC power down.
-	// 			1:ADC power on.
-
-	// 0x01 register - TIMMING
-	// uint8_t ITIME  = 0xDA; 	// Datasheet default value (218 DEC)
-
-	// 00h: Start / Stop of measurement is set by special command. (ADC manual integration mode)
-	// 01h to FFh: Integration time is determined by ITIME value (defaultt is oxDA)
-	// Integration Time : ITIME_ms = Tint * 964 * (256 - ITIME)
-	// Measurement time : Tmt= ITIME_ms + Tint * 714
-
-	// 0x02 register - INTERRUPT
-	uint8_t INTERRUPT = B00000000;
-	// RES 		7 	Write 0
-	// INT_STOP	6	0 : ADC measurement does not stop.
-	// 				1 : ADC measurement stops and transits to power down mode when interrupt becomes active.
-	// RES 		5 	Write 0
-	// INT_EN 	4 	0 : Disable interrupt function.
-	// 				1 : Enable interrupt function.
-	// PERSIST 	3:0 Interrupt persistence function.
-	//	0000 : Interrupt becomes active at each measurement end.
-	//	0001 : Interrupt status is updated at each measurement end.
-	//	0010 : Interrupt status is updated if two consecutive threshold judgments are the same.
-	//	When  set  0011  or  more,  interrupt  status  is  updated  if same threshold judgments continue consecutively same times as the number set in PERSIST.
-
-	// 0x03, 0x04 registers - TH_LOW Low interrupt threshold
-	uint8_t TH_LOW0 = 0x00;		// Lower byte of low interrupt threshold
-	uint8_t TH_LOW1 = 0x00;		// Upper byte of low interrupt threshold
-
-	// 0x05, 0x06 registers - TH_UP High interrupt threshold
-	uint8_t TH_UP0 = 0xFF;		// Lower byte of high interrupt threshold
-	uint8_t TH_UP1 = 0xFF;		// Upper byte of high interrupt threshold
-
-	// 0x07 - GAIN
-	uint8_t GAIN = 0x00;
-	// GAIN  2:0	ADC resolution setting
-	//	  X00 : x1 gain mode
-	//	  X01 : x2 gain mode
-	//	  X10 : x64 gain mode
-	//	  X11 : x128 gain mode
-
-	uint8_t DATA[8] = {CONTROL, ITIME, INTERRUPT, TH_LOW0, TH_LOW1, TH_UP0, TH_UP1, GAIN};
-
-	// Send Configuration
-	Wire.beginTransmission(address);
-	Wire.write(0x80);
-	for (int i= 0; i<8; i++) Wire.write(DATA[i]);
-	Wire.endTransmission();
-
-	// Calculate timming values
-	ITIME_ms = (Tint * 964 * (256 - ITIME)) / 1000;
-	Tmt =  ITIME_ms + (Tint * 714);
-
-	// Wait for ADC to finish
-	uint32_t started = millis();
-	uint8_t answer = 0;
-	while ((answer & 0x10) == 0) {
-		delay(10);
-		Wire.beginTransmission(address);
-		Wire.write(0x80);
-		Wire.endTransmission();
-		Wire.requestFrom(address, 1);
-		answer = Wire.read();
-		if (millis() - started > Tmt) {
-			if (debug) SerialUSB.println("ERROR: Timeout waiting for reading");
-			return false;
-		}
-	}
-
-	// Ask for reading
-	Wire.beginTransmission(address);
-	Wire.write(0x94);
-	Wire.endTransmission();
-	Wire.requestFrom(address, 4);
-
-	// Get result
-	uint16_t IDATA0 = 0;
-	uint16_t IDATA1 = 0;
-	IDATA0 = Wire.read();
-	IDATA0 = IDATA0 | (Wire.read()<<8);
-	IDATA1 = Wire.read();
-	IDATA1 = IDATA1 | (Wire.read()<<8);
-	DATA0 = (float)IDATA0;
-	DATA1 = (float)IDATA1;
-
-	// Setup gain
-	Gain = 1;
-	if (GAIN == 0x01) Gain = 2;
-	else if (GAIN == 0x02) Gain = 64;
-	else if (GAIN == 0x03) Gain = 128;
-
-	return true;
-}
-bool Sck_BH1730FVC::get()
-{
-	// Start in the default integration time
-	ITIME = 218;
-
-	if (!updateValues()) return false;
-
-	// Adjust the Integration Time (ITIME)
-	for (uint8_t i=0; i<6; i++) {
-
-		if (DATA0 > goUp || DATA1 > goUp) {
-			ITIME += (((ITIME_max - ITIME) / 2) + 1);
-			if (ITIME > 250) ITIME = ITIME_max;
-
-			if (debug) {
-				SerialUSB.print(DATA0);
-				SerialUSB.print(" -- ");
-				SerialUSB.print(DATA1);
-				SerialUSB.print(" >> ");
-				SerialUSB.println(ITIME);
-			}
-		} else break;
-
-		if (!updateValues()) return false;
-	}
-
-	// Lux calculation (Datasheet page 13)
-	float Lx = 0;
-	if (DATA0 > 0 && DATA1 > 0) {
-		if (DATA1/DATA0 < 0.26) Lx = ((1.290 * DATA0 - 2.733 * DATA1) / Gain) * (102.6 / ITIME_ms);
-		else if (DATA1/DATA0 < 0.55) Lx = ((0.795 * DATA0 - 0.859 * DATA1) / Gain) * (102.6 / ITIME_ms);
-		else if (DATA1/DATA0 < 1.09) Lx = ((0.510 * DATA0 - 0.345 * DATA1) / Gain) * (102.6 / ITIME_ms);
-		else if (DATA1/DATA0 < 2.13) Lx = ((0.276 * DATA0 - 0.130 * DATA1) / Gain) * (102.6 / ITIME_ms);
-		else Lx = 0;
-	}
-
-	Lx = max(0, Lx);
-	reading  = (int)Lx;
-
-	if (debug) {
-		SerialUSB.print("Integration Time ITIME_ms: ");
-		SerialUSB.println(ITIME_ms);
-		SerialUSB.print("Measurement Time Tmt: ");
-		SerialUSB.println(Tmt);
-		SerialUSB.print("Gain: ");
-		SerialUSB.println(Gain);
-		SerialUSB.print("Visible Light DATA0: ");
-		SerialUSB.println(DATA0);
-		SerialUSB.print("Infrared Light DATA1: ");
-		SerialUSB.println(DATA1);
-		SerialUSB.print("Calculated Lux: ");
-		SerialUSB.println(Lx);
-	}
-
-	stop();
-
-	return true;
-}
+// // Light
+// bool Sck_BH1730FVC::start()
+// {
+// 	if (!I2Cdetect(&Wire, address)) return false;
+// 	return true;
+// }
+// bool Sck_BH1730FVC::stop()
+// {
+// 	// 0x00 register - CONTROL
+// 	uint8_t CONTROL = B000000;
+// 	// ADC_INTR: 	5	0:Interrupt is inactive.
+// 	// 			1:Interrupt is active.
+// 	// ADC_VALID:	4	0:ADC data is not updated after last reading.
+// 	// 			1:ADC data is updated after last reading.
+// 	// ONE_TIME:	3	0:ADC measurement is continuous.
+// 	// 			1:ADC measurement is one time.
+// 	// 			ADC	transits to power down automatically.
+// 	// DATA_SEL:	2	0:ADC measurement Type0 and Type1.
+// 	// 			1:ADC measurement Type0 only.
+// 	// ADC_EN:	1	0:ADC measurement stop.
+// 	// 			1:ADC measurement start.
+// 	// POWER:	0	0:ADC power down.
+// 	// 			1:ADC power on.
+//
+// 	// Send Configuration
+// 	// This will save around 150 uA
+// 	Wire.beginTransmission(address);
+// 	Wire.write(0x80);
+// 	Wire.write(CONTROL);
+// 	Wire.endTransmission();
+//
+// 	return true;
+// }
+// bool Sck_BH1730FVC::updateValues()
+// {
+// 	// Datasheet http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1730fvc-e.pdf
+//
+// 	// 0x00 register - CONTROL
+// 	uint8_t CONTROL = B000011;
+// 	// ADC_INTR: 	5	0:Interrupt is inactive.
+// 	// 			1:Interrupt is active.
+// 	// ADC_VALID:	4	0:ADC data is not updated after last reading.
+// 	// 			1:ADC data is updated after last reading.
+// 	// ONE_TIME:	3	0:ADC measurement is continuous.
+// 	// 			1:ADC measurement is one time.
+// 	// 			ADC	transits to power down automatically.
+// 	// DATA_SEL:	2	0:ADC measurement Type0 and Type1.
+// 	// 			1:ADC measurement Type0 only.
+// 	// ADC_EN:	1	0:ADC measurement stop.
+// 	// 			1:ADC measurement start.
+// 	// POWER:	0	0:ADC power down.
+// 	// 			1:ADC power on.
+//
+// 	// 0x01 register - TIMMING
+// 	// uint8_t ITIME  = 0xDA; 	// Datasheet default value (218 DEC)
+//
+// 	// 00h: Start / Stop of measurement is set by special command. (ADC manual integration mode)
+// 	// 01h to FFh: Integration time is determined by ITIME value (defaultt is oxDA)
+// 	// Integration Time : ITIME_ms = Tint * 964 * (256 - ITIME)
+// 	// Measurement time : Tmt= ITIME_ms + Tint * 714
+//
+// 	// 0x02 register - INTERRUPT
+// 	uint8_t INTERRUPT = B00000000;
+// 	// RES 		7 	Write 0
+// 	// INT_STOP	6	0 : ADC measurement does not stop.
+// 	// 				1 : ADC measurement stops and transits to power down mode when interrupt becomes active.
+// 	// RES 		5 	Write 0
+// 	// INT_EN 	4 	0 : Disable interrupt function.
+// 	// 				1 : Enable interrupt function.
+// 	// PERSIST 	3:0 Interrupt persistence function.
+// 	//	0000 : Interrupt becomes active at each measurement end.
+// 	//	0001 : Interrupt status is updated at each measurement end.
+// 	//	0010 : Interrupt status is updated if two consecutive threshold judgments are the same.
+// 	//	When  set  0011  or  more,  interrupt  status  is  updated  if same threshold judgments continue consecutively same times as the number set in PERSIST.
+//
+// 	// 0x03, 0x04 registers - TH_LOW Low interrupt threshold
+// 	uint8_t TH_LOW0 = 0x00;		// Lower byte of low interrupt threshold
+// 	uint8_t TH_LOW1 = 0x00;		// Upper byte of low interrupt threshold
+//
+// 	// 0x05, 0x06 registers - TH_UP High interrupt threshold
+// 	uint8_t TH_UP0 = 0xFF;		// Lower byte of high interrupt threshold
+// 	uint8_t TH_UP1 = 0xFF;		// Upper byte of high interrupt threshold
+//
+// 	// 0x07 - GAIN
+// 	uint8_t GAIN = 0x00;
+// 	// GAIN  2:0	ADC resolution setting
+// 	//	  X00 : x1 gain mode
+// 	//	  X01 : x2 gain mode
+// 	//	  X10 : x64 gain mode
+// 	//	  X11 : x128 gain mode
+//
+// 	uint8_t DATA[8] = {CONTROL, ITIME, INTERRUPT, TH_LOW0, TH_LOW1, TH_UP0, TH_UP1, GAIN};
+//
+// 	// Send Configuration
+// 	Wire.beginTransmission(address);
+// 	Wire.write(0x80);
+// 	for (int i= 0; i<8; i++) Wire.write(DATA[i]);
+// 	Wire.endTransmission();
+//
+// 	// Calculate timming values
+// 	ITIME_ms = (Tint * 964 * (256 - ITIME)) / 1000;
+// 	Tmt =  ITIME_ms + (Tint * 714);
+//
+// 	// Wait for ADC to finish
+// 	uint32_t started = millis();
+// 	uint8_t answer = 0;
+// 	while ((answer & 0x10) == 0) {
+// 		delay(10);
+// 		Wire.beginTransmission(address);
+// 		Wire.write(0x80);
+// 		Wire.endTransmission();
+// 		Wire.requestFrom(address, 1);
+// 		answer = Wire.read();
+// 		if (millis() - started > Tmt) {
+// 			if (debug) SerialUSB.println("ERROR: Timeout waiting for reading");
+// 			return false;
+// 		}
+// 	}
+//
+// 	// Ask for reading
+// 	Wire.beginTransmission(address);
+// 	Wire.write(0x94);
+// 	Wire.endTransmission();
+// 	Wire.requestFrom(address, 4);
+//
+// 	// Get result
+// 	uint16_t IDATA0 = 0;
+// 	uint16_t IDATA1 = 0;
+// 	IDATA0 = Wire.read();
+// 	IDATA0 = IDATA0 | (Wire.read()<<8);
+// 	IDATA1 = Wire.read();
+// 	IDATA1 = IDATA1 | (Wire.read()<<8);
+// 	DATA0 = (float)IDATA0;
+// 	DATA1 = (float)IDATA1;
+//
+// 	// Setup gain
+// 	Gain = 1;
+// 	if (GAIN == 0x01) Gain = 2;
+// 	else if (GAIN == 0x02) Gain = 64;
+// 	else if (GAIN == 0x03) Gain = 128;
+//
+// 	return true;
+// }
+// bool Sck_BH1730FVC::get()
+// {
+// 	// Start in the default integration time
+// 	ITIME = 218;
+//
+// 	if (!updateValues()) return false;
+//
+// 	// Adjust the Integration Time (ITIME)
+// 	for (uint8_t i=0; i<6; i++) {
+//
+// 		if (DATA0 > goUp || DATA1 > goUp) {
+// 			ITIME += (((ITIME_max - ITIME) / 2) + 1);
+// 			if (ITIME > 250) ITIME = ITIME_max;
+//
+// 			if (debug) {
+// 				SerialUSB.print(DATA0);
+// 				SerialUSB.print(" -- ");
+// 				SerialUSB.print(DATA1);
+// 				SerialUSB.print(" >> ");
+// 				SerialUSB.println(ITIME);
+// 			}
+// 		} else break;
+//
+// 		if (!updateValues()) return false;
+// 	}
+//
+// 	// Lux calculation (Datasheet page 13)
+// 	float Lx = 0;
+// 	if (DATA0 > 0 && DATA1 > 0) {
+// 		if (DATA1/DATA0 < 0.26) Lx = ((1.290 * DATA0 - 2.733 * DATA1) / Gain) * (102.6 / ITIME_ms);
+// 		else if (DATA1/DATA0 < 0.55) Lx = ((0.795 * DATA0 - 0.859 * DATA1) / Gain) * (102.6 / ITIME_ms);
+// 		else if (DATA1/DATA0 < 1.09) Lx = ((0.510 * DATA0 - 0.345 * DATA1) / Gain) * (102.6 / ITIME_ms);
+// 		else if (DATA1/DATA0 < 2.13) Lx = ((0.276 * DATA0 - 0.130 * DATA1) / Gain) * (102.6 / ITIME_ms);
+// 		else Lx = 0;
+// 	}
+//
+// 	Lx = max(0, Lx);
+// 	reading  = (int)Lx;
+//
+// 	if (debug) {
+// 		SerialUSB.print("Integration Time ITIME_ms: ");
+// 		SerialUSB.println(ITIME_ms);
+// 		SerialUSB.print("Measurement Time Tmt: ");
+// 		SerialUSB.println(Tmt);
+// 		SerialUSB.print("Gain: ");
+// 		SerialUSB.println(Gain);
+// 		SerialUSB.print("Visible Light DATA0: ");
+// 		SerialUSB.println(DATA0);
+// 		SerialUSB.print("Infrared Light DATA1: ");
+// 		SerialUSB.println(DATA1);
+// 		SerialUSB.print("Calculated Lux: ");
+// 		SerialUSB.println(Lx);
+// 	}
+//
+// 	stop();
+//
+// 	return true;
+// }
 
 // SHT31 (Temperature and Humidity)
 // TODO Implement calibration routine
@@ -574,7 +568,7 @@ bool Sck_Noise::stop()
 {
 	return true;
 }
-bool Sck_Noise::getReading(SensorType wichSensor)
+bool Sck_Noise::getReading(MetricType wichSensor)
 {
 	if (!I2S.begin(I2S_PHILIPS_MODE, sampleRate, 32)) return false;
 

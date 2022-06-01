@@ -934,19 +934,18 @@ bool Sck_PM::start()
 	digitalWrite(pinPM_ENABLE, HIGH);
 	SerialPM.begin(9600);
 	delay(250);
-	SerialPM.setTimeout(1500);
+	SerialPM.setTimeout(5000);
 
 	if (fillBuffer()) {
 		started = true;
 		wakeUpTime = rtc->getEpoch();
 		if (debug) Serial.println("PM: Started OK");
 
-		if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE)) {
+		if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE, true)) {
 			if (debug) Serial.println("PM: Failed setting passive mode");
 			stop();
 			return false;
 		}
-
 		return true;
 	}
 
@@ -965,9 +964,11 @@ bool Sck_PM::stop()
 }
 bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 {
+	uint32_t now = rtc->getEpoch();
+
 	// If last reading is recent doesn't make sense to get a new one
-	if (millis() - lastReading < 1000 && !monitor) {
-		if (debug) Serial.println("PM: Less than one second after last update, data is still valid...");
+	if (now - lastReading < warmUpPeriod && !monitor) {
+		if (debug) Serial.println("PM: Less than warmUp period since last update, data is still valid...");
 		return true;
 	}
 
@@ -978,16 +979,28 @@ bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 	if (wakeUpTime == 0) wake();
 	
 	// Are we still warming up?
-	uint32_t now = rtc->getEpoch();
 	uint32_t warmUpPassed = now - wakeUpTime;
 	if (warmUpPassed < warmUpPeriod) {
 		wichSensor->state = warmUpPeriod - warmUpPassed; 	// Report how many seconds are missing to cover the warm up period
 		if (debug) Serial.println("PM: Still on warm up period");
+
+		// Old sensors seem to wakeUp on active mode so we need to set them to passive each time.
+		if (SerialPM.available()) {
+			if (debug) Serial.println("PM: This seems to be an old sensor... changing to passive mode");
+			oldSensor = true;
+			while (SerialPM.available()) SerialPM.read();
+			if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE, true)) {
+				if (debug) Serial.println("PM: Failed setting passive mode");
+				stop();
+				return false;
+			}
+		}
 		return false;
 	}
-	
-	if (!wake()) return false;
 
+	// Empty SerialPM internal buffer
+	while (SerialPM.available()) SerialPM.read();
+	
 	if (!sendCmd(PM_CMD_GET_PASSIVE_READING, 0x00, false)) return false;
 
 	if (!fillBuffer()) return false;
@@ -1001,6 +1014,7 @@ bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 		!monitor) { 									// We are not in monitor mode
 
 		if (debug) Serial.println("PM: going to sleep");
+		if (oldSensor) delay(50); 	// Old sensors don't work without a small delay between commands
 		if (!sleep()) return false;
 	}
 
@@ -1023,6 +1037,8 @@ bool Sck_PM::fillBuffer()
 		if (debug) Serial.println("PM: Error: received less data than expected");
 		return false;
 	}
+
+	if (debug) Serial.println("PM: Buffer filled OK");
 	return true;
 }
 bool Sck_PM::processBuffer()
@@ -1061,9 +1077,10 @@ bool Sck_PM::processBuffer()
 		Serial.println(version);
 		Serial.print("PM: Error code: ");
 		Serial.println(errorCode);
+		Serial.println("PM: Reading data received OK");
 	}
 
-	lastReading = millis();
+	lastReading = rtc->getEpoch();
 	return true;
 }
 bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
@@ -1092,6 +1109,11 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 	buff[5] = ((sum >> 8) & 0xFF); 	// Verify byte 1 (LRCH)
 	buff[6] = (sum & 0xFF) ; 	// Verify byte 2 (LRCL)
 
+	// Clear buffer
+	if (retries > 0) {
+		while (SerialPM.available()) SerialPM.read();
+	}
+
 	// Send message
 	SerialPM.write(buff, msgLong);
 
@@ -1101,7 +1123,14 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 	// Wait for start char 1 (0x42)
 	if (!SerialPM.find(PM_START_BYTE_1)) {
 		if (debug) Serial.println("PM: Timeout waiting for response");
-		return false;
+		if (retries < MAX_RETRIES) {
+			if (debug) Serial.println("PM: Retrying command");
+			retries++;
+			return sendCmd(cmd, data, checkResponse);
+		} else {
+			retries = 0;
+			return false;
+		}
 	}
 
 	// Get response
@@ -1115,9 +1144,14 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 	for(int i=0; i<(resLong - 2); i++) sum += res[i];
 	if(sum != checkSum) {
 		if (debug) Serial.println("PM: Checksum error on command response");
-		Serial.println(sum);
-		Serial.println(checkSum);
-		return false;
+		if (retries < MAX_RETRIES) {
+			if (debug) Serial.println("PM: Retrying command");
+			retries++;
+			return sendCmd(cmd, data, checkResponse);
+		} else {
+			retries = 0;
+			return false;
+		}
 	}
 
 	// Check response
@@ -1128,7 +1162,21 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 		(res[4] != data)) {
 	
 		if (debug) Serial.println("PM: Error on command response");
-		return false;
+		if (retries < MAX_RETRIES) {
+			if (debug) Serial.println("PM: Retrying command");
+			retries++;
+			return sendCmd(cmd, data, checkResponse);
+		} else {
+			retries = 0;
+			return false;
+		}
+	}
+
+	if (debug) {
+		Serial.print("PM: Success on command 0x");
+		Serial.print(res[3], HEX);
+		Serial.print(" with data: 0x");
+		Serial.println(res[4], HEX);
 	}
 
 	return true;

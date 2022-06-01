@@ -195,6 +195,9 @@ class Sck_PM
 		RTCZero* rtc;
 		bool started = false;
 		uint32_t wakeUpTime = 0;
+		uint8_t retries = 0;
+		const uint8_t MAX_RETRIES = 3;
+		bool oldSensor = false;
 
 		bool fillBuffer();
 		bool processBuffer();
@@ -309,4 +312,3 @@ class SckUrban
 		// PM sensor
 		Sck_PM sck_pm = Sck_PM(rtc);
 };
-

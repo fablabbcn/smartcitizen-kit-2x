@@ -1,5 +1,4 @@
 # Smart Citizen Kit 2.1
-[![Travis](https://travis-ci.org/fablabbcn/smartcitizen-kit-21.svg?branch=master)](https://travis-ci.org/fablabbcn/smartcitizen-kit-21)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![DOI](https://zenodo.org/badge/109865611.svg)](https://zenodo.org/badge/latestdoi/109865611)
 ![](https://live.staticflickr.com/65535/47950912168_fcf8fa398c_h.jpg)
@@ -23,8 +22,6 @@ In this repository you can find:
 * The [bootloader](bootloader) and [main firmware](./sam) (C++) for the SAMD21 microcontroller.
 * The [main firmware](./esp) for the ESP8266 microcontroller.
 * A [mobile web UI](./mock-api) for setting up the kit.
-
-All branches and pull requests on Github are auto tested with Travis
 
 ## Related Smart Citizen repositories
 

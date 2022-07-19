@@ -31,18 +31,10 @@ void SckBase::setup()
 	manager.init();
 	manager.setTimeout(30);
 	manager.setRetries(16);
-	ESPcontrol(ESP_ON);
+	ESPcontrol(ESP_OFF);
 
 	// Internal I2C bus setup
 	Wire.begin();
-
-	// Auxiliary I2C bus
-	pinMode(pinPOWER_AUX_WIRE, OUTPUT);
-	digitalWrite(pinPOWER_AUX_WIRE, LOW);	// LOW -> ON , HIGH -> OFF
-	pinPeripheral(pinAUX_WIRE_SDA, PIO_SERCOM);
-	pinPeripheral(pinAUX_WIRE_SCL, PIO_SERCOM);
-	auxWire.begin();
-	delay(2000); 				// Give some time for external boards to boot
 
 	// Button interrupt and wakeup
 	pinMode(pinBUTTON, INPUT_PULLUP);
@@ -107,17 +99,24 @@ void SckBase::setup()
 	while(true);
 #endif
 
-	// Configuration
-	ESPcontrol(ESP_REBOOT);
-	loadConfig();
-	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
-
 	// Power management configuration
 	charger.setup(this);
 	battery.setup();
 
+	// Configuration
+	loadConfig();
+	if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
+
 	// Urban board
 	urbanStart();
+
+	// Auxiliary I2C bus
+	pinMode(pinPOWER_AUX_WIRE, OUTPUT);
+	digitalWrite(pinPOWER_AUX_WIRE, LOW);	// LOW -> ON , HIGH -> OFF
+	pinPeripheral(pinAUX_WIRE_SDA, PIO_SERCOM);
+	pinPeripheral(pinAUX_WIRE_SCL, PIO_SERCOM);
+	auxWire.begin();
+	delay(3000); 				// Give some time for external boards to boot
 
 	// Detect and enable auxiliary boards
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -131,6 +130,9 @@ void SckBase::setup()
 			}
 		}
 	}
+
+	sckOut("Turning on WiFi...");
+	ESPcontrol(ESP_ON);
 
 	// Update battery parcent for power management stuff
 	battery.percent(&charger);

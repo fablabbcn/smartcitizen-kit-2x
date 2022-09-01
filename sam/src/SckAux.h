@@ -113,6 +113,7 @@ class AuxBoards
 			0x64,			// SENSOR_ATLAS_EC_SG,
 			0x61,			// SENSOR_ATLAS_DO,
 			0x61,			// SENSOR_ATLAS_DO_SAT,
+			0x62,			// SENSOR_ATLAS_ORP,
 
 			0x61, 			// SENSOR_SCD30_CO2, 	--> Conflict with SENSOR_ATLAS_DO
 			0x61, 			// SENSOR_SCD30_TEMP, 	--> Conflict with SENSOR_ATLAS_DO
@@ -321,6 +322,7 @@ class Atlas
 		bool EC = false;
 		bool DO = false;
 		bool TEMP = false;
+		bool ORP = false;
 		float newReading[4];
 		String atlasResponse;
 		uint32_t lastCommandSent = 0;
@@ -363,6 +365,12 @@ class Atlas
 
 						deviceAddress = 0x66;
 						TEMP = true;
+						break;
+
+					} case SENSOR_ATLAS_ORP: {
+
+						deviceAddress = 0x62;
+						ORP = true;
 						break;
 
 					} default: break;

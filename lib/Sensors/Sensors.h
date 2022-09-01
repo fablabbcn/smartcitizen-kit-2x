@@ -66,6 +66,7 @@ enum SensorType
 	SENSOR_ATLAS_EC_SG,
 	SENSOR_ATLAS_DO,
 	SENSOR_ATLAS_DO_SAT,
+	SENSOR_ATLAS_ORP,
 
 	SENSOR_CHIRP_MOISTURE_RAW,
 	SENSOR_CHIRP_MOISTURE,
@@ -248,6 +249,7 @@ class AllSensors
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_EC_SG,			"AS_SG",		"Atlas Specific gravity",			46,		true,		true,		1,			},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_DO,			"AS_DO",		"Atlas Dissolved Oxygen",			48,		true,		true,		1,			"mg/L"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_DO_SAT,			"AS_DO_SAT",		"Atlas DO Saturation",				49,		true,		true,		1,			"%"},
+			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_ORP,				"AS_ORP",		"Atlas Redox potential",		0,		true,		true,		1,			"mV"},
 
 			// I2C Moisture Sensor (chirp)
 			// https://github.com/Miceuz/i2c-moisture-sensor

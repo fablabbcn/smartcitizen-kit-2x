@@ -9,6 +9,7 @@ Atlas			atlasPH = Atlas(SENSOR_ATLAS_PH);
 Atlas			atlasEC = Atlas(SENSOR_ATLAS_EC);
 Atlas			atlasDO = Atlas(SENSOR_ATLAS_DO);
 Atlas 			atlasTEMP = Atlas(SENSOR_ATLAS_TEMPERATURE);
+Atlas 			atlasORP = Atlas(SENSOR_ATLAS_ORP);
 Moisture 		moistureChirp;
 PMsensor		pmSensorA = PMsensor(SLOT_A);
 PMsensor		pmSensorB = PMsensor(SLOT_B);
@@ -68,6 +69,7 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.start(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.start(); break;
+		case SENSOR_ATLAS_ORP: 			return atlasORP.start(); break;
 		case SENSOR_CHIRP_MOISTURE_RAW:
 		case SENSOR_CHIRP_MOISTURE:
 		case SENSOR_CHIRP_TEMPERATURE:
@@ -164,6 +166,7 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_ATLAS_EC_SG: 		return atlasEC.stop(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 		return atlasDO.stop(); break;
+		case SENSOR_ATLAS_ORP: 		return atlasORP.stop(); break;
 		case SENSOR_CHIRP_TEMPERATURE:
 		case SENSOR_CHIRP_MOISTURE:		return moistureChirp.stop(); break;
 		case SENSOR_EXT_A_PM_1:
@@ -255,6 +258,7 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_ATLAS_EC_SG:		if (atlasEC.getReading()) 	{ wichSensor->reading = String(atlasEC.newReading[3]); return; } break;
 		case SENSOR_ATLAS_DO:			if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[0]); return; } break;
 		case SENSOR_ATLAS_DO_SAT:		if (atlasDO.getReading()) 	{ wichSensor->reading = String(atlasDO.newReading[1]); return; } break;
+		case SENSOR_ATLAS_ORP:		if (atlasORP.getReading()) 	{ wichSensor->reading = String(atlasORP.newReading[0]); return; } break;
 		case SENSOR_CHIRP_MOISTURE_RAW:		if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE_RAW)) { wichSensor->reading = String(moistureChirp.raw); return; } break;
 		case SENSOR_CHIRP_MOISTURE:		if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE)) { wichSensor->reading = String(moistureChirp.moisture); return; } break;
 		case SENSOR_CHIRP_TEMPERATURE:		if (moistureChirp.getReading(SENSOR_CHIRP_TEMPERATURE)) { wichSensor->reading = String(moistureChirp.temperature); return; } break;
@@ -334,6 +338,7 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
 		case SENSOR_ATLAS_EC_SG: 	return atlasEC.getBusyState(); break;
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 	return atlasDO.getBusyState(); break;
+		case SENSOR_ATLAS_ORP: 	return atlasORP.getBusyState(); break;
 		default: return false; break;
 	}
 }
@@ -419,11 +424,13 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_ATLAS_EC_SAL:
 		case SENSOR_ATLAS_EC_SG:
 		case SENSOR_ATLAS_DO:
-		case SENSOR_ATLAS_DO_SAT: {
+		case SENSOR_ATLAS_DO_SAT: 
+		case SENSOR_ATLAS_ORP: {
 
 			Atlas *thisAtlas = &atlasPH;
 			if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG) thisAtlas = &atlasEC;
 			else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
+			else if (wichSensor == SENSOR_ATLAS_ORP) thisAtlas = &atlasORP;
 
 			// 	 Calibration command options:
 			// 		Atlas PH: (https://www.atlas-scientific.com/files/pH_EZO_Datasheet.pdf) page 52
@@ -443,6 +450,10 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			// 			* com cal,0
 			// 			* com cal,clear
 			// 			* com cal,?
+			//		Atlas ORP: (https://files.atlas-scientific.com/ORP_EZO_Datasheet.pdf) page x49
+			//			* com cal,225 	-> calibrates the ORP circuit to a set value
+			//			* com cal,clear -> delete calibration data
+			//			* com cal,? 	-> device calibrated?
 			if (command.startsWith("com")) {
 
 				command.replace("com", "");
@@ -1440,6 +1451,13 @@ bool Atlas::getBusyState()
 
 		case REST: {
 
+			// ORP doesn't need temp compensation so we jump directly to ask reading
+			if (ORP) {
+				if (millis() - lastCommandSent >= shortWait) {
+					if (sendCommand((char*)"r")) state = ASKED_READING;
+				}
+			}
+
 			if (TEMP) {
 				state = TEMP_COMP_SENT;
 				break;
@@ -1474,7 +1492,7 @@ bool Atlas::getBusyState()
 					// Reading OK
 					state = REST;
 
-					if (PH || TEMP)	newReading[0] = atlasResponse.toFloat();
+					if (PH || TEMP || ORP)	newReading[0] = atlasResponse.toFloat();
 					if (EC || DO) {
 
 						uint8_t readingNum = 2;

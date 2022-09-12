@@ -64,7 +64,7 @@ struct SckState
 	bool helloPending = false;
 	SCKmodes mode = MODE_NET;
 	bool cardPresent = false;
-	bool cardPresentError = false;
+	bool cardPresentErrorPrinted = false;
 	bool sleeping = false;
 	bool publishPending = false;
 	bool dynamic = false;

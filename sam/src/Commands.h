@@ -35,6 +35,7 @@ enum CommandType {
 	COM_OFFLINE,
 	COM_MQTT_CONFIG,
 	COM_NTP_CONFIG,
+	COM_SLEEP,
 
 	COM_COUNT
 };
@@ -65,6 +66,7 @@ void custom_mqtt_com(SckBase* base, String parameters);
 void offline_com(SckBase* base, String parameters);
 void mqttConfig_com(SckBase* base, String parameters);
 void ntpConfig_com(SckBase* base, String parameters);
+void sleep_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -115,7 +117,8 @@ class AllCommands {
 			OneCom {100,	COM_CUSTOM_MQTT,	"publish", 	"Publish custom mqtt message: mqtt [\"topic\" \"message\"]",										custom_mqtt_com},
 			OneCom {100,	COM_OFFLINE, 		"offline", 	"Configure offline periods and WiFi retry interval: [-retryint seconds] [-period start-hour end-hour (UTC 0-23)]",			offline_com},
 			OneCom {100,	COM_MQTT_CONFIG, 	"mqttsrv", 	"Configure mqtt server address and port: [-host serverName] [-port portNum]",								mqttConfig_com},
-			OneCom {100,	COM_NTP_CONFIG, 	"ntpsrv", 	"Configure ntp server address and port: [-host serverName] [-port portNum]",								ntpConfig_com}
+			OneCom {100,	COM_NTP_CONFIG, 	"ntpsrv", 	"Configure ntp server address and port: [-host serverName] [-port portNum]",								ntpConfig_com},
+			OneCom {100,	COM_SLEEP, 	"sleep", 	"Send the kit to sleep",								sleep_com}
 		};
 
 		OneCom & operator[](CommandType type) {

@@ -1077,3 +1077,8 @@ void ntpConfig_com(SckBase* base, String parameters)
 	base->sckOut();
 	
 }
+void sleep_com(SckBase* base, String parameters)
+{
+	base->sckOFF = true;
+	base->goToSleep();
+}

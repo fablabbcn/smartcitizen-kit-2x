@@ -155,7 +155,6 @@ class SckBase
 		uint8_t wakeUP_M = 0;
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
-		void goToSleep(uint32_t sleepPeriod=3000); 	// sleepPeriod in ms
 		void configGCLK6(); 			// Taken from https://github.com/arduino-libraries/ArduinoLowPower
 		void sleepLoop();
 
@@ -269,6 +268,7 @@ class SckBase
 
 		// Power
 		void sck_reset();
+		void goToSleep(uint32_t sleepPeriod=3000); 	// sleepPeriod in ms
 		SckBatt battery;
 		SckCharger charger;
 		bool sckOFF = false;

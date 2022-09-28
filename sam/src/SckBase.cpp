@@ -53,18 +53,6 @@ void SckBase::setup()
 	}
 	espStarted = now;
 
-	// SDcard and flash select pins
-	pinMode(pinCS_SDCARD, OUTPUT);
-	pinMode(pinCS_FLASH, OUTPUT);
-	digitalWrite(pinCS_SDCARD, HIGH);
-	digitalWrite(pinCS_FLASH, HIGH);
-	pinMode(pinCARD_DETECT, INPUT_PULLUP);
-
-	// SD card
-	sckOut("Setting up SDcard interrupt");
-	attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
-	sdDetect();
-
 	// Flash storage
 	sckOut("Starting flash memory...");
 	led.update(led.WHITE, led.PULSE_ERROR);
@@ -117,6 +105,20 @@ void SckBase::setup()
 	pinPeripheral(pinAUX_WIRE_SCL, PIO_SERCOM);
 	auxWire.begin();
 	delay(3000); 				// Give some time for external boards to boot
+
+
+	// SDcard and flash select pins
+	pinMode(pinCS_SDCARD, OUTPUT);
+	pinMode(pinCS_FLASH, OUTPUT);
+	digitalWrite(pinCS_SDCARD, HIGH);
+	digitalWrite(pinCS_FLASH, HIGH);
+	pinMode(pinCARD_DETECT, INPUT_PULLUP);
+
+	// SD card
+	sckOut("Setting up SDcard interrupt");
+	attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
+	if (sdDetect()) sdInit();
+
 
 	// Detect and enable auxiliary boards
 	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -198,7 +200,7 @@ void SckBase::update()
 
 					} else {
 						st.cardPresent = false;
-						st.cardPresentError = false;
+						st.cardPresentErrorPrinted = false;
 					}
 
 				}
@@ -461,12 +463,17 @@ void SckBase::reviewState()
 
 			if (st.espON && !pendingSyncConfig) ESPcontrol(ESP_OFF);
 
+			if (!st.cardPresent && !st.cardPresentErrorPrinted) {
+				if (sdDetect()) sdInit();   // Retry sd card init
+			}
+
 			if (!st.cardPresent) {
-				if (!st.cardPresentError) {
+
+				if (!st.cardPresentErrorPrinted) {
 					sckOut("ERROR can't find SD card!!!");
 					led.update(led.PINK, led.PULSE_WARNING);
 					st.error = ERROR_SD;
-					st.cardPresentError = true;
+					st.cardPresentErrorPrinted = true;
 				}
 				return;
 
@@ -490,7 +497,7 @@ void SckBase::enterSetup()
 
 	// Clear errors from other modes
 	st.tokenError = false;
-	st.cardPresentError = false;
+	st.cardPresentErrorPrinted = false;
 
 	// Reboot ESP to have a clean start
 	ESPcontrol(ESP_REBOOT);
@@ -1191,11 +1198,11 @@ void SckBase::mqttCustom(const char *topic, const char *payload)
 bool SckBase::sdInit()
 {
 	sdInitPending = false;
+	st.cardPresentErrorPrinted = false;
 
 	if (sd.begin(pinCS_SDCARD, SPI_HALF_SPEED)) {
 		sckOut("Sd card ready to use");
 		st.cardPresent = true;
-		st.cardPresentError = false;
 
 		// Check if there is a info file on sdcard
 		if (!sd.exists(infoFile.name)) {
@@ -1206,7 +1213,6 @@ bool SckBase::sdInit()
 	}
 	sckOut("ERROR on Sd card Init!!!");
 	st.cardPresent = false; 	// If we cant initialize sdcard, don't use it!
-	st.cardPresentError = false;
 	return false;
 }
 bool SckBase::sdDetect()
@@ -1216,11 +1222,11 @@ bool SckBase::sdDetect()
 
 	lastUserEvent = millis();
 	st.cardPresent = !digitalRead(pinCARD_DETECT);
-	st.cardPresentError = false;
 
 	if (!digitalRead(pinCARD_DETECT)) {
 		sckOut("Sdcard inserted");
 		sdInitPending = true;
+		return true;
 	} else sckOut("No Sdcard found!!");
 	return false;
 }
@@ -1967,7 +1973,7 @@ bool SckBase::sdPublish()
 
 	} else  {
 		st.cardPresent = false;
-		st.cardPresentError = false;
+		st.cardPresentErrorPrinted = false;
 	}
 
 	sckOut("ERROR failed publishing to SD card");

@@ -425,12 +425,14 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_ATLAS_EC_SG:
 		case SENSOR_ATLAS_DO:
 		case SENSOR_ATLAS_DO_SAT: 
-		case SENSOR_ATLAS_ORP: {
+		case SENSOR_ATLAS_ORP:
+		case SENSOR_ATLAS_TEMPERATURE: {
 
 			Atlas *thisAtlas = &atlasPH;
 			if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG) thisAtlas = &atlasEC;
 			else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
 			else if (wichSensor == SENSOR_ATLAS_ORP) thisAtlas = &atlasORP;
+			else if (wichSensor == SENSOR_ATLAS_TEMPERATURE) thisAtlas = &atlasTEMP;
 
 			// 	 Calibration command options:
 			// 		Atlas PH: (https://www.atlas-scientific.com/files/pH_EZO_Datasheet.pdf) page 52
@@ -452,6 +454,10 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			// 			* com cal,?
 			//		Atlas ORP: (https://files.atlas-scientific.com/ORP_EZO_Datasheet.pdf) page x49
 			//			* com cal,225 	-> calibrates the ORP circuit to a set value
+			//			* com cal,clear -> delete calibration data
+			//			* com cal,? 	-> device calibrated?
+			//		Atlas TEMP: (https://files.atlas-scientific.com/https://files.atlas-scientific.com/EZO_RTD_Datasheet.pdf) page x53
+			//			* com cal,25 	-> calibrates the TEMP circuit to a set value
 			//			* com cal,clear -> delete calibration data
 			//			* com cal,? 	-> device calibrated?
 			if (command.startsWith("com")) {

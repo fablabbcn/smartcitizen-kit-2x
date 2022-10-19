@@ -108,7 +108,6 @@ class SckESP
 		void startWebServer();
 		bool captivePortal();
 		bool isIp(String str);
-		String toStringIp(IPAddress ip);
 		const byte DNS_PORT = 53;
 		char last_modified[50];
 		bool shouldReboot = false; 	// After OTA update

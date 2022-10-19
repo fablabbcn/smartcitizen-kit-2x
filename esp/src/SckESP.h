@@ -117,8 +117,6 @@ class SckESP
 		// Time
 		void setNTPprovider();
 		void sendNTPpacket(IPAddress &address);
-		String ISOtime();
-		String leadingZeros(String original, int decimalNumber);
 		WiFiUDP Udp;
 		byte packetBuffer[48];
 

@@ -1013,26 +1013,4 @@ void SckESP::sendNTPpacket(IPAddress &address)
 	Udp.write(packetBuffer, 48);
 	Udp.endPacket();
 }
-String SckESP::ISOtime()
-{
-	// Return string.format("%04d-%02d-%02dT%02d:%02d:%02dZ", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
-	if (timeStatus() == timeSet) {
-		String isoTime = String(year()) + "-" +
-			leadingZeros(String(month()), 2) + "-" +
-			leadingZeros(String(day()), 2) + "T" +
-			leadingZeros(String(hour()), 2) + ":" +
-			leadingZeros(String(minute()), 2) + ":" +
-			leadingZeros(String(second()), 2) + "Z";
-		return isoTime;
-	} else {
-		return "0";
-	}
-}
-String SckESP::leadingZeros(String original, int decimalNumber)
-{
-	for (uint8_t i=0; i < (decimalNumber - original.length()); ++i)	{
-		original = "0" + original;
-	}
-	return original;
-}
  

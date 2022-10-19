@@ -19,6 +19,8 @@ DNSServer dnsServer;
 
 void SckESP::setup()
 {
+
+
 	// LED outputs
 	pinMode(pinLED, OUTPUT);
 	digitalWrite(pinLED, LOW);
@@ -1033,18 +1035,4 @@ String SckESP::leadingZeros(String original, int decimalNumber)
 	}
 	return original;
 }
-String SckESP::epoch2iso(uint32_t toConvert)
-{
-
-	time_t tc = toConvert;
-
-	String isoTime = String(year(tc)) + "-" +
-		leadingZeros(String(month(tc)), 2) + "-" +
-		leadingZeros(String(day(tc)), 2) + "T" +
-		leadingZeros(String(hour(tc)), 2) + ":" +
-		leadingZeros(String(minute(tc)), 2) + ":" +
-		leadingZeros(String(second(tc)), 2) + "Z";
-
-	return isoTime;
-}
-
+ 

@@ -853,7 +853,9 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				delay(100);
 
 				digitalWrite(pinESP_CH_PD, HIGH);
-				digitalWrite(pinPOWER_ESP, LOW);
+
+				// TODO Temp -> is just to keep esp82 off and be able to test esp32
+				// digitalWrite(pinPOWER_ESP, LOW);
 
 				uint32_t flashTimeout = millis();
 				uint32_t startTimeout = millis();
@@ -877,7 +879,11 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				sckOut("ESP on...", PRIO_LOW);
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
-				digitalWrite(pinPOWER_ESP, LOW);
+				
+				// TODO Temp -> is just to keep esp82 off and be able to test esp32
+				digitalWrite(pinPOWER_ESP, HIGH);
+				// digitalWrite(pinPOWER_ESP, LOW);
+
 				st.wifiStat.reset();
 				st.espON = true;
 				st.espBooting = true;

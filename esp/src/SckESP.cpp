@@ -644,32 +644,38 @@ void SckESP::startWebServer()
 			request->send(200, "text/html", "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>");
 		});
 	webServer.on("/update", HTTP_POST, [&](AsyncWebServerRequest *request){
-		shouldReboot = !Update.hasError();
+
+        // TODO this is temporary to allow esp32 to boot
+		shouldReboot = false;
+		// shouldReboot = !Update.hasError();
+		
 		if (shouldReboot) OTAstatus = "Succeeded!";
 		else OTAstatus = "ERROR...";
 		AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", OTAstatus);
 		response->addHeader("Connection", "close");
 		request->send(response);
 	},[&](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
-		if(!index){
-			OTAstatus = "Running...";
-			Update.runAsync(true);
-			if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)){
-				OTAstatus = "ERROR...";
-			}
-		}
-		if(!Update.hasError()){
-			if(Update.write(data, len) != len){
-				OTAstatus = "ERROR...";
-			}
-		}
-		if(final){
-			if(Update.end(true)){
-				OTAstatus = "Succeeded!";
-			} else {
-				OTAstatus = "ERROR...";
-			}
-		}
+
+		// TODO this is temporary to allow esp32 to boot
+		// if(!index){
+		// 	OTAstatus = "Running...";
+		// 	Update.runAsync(true);
+		// 	if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)){
+		// 		OTAstatus = "ERROR...";
+		// 	}
+		// }
+		// if(!Update.hasError()){
+		// 	if(Update.write(data, len) != len){
+		// 		OTAstatus = "ERROR...";
+		// 	}
+		// }
+		// if(final){
+		// 	if(Update.end(true)){
+		// 		OTAstatus = "Succeeded!";
+		// 	} else {
+		// 		OTAstatus = "ERROR...";
+		// 	}
+		// }
 	});
 
 	// Handle not found

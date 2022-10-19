@@ -1,10 +1,11 @@
 #pragma once
 
 #include <SPI.h>
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include <Ticker.h>
 #include <TimeLib.h>
 #include "FS.h"
+#include "SPIFFS.h" 	// TODO replace this 
 #include <DNSServer.h>
 #include "RemoteDebug.h"
 #include <ArduinoJson.h>
@@ -69,7 +70,7 @@ class SckESP
 		bool mqttCustom();
 
 		// Led control
-		const uint8_t pinLED = 4; 	// GPIO5
+		const uint8_t pinLED = 2; 	// TODO return this to the Data board led pin (4)
 		uint8_t ledValue = 0;
 		Ticker blink;
 		uint16_t LED_SLOW = 350;

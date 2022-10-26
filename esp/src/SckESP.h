@@ -149,3 +149,48 @@ void extRoot(AsyncWebServerRequest *request);
 
 // Time
 time_t ntpProvider();
+
+// TODO ESP32
+// * Change filesystem remove SPIFFS
+// * Setup Wifi with ESP32
+// * Setup OTA
+// * Setup deep sleep and avoid on/off mosfet from SAM
+// * 
+// * Test pubSub and review current  alternatives
+// * Research RadioHead simpler replacements (CRC and no limit in length)
+// * Clean code to simplify API functions development
+// * Support for Eduroam
+// * Eduroam option on onboarding app
+// * SSL
+// * Multiple wifi config
+// * Web simple status screen
+// 		* error/warnings
+// 		* scard
+// 		* flash fill level
+// 		* Simple detected sensor list
+// * Web config screen
+// 		* Configured Wifi
+// 		* token
+// * Web sensor config
+// 		* send to net
+// 		* save to sdcard
+// 		* reading interval
+// 		* per sensor interval
+// 		* publish interval
+// 		* Estimated battery duration with current config
+// * Web system config/info screen
+// 		* Firmware versions and builds
+// 		* Mac address
+// 		* Ip address
+// 		* mqtt, ntp servers
+// 		* sleep timer
+// * Web shell with raw access to SAM shell
+// * Bluetooth config
+// * Web sensor dashboard with force update button
+// * Web sensor monitor plotter
+// * Sdcard file list, old data viewer???
+// * Flash info and state page
+// * Reset via Web interface
+// * Enable/disable telnet debug
+// * Check if ap and station can work at the same time.
+// * Subscribe to a token/config to receive config commands from platform (only after SSL and security is ready)

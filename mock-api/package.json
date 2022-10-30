@@ -12,7 +12,7 @@
   "author": "FabLab Barcelona",
   "license": "ISC",
   "devDependencies": {
-    "browser-sync": "^2.26.7",
+    "browser-sync": "^2.27.10",
     "casperjs": "^1.1.4",
     "gulp": "^4.0.2",
     "json-server": "^0.15.0",

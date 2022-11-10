@@ -111,6 +111,8 @@ class AuxBoards
 			0x63,			// SENSOR_ATLAS_PH,
 			0x64,			// SENSOR_ATLAS_EC,
 			0x64,			// SENSOR_ATLAS_EC_SG,
+			0x64,			// SENSOR_ATLAS_EC_SAL,
+			0x64,			// SENSOR_ATLAS_EC_TDS,
 			0x61,			// SENSOR_ATLAS_DO,
 			0x61,			// SENSOR_ATLAS_DO_SAT,
 			0x62,			// SENSOR_ATLAS_ORP,

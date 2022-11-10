@@ -429,7 +429,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 		case SENSOR_ATLAS_TEMPERATURE: {
 
 			Atlas *thisAtlas = &atlasPH;
-			if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG) thisAtlas = &atlasEC;
+			if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG || wichSensor == SENSOR_ATLAS_EC_TDS || wichSensor == SENSOR_ATLAS_EC_SAL) thisAtlas = &atlasEC;
 			else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
 			else if (wichSensor == SENSOR_ATLAS_ORP) thisAtlas = &atlasORP;
 			else if (wichSensor == SENSOR_ATLAS_TEMPERATURE) thisAtlas = &atlasTEMP;
@@ -1376,10 +1376,10 @@ float WaterTemp_DS18B20::getReading()
 
 bool Atlas::start()
 {
+	if (beginDone) return true;
 
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-	if (beginDone) return true;
 
 	// Protocol lock
 	if (!sendCommand((char*)"Plock,1")) return false;

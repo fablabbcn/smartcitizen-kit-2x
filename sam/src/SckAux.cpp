@@ -28,6 +28,7 @@ Sck_ADS1X15 		ads49;
 Sck_ADS1X15 		ads4A;
 Sck_ADS1X15 		ads4B;
 Sck_SCD30 		scd30;
+Sck_SGP40 		sgp40; 
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
@@ -133,6 +134,8 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 		case SENSOR_SCD30_CO2: 			return scd30.start(base, SENSOR_SCD30_CO2); break;
 		case SENSOR_SCD30_TEMP: 		return scd30.start(base, SENSOR_SCD30_TEMP); break;
 		case SENSOR_SCD30_HUM: 			return scd30.start(base, SENSOR_SCD30_HUM); break;
+		case SENSOR_SGP40_VOC_RAW: 		return sgp40.start(base, SENSOR_SGP40_VOC_RAW); break;
+		case SENSOR_SGP40_VOC_IDX: 		return sgp40.start(base, SENSOR_SGP40_VOC_IDX); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.start(); break;
 		default: break;
 	}
@@ -225,6 +228,8 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_SCD30_CO2: 			return scd30.stop(SENSOR_SCD30_CO2); break;
 		case SENSOR_SCD30_TEMP: 		return scd30.stop(SENSOR_SCD30_TEMP); break;
 		case SENSOR_SCD30_HUM: 			return scd30.stop(SENSOR_SCD30_HUM); break;
+		case SENSOR_SGP40_VOC_RAW: 		return sgp40.stop(SENSOR_SGP40_VOC_RAW); break;
+		case SENSOR_SGP40_VOC_IDX: 		return sgp40.stop(SENSOR_SGP40_VOC_IDX); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.stop(); break;
 		default: break;
 	}
@@ -319,6 +324,8 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_SCD30_CO2: 			if (scd30.getReading(SENSOR_SCD30_CO2)) { wichSensor->reading = String(scd30.co2); return; } break;
 		case SENSOR_SCD30_TEMP: 		if (scd30.getReading(SENSOR_SCD30_TEMP)) { wichSensor->reading = String(scd30.temperature); return; } break;
 		case SENSOR_SCD30_HUM: 			if (scd30.getReading(SENSOR_SCD30_HUM)) { wichSensor->reading = String(scd30.humidity); return; } break;
+		case SENSOR_SGP40_VOC_RAW: 		if (sgp40.getReading(base, SENSOR_SGP40_VOC_RAW)) { wichSensor->reading = String(sgp40.vocRaw); return; } break;
+		case SENSOR_SGP40_VOC_IDX: 		if (sgp40.getReading(base, SENSOR_SGP40_VOC_IDX)) { wichSensor->reading = String(sgp40.vocIndex); return; } break;
 		default: break;
 	}
 
@@ -750,7 +757,37 @@ String AuxBoards::control(SensorType wichSensor, String command)
 			}
 
 
-		} default: return "Unrecognized sensor!!!"; break;
+		}
+		case SENSOR_SGP40_VOC_RAW:
+		case SENSOR_SGP40_VOC_IDX:	{
+
+			if (command.startsWith("measuretest")) {
+
+				if (sgp40.measureTest() == 0) return F("Measure test OK!");
+				else return F("ERROR on measure test!!");
+
+			} else if (command.startsWith("softreset")) {
+
+				if (sgp40.softReset() == 0) return F("Soft reset OK!");
+				else return F("ERROR on soft reset!!");
+
+			} else if (command.startsWith("heateroff")) {
+
+				if (sgp40.heaterOff() == 0) return F("Heater turned off!");
+				else return F("ERROR turniing heater off!!");
+
+			} else if (command.startsWith("debug")) {
+
+				sgp40.enableDebug();
+				return F("Debug enabled! (reset SCK to disable)");
+
+			} else {
+				return F("Wrong command!!\r\nOptions:\r\nmeasureTest\r\nsoftReset\r\nheaterOff\r\ndebug");
+			}
+
+		}
+
+		default: return "Unrecognized sensor!!!"; break;
 	}
 	return "Unknown error on control command!!!";
 }
@@ -2608,6 +2645,102 @@ float Sck_SCD30::tempOffset(float userTemp, bool off)
 	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
 
 	return currentOffsetTemp / 100.0;
+}
+
+bool Sck_SGP40::start(SckBase *base, SensorType wichSensor)
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	// Mark this specific metric as enabled
+	for (uint8_t i=0; i<2; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+
+	if (started) return true;
+	
+	if (_debug) sparkfun_sgp40.enableDebugging(SerialUSB);
+
+	// Init sensor, this will take at least 320 ms (it runs selfTest())
+	if (!sparkfun_sgp40.begin(auxWire)) return false;
+
+	started = true;
+	return true;
+}
+
+bool Sck_SGP40::stop(SensorType wichSensor)
+{
+	// Mark this specific metric as disabled
+	for (uint8_t i=0; i<2; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 0;
+
+	sparkfun_sgp40.heaterOff();
+
+	// Turn sensor off only if all 2 metrics are disabled
+	for (uint8_t i=0; i<2; i++) if (enabled[i][1] == 1) return false;
+
+	started = false;
+	return true;
+}
+
+bool Sck_SGP40::getReading(SckBase *base, SensorType wichSensor)
+{
+	// Temperature and Humidity compensation
+	OneSensor *tempSensor = &base->sensors[SENSOR_TEMPERATURE];
+	OneSensor *humSensor = &base->sensors[SENSOR_HUMIDITY];
+
+	// Default compensation values (As defined by Sparkfun library)
+	float compTemp = 25.0;
+	float compHum = 50.0;
+
+	if (tempSensor->enabled && base->getReading(tempSensor)) compTemp = tempSensor->reading.toFloat();
+	if (humSensor->enabled && base->getReading(humSensor)) compHum = humSensor->reading.toFloat();
+	
+	// Take first reading and discard it.
+	SGP40ERR result = sparkfun_sgp40.measureRaw(&vocRaw);
+	if (result > 0) return false;
+	delay(140);
+
+	switch (wichSensor)
+		{
+			case SENSOR_SGP40_VOC_RAW:
+				{
+					result = sparkfun_sgp40.measureRaw(&vocRaw, compHum, compTemp);
+					if (result > 0) return false;
+					break;
+			}
+			case SENSOR_SGP40_VOC_IDX:
+				{
+					vocIndex = sparkfun_sgp40.getVOCindex(compHum, compTemp);
+					break;
+			}
+			default:
+				return false;
+		}
+
+	// Save power
+	sparkfun_sgp40.heaterOff();
+
+	return true;
+}
+
+uint8_t Sck_SGP40::measureTest()
+{
+	return sparkfun_sgp40.measureTest();
+}
+
+uint8_t Sck_SGP40::softReset()
+{
+	return sparkfun_sgp40.softReset();
+}
+
+uint8_t Sck_SGP40::heaterOff()
+{
+	// On idle mode (heaterOff) - 105 ua
+	// On continous operation - 3 mA
+	return sparkfun_sgp40.heaterOff();
+}
+
+void Sck_SGP40::enableDebug()
+{
+	_debug = true;
+	return sparkfun_sgp40.enableDebugging(SerialUSB);
 }
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )

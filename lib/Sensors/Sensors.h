@@ -137,6 +137,9 @@ enum SensorType
 	SENSOR_SCD30_TEMP,
 	SENSOR_SCD30_HUM,
 
+	SENSOR_SGP40_VOC_RAW,
+	SENSOR_SGP40_VOC_IDX,
+
 	// Actuators (This is temp)
 	SENSOR_GROVE_OLED,
 
@@ -208,8 +211,8 @@ class AllSensors
 			OneSensor { BOARD_URBAN, 	100,	SENSOR_ALTITUDE, 			"ALT", 			"Altitude", 					0,		false,		false,		1, 			"M"},
 			OneSensor { BOARD_URBAN, 	100,	SENSOR_PRESSURE, 			"PRESS",		"Barometric pressure",				58,		true,		false,		1, 			"kPa"},
 			OneSensor { BOARD_URBAN, 	100,	SENSOR_PRESSURE_TEMP,			"PRESS_TEMP",		"Pressure internal temperature", 		0,		false,		false,		1, 			"C"},
-			OneSensor { BOARD_URBAN,	100,	SENSOR_CCS811_VOCS,			"CCS811_VOCS",		"VOC Gas CCS811",				113,		true,		true,		1, 			"ppb"},
-			OneSensor { BOARD_URBAN,	100,	SENSOR_CCS811_ECO2,			"CCS811_ECO2",		"eCO2 Gas CCS811",				112,		true,		true,		1, 			"ppm"},
+			OneSensor { BOARD_URBAN,	100,	SENSOR_CCS811_VOCS,			"CCS811_VOCS",		"VOC Gas CCS811",				0,		true,		true,		1, 			"ppb"},
+			OneSensor { BOARD_URBAN,	100,	SENSOR_CCS811_ECO2,			"CCS811_ECO2",		"eCO2 Gas CCS811",				0,		true,		true,		1, 			"ppm"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		true,		5, 			"ug/m3"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		true,		5, 			"ug/m3"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		true,		5, 			"ug/m3"},
@@ -323,6 +326,9 @@ class AllSensors
 			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_CO2,			"SCD30_CO2",		"SCD30 CO2", 					158,		true,		true,		1,			"ppm"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_TEMP,			"SCD30_TEMP",		"SCD30 Temperature", 				160,		true,		true,		1,			"C"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_SCD30_HUM,			"SCD30_HUM",		"SCD30 Humidity", 				161,		true,		true,		1,			"%"},
+
+			OneSensor { BOARD_AUX,		100,	SENSOR_SGP40_VOC_RAW,			"SGP40_RAW",	"SGP40 VOCs Raw", 					113,			true,		true,		1,			""},
+			OneSensor { BOARD_AUX,		100,	SENSOR_SGP40_VOC_IDX,			"SGP40_IDX",	"SGP40 VOCs Index", 				112,			true,		true,		1,			""},
 
 			// Later this will be moved to a Actuators.h file
 			// Groove I2C Oled Display 96x96

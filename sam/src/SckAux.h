@@ -63,6 +63,9 @@
 // Sparkfun library for SCD30 CO2 sensor
 #include <SparkFun_SCD30_Arduino_Library.h>
 
+// Sparkfun library for SGP40 VOC's sensor
+#include "SparkFun_SGP40_Arduino_Library.h"
+
 
 extern TwoWire auxWire;
 
@@ -100,6 +103,9 @@ class AuxBoards
 			0x44,			// SENSOR_GASESBOARD_HUMIDITY,
 
 			0x50,			// SENSOR_GROOVE_I2C_ADC,
+
+			0x59,			// SENSOR_SGP40_RAW,
+			0x59,			// SENSOR_SGP40_VOC_IDX,
 
 			0x41,			// SENSOR_INA219_BUSVOLT,
 			0x41,			// SENSOR_INA219_SHUNT,
@@ -205,7 +211,7 @@ class GrooveI2C_ADC
 		bool stop();
 		float getReading();
 
-		const byte deviceAddress 	= 0x59;
+		const byte deviceAddress 	= 0x50;
 		const float V_REF 		= 3.30;
 		const byte REG_ADDR_RESULT	= 0x00;
 		const byte REG_ADDR_ALERT	= 0x01;
@@ -724,6 +730,29 @@ class Sck_SCD30
 		bool started = false;
 		uint16_t measInterval = 2; 	// "2-1800 seconds"
 		SCD30 sparkfun_scd30;
+};
+
+class Sck_SGP40
+{
+	public:
+		const byte deviceAddress = 0x59; // TODO check if the sensor supports other addresses
+		bool start(SckBase *base, SensorType wichSensor);
+		bool stop(SensorType wichSensor);
+		bool getReading(SckBase *base, SensorType wichSensor);
+
+		uint8_t measureTest();
+		uint8_t softReset();
+		uint8_t heaterOff();
+		void enableDebug();
+
+		uint16_t vocRaw;
+		int32_t vocIndex = 0;
+
+	private:
+		uint8_t enabled[2][2] = { {SENSOR_SGP40_VOC_RAW, 0}, {SENSOR_SGP40_VOC_IDX, 0} };
+		bool _debug = false;
+		bool started = false;
+		SGP40 sparkfun_sgp40;
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

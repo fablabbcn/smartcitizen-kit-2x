@@ -1415,12 +1415,12 @@ void SckBase::updatePower()
 	}
 
  	// if more than one minute have passed since last reset and we are in the right hour-minute then reset
-	if (millis() > 70000) {
-		if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
-			sckOut("Sanity reset, bye!!");
-			sck_reset();
-		}
-	}
+	// if (millis() > 70000) {
+	// 	if (rtc.getHours() == wakeUP_H && rtc.getMinutes() == wakeUP_M) {
+	// 		sckOut("Sanity reset, bye!!");
+	// 		sck_reset();
+	// 	}
+	// }
 }
 void SckBase::configGCLK6()
 {

@@ -1568,7 +1568,7 @@ bool Atlas::sendCommand(char* command)
 			return true;
 		}
 
-		delay(300);
+		delay(600);
 	}
 	return false;
 }

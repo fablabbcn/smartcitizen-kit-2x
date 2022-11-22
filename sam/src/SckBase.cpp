@@ -2059,7 +2059,7 @@ bool I2Cdetect(TwoWire *_Wire, byte address)
 {
 	_Wire->beginTransmission(address);
 
-	if (address == 0x64) _Wire->write("Sleep");
+	if (address == 0x62 || address == 0x63 || address == 0x64) auxWire.write("Sleep");
 
 	byte error = _Wire->endTransmission();
 

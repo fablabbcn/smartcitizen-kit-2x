@@ -2058,6 +2058,9 @@ void SckBase::getUniqueID()
 bool I2Cdetect(TwoWire *_Wire, byte address)
 {
 	_Wire->beginTransmission(address);
+
+	if (address == 0x64) _Wire->write("Sleep");
+
 	byte error = _Wire->endTransmission();
 
 	if (error == 0) return true;

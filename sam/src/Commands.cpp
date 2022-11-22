@@ -600,6 +600,7 @@ void i2cDetect_com(SckBase* base, String parameters)
 				error = Wire.endTransmission();
 			} else {
 				auxWire.beginTransmission(address);
+				if (address == 0x64) auxWire.write("Sleep");
 				error = auxWire.endTransmission();
 			}
 

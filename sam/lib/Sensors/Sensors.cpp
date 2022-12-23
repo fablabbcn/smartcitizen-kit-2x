@@ -1,95 +1,6 @@
 #include "Sensors.h"
 #include "Utils.h"
 
-MetricType AllSensors::getTypeFromString(String strIn)
-{
-
-	MetricType wichSensor = SENSOR_COUNT;
-	uint8_t maxWordsFound = 0;
-
-	// Get sensor type
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-
-		MetricType thisSensor = static_cast<MetricType>(i);
-
-		// Makes comparison lower case and not strict
-		String titleCompare = list[thisSensor].title;
-		titleCompare.toLowerCase();
-		strIn.toLowerCase();
-
-		// How many words match in Sensor title
-		uint8_t matchedWords = countMatchedWords(titleCompare, strIn);
-
-		if (matchedWords > maxWordsFound) {
-			maxWordsFound = matchedWords;
-			wichSensor = thisSensor;
-		}
-
-	}
-	return wichSensor;
-}
-uint8_t AllSensors::countMatchedWords(String baseString, String input)
-{
-	
-	uint8_t foundedCount = 0;
-	String word;
-	
-	while (input.length() > 0) {
-
-		// Get next word
-		if (input.indexOf(" ") > -1) word = input.substring(0, input.indexOf(" "));
-		// Or there is only one left
-		else word = input;
-
-		// If we found one
-		if (baseString.indexOf(word) > -1) foundedCount += 1;
-		// If next word is not part of the title we asume the rest of the input is a command or something else
-		else break;
-
-		// remove what we tested
-		input.replace(word, "");
-		input.trim();
-	}
-
-	return foundedCount;
-}
-String AllSensors::removeSensorName(String strIn)
-{
-	MetricType wichSensor = getTypeFromString(strIn);
-
-	// Makes comparison lower case and not strict
-	String titleCompare = list[wichSensor].title;
-	titleCompare.toLowerCase();
-	strIn.toLowerCase();
-
-	uint8_t wordsToRemove = countMatchedWords(titleCompare, strIn);
-	for (uint8_t i=0; i<wordsToRemove; i++) {
-		if (strIn.indexOf(" ") > 0) strIn.remove(0, strIn.indexOf(" ")+1);
-		else strIn.remove(0, strIn.length());
-	}
-
-	return strIn;
-}
-MetricType AllSensors::sensorsPriorized(uint8_t index)
-{
-	if (!sorted) {
-		uint8_t sensorCount = 0;
-		for (uint8_t i=0; i<251; i++) {
-			for (uint8_t ii=0; ii<SENSOR_COUNT; ii++) {
-				MetricType thisSensorType = static_cast<MetricType>(ii);
-				if (list[thisSensorType].priority == i) {
-					prioSortedList[sensorCount] = thisSensorType;
-					sensorCount++;
-				}
-			}
-		}
-		sorted = true;
-	}
-	return prioSortedList[index];
-}
-
-
-
 bool I2Cdetect(TwoWire *_Wire, byte address)
 {
 	_Wire->beginTransmission(address);
@@ -99,8 +10,7 @@ bool I2Cdetect(TwoWire *_Wire, byte address)
 	else return false;
 }
 
-
-#include <Sck_SCD30.h>
+// #include <Sck_SCD30.h>
 #include <Sck_BH1730.h>
 // #include <Sck_ADS1X15.h>
 // #include "Sck_INA219.h"
@@ -108,132 +18,129 @@ bool I2Cdetect(TwoWire *_Wire, byte address)
 
 Sensors::Sensors()
 {
-
-	// deviceCatalog[DEVICE_ADS1X15] = &sck_ads1x15;
-	deviceCatalog[DEVICE_SCD30] = &sck_scd30;
-	deviceCatalog[DEVICE_BH1730] = &sck_bh1730;
+	// sensorCatalog[SENSOR_ADS1X15] = &info_ads1x15;
+	// sensorCatalog[SENSOR_SCD30] = &info_scd30;
+	sensorCatalog[SENSOR_BH1730] = &info_bh1730;
 }
 void Sensors::detect()
 {
-	// ---- Print msgs
 	sckPrintfln("Detecting sensors...");
 
-	uint8_t totalMetrics = 0;
-
 	// Iterate over known I2C buses (defined on headers file)
-	for (uint8_t bus=0; bus<2; bus++) {
+	for (uint8_t busIndex=0; busIndex<i2cBuses_num; busIndex++) {
 
-		// ---- Print msgs
-		sckPrintfln("\n%s I2C bus", buses[bus].name);
+		sckPrintfln("\n%s I2C bus", i2cBuses[busIndex].name);
 
 		// TCA9548 Multiplexer can be configured with 8 different I2C address from 0x70 to 0x77 (https://www.ti.com/lit/ds/symlink/tca9548a.pdf page 16)
-		// I2C hubs in the same level as a multiplexer are not supported, you should use the multiplexer channels instead.
-		for (int8_t mux=0; mux<8; mux++) {
+		// Sensors or I2C hubs in the same level as a multiplexer are not supported, you should use the multiplexer channels instead.
+		// Nested multiplexers are not supported
+		for (uint8_t mux=0; mux<MUX_MAX_NUM; mux++) {
 
-			// TODO aqui hay un problema
-			// cuando escaneo el mux -1 encuentro los sensores que esten en el channel 0... y luego los vuelvo a encontrar cuando escaneo los 8 canales
-			uint8_t channels; 
+			byte muxAddress = mux + MUX_BASE_ADDRESS;
+			
+			// Check if a multiplexer is present on this address
+			if (I2Cdetect(i2cBuses[busIndex]._wire, muxAddress)) {
+				muxWasPresent = true;
 
-			// On the first try (0) we scan the bus even if there is no multiplexer
-			if (mux == 0) channels = 1;
-			else channels = 0; 			// After one bus scan we only rescan if there is a multiplexer present
+				// Iterate over 8 mux channels
+				for (uint8_t chann=0; chann<8; chann++) {
+					
+					selectMuxChannel(i2cBuses[busIndex]._wire, muxAddress, chann);
+					scanBus(busIndex, muxAddress, chann);
+				}
 
-			// Search for multiplexers Address 0x70-0x77 (8 channels per multiplexer)
-			if (I2Cdetect(buses[bus]._wire, mux + MUX_BASE_ADDRESS))  {
-				channels = 8; 
-
-				// ---- Print msgs
-				sckPrintfln(" |-- Multiplexer 0x%X", mux + MUX_BASE_ADDRESS);
+				// Disable all channels so we can use other muxes on the same bus
+				selectMuxChannel(i2cBuses[busIndex]._wire, muxAddress, -1);
 			}
+		}
 
-			for (uint8_t chann=0; chann<channels; chann++) {
+		if (!muxWasPresent) {
+			scanBus(busIndex);
+		}
+	}
 
-				if (mux >= 0) selectMuxChannel(buses[bus]._wire, mux + MUX_BASE_ADDRESS, chann);
+	sckPrintfln("\nTotal active sensors: %u (%u measurements)\n", total, getTotalMeasurNum());
+}
+void Sensors::selectMuxChannel(TwoWire * _wire, byte muxAddr, int8_t channel)
+{
+	if (muxAddr == 0) return;
+	if (channel > 7) return;
 
-				// Iterate over possible I2C addresses (0x00 - 0x07 and 0x78 - 0x7F are reserved I2C addresses)
-				for (byte ad=0x08; ad<0x78; ad++) {
+	_wire->beginTransmission(muxAddr);
+	if (channel >= 0) _wire->write(1 << channel);
+	else _wire->write(0);
+	_wire->endTransmission();  
+}
+void Sensors::scanBus(uint8_t busIndex, byte muxAddr, uint8_t chann)
+{
+	// Iterate over known sensors
+	for (uint8_t sen=0; sen<SENSOR_COUNT; sen++) {
 
-					if (I2Cdetect(buses[bus]._wire, ad)) {
+		// Iterate over 8 posible address  on sensors addressList
+		for(uint8_t senAd=0; senAd<8; senAd++) {
+			
+			uint8_t thisAddress = sensorCatalog[sen]->addressList[senAd];
 
-						// Iterate over all known devices
-						for (uint8_t dev=0; dev<DEVICE_COUNT; dev++) {
+			// Check if the listed address is valid
+			if (thisAddress > 0x08 && thisAddress < 0x78) {
+				
+				// Is the sensor present?
+				if (I2Cdetect(i2cBuses[busIndex]._wire, thisAddress)) {
 
-							// Iterate over the I2C address list of this device
-							for(uint8_t devAd = 0; devAd < sizeof(deviceCatalog[dev]->addressList); devAd++) {
-
-								// If this device has this address
-								if (deviceCatalog[dev]->addressList[devAd] == ad) {
-
-									// ---- Print msgs
-									if (channels > 1) sckPrintfln(" |   |-- Channel %u", chann);
-									
-									// Create device
-									if (newDevice(buses[bus]._wire, deviceCatalog[dev], ad))  {
-
-										totalMetrics += deviceCatalog[dev]->providedNum;
-
-										// ---- Print msgs
-										if (channels > 1) sckPrintf(" |   |  ");
-										sckPrintfln(" |-- %s 0x%x", deviceCatalog[dev]->name, ad);
+					// Try to create the sensor
+					if (newSensor(i2cBuses[busIndex]._wire, sensorCatalog[sen], thisAddress)) {
+						
+						// ---- Print msgs
+						if (muxAddr > 0) sckPrintf(" |   |  ");
+						sckPrintfln(" |-- %s 0x%x", sensorCatalog[sen]->name, thisAddress);
 										
-										for (uint8_t m=0; m<deviceCatalog[dev]->providedNum; m++) {
-											if (channels > 1) sckPrintf(" |   |  ");
-											sckPrintfln("     |-- %s", deviceCatalog[dev]->providedList[m].name);
-										}
-										// ----
+						for (uint8_t m=0; m<sensorCatalog[sen]->measurementNum; m++) {
+							if (muxAddr > 0) sckPrintf(" |   |  ");
+							sckPrintfln("     |-- %s", sensorCatalog[sen]->measurementList[m]->name);
+						}
+						// ----
 
-										// Set the mux and channel properties on the device
-										if (channels > 1) {
-											activeList[total-1]->muxAddr = mux + MUX_BASE_ADDRESS;
-											activeList[total-1]->channel = chann;
-										}
-
-									}
-								}
-							}
+						// Set the mux and channel properties on the sensor
+						if (muxAddr > 0) {
+							activeList[total-1]->muxAddr = muxAddr;
+							activeList[total-1]->channel = chann;
+							activeList[total-1]->busIndex = busIndex;
 						}
 					}
 				}
 			}
 		}
 	}
-
-	sckPrintfln("\nTotal active devices: %u (%i metrics)\n", total, totalMetrics);
 }
-void Sensors::selectMuxChannel(TwoWire * _wire, byte muxAddr, uint8_t channel)
+bool Sensors::newSensor(TwoWire * _wire, SensorInfo *info, byte address)
 {
-	if (muxAddr == 0) return;
-	if (channel > 7) return;
+	Sensor *_control;
 
-	_wire->beginTransmission(muxAddr);
-	_wire->write(1 << channel);
-	_wire->endTransmission();  
-}
-bool Sensors::newDevice(TwoWire * _wire, DeviceInfo *info, byte address)
-{
-	Device *_control;
-
-	switch(info->type)
+	switch(info->id)
 	{
-		case DEVICE_BH1730:
+		case SENSOR_BH1730:
 			{
 				_control = new Ctrl_BH1730();
 				break;
 			}
-		// case DEVICE_ADS1X15: 
-		// 	{ 
-		// 		_control = new Ctrl_ADS1X15();
+		// case SENSOR_ADS1X15:
+		// 	{
+		// 		_control = new Ctrl_ADS1X15(_wire);
 		// 		break;
 		// 	}
-		case DEVICE_SCD30:
-			{
-				_control = new Ctrl_SCD30();
-				break;
-			}
+		// case SENSOR_SCD30:
+		// 	{
+		// 		_control = new Ctrl_SCD30();
+		// 		break;
+		// 	}
+		default:
+			return false;
+			break;
 	}
 
 	if (_control->start(_wire, address)) {
 		_control->info = info;
+		_control->initConfig();
 		activeList[total] = _control;
 		total++;
 		return true;
@@ -241,9 +148,96 @@ bool Sensors::newDevice(TwoWire * _wire, DeviceInfo *info, byte address)
 
 	return false;
 }
-int8_t Sensors::getReading(Device * dev, Metric metric)
+int8_t Sensors::getReading(Sensor * sensor, const Measurement * measurement)
 {
-	selectMuxChannel(dev->wireBus, dev->muxAddr, dev->channel);
-	int8_t seconds = dev->getReading(metric, readingBuff);
+	selectMuxChannel(sensor->wireBus, sensor->muxAddr, sensor->channel);
+	int8_t seconds = sensor->getReading(measurement, readingBuff);
 	return seconds;
 }
+uint8_t Sensors::getTotalMeasurNum()
+{
+	uint8_t totalM = 0;
+
+	for (uint8_t i=0; i<total; i++) {
+		totalM += activeList[i]->info->measurementNum;
+	}
+
+	return totalM;
+}
+
+void Sensor::initConfig()
+{
+	// TODO resolver como hago por que no sé el numero de measurements en el measurementConfig
+ // 	SensorConfig _config = {
+	// 	false,
+	// 	{}
+	// };
+
+	for (uint8_t meas=0; meas<info->measurementNum; meas++) {
+
+		Serial.println("A");
+		// byte 0
+		// bit 0:7   - 8 -> SensorID
+		//
+		// byte 1
+		// bit 0:7  - 8 -> MeasurementID
+		//
+		// byte 2
+		// |     7    |     6    |   5   |   4   |   3   |     2       |  1  |   0   |
+	    // |----------|----------|-----------------------|-------------|-------------|
+		// | Reserved | Reserved |     Mux addr diff     | Mux present | I2C bus idx |
+		//
+		// bit 0:1 - 2 -> I2C bus index
+		// bit 2   - 1 -> Multiplexer present
+		// bit 3:5 - 3 -> This + MUX_BASE_ADDRESS = mux i2c address
+		// bit 6:7 - 2 -> Reserved
+		//
+		// byte 3
+		// |     7    |     6    |   5   |   4   |   3   |   2   |  1   |   0   |
+	    // |----------|----------|-----------------------|----------------------|
+		// | Reserved | Reserved |  Sensor I2C addr idx  |     Mux channel      |
+		//
+		// bit 0:2 - 3 -> Multiplexer channel (0-7)
+		// bit 3:5 - 3 -> Sensor I2C address index
+		// bit 6:7 - 2 -> Reserved
+
+		// config->measurements[meas].hash[0] = info->id;
+		Serial.println("B");
+		// config->measurements[meas].hash[1] = info->measurementList[meas]->id;
+		Serial.println("C");
+		byte two = ((muxAddr - MUX_BASE_ADDRESS) << 3);
+		Serial.println("D");
+		if (muxAddr > 0) two = two & (1 << 2);
+		Serial.println("E");
+		two = two & busIndex;
+
+		byte three = 
+
+		Serial.println(two, BIN);
+
+		// TODO terminar la construccion del HASH
+	}
+}
+// struct SensorConfig
+// {
+// 	// This has default values, but can be changed by the user
+// 	bool debug = false;
+// 	MeasurementConfig measurements[];
+// };
+// struct MeasurementConfig
+// {
+// 	// TODO decide if it worth the case encoding this, base64 (5 chars) or something smaller? or keep it on hex (8 chars)
+// 	byte measurementHash[4];
+// 								// bit 0:7   - 8 -> SensorID
+// 								// bit 8:15  - 8 -> MeasurementID
+// 								// bit 16:17 - 2 -> I2C bus index
+// 								// bit 18 	 - 1 -> Multiplexer present
+// 								// bit 19:21 - 3 -> This + MUX_BASE_ADDRESS = mux i2c address
+// 								// bit 22:24 - 3 -> Multiplexer channel (0-7)
+// 								// bit 25:27  - 3 -> Sensor I2C address index
+// 	bool enabled = true;
+// 	// uint8_t priority = 100;
+// 	uint8_t intervals = 1;
+// 	uint8_t precision = 2;
+// 	// bool oled_display -> Move this to OLED Device (default show all and create a disable list to add manually disabled ones)
+// };

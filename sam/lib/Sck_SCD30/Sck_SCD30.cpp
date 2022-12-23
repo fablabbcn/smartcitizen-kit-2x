@@ -4,7 +4,7 @@ bool Ctrl_SCD30::start(TwoWire * _wire, byte address)
 {
 	if (started) return true;
 
-	devAddr = address;
+	addr = address;
 	wireBus = _wire;
 
 	if (debug) sparkfun_scd30.enableDebugging(SerialUSB);
@@ -30,21 +30,21 @@ bool Ctrl_SCD30::stop()
 	return true;
 }
 
-int8_t Ctrl_SCD30::getReading(Metric metric, char * buff)
+int8_t Ctrl_SCD30::getReading(const Measurement * measurement, char * buff)
 {
 	float result;
 
-	switch (metric.type)
+	switch (measurement->type)
 	{
-		case SENSOR_SCD30_CO2:
+		case MEASUREMENT_CO2:
 			result = sparkfun_scd30.getCO2();
 			break;
 
-		case SENSOR_SCD30_TEMP:
+		case MEASUREMENT_TEMPERATURE:
 			result = sparkfun_scd30.getTemperature();
 			break;
 
-		case SENSOR_SCD30_HUM:
+		case MEASUREMENT_HUMIDITY:
 			result = sparkfun_scd30.getHumidity();
 			break;
 
@@ -52,7 +52,7 @@ int8_t Ctrl_SCD30::getReading(Metric metric, char * buff)
 			return -1;
 	}
 
-	snprintf(buff, READING_BUFF_SIZE, "%.*f", metric.precision, result);
+	snprintf(buff, READING_BUFF_SIZE, "%.*f", measurement->precision, result);
 	return 0;
 }
 

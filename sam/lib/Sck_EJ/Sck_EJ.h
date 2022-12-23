@@ -5,9 +5,9 @@
 //
 // extern TwoWire auxWire;
 //
-// static DeviceInfo sck_myDevice = 
+// static SensorInfo sck_myDevice = 
 // { 
-// 	DEVICE_TYPE, 				// DeviceType
+// 	SENSOR_TYPE, 				// SensorType
 // 	"myDevice",					// name
 // 	BOARD_AUX, 					// DeviceLocation 
 // 	{ 0x00, 0x00 }, 					// I2C address list (8 max)
@@ -27,13 +27,13 @@
 // 	 }}
 // };
 //
-// class Ctrl_myDevice: public Device
+// class Ctrl_myDevice: public Sensor
 // {
 // 	public:
 // 		bool start(byte address);
 // 		bool stop();
 // 		int8_t getReading(MetricType wichSensor, char *buffer);
-// 		DeviceInfo *info = &sck_myDevice;
+// 		SensorInfo *info = &sck_myDevice;
 //
 // 	private:
 // 		bool started = false;

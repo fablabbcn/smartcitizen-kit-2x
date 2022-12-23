@@ -1,13 +1,18 @@
 #include "Sck_ADS1X15.h"
 
-
-bool Ctrl_ADS1X15::start(byte address)
+Ctrl_ADS1X15::Ctrl_ADS1X15(TwoWire * _wire)
 {
-	if (!I2Cdetect(&auxWire, address)) return false;
+	wireBus = _wire;
+	Adafruit_ADS1115 _tads = Adafruit_ADS1115(&*wireBus);
+	_ads = &_tads;
+}
+
+bool Ctrl_ADS1X15::start(TwoWire * _wire, byte address)
+{
 	if (started) return true;
 
-	devAddr = address;
-	_ads.begin(devAddr);
+	addr = address;
+	_ads->begin(addr);
 	
 	started = true;
 	return true;
@@ -19,21 +24,21 @@ bool Ctrl_ADS1X15::stop()
 	return true;
 }
 
-int8_t Ctrl_ADS1X15::getReading(MetricType wichSensor, char *buffer)
+int8_t Ctrl_ADS1X15::getReading(const Measurement * measurement, char * buff)
 {
 	uint8_t wichChannel;
 
-	switch(wichSensor) {
-		case SENSOR_ADS1X15_0:
+	switch(measurement->type) {
+		case MEASUREMENT_VOLTAGE_CH0:
 			wichChannel = 0;
 			break;
-		case SENSOR_ADS1X15_1:
+		case MEASUREMENT_VOLTAGE_CH1:
 			wichChannel = 1;
 			break;
-		case SENSOR_ADS1X15_2:
+		case MEASUREMENT_VOLTAGE_CH2:
 			wichChannel = 2;
 			break;
-		case SENSOR_ADS1X15_3:
+		case MEASUREMENT_VOLTAGE_CH3:
 			wichChannel = 3;
 			break;
 		default:
@@ -41,51 +46,51 @@ int8_t Ctrl_ADS1X15::getReading(MetricType wichSensor, char *buffer)
 	}
 
 	// Reset gain
-	_ads.setGain(GAIN_TWOTHIRDS);
+	_ads->setGain(GAIN_TWOTHIRDS);
 	double voltage_range = 6.144;
 
 	// Get value with full range
-	uint16_t value = _ads.readADC_SingleEnded(wichChannel);
+	uint16_t value = _ads->readADC_SingleEnded(wichChannel);
 
 	// If value is under 4.096v increase the gain depending on voltage
 	if (value < 21845) {
 		if (value > 10922) {
 
 			// 1x gain, 4.096V
-			_ads.setGain(GAIN_ONE);
+			_ads->setGain(GAIN_ONE);
 			voltage_range = 4.096;
 
 		} else if (value > 5461) {
 
 			// 2x gain, 2.048V
-			_ads.setGain(GAIN_TWO);
+			_ads->setGain(GAIN_TWO);
 			voltage_range = 2.048;
 
 		} else if (value > 2730) {
 
 			// 4x gain, 1.024V
-			_ads.setGain(GAIN_FOUR);
+			_ads->setGain(GAIN_FOUR);
 			voltage_range = 1.024;
 
 		} else if (value > 1365) {
 
 			// 8x gain, 0.25V
-			_ads.setGain(GAIN_EIGHT);
+			_ads->setGain(GAIN_EIGHT);
 			voltage_range = 0.512;
 
 		} else {
 
 			// 16x gain, 0.125V
-			_ads.setGain(GAIN_SIXTEEN);
+			_ads->setGain(GAIN_SIXTEEN);
 			voltage_range = 0.256;
 		}
 
 		// Get the value again
-		value = _ads.readADC_SingleEnded(wichChannel);
+		value = _ads->readADC_SingleEnded(wichChannel);
 	}
 
 	float result = (float)value / 32768 * voltage_range;
-	snprintf(buffer, sizeof(buffer), "%.*l", precision, result);
+	snprintf(buff, READING_BUFF_SIZE, "%.*f", measurement->precision, result);
 	return 0;
 }
 

@@ -6,7 +6,7 @@ bool Ctrl_BH1730::start(TwoWire * _wire, byte address)
 	if (started) return true;
 
 	wireBus = _wire;
-	devAddr = address;
+	addr = address;
 
 	started = true;
 	return true;
@@ -32,7 +32,7 @@ bool Ctrl_BH1730::stop()
 
 	// Send Configuration
 	// This will save around 150 uA
-	wireBus->beginTransmission(devAddr);
+	wireBus->beginTransmission(addr);
 	wireBus->write(0x80);
 	wireBus->write(CONTROL);
 	wireBus->endTransmission();
@@ -41,7 +41,7 @@ bool Ctrl_BH1730::stop()
 	return true;
 }
 
-int8_t Ctrl_BH1730::getReading(Metric metric, char * buff)
+int8_t Ctrl_BH1730::getReading(const Measurement * measurement, char * buff)
 {
 	float result = 0;
 
@@ -100,7 +100,7 @@ int8_t Ctrl_BH1730::getReading(Metric metric, char * buff)
 
 	stop();
 
-	snprintf(buff, READING_BUFF_SIZE, "%.*f", metric.precision, result);
+	snprintf(buff, READING_BUFF_SIZE, "%.*f", measurement->precision, result);
 	return 0;
 }
 
@@ -165,7 +165,7 @@ bool Ctrl_BH1730::updateValues()
 	uint8_t DATA[8] = {CONTROL, ITIME, INTERRUPT, TH_LOW0, TH_LOW1, TH_UP0, TH_UP1, GAIN};
 
 	// Send Configuration
-	wireBus->beginTransmission(devAddr);
+	wireBus->beginTransmission(addr);
 	wireBus->write(0x80);
 	for (int i= 0; i<8; i++) wireBus->write(DATA[i]);
 	wireBus->endTransmission();
@@ -179,10 +179,10 @@ bool Ctrl_BH1730::updateValues()
 	uint8_t answer = 0;
 	while ((answer & 0x10) == 0) {
 		delay(10);
-		wireBus->beginTransmission(devAddr);
+		wireBus->beginTransmission(addr);
 		wireBus->write(0x80);
 		wireBus->endTransmission();
-		wireBus->requestFrom(devAddr, 1);
+		wireBus->requestFrom(addr, 1);
 		answer = wireBus->read();
 		if (millis() - started > Tmt) {
 			if (debug) SerialUSB.println("ERROR: Timeout waiting for reading");
@@ -191,10 +191,10 @@ bool Ctrl_BH1730::updateValues()
 	}
 
 	// Ask for reading
-	wireBus->beginTransmission(devAddr);
+	wireBus->beginTransmission(addr);
 	wireBus->write(0x94);
 	wireBus->endTransmission();
-	wireBus->requestFrom(devAddr, 4);
+	wireBus->requestFrom(addr, 4);
 
 	// Get result
 	uint16_t IDATA0 = 0;

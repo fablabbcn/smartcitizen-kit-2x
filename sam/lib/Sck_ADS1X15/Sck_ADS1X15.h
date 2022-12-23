@@ -13,58 +13,25 @@
 #include "GasesBoardTester.h"
 #endif
 
-extern TwoWire auxWire;
-
-static DeviceInfo sck_ads1x15 =
+static SensorInfo info_ads1x15 =
 {
-	DEVICE_ADS1X15,				// DeviceType
-	"ADS1X15",					// name
-	BOARD_AUX, 					// DeviceLocation
-	{ 0x48, 0x49, 0x4A, 0x4B }, // I2C address list (8 max)
-	4, 							// Number of provided metrics
-	{{
-		 SENSOR_ADS1X15_0, 		// MetricType
-		 "Channel 0", 			// title
-		 "CH0", 				// short title
-		 "V", 					// unit
-		 133 					// platform id
-	 },{
-		 SENSOR_ADS1X15_1, 		// MetricType
-		 "Channel 1", 			// title
-		 "CH1", 				// short title
-		 "V", 					// unit
-		 134 					// platform id
-	 },{
-		 SENSOR_ADS1X15_2, 		// MetricType
-		 "Channel 2", 			// title
-		 "CH2", 				// short title
-		 "V", 					// unit
-		 135 					// platform id
-	 },{
-		 SENSOR_ADS1X15_3, 		// MetricType
-		 "Channel 3", 			// title
-		 "CH3", 				// short title
-		 "V", 					// unit
-		 136 					// platform id
-	 }}
+	SENSOR_ADS1X15,                                                 // SensorType
+	"ADS1X15",                                                      // Name
+	{ 0x48, 0x49, 0x4A, 0x4B },                                     // I2C address list (8 max)
+	4,                                                              // Number of provided measurements
+	{ 133, 134, 135, 136 },                                         // Legacy platform Id's list for corresponding measurements (0 if is not defined)
+	{ &Voltage_ch0, &Voltage_ch1, &Voltage_ch2, &Voltage_ch3 }      // Measurement list
 };
 
-class Ctrl_ADS1X15: public Device
+class Ctrl_ADS1X15: public Sensor
 {
 	public:
 
-		bool start(byte address);
+		Ctrl_ADS1X15(TwoWire * _wire);
+		bool start(TwoWire * _wire, byte address);
 		bool stop();
-		int8_t getReading(MetricType wichSensor, char *buffer);
-		DeviceInfo *info = &sck_ads1x15;
-
-		// Override default precision
-		uint8_t precision = 6;
-
-		// bool getReading(SensorType wichSensor);
-
-		// bool getReading(uint8_t wichChannel);
-		// float reading;
+		int8_t getReading(const Measurement * measurement, char * buff);
+		SensorInfo * info = &info_ads1x15;
 
 		#ifdef adsTest
 		uint8_t adsChannelW = 0; // Default channel for WE
@@ -82,7 +49,7 @@ class Ctrl_ADS1X15: public Device
 	private:
 		bool started = false;
 		float VOLTAGE = 3.3;
-		Adafruit_ADS1115 _ads = Adafruit_ADS1115(&auxWire);
+		Adafruit_ADS1115 * _ads;// = Adafruit_ADS1115(&auxWire);
 
 	// TODO
 	// Test ADS1015

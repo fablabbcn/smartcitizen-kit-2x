@@ -560,20 +560,6 @@ void SckBase::inputUpdate()
 }
 
 // **** Output
-void SckBase::sckOut(String strOut, PrioLevels priority, bool newLine)
-{
-	if (strOut.equals(outBuff) && (config.outLevel + priority > 1)) {
-		outRepetitions++;
-		if (outRepetitions >= 10) {
-			sckOut("Last message repeated 10 times");
-			outRepetitions = 0;
-		}
-		return;
-	}
-	outRepetitions = 0;
-	strOut.toCharArray(outBuff, strOut.length()+1);
-	sckOut(priority, newLine);
-}
 void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 {
 	if (strncmp(strOut, outBuff, strlen(strOut)) == 0 && (config.outLevel + priority > 1)) {
@@ -1871,7 +1857,12 @@ bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 		sckOut();
 		switch (sensors[wichSensorType].location) {
 				case BOARD_URBAN: urban.control(this, wichSensorType, wichCommand); break;
-				case BOARD_AUX: sckOut(auxBoards.control(wichSensorType, wichCommand)); break;
+				case BOARD_AUX: {
+					String result = auxBoards.control(wichSensorType, wichCommand);
+					result.toCharArray(outBuff, result.length()+1);
+					sckOut();
+					break;
+				}
 				default: break;
 			}
 

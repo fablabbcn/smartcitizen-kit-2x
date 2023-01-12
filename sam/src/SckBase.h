@@ -248,7 +248,6 @@ class SckBase
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent", "Normal", "Verbose"	};
 		char outBuff[240];
-		void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true); 		// Accepts String object
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
 		void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
 		void prompt();

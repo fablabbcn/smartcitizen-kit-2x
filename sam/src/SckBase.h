@@ -143,6 +143,7 @@ class SckBase
 		SckFile debugFile {"DEBUG.TXT"};
 		SckFile speedFile {"SPEED.CSV"};
 		SckFile infoFile {"INFO.TXT"};
+		SckFile errorFile {"ERROR.LOG"};
 		// Sd card
 		bool sdSelect();
 		volatile bool sdInitPending = false;

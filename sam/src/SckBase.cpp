@@ -255,7 +255,7 @@ void SckBase::reviewState()
 			// This error needs user intervention
 			if (!st.wifiSet) {
 				if (!st.wifiStat.error) {
-					sckOut("ERROR Time not synced and wifi is not configured!!!");
+					sckOut("Time not synced and wifi is not configured!!!", PRIO_ERROR);
 					ESPcontrol(ESP_OFF);
 					if (st.mode == MODE_SD)	led.update(led.PINK, led.PULSE_ERROR);
 					else led.update(led.BLUE, led.PULSE_ERROR);
@@ -275,7 +275,7 @@ void SckBase::reviewState()
 				} else if (st.wifiStat.error) { 		// If error is declared something went wrong
 
 					// This error needs user intervention so feedback should be urgent
-					if (st.error != ERROR_TIME) sckOut("ERROR: Without time we can not take readings!!!");
+					if (st.error != ERROR_TIME) sckOut("Without time we can not take readings!!!", PRIO_ERROR);
 					if (st.mode == MODE_SD)	led.update(led.PINK, led.PULSE_ERROR);
 					else led.update(led.BLUE, led.PULSE_ERROR);
 					st.error = ERROR_TIME;
@@ -287,7 +287,7 @@ void SckBase::reviewState()
 
 			} else if (st.timeStat.error) {
 
-				if (st.error != ERROR_TIME) sckOut("ERROR getting time from the network!!!");
+				if (st.error != ERROR_TIME) sckOut("Getting time from the network!!!", PRIO_ERROR);
 
 				ESPcontrol(ESP_REBOOT); 			// This also resets st.wifiStat
 				if (st.mode == MODE_SD)	led.update(led.PINK, led.PULSE_ERROR);
@@ -308,7 +308,7 @@ void SckBase::reviewState()
 				if (!st.tokenSet) {
 
 					if (!st.tokenError) {
-						sckOut("ERROR token is not configured!!!");
+						sckOut("Token is not configured!!!", PRIO_ERROR);
 						ESPcontrol(ESP_OFF);
 						led.update(led.BLUE, led.PULSE_WARNING);
 						st.error = ERROR_NO_TOKEN_CONFIG;
@@ -380,7 +380,7 @@ void SckBase::reviewState()
 
 						} else if (st.helloStat.error) {
 
-							sckOut("ERROR sending hello!!!");
+							sckOut("Sending hello!!!", PRIO_ERROR);
 
 							ESPcontrol(ESP_REBOOT); 			// Try reseting ESP
 							led.update(led.BLUE, led.PULSE_ERROR); 	// This error is an exception (normally it would be Soft error) because in this case the user is probably doing the onboarding process
@@ -397,7 +397,7 @@ void SckBase::reviewState()
 
 						} else if (st.infoStat.error){
 
-							sckOut("ERROR sending kit info to platform!!!");
+							sckOut("Sending kit info to platform!!!", PRIO_ERROR);
 							infoPublished = true; 		// We will try on next reset
 							st.infoStat.reset();
 							st.error = ERROR_MQTT;
@@ -433,7 +433,7 @@ void SckBase::reviewState()
 
 						} else if (st.publishStat.error) {
 
-							sckOut("Will retry on next publish interval!!!");
+							sckOut("Publish failed, will retry on next interval!!!", PRIO_ERROR);
 
 							// Forget the index of the group we tried to publish
 							wichGroupPublishing.group = -1;
@@ -470,7 +470,8 @@ void SckBase::reviewState()
 			if (!st.cardPresent) {
 
 				if (!st.cardPresentErrorPrinted) {
-					sckOut("ERROR can't find SD card!!!");
+					// Saving error on sdcard here does not makes sense, but other error log outputs (mqtt?) would be implemented
+					sckOut("Can't find SD card!!!", PRIO_ERROR);
 					led.update(led.PINK, led.PULSE_WARNING);
 					st.error = ERROR_SD;
 					st.cardPresentErrorPrinted = true;
@@ -584,7 +585,10 @@ void SckBase::sckOut(const char *strOut, PrioLevels priority, bool newLine)
 		return;
 	}
 	outRepetitions = 0;
-	strncpy(outBuff, strOut, 240);
+
+	if (priority == PRIO_ERROR) snprintf(outBuff, 240, "ERROR: %s", strOut);
+	else strncpy(outBuff, strOut, 240);
+
 	sckOut(priority, newLine);
 }
 void SckBase::sckOut(PrioLevels priority, bool newLine)
@@ -609,6 +613,19 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 			debugFile.file.print("-->");
 			debugFile.file.println(outBuff);
 			debugFile.file.close();
+		} else st.cardPresent = false;
+	}
+
+	// Append to Error log on sdcard
+	if (priority == PRIO_ERROR) {
+		if (!sdSelect()) return;
+		errorFile.file = sd.open(errorFile.name, FILE_WRITE);
+		if (errorFile.file) {
+			ISOtime();
+			errorFile.file.print(ISOtimeBuff);
+			errorFile.file.print("-->");
+			errorFile.file.println(outBuff);
+			errorFile.file.close();
 		} else st.cardPresent = false;
 	}
 
@@ -724,8 +741,8 @@ void SckBase::saveConfig(bool defaults)
 
 		} else {
 
-			if (!st.wifiSet) sckOut("ERROR Wifi not configured: can't set Network Mode!!!");
-			if (!st.tokenSet) sckOut("ERROR Token not configured: can't set Network Mode!!!");
+			if (!st.wifiSet) sckOut("Wifi not configured: can't set Network Mode!!!", PRIO_ERROR);
+			if (!st.tokenSet) sckOut("Token not configured: can't set Network Mode!!!", PRIO_ERROR);
 			ESPcontrol(ESP_OFF);
 			led.update(led.BLUE, led.PULSE_ERROR);
 			st.error = ERROR_NO_WIFI_CONFIG;
@@ -1074,21 +1091,21 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 		case SAMMES_SSID_ERROR:
 
-			sckOut("ERROR Access point not found!!");
+			sckOut("Access point not found!!", PRIO_ERROR);
 			st.wifiStat.error = true;
 			st.error = ERROR_AP;
 			break;
 
 		case SAMMES_PASS_ERROR:
 
-			sckOut("ERROR wrong wifi password!!");
+			sckOut("Wrong wifi password!!", PRIO_ERROR);
 			st.wifiStat.error = true;
 			st.error = ERROR_PASS;
 			break;
 
 		case SAMMES_WIFI_UNKNOWN_ERROR:
 
-			sckOut("ERROR unknown wifi error!!");
+			sckOut("Unknown wifi error!!", PRIO_ERROR);
 			st.wifiStat.error = true;
 			st.error = ERROR_WIFI_UNKNOWN;
 			break;
@@ -1113,7 +1130,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 		case SAMMES_MQTT_PUBLISH_ERROR:
 
-			sckOut("ERROR on MQTT publish");
+			sckOut("MQTT publish failed!!", PRIO_ERROR);
 			st.publishStat.error = true;
 			st.error = ERROR_MQTT;
 			break;
@@ -1128,8 +1145,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 		case SAMMES_MQTT_INFO_ERROR:
 
 			st.infoStat.error = true;
+			sckOut("Info publish failed!!", PRIO_ERROR);
 			st.error = ERROR_MQTT;
-			sckOut("ERROR on Info publish!!");
 			break;
 
 		case SAMMES_MQTT_CUSTOM_OK:
@@ -1139,8 +1156,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 		case SAMMES_MQTT_CUSTOM_ERROR:
 
+			sckOut("Custom MQTT publish failed!!", PRIO_ERROR);
 			st.error = ERROR_MQTT;
-			sckOut("ERROR on custom MQTT publish");
 			break;
 
 		case SAMMES_BOOTED:
@@ -1386,6 +1403,7 @@ void SckBase::updatePower()
 					delay(200);
 				}
 
+				sckOut("Emergency low battery!!", PRIO_ERROR);
 				st.error = ERROR_BATT;
 				auxBoards.updateDisplay(this, true); 		// Force update of screen before going to sleep
 

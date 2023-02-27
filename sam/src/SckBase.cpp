@@ -4,13 +4,11 @@
 // Hardware Auxiliary I2C bus
 TwoWire auxWire(&sercom1, pinAUX_WIRE_SDA, pinAUX_WIRE_SCL);
 void SERCOM1_Handler(void) {
-
 	auxWire.onService();
 }
 
 // ESP communication
-RH_Serial driver(SerialESP);
-RHReliableDatagram manager(driver, SAM_ADDRESS);
+SckSerial serESP(SerialESP);
 
 // Auxiliary I2C devices
 AuxBoards auxBoards;
@@ -27,10 +25,8 @@ void SckBase::setup()
 	pinMode(pinPOWER_ESP, OUTPUT);
 	pinMode(pinESP_CH_PD, OUTPUT);
 	pinMode(pinESP_GPIO0, OUTPUT);
-	SerialESP.begin(serialBaudrate);
-	manager.init();
-	manager.setTimeout(30);
-	manager.setRetries(16);
+	serESP.begin();
+	serESPBuffPtr = serESP.buff;
 	ESPcontrol(ESP_OFF);
 
 	// Internal I2C bus setup
@@ -238,6 +234,9 @@ void SckBase::reviewState()
 	/* sdDetect() */
 	/* buttonEvent(); */
 
+	// update ESP serial communication error status
+	if (serESP.error) st.error = ERROR_ESP;
+
 	if (st.onShell) {
 
 	} else if (st.onSetup) {
@@ -283,7 +282,7 @@ void SckBase::reviewState()
 
 			} else if (st.timeStat.retry()) {
 
-				if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
+				if (ESPsend(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
 
 			} else if (st.timeStat.error) {
 
@@ -376,7 +375,7 @@ void SckBase::reviewState()
 
 						if (st.helloStat.retry()) {
 
-							if (sendMessage(ESPMES_MQTT_HELLO, ""))	sckOut("Hello sent!");
+							if (ESPsend(ESPMES_MQTT_HELLO, ""))	sckOut("Hello sent!");
 
 						} else if (st.helloStat.error) {
 
@@ -611,7 +610,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 			debugFile.file.close();
 		} else st.cardPresent = false;
 	}
-
+	
 	// Debug output to oled display
 	if (config.debug.oled) {
 		if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.print(outBuff);
@@ -652,6 +651,7 @@ void SckBase::loadConfig()
 	st.tokenError = false;
 	st.mode = config.mode;
 	readingsList.debug = config.debug.flash;
+	serESP.debug = config.debug.serial;
 
 	snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
 	memcpy(&hostname[12], &config.mac.address[12], 2);
@@ -671,7 +671,7 @@ void SckBase::loadConfig()
 }
 void SckBase::saveConfig(bool defaults)
 {
-	// Save to eeprom
+	// Load defaults
 	if (defaults) {
 		Configuration defaultConfig;
 
@@ -691,6 +691,7 @@ void SckBase::saveConfig(bool defaults)
 	// Sensor enabled/disabled state is only saved if it is setted in config.sensors the runtime state (sensors) is not saved.
 	// This means that if you want to make sensor state persistent you have to change explicitly config.sensors
 
+	// Save to eeprom
 	eepromConfig.write(config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
 	lastUserEvent = millis();
@@ -736,7 +737,7 @@ void SckBase::saveConfig(bool defaults)
 		st.helloPending = false;
 		st.onSetup = false;
 		led.update(led.PINK, led.PULSE_SOFT);
-		sendMessage(ESPMES_STOP_AP, "");
+		ESPsend(ESPMES_STOP_AP, "");
 		st.error = ERROR_NONE;
 
 	}
@@ -756,7 +757,7 @@ bool SckBase::sendConfig()
 	}
 	if (st.espBooting) return false;
 
-	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
 	JsonObject json = jsonBuffer.to<JsonObject>();
 
 	json["cs"] = (uint8_t)config.credentials.set;
@@ -770,14 +771,14 @@ bool SckBase::sendConfig()
 	json["np"] = config.ntp.port;
 	json["ver"] = SAMversion;
 	json["bd"] = SAMbuildDate;
+	json["sd"] = (uint8_t)config.debug.serial;
 
 	if (!st.onSetup && ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet))) json["ac"] = (uint8_t)ESPMES_CONNECT;
 	else json["ac"] = (uint8_t)ESPMES_START_AP;
 
-	sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
-	serializeJson(json, &netBuff[1], NETBUFF_SIZE);
+	serializeJson(json, serESP.buff, NETBUFF_SIZE);
 
-	if (sendMessage()) {
+	if (ESPsend(ESPMES_SET_CONFIG)) {
 		pendingSyncConfig = false;
 		sendConfigCounter = 0;
 		sckOut("Synced config with ESP!!", PRIO_LOW);
@@ -789,7 +790,7 @@ bool SckBase::sendConfig()
 bool SckBase::publishInfo()
 {
 	// Info file
-	if (!espInfoUpdated) sendMessage(ESPMES_GET_NETINFO);
+	if (!espInfoUpdated) ESPsend(ESPMES_GET_NETINFO, "");
 	else {
 		// Publish info to platform
 
@@ -811,7 +812,7 @@ bool SckBase::publishInfo()
 
 		getUniqueID();
 
-		StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+		StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
 		JsonObject json = jsonBuffer.to<JsonObject>();
 
 		json["time"] = ISOtimeBuff;
@@ -823,9 +824,8 @@ bool SckBase::publishInfo()
 		json["esp_ver"] = ESPversion.c_str();
 		json["esp_bd"] = ESPbuildDate.c_str();
 
-		sprintf(netBuff, "%c", ESPMES_MQTT_INFO);
-		serializeJson(json, &netBuff[1], NETBUFF_SIZE);
-		if (sendMessage()) return true;
+		serializeJson(json, serESP.buff, NETBUFF_SIZE);
+		if (ESPsend(ESPMES_MQTT_INFO)) return true;
 	}
 	return false;
 }
@@ -880,7 +880,6 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		case ESP_ON:
 		{
 				if (st.espBooting || st.espON) return;
-				sckOut("ESP on...", PRIO_LOW);
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 				digitalWrite(pinPOWER_ESP, LOW);
@@ -888,8 +887,19 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				st.espON = true;
 				st.espBooting = true;
 				espStarted = rtc.getEpoch();
-				break;
 
+				// Wait for boot...
+				uint32_t startPoint = millis();
+				while (st.espBooting) {
+					if (millis() - startPoint > 1000) {
+						sckOut("ESP not starting!!!", PRIO_HIGH);
+						st.error = ERROR_ESP;
+						break;
+					}		
+					ESPbusUpdate();
+				}
+				sckOut("ESP on", PRIO_LOW);
+				break;
 		}
 		case ESP_REBOOT:
 		{
@@ -901,6 +911,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_WAKEUP:
 		{
+				if (st.espBooting || st.espON) return;
 				sckOut("ESP wake up...");
 				digitalWrite(pinESP_CH_PD, HIGH);
 				st.espON = true;
@@ -910,7 +921,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		case ESP_SLEEP:
 		{
 				sckOut("ESP deep sleep...", PRIO_LOW);
-				sendMessage(ESPMES_LED_OFF);
+				ESPsend(ESPMES_LED_OFF, "");
 				st.espON = false;
 				st.espBooting = false;
 				digitalWrite(pinESP_CH_PD, LOW);
@@ -921,95 +932,32 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 	}
 }
+bool SckBase::ESPsend(SCKMessage wichMessage)
+{
+	if (!st.espON) ESPcontrol(ESP_ON);
+
+	return serESP.send(wichMessage);
+}
+bool SckBase::ESPsend(SCKMessage wichMessage, const char *content)
+{
+	// Check if message fits on buffer
+	if (strlen(content) > NETBUFF_SIZE) return false;
+
+	// Fills buffer with content
+	sprintf(serESP.buff, "%s", content);
+
+	return ESPsend(wichMessage);
+}
 void SckBase::ESPbusUpdate()
 {
-	if (manager.available()) {
+	if (!serESP.receive()) return;
 
-		uint8_t len = NETPACK_TOTAL_SIZE;
-
-		if (manager.recvfromAck(netPack, &len)) {
-
-			if (config.debug.esp) {
-				sprintf(outBuff, "Receiving msg from ESP in %i parts", netPack[0]);
-				sckOut();
-			}
-
-			// Identify received command
-			uint8_t pre = netPack[1];
-			SAMMessage wichMessage = static_cast<SAMMessage>(pre);
-
-			// Get content from first package (1 byte less than the rest)
-			memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
-
-			// Get the rest of the packages (if they exist)
-			for (uint8_t i=0; i<netPack[0]-1; i++) {
-				if (manager.recvfromAckTimeout(netPack, &len, 500))	{
-					memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE) + (NETPACK_CONTENT_SIZE - 1)], &netPack[1], NETPACK_CONTENT_SIZE);
-				}
-				else return;
-			}
-
-			if (config.debug.esp) sckOut(netBuff);
-
-			// Process message
-			receiveMessage(wichMessage);
-		}
-	}
-}
-bool SckBase::sendMessage(ESPMessage wichMessage)
-{
-	sprintf(netBuff, "%c", wichMessage);
-	return sendMessage();
-}
-bool SckBase::sendMessage(ESPMessage wichMessage, const char *content)
-{
-	sprintf(netBuff, "%c%s", wichMessage, content);
-	return sendMessage();
-}
-bool SckBase::sendMessage()
-{
-
-	// This function is used when netbuff is already filled with command and content
-
-	if (!st.espON || st.espBooting) {
-		if (config.debug.esp) sckOut("Can't send message, ESP is off or still booting...");
-		return false;
-	}
-
-	uint16_t totalSize = strlen(netBuff);
-	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
-
-	if (config.debug.esp) {
-		sprintf(outBuff, "Sending msg to ESP with %i parts and %i bytes", totalParts, totalSize);
-		sckOut();
-		sckOut(netBuff);
-	}
-
-
-	for (uint8_t i=0; i<totalParts; i++) {
-		netPack[0] = totalParts;
-		memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
-		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) {
-			sckOut("Failed sending mesg to ESP!!!", PRIO_LOW);
-			return false;
-		}
-		if (config.debug.esp) {
-			sprintf(outBuff, "Sent part num %i", i);
-			sckOut();
-			for(uint16_t i=0; i<NETPACK_TOTAL_SIZE; i++) SerialUSB.print((char)netPack[i]);
-			SerialUSB.println("");
-		}
-	}
-	return true;
-}
-void SckBase::receiveMessage(SAMMessage wichMessage)
-{
-	switch(wichMessage) {
+	switch(serESP.msg) {
 		case SAMMES_SET_CONFIG:
 		{
 				sckOut("Received new config from ESP");
-				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-				deserializeJson(jsonBuffer, netBuff);
+				StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, serESP.buff);
 				JsonObject json = jsonBuffer.as<JsonObject>();
 
 				if (json.containsKey("mo")) {
@@ -1039,18 +987,10 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 				break;
 
 		}
-		case SAMMES_DEBUG:
-		{
-
-				sckOut("ESP --> ", PRIO_HIGH, false);
-				sckOut(netBuff);
-				break;
-
-		}
 		case SAMMES_NETINFO:
 		{
-				StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-				deserializeJson(jsonBuffer, netBuff);
+				StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, serESP.buff);
 				JsonObject json = jsonBuffer.as<JsonObject>();
 
 				ipAddress = json["ip"].as<String>();
@@ -1067,7 +1007,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 			sckOut("Connected to wifi!!");
 			st.wifiStat.setOk();
 			if (!timeSyncAfterBoot) {
-				if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
+				if (ESPsend(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
 			}
 			break;
 
@@ -1094,7 +1034,7 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 		case SAMMES_TIME:
 		{
-				String strTime = String(netBuff);
+				String strTime = String(serESP.buff);
 				setTime(strTime);
 				break;
 		}
@@ -1148,8 +1088,8 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 
 			st.espBooting = false;
 
-			StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-			deserializeJson(jsonBuffer, netBuff);
+			StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+			deserializeJson(jsonBuffer, serESP.buff);
 			JsonObject json = jsonBuffer.as<JsonObject>();
 
 			String macAddress = json["mac"].as<String>();
@@ -1181,16 +1121,14 @@ void SckBase::receiveMessage(SAMMessage wichMessage)
 }
 void SckBase::mqttCustom(const char *topic, const char *payload)
 {
-	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
 	JsonObject json = jsonBuffer.to<JsonObject>();
 
 	json["to"] = topic;
 	json["pl"] = payload;
 
-	sprintf(netBuff, "%c", ESPMES_MQTT_CUSTOM);
-	serializeJson(json, &netBuff[1], NETBUFF_SIZE);
-
-	if (sendMessage()) sckOut("MQTT message sent to ESP...", PRIO_LOW);
+	serializeJson(json, serESP.buff, NETBUFF_SIZE);
+	if (ESPsend(ESPMES_MQTT_CUSTOM)) sckOut("MQTT message sent to ESP...", PRIO_LOW);
 }
 
 // **** SD card
@@ -1875,8 +1813,8 @@ bool SckBase::netPublish()
 	if (wichGroupPublishing.group >= 0) {
 		sprintf(outBuff, "(%s) Sent readings to platform.", ISOtimeBuff);
 		sckOut();
-		sckOut(netBuff, PRIO_LOW);
-		result = sendMessage();
+		sckOut(serESP.buff, PRIO_LOW);
+		result = ESPsend(ESPMES_MQTT_PUBLISH);
 	} else {
 		timeToPublish = false; 		// There are no more readings available
 	}

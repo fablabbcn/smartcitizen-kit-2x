@@ -4,6 +4,7 @@
 #define TEST_WIFI_PASSWD "pass"
 
 #include "SckBase.h"
+#include "SckSerial.h"
 
 
 class SckTest

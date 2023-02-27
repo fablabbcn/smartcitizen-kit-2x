@@ -4,8 +4,6 @@
 RH_Serial driver(Serial);
 RHReliableDatagram manager(driver, ESP_ADDRESS);
 
-// Telnet debug
-RemoteDebug Debug;
 
 // Web Server
 AsyncWebServer webServer(80);
@@ -48,13 +46,6 @@ void SckESP::setup()
 
 	ledBlink(LED_SLOW);
 
-	if (config.debug_telnet) {
-		Debug.begin(hostname);
-		Debug.setResetCmdEnabled(true);
-		Debug.showColors(true);
-		Debug.showTime(true);
-		Debug.setSerialEnabled(false);
-	}
 	if (!sendStartInfo()) bootedPending = true;
 
 	// Date for Web server
@@ -105,8 +96,6 @@ void SckESP::update()
 	SAMbusUpdate();
 
 	if(shouldReboot) ESP.restart();
-
-	if (config.debug_telnet) Debug.handle();
 }
 void SckESP::tryConnection()
 {
@@ -133,12 +122,6 @@ void SckESP::wifiOFF()
 // **** Input/Output
 void SckESP::debugOUT(String strOut)
 {
-	if (config.debug_telnet) {
-		strOut += "\r\n";
-		Debug.printf(strOut.c_str());
-	}
-
-	if (serialDebug) sendMessage(SAMMES_DEBUG, strOut.c_str());
 }
 void SckESP::SAMbusUpdate()
 {
@@ -867,7 +850,6 @@ bool SckESP::saveConfig()
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
-	json["tn"] = config.debug_telnet;
 	json["ms"] = config.mqtt.server;
 	json["mp"] = config.mqtt.port;
 	json["ns"] = config.ntp.server;
@@ -914,7 +896,6 @@ bool SckESP::loadConfig()
 			if (json.containsKey("ns")) strcpy(config.ntp.server, json["ms"]);
 			if (json.containsKey("np")) config.ntp.port = json["mp"];
 
-			if (json.containsKey("tn")) config.debug_telnet = json["tn"];
 		}
 		configFile.close();
 		debugOUT("Loaded configuration!!");
@@ -1041,4 +1022,3 @@ String SckESP::epoch2iso(uint32_t toConvert)
 
 	return isoTime;
 }
-

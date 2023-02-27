@@ -891,12 +891,6 @@ void debug_com(SckBase* base, String parameters)
 			base->sckOut();
 			saveNeeded = true;
 		}
-		if (parameters.indexOf("-telnet") >= 0) {
-			base->config.debug.telnet = !base->config.debug.telnet;
-			sprintf(base->outBuff, "Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
-			base->sckOut();
-			saveNeeded = true;
-		}
 		if (parameters.indexOf("-speed") >= 0) {
 			base->config.debug.speed = !base->config.debug.speed;
 			sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
@@ -917,8 +911,6 @@ void debug_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
 		base->sckOut();
 
-		sprintf(base->outBuff, "Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
-		base->sckOut();
 
 		sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
 		base->sckOut();

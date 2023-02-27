@@ -6,7 +6,6 @@
 #include <TimeLib.h>
 #include "FS.h"
 #include <DNSServer.h>
-#include "RemoteDebug.h"
 #include <ArduinoJson.h>
 #include <RHReliableDatagram.h>
 #include <RH_Serial.h>
@@ -32,7 +31,6 @@ struct ESP_Configuration {
 	Token token;
 	Mqtt mqtt;
 	Ntp ntp;
-	bool debug_telnet = false;
 };
 
 class SckESP

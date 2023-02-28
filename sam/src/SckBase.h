@@ -9,8 +9,6 @@
 #include "SdFat.h"
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
-#include <RHReliableDatagram.h>
-#include <RH_Serial.h>
 #include <FlashStorage.h>
 #include <ArduinoJson.h>
 #include <LinkedList.h>
@@ -18,15 +16,17 @@
 #include "Pins.h"
 #include "SckLed.h"
 #include "SckBatt.h"
-#include "Shared.h"
 #include "Config.h"
 #include "Commands.h"
 #include "Sensors.h"
 #include "SckUrban.h"
 #include "SckAux.h"
 #include "SckList.h"
+#include "SckSerial.h"
 
 #include "version.h"
+
+#define IM_SAM
 
 class Status
 {
@@ -64,7 +64,7 @@ struct SckState
 	bool helloPending = false;
 	SCKmodes mode = MODE_NET;
 	bool cardPresent = false;
-	bool cardPresentError = false;
+	bool cardPresentErrorPrinted = false;
 	bool sleeping = false;
 	bool publishPending = false;
 	bool dynamic = false;
@@ -111,14 +111,10 @@ class SckBase
 		void enterSetup();
 
 		// ESP communication
-		uint8_t netPack[NETPACK_TOTAL_SIZE];
-		char netBuff[NETBUFF_SIZE];
 		void ESPbusUpdate();
-		void receiveMessage(SAMMessage wichMessage);
 		bool sendConfig();
 		uint32_t sendConfigTimer = 0;
 		uint8_t sendConfigCounter = 0;
-		bool pendingSyncConfig = false;
 		uint32_t generalUpdateTimer = 0;
 
 		// Button
@@ -155,7 +151,6 @@ class SckBase
 		uint8_t wakeUP_M = 0;
 		void updatePower();
 		uint32_t updatePowerMillis = 0;
-		void goToSleep(uint32_t sleepPeriod=3000); 	// sleepPeriod in ms
 		void configGCLK6(); 			// Taken from https://github.com/arduino-libraries/ArduinoLowPower
 		void sleepLoop();
 
@@ -238,12 +233,13 @@ class SckBase
 		uint32_t espFlashSpeed = 115200;
 
 		// ESP communication
-		bool sendMessage(ESPMessage wichMessage, const char *content);
-		bool sendMessage(ESPMessage wichMessage);
-		bool sendMessage();
+		bool ESPsend(SCKMessage wichMessage);
+		bool ESPsend(SCKMessage wichMessage, const char *content);
+		bool pendingSyncConfig = false;
 		String ipAddress;
 		char hostname[17];
 		void mqttCustom(const char *topic, const char *payload);
+		char* serESPBuffPtr;
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent", "Normal", "Verbose"	};
@@ -269,6 +265,7 @@ class SckBase
 
 		// Power
 		void sck_reset();
+		void goToSleep(uint32_t sleepPeriod=3000); 	// sleepPeriod in ms
 		SckBatt battery;
 		SckCharger charger;
 		bool sckOFF = false;

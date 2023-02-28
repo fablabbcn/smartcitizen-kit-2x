@@ -1,11 +1,7 @@
 #include "SckESP.h"
 
 // SAM communication
-RH_Serial driver(Serial);
-RHReliableDatagram manager(driver, ESP_ADDRESS);
-
-// Telnet debug
-RemoteDebug Debug;
+SckSerial serSAM(Serial);
 
 // Web Server
 AsyncWebServer webServer(80);
@@ -17,6 +13,7 @@ PubSubClient MQTTclient(wclient);
 // DNS for captive portal
 DNSServer dnsServer;
 
+
 void SckESP::setup()
 {
 
@@ -26,9 +23,8 @@ void SckESP::setup()
 	digitalWrite(pinLED, LOW);
 
 	// SAM communication
-	Serial.begin(serialBaudrate);
+	serSAM.begin();
 	Serial.setDebugOutput(false);
-	manager.init();
 	debugOUT("ESP starting...");
 
 	// Flash filesystem
@@ -50,13 +46,6 @@ void SckESP::setup()
 
 	ledBlink(LED_SLOW);
 
-	if (config.debug_telnet) {
-		Debug.begin(hostname);
-		Debug.setResetCmdEnabled(true);
-		Debug.showColors(true);
-		Debug.showTime(true);
-		Debug.setSerialEnabled(false);
-	}
 	if (!sendStartInfo()) bootedPending = true;
 
 	// Date for Web server
@@ -88,27 +77,39 @@ void SckESP::update()
 			case WL_CONNECTED:
 			{
 				ledSet(1);
-				while (!sendMessage(SAMMES_WIFI_CONNECTED)) {
-					debugOUT("Failed sending wifi notification to SAM!!!");
-					delay(500);
-				}
+				serSAM.send(SAMMES_WIFI_CONNECTED, "");
 				break;
 			}
-			case WL_CONNECT_FAILED: ledBlink(LED_FAST); sendMessage(SAMMES_PASS_ERROR); break;
-			case WL_NO_SSID_AVAIL: ledBlink(LED_FAST); sendMessage(SAMMES_SSID_ERROR); break;
+			case WL_CONNECT_FAILED: 
+			{
+				ledBlink(LED_FAST); 
+				serSAM.send(SAMMES_PASS_ERROR, ""); 
+				break;
+			} 
+			case WL_NO_SSID_AVAIL: 
+			{
+				ledBlink(LED_FAST);
+				serSAM.send(SAMMES_SSID_ERROR, "");
+				break;
+			}
 			case WL_DISCONNECTED:
+			{
 				if (config.credentials.set && WiFi.getMode() != WIFI_AP) ledBlink(LED_SLOW);
 				else ledBlink(LED_FAST);
 				break;
-			default: ledBlink(LED_FAST); sendMessage(SAMMES_WIFI_UNKNOWN_ERROR); break;
+			}
+			default: 
+			{
+				ledBlink(LED_FAST); 
+				serSAM.send(SAMMES_WIFI_UNKNOWN_ERROR, "");
+				break;
+			}
 		}
 	}
 
 	SAMbusUpdate();
 
 	if(shouldReboot) ESP.restart();
-
-	if (config.debug_telnet) Debug.handle();
 }
 void SckESP::tryConnection()
 {
@@ -135,75 +136,18 @@ void SckESP::wifiOFF()
 // **** Input/Output
 void SckESP::debugOUT(String strOut)
 {
-	if (config.debug_telnet) {
-		strOut += "\r\n";
-		Debug.printf(strOut.c_str());
-	}
 
-	if (serialDebug) sendMessage(SAMMES_DEBUG, strOut.c_str());
 }
 void SckESP::SAMbusUpdate()
 {
+	if (!serSAM.receive()) return;
 
-	if (manager.available()) {
-
-		uint8_t len = NETPACK_TOTAL_SIZE;
-
-		if (manager.recvfromAck(netPack, &len)) {
-
-			// Identify received command
-			uint8_t pre = netPack[1];
-			ESPMessage wichMessage = static_cast<ESPMessage>(pre);
-
-			// Empty netBuff before starting to store the new message
-			memset(netBuff, 0, sizeof(netBuff));
-
-			// Get content from first package (1 byte less than the rest)
-			memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
-
-			// Get the rest of the packages (if they exist)
-			for (uint8_t i=0; i<netPack[0]-1; i++) {
-				if (manager.recvfromAckTimeout(netPack, &len, 500))	{
-					memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE) + (NETPACK_CONTENT_SIZE - 1)], &netPack[1], NETPACK_CONTENT_SIZE);
-				}
-				else return;
-			}
-
-			// Process message
-			receiveMessage(wichMessage);
-		}
-	}
-}
-bool SckESP::sendMessage(SAMMessage wichMessage)
-{
-	sprintf(netBuff, "%c", wichMessage);
-	return sendMessage();
-}
-bool SckESP::sendMessage(SAMMessage wichMessage, const char *content)
-{
-	sprintf(netBuff, "%c%s", wichMessage, content);
-	return sendMessage();
-}
-bool SckESP::sendMessage()
-{
-	uint16_t totalSize = strlen(netBuff);
-	uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
-
-	for (uint8_t i=0; i<totalParts; i++) {
-		netPack[0] = totalParts;
-		memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
-		if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, SAM_ADDRESS)) return false;
-	}
-	return true;
-}
-void SckESP::receiveMessage(ESPMessage wichMessage)
-{
-	switch(wichMessage)
+	switch(serSAM.msg)
 	{
 		case ESPMES_SET_CONFIG:
 		{
-			StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-			deserializeJson(jsonBuffer, netBuff);
+			StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+			deserializeJson(jsonBuffer, serSAM.buff);
 			JsonObject json = jsonBuffer.as<JsonObject>();
 			config.credentials.set = json["cs"];
 			strcpy(config.credentials.ssid, json["ss"]);
@@ -217,8 +161,9 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 			SAMversion = json["ver"].as<String>();
 			SAMbuildDate = json["bd"].as<String>();
 			uint8_t action = json["ac"];
-			ESPMessage wichAction = static_cast<ESPMessage>(action);
-			config.debug_telnet = json["tn"];
+			SCKMessage wichAction = static_cast<SCKMessage>(action);
+			config.debug_serial = json["sd"];
+			serSAM.debug = config.debug_serial;
 
 			// Do we need to update ESP firmware?
 			VersionInt ESPversionInt = parseVersionStr(ESPversion);
@@ -246,39 +191,39 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 
 		case ESPMES_MQTT_HELLO:
 
-			if (mqttHellow()) sendMessage(SAMMES_MQTT_HELLO_OK, "");
+			if (mqttHellow()) serSAM.send(SAMMES_MQTT_HELLO_OK, "");
 			break;
 
 		case ESPMES_MQTT_PUBLISH:
 		{
 				debugOUT("Receiving new readings...");
 				if (mqttPublishRaw()) {
-					sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
-				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
+					serSAM.send(SAMMES_MQTT_PUBLISH_OK, "");
+				} else serSAM.send(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
 		}
 		case ESPMES_MQTT_INVENTORY:
 		{
 				debugOUT("Receiving MQTT inventory...");
 				if (mqttInventory()) {
-					sendMessage(SAMMES_MQTT_PUBLISH_OK, "");
-				} else sendMessage(SAMMES_MQTT_PUBLISH_ERROR, "");
+					serSAM.send(SAMMES_MQTT_PUBLISH_OK, "");
+				} else serSAM.send(SAMMES_MQTT_PUBLISH_ERROR, "");
 				break;
 		}
 		case ESPMES_MQTT_INFO:
 		{
 				debugOUT("Receiving new info...");
 				if (mqttInfo()) {
-					sendMessage(SAMMES_MQTT_INFO_OK, "");
-				} else sendMessage(SAMMES_MQTT_INFO_ERROR, "");
+					serSAM.send(SAMMES_MQTT_INFO_OK, "");
+				} else serSAM.send(SAMMES_MQTT_INFO_ERROR, "");
 				break;
 		}
 		case ESPMES_MQTT_CUSTOM:
 		{
 				debugOUT("Receiving MQQT custom publish request...");
 				if (mqttCustom()) {
-					sendMessage(SAMMES_MQTT_CUSTOM_OK, "");
-				} else sendMessage(SAMMES_MQTT_CUSTOM_ERROR, "");
+					serSAM.send(SAMMES_MQTT_CUSTOM_OK, "");
+				} else serSAM.send(SAMMES_MQTT_CUSTOM_ERROR, "");
 				break;
 		}
 		case ESPMES_CONNECT:
@@ -302,6 +247,31 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 
 		default: break;
 	}
+}
+VersionInt SckESP::parseVersionStr(String versionStr)
+{
+	// We receive a String like this: 0.5.1-aabbcc
+
+	VersionInt versionInt;
+
+	// Get mayor version number from string
+	uint8_t sep = versionStr.indexOf(".");
+	String mayorSTR = versionStr.substring(0, sep);
+	versionStr.remove(0, sep+1);
+	versionInt.mayor = mayorSTR.toInt();
+
+	// Get minor version number from string
+	sep = versionStr.indexOf(".");
+	String minorSTR = versionStr.substring(0, sep);
+	versionStr.remove(0, sep+1);
+	versionInt.minor = minorSTR.toInt();
+
+	// Get build version number from string
+	sep = versionStr.indexOf("-");
+	String buildSTR = versionStr.substring(0, sep);
+	versionInt.build = buildSTR.toInt();
+
+	return versionInt;
 }
 
 // **** MQTT
@@ -344,62 +314,6 @@ bool SckESP::mqttHellow()
 		}
 	return false;
 }
-bool SckESP::mqttPublish()
-{
-	debugOUT(F("Trying MQTT publish..."));
-
-	if (mqttConnect()) {
-
-		// Prepare the topic title
-		char pubTopic[27];
-		sprintf(pubTopic, "device/sck/%s/readings", config.token.token);
-
-		debugOUT(String(pubTopic));
-		debugOUT(String(netBuff));
-
-		char pubPayload[MQTT_BUFF_SIZE];
-		
-
-		// /* Example
-		// {	"data":[
-		// 		{"recorded_at":"2017-03-24T13:35:14Z",
-		// 			"sensors":[
-		// 				{"id":29,"value":48.45},
-		// 				{"id":13,"value":66},
-		// 				{"id":12,"value":28},
-		// 				{"id":10,"value":4.45}
-		// 			]
-		// 		}
-		// 	]
-		// }
-		// 	*/
-
-		char thisTime[21];
-		snprintf(thisTime, 21, &netBuff[3]);
-		sprintf(pubPayload, "%s%s%s", "{\"data\":[{\"recorded_at\":\"", thisTime, "\",\"sensors\":[{\"id\":");
-
-		for (uint16_t i=24; i<strlen(netBuff); i++) {
-			
-			char thisChar[2];
-			snprintf(thisChar, 2, &netBuff[i]);
-
-			if (netBuff[i] == ':') sprintf(pubPayload, "%s%s", pubPayload, ",\"value\":");
-			else if (netBuff[i] == ',') sprintf(pubPayload, "%s%s", pubPayload, "},{\"id\":");
-			else sprintf(pubPayload, "%s%s", pubPayload, thisChar);
-		}
-
-		sprintf(pubPayload, "%s%s", pubPayload, "]}]}");
-
-		debugOUT(String(pubPayload));
-
-		if (MQTTclient.publish(pubTopic, pubPayload)) {
-			debugOUT(F("MQTT readings published OK !!!"));
-			return true;
-		}
-	}
-	debugOUT(F("MQTT publish ERROR !!!"));
-	return false;
-}
 bool SckESP::mqttPublishRaw()
 {
 	debugOUT(F("Trying MQTT publish..."));
@@ -411,7 +325,7 @@ bool SckESP::mqttPublishRaw()
 		sprintf(pubTopic, "device/sck/%s/readings/raw", config.token.token);
 
 		debugOUT(String(pubTopic));
-		debugOUT(String(netBuff));
+		debugOUT(String(serSAM.buff));
 
 		// /* Example
 		// {	t:2017-03-24T13:35:14Z,
@@ -421,7 +335,7 @@ bool SckESP::mqttPublishRaw()
 		// 		10:4.45
 		// }
 
-		if (MQTTclient.publish(pubTopic, netBuff)) {
+		if (MQTTclient.publish(pubTopic, serSAM.buff)) {
 			debugOUT(F("MQTT readings published OK !!!"));
 			return true;
 		}
@@ -433,7 +347,7 @@ bool SckESP::mqttInventory()
 {
 	debugOUT(F("Trying MQTT inventory..."));
 	if (mqttConnect()) {
-		if (MQTTclient.publish("device/inventory", netBuff)) {
+		if (MQTTclient.publish("device/inventory", serSAM.buff)) {
 			debugOUT(F("MQTT inventory published OK!!"));
 			return true;
 		}
@@ -451,9 +365,9 @@ bool SckESP::mqttInfo()
 		sprintf(pubTopic, "device/sck/%s/info", config.token.token);
 
 		debugOUT(String(pubTopic));
-		debugOUT(String(netBuff));
+		debugOUT(String(serSAM.buff));
 
-		if (MQTTclient.publish(pubTopic, netBuff)) {
+		if (MQTTclient.publish(pubTopic, serSAM.buff)) {
 			debugOUT(F("MQTT info published OK !!!"));
 			return true;
 		}
@@ -464,8 +378,8 @@ bool SckESP::mqttInfo()
 bool SckESP::mqttCustom()
 {
 	debugOUT(F("Trying custom MQTT..."));
-	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-	deserializeJson(jsonBuffer, netBuff);
+	StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+	deserializeJson(jsonBuffer, serSAM.buff);
 	JsonObject json = jsonBuffer.as<JsonObject>();
 
 	if (mqttConnect()) {
@@ -480,16 +394,15 @@ bool SckESP::mqttCustom()
 // **** Notifications
 bool SckESP::sendNetinfo()
 {
-	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
 	JsonObject jsonSend = jsonBuffer.to<JsonObject>();
 	jsonSend["hn"] = hostname;
 	ipAddr = WiFi.localIP().toString();
 	jsonSend["ip"] = ipAddr;
 
-	sprintf(netBuff, "%c", SAMMES_NETINFO);
-	serializeJson(jsonSend, &netBuff[1], NETBUFF_SIZE);
+	serializeJson(jsonSend, serSAM.buff, NETBUFF_SIZE);
 
-	return sendMessage();
+	return serSAM.send(SAMMES_NETINFO);
 }
 bool SckESP::sendTime()
 {
@@ -499,22 +412,21 @@ bool SckESP::sendTime()
 	} else {
 		String epochSTR = String(now());
 		debugOUT("Sending time to SAM: " + epochSTR);
-		sendMessage(SAMMES_TIME, epochSTR.c_str());
+		serSAM.send(SAMMES_TIME, epochSTR.c_str());
 	}
 	return true;
 }
 bool SckESP::sendStartInfo()
 {
-	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
 	JsonObject jsonSend = jsonBuffer.to<JsonObject>();
 	jsonSend["mac"] = macAddr;
 	jsonSend["ver"] = ESPversion;
 	jsonSend["bd"] = ESPbuildDate;
 
-	sprintf(netBuff, "%c", SAMMES_BOOTED);
-	serializeJson(jsonSend, &netBuff[1], NETBUFF_SIZE);
+	serializeJson(jsonSend, serSAM.buff, NETBUFF_SIZE);
 
-	return sendMessage();
+	return serSAM.send(SAMMES_BOOTED);
 }
 bool SckESP::sendConfig()
 {
@@ -535,9 +447,8 @@ bool SckESP::sendConfig()
 
 	if (jsonConf.size() <= 0) return false;
 
-	sprintf(netBuff, "%c", SAMMES_SET_CONFIG);
-	serializeJson(jsonConf, &netBuff[1], NETBUFF_SIZE);
-	if (sendMessage()) {
+	serializeJson(jsonConf, serSAM.buff, NETBUFF_SIZE);
+	if (serSAM.send(SAMMES_SET_CONFIG)) {
 		debugOUT(F("Sent configuration to SAM!!"));
 		return true;
 	}
@@ -859,14 +770,13 @@ bool SckESP::saveConfig()
 	debugOUT("Saving config...");
 	if ((config.credentials.ssid != config.credentials.ssid) || !config.credentials.set) WiFi.disconnect();
 
-	StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+	StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
 	JsonObject json = jsonBuffer.to<JsonObject>();
 	json["cs"] = (uint8_t)config.credentials.set;
 	json["ss"] = config.credentials.ssid;
 	json["pa"] = config.credentials.pass;
 	json["ts"] = (uint8_t)config.token.set;
 	json["to"] = config.token.token;
-	json["tn"] = config.debug_telnet;
 	json["ms"] = config.mqtt.server;
 	json["mp"] = config.mqtt.port;
 	json["ns"] = config.ntp.server;
@@ -895,7 +805,7 @@ bool SckESP::loadConfig()
 
 		File configFile = SPIFFS.open(configFileName, "r");
 
-		StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
+		StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
 		deserializeJson(jsonBuffer, configFile);
 		JsonObject json = jsonBuffer.as<JsonObject>();
 
@@ -912,8 +822,6 @@ bool SckESP::loadConfig()
 			if (json.containsKey("mp")) config.mqtt.port = json["mp"];
 			if (json.containsKey("ns")) strcpy(config.ntp.server, json["ms"]);
 			if (json.containsKey("np")) config.ntp.port = json["mp"];
-
-			if (json.containsKey("tn")) config.debug_telnet = json["tn"];
 		}
 		configFile.close();
 		debugOUT("Loaded configuration!!");
@@ -978,7 +886,7 @@ time_t SckESP::getNtpTime()
 			debugOUT(F("Time updated!!!"));
 			String epochStr = String(secsSince1900 - 2208988800UL);
 			sprintf(last_modified, "%s %s GMT", __DATE__, __TIME__);
-			sendMessage(SAMMES_TIME, epochStr.c_str());
+			serSAM.send(SAMMES_TIME, epochStr.c_str());
 			return secsSince1900 - 2208988800UL;
 		}
 	}
@@ -1004,4 +912,3 @@ void SckESP::sendNTPpacket(IPAddress &address)
 	Udp.write(packetBuffer, 48);
 	Udp.endPacket();
 }
- 

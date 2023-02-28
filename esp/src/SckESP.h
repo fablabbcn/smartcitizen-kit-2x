@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <SPI.h>
 #include <WiFi.h>
 #include <Ticker.h>
@@ -7,16 +8,13 @@
 #include "FS.h"
 #include "SPIFFS.h" 	// TODO replace this 
 #include <DNSServer.h>
-#include "RemoteDebug.h"
 #include <ArduinoJson.h>
-#include <RHReliableDatagram.h>
-#include <RH_Serial.h>
 #include <PubSubClient.h>
 #include <ESPAsyncWebServer.h>
 
 #include <Arduino.h>
-#include "Shared.h"
 #include "version.h"
+#include "SckSerial.h"
 
 #define MQTT_QOS 1
 #define MQTT_BUFF_SIZE 4096
@@ -33,7 +31,12 @@ struct ESP_Configuration {
 	Token token;
 	Mqtt mqtt;
 	Ntp ntp;
-	bool debug_telnet = false;
+	bool debug_serial = true;
+};
+struct VersionInt { 
+	uint8_t mayor; 
+	uint8_t minor; 
+	uint8_t build; 
 };
 
 class SckESP
@@ -45,12 +48,7 @@ class SckESP
 		void debugOUT(String strOut);
 
 		// SAM communication
-		uint8_t netPack[NETPACK_TOTAL_SIZE];
-		char netBuff[NETBUFF_SIZE];
-		bool sendMessage(SAMMessage wichMessage);
-		bool sendMessage(SAMMessage wichMessage, const char *content);
-		bool sendMessage();
-		void receiveMessage(ESPMessage wichMessage);
+		VersionInt parseVersionStr(String versionStr);
 		bool bootedPending = false;
 
 		// Notifications
@@ -63,7 +61,6 @@ class SckESP
 		// **** MQTT
 		bool mqttConnect();
 		bool mqttHellow();
-		bool mqttPublish();
 		bool mqttPublishRaw();
 		bool mqttInfo();
 		bool mqttInventory();

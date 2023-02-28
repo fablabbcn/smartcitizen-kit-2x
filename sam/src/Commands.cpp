@@ -1,6 +1,7 @@
 #include "Commands.h"
 #include "SckBase.h"
 
+extern SckSerial serESP;
 
 void AllCommands::in(SckBase* base, String strIn)
 {
@@ -824,7 +825,7 @@ void esp_com(SckBase* base, String parameters)
 void netInfo_com(SckBase* base, String parameters)
 {
 
-	base->sendMessage(ESPMES_GET_NETINFO);
+	base->ESPsend(ESPMES_GET_NETINFO, "");
 }
 void time_com(SckBase* base, String parameters)
 {
@@ -839,7 +840,7 @@ void time_com(SckBase* base, String parameters)
 			base->sckOut();
 		} else {
 			base->sckOut("Time is not synced, trying to sync...");
-			base->sendMessage(ESPMES_GET_TIME, "");
+			base->ESPsend(ESPMES_GET_TIME, "");
 		}
 	}
 
@@ -849,7 +850,7 @@ void time_com(SckBase* base, String parameters)
 			base->ESPcontrol(base->ESP_ON);
 			delay(200);
 		}
-		if (base->sendMessage(ESPMES_GET_TIME, "")) base->sckOut("Asking time to ESP...");
+		if (base->ESPsend(ESPMES_GET_TIME, "")) base->sckOut("Asking time to ESP...");
 	}
 
 	// Receive Epoch time and sync
@@ -858,7 +859,7 @@ void time_com(SckBase* base, String parameters)
 void hello_com(SckBase* base, String parameters)
 {
 
-	if (base->sendMessage(ESPMES_MQTT_HELLO, "")) base->sckOut("Hello sent!");
+	if (base->ESPsend(ESPMES_MQTT_HELLO, "")) base->sckOut("Hello sent!");
 	base->sckOut("Waiting for MQTT hello response...");
 }
 void debug_com(SckBase* base, String parameters)
@@ -869,12 +870,6 @@ void debug_com(SckBase* base, String parameters)
 		if (parameters.indexOf("-sdcard") >= 0) {
 			base->config.debug.sdcard = !base->config.debug.sdcard;
 			sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
-			base->sckOut();
-			saveNeeded = true;
-		}
-		if (parameters.indexOf("-esp") >= 0) {
-			base->config.debug.esp = !base->config.debug.esp;
-			sprintf(base->outBuff, "ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
 			base->sckOut();
 			saveNeeded = true;
 		}
@@ -891,24 +886,23 @@ void debug_com(SckBase* base, String parameters)
 			base->sckOut();
 			saveNeeded = true;
 		}
-		if (parameters.indexOf("-telnet") >= 0) {
-			base->config.debug.telnet = !base->config.debug.telnet;
-			sprintf(base->outBuff, "Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
-			base->sckOut();
-			saveNeeded = true;
-		}
 		if (parameters.indexOf("-speed") >= 0) {
 			base->config.debug.speed = !base->config.debug.speed;
 			sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
 			base->sckOut();
 			saveNeeded = true;
 		}
+		if (parameters.indexOf("-serial") >= 0) {
+			base->config.debug.serial = !base->config.debug.serial;
+			serESP.debug = base->config.debug.serial;
+			sprintf(base->outBuff, "Serial debug: %s", base->config.debug.serial ? "true" : "false");
+			base->sckOut();
+			saveNeeded = true;
+			base->pendingSyncConfig = true; // Make sur the config is sent to ESP
+		}
 	// Get
 	} else {
 		sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
-		base->sckOut();
-
-		sprintf(base->outBuff, "ESP comm debug: %s", base->config.debug.esp ? "true" : "false");
 		base->sckOut();
 
 		sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
@@ -917,10 +911,10 @@ void debug_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
 		base->sckOut();
 
-		sprintf(base->outBuff, "Telnet debug: %s", base->config.debug.telnet ? "true" : "false");
+		sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
 		base->sckOut();
 
-		sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
+		sprintf(base->outBuff, "Serial debug: %s", base->config.debug.serial ? "true" : "false");
 		base->sckOut();
 	}
 	if (saveNeeded) base->saveConfig();
@@ -1027,6 +1021,7 @@ void mqttConfig_com(SckBase* base, String parameters)
 				base->sckOut();
 			}
 		}
+		base->pendingSyncConfig = true;
 		base->saveConfig();
 	}
 	
@@ -1065,6 +1060,7 @@ void ntpConfig_com(SckBase* base, String parameters)
 				base->sckOut();
 			}
 		}
+		base->pendingSyncConfig = true;
 		base->saveConfig();
 	}
 	
@@ -1076,4 +1072,9 @@ void ntpConfig_com(SckBase* base, String parameters)
 	sprintf(base->outBuff, "NTP Port: %u", currentConfig.ntp.port);
 	base->sckOut();
 	
+}
+void sleep_com(SckBase* base, String parameters)
+{
+	base->sckOFF = true;
+	base->goToSleep();
 }

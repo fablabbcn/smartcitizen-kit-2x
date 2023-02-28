@@ -241,7 +241,7 @@ class AllSensors
 			OneSensor { BOARD_AUX,		100,	SENSOR_INA219_LOADVOLT,			"INA_VLOAD",		"INA219 Load voltage",				0,		true,		false,		1,			"V"},
 
 			OneSensor { BOARD_AUX,		100,	SENSOR_WATER_TEMP_DS18B20,		"DS_WAT_TEMP",		"DS18B20 Water temperature",			42,		true,		false,		1,			"C"},
-			OneSensor { BOARD_AUX, 		100,	SENSOR_ATLAS_TEMPERATURE, 		"AS_TEMP", 		"Atlas Temperature", 				51, 		true, 		false, 		1,			"C"},
+			OneSensor { BOARD_AUX, 		100,	SENSOR_ATLAS_TEMPERATURE, 		"AS_TEMP", 		"Atlas Temperature", 				51, 		true, 		true, 		1,			"C"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_PH,			"AS_PH",		"Atlas PH",					43,		true,		true,		1,			"pH"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_EC,			"AS_COND",		"Atlas Conductivity",				45,		true,		true,		1,			"uS/cm"},
 			OneSensor { BOARD_AUX,		100,	SENSOR_ATLAS_EC_TDS,			"AS_TDS",		"Atlas Total Dissolved Solids",			122,		true,		true,		1,			"ppm"},

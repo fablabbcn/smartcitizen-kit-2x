@@ -146,18 +146,28 @@ void ledToggle();
 time_t ntpProvider();
 
 // TODO ESP32
-// * Change filesystem remove SPIFFS
-// * Setup Wifi with ESP32
-// * Setup OTA
-// * Setup deep sleep and avoid on/off mosfet from SAM
-// * 
-// * Test pubSub and review current  alternatives
-// * Research RadioHead simpler replacements (CRC and no limit in length)
-// * Clean code to simplify API functions development
-// * Support for Eduroam
-// * Eduroam option on onboarding app
-// * SSL
-// * Multiple wifi config
+// [ ] Setup Wifi with ESP32 (check https://docs.espressif.com/projects/arduino-esp32/en/latest/api/wifi.html)
+// [ ] Setup OTA
+// 		https://github.com/chrisjoyce911/esp32FOTA
+// 		https://github.com/Fishwaldo/esp_ghota
+// [ ] Setup deep sleep
+// [ ] Replace AsyncWebserver (research options)
+// 		https://github.com/khoih-prog/HTTPS_Server_Generic
+// 		https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer
+// 		https://github.com/cesanta/mongoose
+// 		https://github.com/khoih-prog/WiFiWebServer
+//
+// [X] Replace Radiohead with SCKSerial
+// 	[ ] For now it is not working, some problem is happening and no data is flowing SAM -> ESP
+// [X] AP and STa mode at the same time (tested on single ESP32) 
+// [ ] Test pubSub and review current  alternatives
+// [ ] Support for Eduroam
+// [ ] SSL
+// [ ] Multiple wifi config
+// [ ] Change filesystem to littleFS and remove SPIFFS
+// 		https://github.com/littlefs-project/littlefs
+// [ ] Clean code to simplify API functions development
+// [ ] find the SCK when connected to local WiFi with sck.local or something similar
 // * Web simple status screen
 // 		* error/warnings
 // 		* scard
@@ -179,11 +189,11 @@ time_t ntpProvider();
 // 		* Ip address
 // 		* mqtt, ntp servers
 // 		* sleep timer
-// * Web shell with raw access to SAM shell
-// * Bluetooth config
+// [ ] Web shell with raw access to SAM shell (tested with webSerial and kind of works)
+// [ ] Bluetooth config (NO support for buetotth on C3 arduino core, espidf blufi could be an option)
 // * Web sensor dashboard with force update button
 // * Web sensor monitor plotter
-// * Sdcard file list, old data viewer???
+// * Sdcard file list, data viewer???
 // * Flash info and state page
 // * Reset via Web interface
 // * Enable/disable telnet debug

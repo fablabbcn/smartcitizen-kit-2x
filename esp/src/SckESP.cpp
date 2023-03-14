@@ -3,9 +3,6 @@
 // SAM communication
 SckSerial serSAM(Serial);
 
-// Web Server
-AsyncWebServer webServer(80);
-
 // MQTT client
 WiFiClient wclient;
 PubSubClient MQTTclient(wclient);
@@ -13,10 +10,8 @@ PubSubClient MQTTclient(wclient);
 // DNS for captive portal
 DNSServer dnsServer;
 
-
 void SckESP::setup()
 {
-
 
 	// LED outputs
 	pinMode(pinLED, OUTPUT);
@@ -481,7 +476,7 @@ void SckESP::startAP()
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
 	dnsServer.start(DNS_PORT, "*", myIP);
 
-	startWebServer();
+	// startWebServer();
 	ledBlink(LED_FAST);
 
 	apStarted = true;
@@ -493,202 +488,202 @@ void SckESP::stopAP()
 	apStarted = false;
 	tryConnection();
 }
-void SckESP::startWebServer()
-{
-	webServer.rewrite("/", "/index.html");
-
-	// For IOS
-	webServer.on("/hotspot-detect.html", HTTP_GET, extRoot);
-
-	// Handle root
-	webServer.on("/index.html", HTTP_GET, extRoot);
-
-	// Android captive portal
-	webServer.on("/generate_204", HTTP_GET, extRoot);
-
-	// Microsoft captive portal.
-	webServer.on("/fwlink", HTTP_GET, extRoot);
-	webServer.on("/ncsi.txt", HTTP_GET, extRoot);
-
-	// Handle set
-	// /set?ssid=value1&password=value2&token=value3&epoch=value&pubint=60&mode=value
-	//	ssid
-	//	password
-	//	token
-	//	epoch
-	//	pubint
-	//	mode
-	webServer.on("/set", HTTP_GET, extSet);
-
-	// Handle status request
-	webServer.on("/status", HTTP_GET, extStatus);
-
-	// Handle token request
-	webServer.on("/token", HTTP_GET, [&] (AsyncWebServerRequest *request) {
-		// {"token":"123123"}
-		String json = "{\"token\":\"" + String(config.token.token) + "\"}";
-		request->send(200, "text/plain", json);
-	});
-
-	// Handle ping request
-	webServer.on("/ping", HTTP_GET, [] (AsyncWebServerRequest *request) {
-		request->send(200, "text/plain", "ping...");
-	});
-
-	// Handle APlist request
-	webServer.on("/aplist", HTTP_GET, [&] (AsyncWebServerRequest *request) {
-
-		String json = "{\"nets\":[";
-
-		// int netNum = WiFi.scanNetworks();
-		for (int i=0; i<netNumber; i++) {
-			json += "{\"ssid\":\"" + String(WiFi.SSID(i));
-			json += "\",\"ch\":" + String(WiFi.channel(i));
-			json += ",\"rssi\":" + String(WiFi.RSSI(i)) + "}";
-			if (i < (netNumber - 1)) json += ",";
-		}
-
-		json += "]}";
-		request->send(200, "text/json", json);
-		json = String();
-	});
-
-	webServer.on("/update", HTTP_GET, [&](AsyncWebServerRequest *request){
-			request->send(200, "text/html", "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>");
-		});
-	webServer.on("/update", HTTP_POST, [&](AsyncWebServerRequest *request){
-
-        // TODO this is temporary to allow esp32 to boot
-		shouldReboot = false;
-		// shouldReboot = !Update.hasError();
-		
-		if (shouldReboot) OTAstatus = "Succeeded!";
-		else OTAstatus = "ERROR...";
-		AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", OTAstatus);
-		response->addHeader("Connection", "close");
-		request->send(response);
-	},[&](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
-
-		// TODO this is temporary to allow esp32 to boot
-		// if(!index){
-		// 	OTAstatus = "Running...";
-		// 	Update.runAsync(true);
-		// 	if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)){
-		// 		OTAstatus = "ERROR...";
-		// 	}
-		// }
-		// if(!Update.hasError()){
-		// 	if(Update.write(data, len) != len){
-		// 		OTAstatus = "ERROR...";
-		// 	}
-		// }
-		// if(final){
-		// 	if(Update.end(true)){
-		// 		OTAstatus = "Succeeded!";
-		// 	} else {
-		// 		OTAstatus = "ERROR...";
-		// 	}
-		// }
-	});
-
-	// Handle not found
-	webServer.onNotFound([](AsyncWebServerRequest *request){ request->send(404); });
-
-	webServer.begin();
-}
-void SckESP::webSet(AsyncWebServerRequest *request)
-{
-	// If we found ssid AND pass
-	if (request->hasParam("ssid"))  {
-
-		String tssid = request->arg("ssid");
-		String tpass = "";
-		if (request->hasParam("password")) tpass = request->arg("password");
-
-		// If ssid is no zero chars
-		if (tssid.length() > 0) {
-			config.credentials.set = true;
-			tssid.toCharArray(config.credentials.ssid, 64);
-			tpass.toCharArray(config.credentials.pass, 64);
-			sendConfigPending = true;
-		} else {
-			config.credentials.set = false;
-			strncpy(config.credentials.ssid, "", 64);
-			strncpy(config.credentials.pass, "", 64);
-		}
-	}
-
-	// If we found the mode
-	if (request->hasParam("mode")) {
-		String stringMode = request->arg("mode");
-		if (stringMode.equals("sdcard")) {
-			sendMode = SAM_MODE_SD;
-			sendConfigPending = true;
-		} else if (stringMode.equals("network")) {
-			sendMode = SAM_MODE_NET;
-			sendConfigPending = true;
-		}
-	}
-
-	// If we found the token
-	if (request->hasParam("token")) {
-		String stringToken = request->arg("token");
-		if (stringToken.length() == 6) {
-			config.token.set = true;
-			stringToken.toCharArray(config.token.token, 8);
-			sendConfigPending = true;
-		} else {
-			config.token.set = false;
-			strncpy(config.token.token, "", 64);
-		}
-	}
-
-	// If we found new time
-	if (request->hasParam("epoch")) {
-
-		String tepoch = request->arg("epoch");
-		uint32_t iepoch = tepoch.toInt();
-		const unsigned long DEFAULT_TIME = 1357041600; // Jan 1 2013
-
-		if (iepoch >= DEFAULT_TIME) {
-			setTime(iepoch);
-			sendConfigPending = true;
-		}
-	}
-
-	// Publish interval (seconds)
-	if (request->hasParam("pubint")) {
-
-		String tinterval = request->arg("pubint");
-		uint32_t intTinterval = tinterval.toInt();
-
-		if (intTinterval > 0) {
-			sendPubInt = intTinterval;
-			sendConfigPending = true;
-		}
-	}
-}
-void SckESP::webRoot(AsyncWebServerRequest *request)
-{
-    // Check if the client already has the same version and respond with a 304 (Not modified)
-    if (request->header("If-Modified-Since").equals(last_modified)) {
-        request->send(304);
-
-    } else {
-	
-        // Dump the byte array in PROGMEM with a 200 HTTP code (OK)
-        AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html_gz, index_html_gz_len);
-
-        // Tell the browswer the contemnt is Gzipped
-        response->addHeader("Content-Encoding", "gzip");
-
-        // And set the last-modified datetime so we can check if we need to send it again next time or not
-        response->addHeader("Last-Modified", last_modified);
-
-        request->send(response);
-
-    }
-}
+// void SckESP::startWebServer()
+// {
+// 	webServer.rewrite("/", "/index.html");
+//
+// 	// For IOS
+// 	webServer.on("/hotspot-detect.html", HTTP_GET, extRoot);
+//
+// 	// Handle root
+// 	webServer.on("/index.html", HTTP_GET, extRoot);
+//
+// 	// Android captive portal
+// 	webServer.on("/generate_204", HTTP_GET, extRoot);
+//
+// 	// Microsoft captive portal.
+// 	webServer.on("/fwlink", HTTP_GET, extRoot);
+// 	webServer.on("/ncsi.txt", HTTP_GET, extRoot);
+//
+// 	// Handle set
+// 	// /set?ssid=value1&password=value2&token=value3&epoch=value&pubint=60&mode=value
+// 	//	ssid
+// 	//	password
+// 	//	token
+// 	//	epoch
+// 	//	pubint
+// 	//	mode
+// 	webServer.on("/set", HTTP_GET, extSet);
+//
+// 	// Handle status request
+// 	webServer.on("/status", HTTP_GET, extStatus);
+//
+// 	// Handle token request
+// 	webServer.on("/token", HTTP_GET, [&] (AsyncWebServerRequest *request) {
+// 		// {"token":"123123"}
+// 		String json = "{\"token\":\"" + String(config.token.token) + "\"}";
+// 		request->send(200, "text/plain", json);
+// 	});
+//
+// 	// Handle ping request
+// 	webServer.on("/ping", HTTP_GET, [] (AsyncWebServerRequest *request) {
+// 		request->send(200, "text/plain", "ping...");
+// 	});
+//
+// 	// Handle APlist request
+// 	webServer.on("/aplist", HTTP_GET, [&] (AsyncWebServerRequest *request) {
+//
+// 		String json = "{\"nets\":[";
+//
+// 		// int netNum = WiFi.scanNetworks();
+// 		for (int i=0; i<netNumber; i++) {
+// 			json += "{\"ssid\":\"" + String(WiFi.SSID(i));
+// 			json += "\",\"ch\":" + String(WiFi.channel(i));
+// 			json += ",\"rssi\":" + String(WiFi.RSSI(i)) + "}";
+// 			if (i < (netNumber - 1)) json += ",";
+// 		}
+//
+// 		json += "]}";
+// 		request->send(200, "text/json", json);
+// 		json = String();
+// 	});
+//
+// 	webServer.on("/update", HTTP_GET, [&](AsyncWebServerRequest *request){
+// 			request->send(200, "text/html", "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>");
+// 		});
+// 	webServer.on("/update", HTTP_POST, [&](AsyncWebServerRequest *request){
+//
+//         // TODO this is temporary to allow esp32 to boot
+// 		shouldReboot = false;
+// 		// shouldReboot = !Update.hasError();
+// 		
+// 		if (shouldReboot) OTAstatus = "Succeeded!";
+// 		else OTAstatus = "ERROR...";
+// 		AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", OTAstatus);
+// 		response->addHeader("Connection", "close");
+// 		request->send(response);
+// 	},[&](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
+//
+// 		// TODO this is temporary to allow esp32 to boot
+// 		// if(!index){
+// 		// 	OTAstatus = "Running...";
+// 		// 	Update.runAsync(true);
+// 		// 	if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)){
+// 		// 		OTAstatus = "ERROR...";
+// 		// 	}
+// 		// }
+// 		// if(!Update.hasError()){
+// 		// 	if(Update.write(data, len) != len){
+// 		// 		OTAstatus = "ERROR...";
+// 		// 	}
+// 		// }
+// 		// if(final){
+// 		// 	if(Update.end(true)){
+// 		// 		OTAstatus = "Succeeded!";
+// 		// 	} else {
+// 		// 		OTAstatus = "ERROR...";
+// 		// 	}
+// 		// }
+// 	});
+//
+// 	// Handle not found
+// 	webServer.onNotFound([](AsyncWebServerRequest *request){ request->send(404); });
+//
+// 	webServer.begin();
+// }
+// void SckESP::webSet(AsyncWebServerRequest *request)
+// {
+// 	// If we found ssid AND pass
+// 	if (request->hasParam("ssid"))  {
+//
+// 		String tssid = request->arg("ssid");
+// 		String tpass = "";
+// 		if (request->hasParam("password")) tpass = request->arg("password");
+//
+// 		// If ssid is no zero chars
+// 		if (tssid.length() > 0) {
+// 			config.credentials.set = true;
+// 			tssid.toCharArray(config.credentials.ssid, 64);
+// 			tpass.toCharArray(config.credentials.pass, 64);
+// 			sendConfigPending = true;
+// 		} else {
+// 			config.credentials.set = false;
+// 			strncpy(config.credentials.ssid, "", 64);
+// 			strncpy(config.credentials.pass, "", 64);
+// 		}
+// 	}
+//
+// 	// If we found the mode
+// 	if (request->hasParam("mode")) {
+// 		String stringMode = request->arg("mode");
+// 		if (stringMode.equals("sdcard")) {
+// 			sendMode = SAM_MODE_SD;
+// 			sendConfigPending = true;
+// 		} else if (stringMode.equals("network")) {
+// 			sendMode = SAM_MODE_NET;
+// 			sendConfigPending = true;
+// 		}
+// 	}
+//
+// 	// If we found the token
+// 	if (request->hasParam("token")) {
+// 		String stringToken = request->arg("token");
+// 		if (stringToken.length() == 6) {
+// 			config.token.set = true;
+// 			stringToken.toCharArray(config.token.token, 8);
+// 			sendConfigPending = true;
+// 		} else {
+// 			config.token.set = false;
+// 			strncpy(config.token.token, "", 64);
+// 		}
+// 	}
+//
+// 	// If we found new time
+// 	if (request->hasParam("epoch")) {
+//
+// 		String tepoch = request->arg("epoch");
+// 		uint32_t iepoch = tepoch.toInt();
+// 		const unsigned long DEFAULT_TIME = 1357041600; // Jan 1 2013
+//
+// 		if (iepoch >= DEFAULT_TIME) {
+// 			setTime(iepoch);
+// 			sendConfigPending = true;
+// 		}
+// 	}
+//
+// 	// Publish interval (seconds)
+// 	if (request->hasParam("pubint")) {
+//
+// 		String tinterval = request->arg("pubint");
+// 		uint32_t intTinterval = tinterval.toInt();
+//
+// 		if (intTinterval > 0) {
+// 			sendPubInt = intTinterval;
+// 			sendConfigPending = true;
+// 		}
+// 	}
+// }
+// void SckESP::webRoot(AsyncWebServerRequest *request)
+// {
+//     // Check if the client already has the same version and respond with a 304 (Not modified)
+//     if (request->header("If-Modified-Since").equals(last_modified)) {
+//         request->send(304);
+//
+//     } else {
+// 	
+//         // Dump the byte array in PROGMEM with a 200 HTTP code (OK)
+//         AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html_gz, index_html_gz_len);
+//
+//         // Tell the browswer the contemnt is Gzipped
+//         response->addHeader("Content-Encoding", "gzip");
+//
+//         // And set the last-modified datetime so we can check if we need to send it again next time or not
+//         response->addHeader("Last-Modified", last_modified);
+//
+//         request->send(response);
+//
+//     }
+// }
 bool SckESP::isIp(String str)
 {
 	for (uint8_t i=0; i<str.length(); i++) {
@@ -697,43 +692,43 @@ bool SckESP::isIp(String str)
 	}
 	return true;
 }
-void SckESP::webStatus(AsyncWebServerRequest *request)
-{
-	String json;
-
-	// Hostname
-	json += "{\"hostname\":\"" + String(hostname) + "\",";
-
-	// MAC address
-	String tmac = WiFi.softAPmacAddress();
-	json += "\"mac\":\"" + tmac + "\",";
-
-	// ESP firmware version
-	json += "\"ESPversion\":\"" + ESPversion.substring(0, ESPversion.indexOf("-")) + "\",";
-
-	// ESP firmware commit
-	json += "\"ESPcommit\":\"" + ESPversion.substring(ESPversion.indexOf("-")+1, ESPversion.length()) + "\",";
-
-	// ESP build date
-	json += "\"ESPbuilddate\":\"" + ESPbuildDate + "\",";
-
-	// SAM firmware version
-	json += "\"SAMversion\":\"" + SAMversion.substring(0, SAMversion.indexOf("-")) + "\",";
-
-	// SAM firmware commit
-	json += "\"SAMcommit\":\"" + SAMversion.substring(SAMversion.indexOf("-")+1, SAMversion.length()) + "\",";
-
-	// SAM build date
-	json += "\"SAMbuilddate\":\"" + SAMbuildDate + "\",";
-
-	// ESP update needed
-	json += "\"updateNeeded\":\"" +  String(updateNeeded ? "true" : "false") + "\"";
-
-	json += "}";
-	request->send(200, "text/json", json);
-
-	json = String();
-}
+// void SckESP::webStatus(AsyncWebServerRequest *request)
+// {
+// 	String json;
+//
+// 	// Hostname
+// 	json += "{\"hostname\":\"" + String(hostname) + "\",";
+//
+// 	// MAC address
+// 	String tmac = WiFi.softAPmacAddress();
+// 	json += "\"mac\":\"" + tmac + "\",";
+//
+// 	// ESP firmware version
+// 	json += "\"ESPversion\":\"" + ESPversion.substring(0, ESPversion.indexOf("-")) + "\",";
+//
+// 	// ESP firmware commit
+// 	json += "\"ESPcommit\":\"" + ESPversion.substring(ESPversion.indexOf("-")+1, ESPversion.length()) + "\",";
+//
+// 	// ESP build date
+// 	json += "\"ESPbuilddate\":\"" + ESPbuildDate + "\",";
+//
+// 	// SAM firmware version
+// 	json += "\"SAMversion\":\"" + SAMversion.substring(0, SAMversion.indexOf("-")) + "\",";
+//
+// 	// SAM firmware commit
+// 	json += "\"SAMcommit\":\"" + SAMversion.substring(SAMversion.indexOf("-")+1, SAMversion.length()) + "\",";
+//
+// 	// SAM build date
+// 	json += "\"SAMbuilddate\":\"" + SAMbuildDate + "\",";
+//
+// 	// ESP update needed
+// 	json += "\"updateNeeded\":\"" +  String(updateNeeded ? "true" : "false") + "\"";
+//
+// 	json += "}";
+// 	request->send(200, "text/json", json);
+//
+// 	json = String();
+// }
 void SckESP::scanAP()
 {
 	debugOUT(F("Scaning Wifi networks..."));

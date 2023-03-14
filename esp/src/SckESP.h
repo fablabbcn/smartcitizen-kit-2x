@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <SPI.h>
 #include <WiFi.h>
 #include <Ticker.h>
@@ -10,7 +9,6 @@
 #include <DNSServer.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
-#include <ESPAsyncWebServer.h>
 
 #include <Arduino.h>
 #include "version.h"
@@ -102,7 +100,7 @@ class SckESP
 		bool apStarted = false;
 		void scanAP();
 		int netNumber;
-		void startWebServer();
+		// void startWebServer();
 		bool captivePortal();
 		bool isIp(String str);
 		const byte DNS_PORT = 53;
@@ -127,9 +125,9 @@ class SckESP
 
 		void setup();
 		void update();
-		void webSet(AsyncWebServerRequest *request);
-		void webStatus(AsyncWebServerRequest *request);
-		void webRoot(AsyncWebServerRequest *request);
+		// void webSet(AsyncWebServerRequest *request);
+		// void webStatus(AsyncWebServerRequest *request);
+		// void webRoot(AsyncWebServerRequest *request);
 
 		// External calls
 		void _ledToggle();
@@ -140,9 +138,9 @@ class SckESP
 void ledToggle();
 
 // Static webserver handlers
-void extSet(AsyncWebServerRequest *request);
-void extStatus(AsyncWebServerRequest *request);
-void extRoot(AsyncWebServerRequest *request);
+// void extSet(AsyncWebServerRequest *request);
+// void extStatus(AsyncWebServerRequest *request);
+// void extRoot(AsyncWebServerRequest *request);
 
 // Time
 time_t ntpProvider();

@@ -12,11 +12,11 @@ const uint8_t pinBLUE 	= 10;			// PA18
 const uint8_t pinLED_USB = 26;			// PA27 -- Usb Serial Led
 
 // ESP pins
-const uint8_t pinPOWER_ESP = 	30;		// PB22 -- ESP power
-const uint8_t pinESP_TX_WIFI = 	17;		// PA04 -- WiFi TX Serial -- SERCOM0:PAD[0]
-const uint8_t pinESP_RX_WIFI = 	18; 		// PA05 -- WiFi RX Serial -- SERCOM0:PAD[1]
-const uint8_t pinESP_GPIO0 = 	16;		// PB09 -- ESP GPIO0
-const uint8_t pinESP_CH_PD = 	15;		// PB08 -- ESP CHPD
+const uint8_t pinPOWER_ESP = 	30;		// PB22 -- ESP power 							-> c3 mini pin 3v3
+const uint8_t pinESP_TX_WIFI = 	17;		// PA04 -- WiFi TX Serial -- SERCOM0:PAD[0] 	-> c3 mini pin RX
+const uint8_t pinESP_RX_WIFI = 	18; 	// PA05 -- WiFi RX Serial -- SERCOM0:PAD[1] 	-> c3 mini pin TX
+const uint8_t pinESP_GPIO0 = 	16;		// PB09 -- ESP GPIO0							-> C3 mini pin 9
+const uint8_t pinESP_CH_PD = 	15;		// PB08 -- ESP CHPD 							-> C3 mini pin RST ??
 
 // Power management
 const uint8_t pinMEASURE_BATT = 14;		// PA02 -- Battery analog level

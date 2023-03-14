@@ -131,6 +131,9 @@ bool SckSerial::receive()
 	uint16_t readed = _serial.readBytes(buff, size);
 	if (readed != size) {
 		debugPln("Error while receiving payload");
+		snprintf(debugBuff, 24, "Readed bytes: %u", readed);
+		debugPln(debugBuff);
+		debugPln(buff);
 		return false;
 	}
 
@@ -178,7 +181,8 @@ void SckSerial::debugP(char *msg, bool force)
 #endif
 
 // Debug for ESP
-#ifdef ARDUINO_ARCH_ESP8266
+#ifdef ARDUINO_ARCH_ESP32
+	// Placeholder for webSerial
 #endif
 }
 void SckSerial::debugPln(char *msg, bool force)
@@ -191,6 +195,7 @@ void SckSerial::debugPln(char *msg, bool force)
 #endif
 
 // Debug for ESP
-#ifdef ARDUINO_ARCH_ESP8266
+#ifdef ARDUINO_ARCH_ESP32
+	// Placeholder for webSerial
 #endif
 }

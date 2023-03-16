@@ -263,7 +263,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 			uint8_t newEveryNint = intervalInt / base->config.readInterval;
 			if (newEveryNint < 1) newEveryNint = 1;
 
-			base->sckOut("The sensor read interval is calculated as a multiple of general read interval (" + String(base->config.readInterval) + ")");
+			snprintf(base->outBuff, sizeof(base->outBuff), "The sensor read interval is calculated as a multiple of general read interval (%u)", base->config.readInterval);
+			base->sckOut();
 			if (newEveryNint < 255) {
 				if (groupToChange_size > 0) {
 					// Just for PM/PN change all the sensors in the same group

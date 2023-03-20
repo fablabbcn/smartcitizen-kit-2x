@@ -2652,7 +2652,7 @@ bool Sck_SGP40::start(SckBase *base, SensorType wichSensor)
 	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
 	// Mark this specific metric as enabled
-	for (uint8_t i=0; i<2; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+	metrics[wichSensor].enabled = true; 
 
 	if (started) return true;
 	
@@ -2668,12 +2668,12 @@ bool Sck_SGP40::start(SckBase *base, SensorType wichSensor)
 bool Sck_SGP40::stop(SensorType wichSensor)
 {
 	// Mark this specific metric as disabled
-	for (uint8_t i=0; i<2; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 0;
-
-	sparkfun_sgp40.heaterOff();
+	metrics[wichSensor].enabled = false; 
 
 	// Turn sensor off only if all 2 metrics are disabled
-	for (uint8_t i=0; i<2; i++) if (enabled[i][1] == 1) return false;
+	for (uint8_t i=0; i<2; i++) if (metrics[i].enabled) return false;
+
+	sparkfun_sgp40.heaterOff();
 
 	started = false;
 	return true;
@@ -2689,9 +2689,11 @@ bool Sck_SGP40::getReading(SckBase *base, SensorType wichSensor)
 	float compTemp = 25.0;
 	float compHum = 50.0;
 
+	// Substitute defaults with real readings
 	if (tempSensor->enabled && base->getReading(tempSensor)) compTemp = tempSensor->reading.toFloat();
 	if (humSensor->enabled && base->getReading(humSensor)) compHum = humSensor->reading.toFloat();
 	
+	// TODO explain here why we discard first reading
 	// Take first reading and discard it.
 	SGP40ERR result = sparkfun_sgp40.measureRaw(&vocRaw);
 	if (result > 0) return false;
@@ -2714,6 +2716,7 @@ bool Sck_SGP40::getReading(SckBase *base, SensorType wichSensor)
 				return false;
 		}
 
+	// TODO explain why we can turn it off here without loosing data
 	// Save power
 	sparkfun_sgp40.heaterOff();
 

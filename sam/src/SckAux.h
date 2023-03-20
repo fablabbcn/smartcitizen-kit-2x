@@ -706,6 +706,12 @@ class Sck_ADS1X15
 	// Test ADS1015
 };
 
+struct Metric
+{
+	uint8_t type;
+	bool enabled;
+};
+
 class Sck_SCD30
 {
 	public:
@@ -734,6 +740,11 @@ class Sck_SCD30
 
 class Sck_SGP40
 {
+	// TODO 
+	// Implement saving and restoring index state to manage night reboot https://github.com/Sensirion/arduino-gas-index-algorithm/issues/2
+	// This should be done with get_states() and save_states() functions https://github.com/Sensirion/arduino-gas-index-algorithm/blob/master/src/VOCGasIndexAlgorithm.h
+	// This should be implemented in some way trying to avoid modifying Sparkfun lib
+	
 	public:
 		const byte deviceAddress = 0x59; // TODO check if the sensor supports other addresses
 		bool start(SckBase *base, SensorType wichSensor);
@@ -749,7 +760,7 @@ class Sck_SGP40
 		int32_t vocIndex = 0;
 
 	private:
-		uint8_t enabled[2][2] = { {SENSOR_SGP40_VOC_RAW, 0}, {SENSOR_SGP40_VOC_IDX, 0} };
+		Metric metrics[2] = { {SENSOR_SGP40_VOC_RAW, false}, {SENSOR_SGP40_VOC_IDX, false} };
 		bool _debug = false;
 		bool started = false;
 		SGP40 sparkfun_sgp40;

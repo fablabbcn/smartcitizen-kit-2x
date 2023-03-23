@@ -63,6 +63,9 @@
 // Sparkfun library for SCD30 CO2 sensor
 #include <SparkFun_SCD30_Arduino_Library.h>
 
+// SparkFun_Indoor_Air_Quality_Sensor-ENS160_Arduino_Library
+#include "SparkFun_ENS160.h"
+
 
 extern TwoWire auxWire;
 
@@ -179,7 +182,12 @@ class AuxBoards
 			0x48, 			// SENSOR_ADS1X15_XX_X
 			0x49, 			// SENSOR_ADS1X15_XX_X
 			0x4a, 			// SENSOR_ADS1X15_XX_X
-			0x4b 			// SENSOR_ADS1X15_XX_X
+			0x4b, 			// SENSOR_ADS1X15_XX_X
+
+			0x53, 			// SENSOR_ENS160_AIQ,
+			0x53,			// SENSOR_ENS160_TVOC,
+			0x53,			// SENSOR_ENS160_ECO2,
+			0x53			// SENSOR_ENS160_ETOH,
 		};
 
 		bool start(SckBase *base, SensorType wichSensor);
@@ -700,6 +708,12 @@ class Sck_ADS1X15
 	// Test ADS1015
 };
 
+struct Metric
+{
+	uint8_t type;
+	bool enabled;
+};
+
 class Sck_SCD30
 {
 	public:
@@ -724,6 +738,29 @@ class Sck_SCD30
 		bool started = false;
 		uint16_t measInterval = 2; 	// "2-1800 seconds"
 		SCD30 sparkfun_scd30;
+};
+
+class Sck_ENS160
+{
+	// Sparkfun:	https://github.com/sparkfun/SparkFun_Indoor_Air_Quality_Sensor-ENS160_Arduino_Library -> 	pio: SI, auxWire: SI 
+
+	public:
+		const byte deviceAddress = 0x53;
+		bool start(SckBase *base, SensorType wichSensor);
+		bool stop(SensorType wichSensor);
+		bool getReading(SckBase *base, SensorType wichSensor);
+
+		uint8_t aqi;
+		uint16_t tvoc;
+		uint16_t eco2;
+		uint16_t ethanol;
+
+	private:
+		bool started = false;
+		bool _debug = false;
+		Metric metrics[4] = { {SENSOR_ENS160_AIQ, false}, {SENSOR_ENS160_TVOC, false}, {SENSOR_ENS160_ECO2, false}, {SENSOR_ENS160_ETOH, false} };
+
+		SparkFun_ENS160 sparkfun_ens160; 
 };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

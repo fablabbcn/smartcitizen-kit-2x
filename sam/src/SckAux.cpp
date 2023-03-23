@@ -28,6 +28,7 @@ Sck_ADS1X15 		ads49;
 Sck_ADS1X15 		ads4A;
 Sck_ADS1X15 		ads4B;
 Sck_SCD30 		scd30;
+Sck_ENS160 		ens160; 		
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
@@ -133,6 +134,10 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 		case SENSOR_SCD30_CO2: 			return scd30.start(base, SENSOR_SCD30_CO2); break;
 		case SENSOR_SCD30_TEMP: 		return scd30.start(base, SENSOR_SCD30_TEMP); break;
 		case SENSOR_SCD30_HUM: 			return scd30.start(base, SENSOR_SCD30_HUM); break;
+		case SENSOR_ENS160_AIQ: 		return ens160.start(base, SENSOR_ENS160_AIQ); break;
+		case SENSOR_ENS160_TVOC: 		return ens160.start(base, SENSOR_ENS160_TVOC); break;
+		case SENSOR_ENS160_ECO2: 		return ens160.start(base, SENSOR_ENS160_ECO2); break;
+		case SENSOR_ENS160_ETOH: 		return ens160.start(base, SENSOR_ENS160_ETOH); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.start(); break;
 		default: break;
 	}
@@ -225,6 +230,10 @@ bool AuxBoards::stop(SensorType wichSensor)
 		case SENSOR_SCD30_CO2: 			return scd30.stop(SENSOR_SCD30_CO2); break;
 		case SENSOR_SCD30_TEMP: 		return scd30.stop(SENSOR_SCD30_TEMP); break;
 		case SENSOR_SCD30_HUM: 			return scd30.stop(SENSOR_SCD30_HUM); break;
+		case SENSOR_ENS160_AIQ: 		return ens160.stop(SENSOR_ENS160_AIQ); break;
+		case SENSOR_ENS160_TVOC: 		return ens160.stop(SENSOR_ENS160_TVOC); break;
+		case SENSOR_ENS160_ECO2: 		return ens160.stop(SENSOR_ENS160_ECO2); break;
+		case SENSOR_ENS160_ETOH: 		return ens160.stop(SENSOR_ENS160_ETOH); break;
 		case SENSOR_GROVE_OLED: 		return groove_OLED.stop(); break;
 		default: break;
 	}
@@ -319,6 +328,10 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_SCD30_CO2: 			if (scd30.getReading(SENSOR_SCD30_CO2)) { wichSensor->reading = String(scd30.co2); return; } break;
 		case SENSOR_SCD30_TEMP: 		if (scd30.getReading(SENSOR_SCD30_TEMP)) { wichSensor->reading = String(scd30.temperature); return; } break;
 		case SENSOR_SCD30_HUM: 			if (scd30.getReading(SENSOR_SCD30_HUM)) { wichSensor->reading = String(scd30.humidity); return; } break;
+		case SENSOR_ENS160_AIQ: 		if (ens160.getReading(base, SENSOR_ENS160_AIQ)) { wichSensor->reading = String(ens160.aqi); return; } break;
+		case SENSOR_ENS160_TVOC: 		if (ens160.getReading(base, SENSOR_ENS160_TVOC)) { wichSensor->reading = String(ens160.tvoc); return; } break;
+		case SENSOR_ENS160_ECO2: 		if (ens160.getReading(base, SENSOR_ENS160_ECO2)) { wichSensor->reading = String(ens160.eco2); return; } break;
+		case SENSOR_ENS160_ETOH: 		if (ens160.getReading(base, SENSOR_ENS160_ETOH)) { wichSensor->reading = String(ens160.ethanol); return; } break;
 		default: break;
 	}
 
@@ -2608,6 +2621,105 @@ float Sck_SCD30::tempOffset(float userTemp, bool off)
 	sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
 
 	return currentOffsetTemp / 100.0;
+}
+
+bool Sck_ENS160::start(SckBase *base, SensorType wichSensor)
+{
+	if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+	// Mark this specific metric as enabled
+	metrics[wichSensor].enabled = true; 
+
+	if (started) return true;
+	
+	// Init sensor
+	if (!sparkfun_ens160.begin(auxWire, deviceAddress)) return false;
+
+
+	// TODO revisar los perating modes y decidir cuales y cuando usarlos
+	// setOperatingMode()
+	// Sets the operating mode: Deep Sleep (0x00), Idle (0x01), Standard (0x02), Reset (0xF0)
+	// SFE_ENS160_DEEP_SLEEP  0x00
+	// SFE_ENS160_IDLE       0x01
+	// SFE_ENS160_STANDARD   0x02
+	// SFE_ENS160_RESET      0xF0
+
+
+	// TODO revisar si esta es la mejor manera, asi lo hacen en el ejemplo
+	// 
+	sparkfun_ens160.setOperatingMode(SFE_ENS160_RESET);
+	delay(100);
+	sparkfun_ens160.setOperatingMode(SFE_ENS160_STANDARD);
+
+	// There are four values here: 
+	// 0 - Operating ok: Standard Opepration
+	// 1 - Warm-up: occurs for 3 minutes after power-on.
+	// 2 - Initial Start-up: Occurs for the first hour of operation.
+ 	//												and only once in sensor's lifetime.
+	// 3 - No Valid Output
+	// Check if Sensor started properly
+	byte statusFlags = sparkfun_ens160.getFlags();
+	if (statusFlags == 3) return false;
+
+	started = true;
+	return true;
+}
+
+bool Sck_ENS160::stop(SensorType wichSensor)
+{
+	// Mark this specific metric as disabled
+	metrics[wichSensor].enabled = false; 
+
+	// Turn sensor off only if all 2 metrics are disabled
+	for (uint8_t i=0; i<4; i++) if (metrics[i].enabled) return false;
+	
+	sparkfun_ens160.setOperatingMode(SFE_ENS160_DEEP_SLEEP);
+
+	started = false;
+	return true;
+}
+
+bool Sck_ENS160::getReading(SckBase *base, SensorType wichSensor)
+{
+
+	// TODO ver si vale la pena leer este flag en cada getReading o solo en start
+	// There are four values here: 
+	// 0 - Operating ok: Standard Opepration
+	// 1 - Warm-up: occurs for 3 minutes after power-on.
+	// 2 - Initial Start-up: Occurs for the first hour of operation.
+  	//												and only once in sensor's lifetime.
+	// 3 - No Valid Output
+	byte statusFlags = sparkfun_ens160.getFlags();
+	Serial.print("flag: ");
+	Serial.println(statusFlags);
+	if (statusFlags == 3) return false;
+
+	if(!sparkfun_ens160.checkDataStatus()) {
+		Serial.println("No data available");
+		return false;
+	}
+
+	// Set Temperature and Humidity compensation
+	OneSensor *tempSensor = &base->sensors[SENSOR_TEMPERATURE];
+	OneSensor *humSensor = &base->sensors[SENSOR_HUMIDITY];
+
+	// Substitute defaults with real readings
+	if (tempSensor->enabled && base->getReading(tempSensor)) {
+		float compTemp = tempSensor->reading.toFloat();
+		sparkfun_ens160.setTempCompensationCelsius(compTemp);
+	}
+
+	if (humSensor->enabled && base->getReading(humSensor)) {
+		float compHum = humSensor->reading.toFloat();
+		sparkfun_ens160.setRHCompensationFloat(compHum);
+	}
+
+	aqi = sparkfun_ens160.getAQI();
+	tvoc = sparkfun_ens160.getTVOC();
+	eco2 = sparkfun_ens160.getECO2();
+	ethanol = sparkfun_ens160.getETOH();
+
+	return true;
 }
 
 void writeI2C(byte deviceaddress, byte instruction, byte data )

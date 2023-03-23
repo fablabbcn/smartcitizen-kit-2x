@@ -107,7 +107,7 @@ class AllCommands {
 			OneCom {90,	COM_GET_FREERAM,	"free",		"Shows the amount of free RAM memory",													freeRAM_com},
 			OneCom {90,	COM_I2C_DETECT,		"i2c",		"Search the I2C bus for devices",													i2cDetect_com},
 			OneCom {90,	COM_CHARGER,		"power",	"Controls/shows power config: power [-info (extra info)] [-batcap mAh] [-otg on/off] [-charge on/off] [-sleep min (0-disable)]",	power_com},
-			OneCom {90,	COM_CONFIG,		"config",	"Shows/sets configuration: config [-defaults] [-mode sdcard/network] [-pubint seconds] [-readint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token]", config_com},
+			OneCom {90,	COM_CONFIG,		"config",	"Shows/sets configuration: config [-defaults] [-mode sdcard/network] [-pubint seconds] [-readint seconds] [-wifi \"ssid\" [\"pass\"]] [-token token] [-sanity(reset) on/off]", config_com},
 			OneCom {100,	COM_ESP_CONTROL,	"esp",		"Controls or shows info from ESP: esp [-on -off -sleep -wake -reboot -flash]",								esp_com},
 			OneCom {100,	COM_NETINFO,		"netinfo",	"Shows network information",														netInfo_com},
 			OneCom {100,	COM_TIME,		"time",		"Shows/sets date and time: time [epoch time] [-sync]",											time_com},

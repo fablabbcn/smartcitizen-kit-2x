@@ -778,6 +778,13 @@ void config_com(SckBase* base, String parameters)
 					base->config.token.set = true;
 				}
 			}
+			int16_t sanityI = parameters.indexOf("-sanity");
+			if (sanityI >= 0) {
+				String sanityC = parameters.substring(sanityI+8);
+				if (sanityC.startsWith("off")) base->config.sanityResetFlag = false;
+				else if (sanityC.startsWith("on")) base->config.sanityResetFlag = true;
+				else base->sckOut("Error reading sanity reset option!");
+			}
 			base->saveConfig();
 		}
 		sprintf(base->outBuff, "-- New config --\r\n");
@@ -803,6 +810,9 @@ void config_com(SckBase* base, String parameters)
 	base->sckOut();
 
 	sprintf(base->outBuff, "Mac address:  %s", base->config.mac.address);
+	base->sckOut();
+
+	sprintf(base->outBuff, "Sanity reset (every 24 hours) is: %s", base->config.sanityResetFlag ? "on" : "off");	
 	base->sckOut();
 
 	if (resetMsg) base->sckOut("\r\n** Please reset your kit **");

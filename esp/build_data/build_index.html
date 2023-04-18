@@ -17,7 +17,7 @@
       <div class="topnav sticky ">
         <div class="bg-black">
 
-          <p class="text-center">SCK 2 Setup</p>
+          <p class="text-center">Smart Citizen Kit Setup</p>
 
           <div id="topbackbtn">
             <a v-show="page[currentPage].back" v-on:click="gotoPage(page[currentPage].backTo)" href="#">
@@ -70,13 +70,16 @@
               <input id="firmware_button" type='submit' value='Update' class="btn":disabled=!checkIfFileSelected v-bind:class="{ 'bg-yellow': checkIfFileSelected }">
             </form>
            <p id="firmware-update-status" class="text-yellow"></p>
-	   <p id="firmware-status-extra">If you need more information please visit <span class="text-blue"><a href="https://docs.smartcitizen.me">docs.smartcitizen.me</a></span></p>
+	         <p id="firmware-status-extra">If you need more information please visit <span class="text-blue"><a href="https://docs.smartcitizen.me">docs.smartcitizen.me</a></span></p>
           </div>
           <div v-else>
-            <p>Is this your first time here?</p>
-	    <p>Remember before you start you need to visit <span class="text-blue"><a href="https://start.smartcitizen.me">start.smartcitizen.me</a></span> to obtain a Device Key</p>
-            <button class="btn bg-yellow" id="start" type="button" v-on:click='gotoPage()'>Start</button>
-            <p>or go to <span class='text-blue'> <a v-on:click='gotoPage(5)'>SD Card mode</a></span> </p>
+            <h4 class="content-wrap">Is this your first time here?</h4>
+	          <p class="content-wrap">Before you start, make sure you visit <span class="text-blue"><a href="https://start.smartcitizen.me">start.smartcitizen.me</a></span>. </p><p class="content-wrap">In <b>Online mode</b>, you need to obtain a Device Key (<em>token</em>) to send data to the platform.</p>
+            <div class="side-by-side">
+              <button class="btn bg-yellow btn-big" id="start" type="button" v-on:click='gotoPage()'>Online<br>(Wi-Fi)</button>
+              <button class="btn bg-blue btn-big" id="start" type="button" v-on:click='gotoPage(5)'>Offline<br>(SD-Card)</button>
+              <!-- <p>or go to <span class='text-blue'> <a v-on:click='gotoPage(5)'>SD Card mode</a></span> </p> -->
+            </div>
           </div>
         </div>
 
@@ -166,9 +169,10 @@
 
         <div v-show='page[5].visible'>
           <h4>SD Card</h4>
-          <p>Your Kit can store the data on a microSD card that later you can read with your computer.</p>
-          <p>This is useful when no WiFi is available at your location.</p>
-          <p>You will need to insert a valid microSD card and click the button.</p>
+          <p>Your Kit can store the data on a microSD card. Later on, you can read it the CSV files with your computer.</p>
+          <p>This is useful when no Wi-Fi is available at your location.</p>
+          <p>You will need to insert a valid microSD card and click the button below.</p>
+          <p>Once you do it, you will be disconnected and the Kit will start recording data.</p>
           <!--
           <table>
             <tr>
@@ -182,7 +186,7 @@
           </table>
           -->
           <button class="btn bg-yellow" type="button" v-on:click="jsPost('set', 'synctime')">START LOGGING</button>
-          <p>You will be disconnected and the Kit will start recording data.</p>
+          
         </div>
 
         <div v-show='page[6].visible'>

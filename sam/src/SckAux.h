@@ -744,6 +744,8 @@ class Sck_SGP40
 	// Implement saving and restoring index state to manage night reboot https://github.com/Sensirion/arduino-gas-index-algorithm/issues/2
 	// This should be done with get_states() and save_states() functions https://github.com/Sensirion/arduino-gas-index-algorithm/blob/master/src/VOCGasIndexAlgorithm.h
 	// This should be implemented in some way trying to avoid modifying Sparkfun lib
+    // Some times on Index we receive -100 (and less often also null), try to understand why. Maybe we need to retry after a -100?
+    // Check interaction between PM sensor and null values on the raw measure.
 	
 	public:
 		const byte deviceAddress = 0x59; // TODO check if the sensor supports other addresses

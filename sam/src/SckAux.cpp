@@ -1586,13 +1586,13 @@ bool Atlas::tempCompensation()
 				while (atlasTEMP.getBusyState()) delay(2);
 			}
 
-			char data[10];
 			temperature = atlasTEMP.newReading[0];
-			sprintf(data,"T,%.2f",temperature);
-
-			if (!sendCommand(data)) return false;
 		}
 	}
+
+    char data[10];
+    sprintf(data,"T,%.2f",temperature);
+    if (!sendCommand(data)) return false;
 
 	// Salinity compensation only for DO
 	if (DO && atlasEC.detected) {

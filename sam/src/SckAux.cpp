@@ -1616,7 +1616,7 @@ uint8_t Atlas::getResponse()
 
 	uint8_t code;
 
-	auxWire.requestFrom(deviceAddress, 20, 1);
+	auxWire.requestFrom(deviceAddress, 40, 1);
 	uint32_t time = millis();
 	while (!auxWire.available()) if ((millis() - time)>500) return 0x00;
 	code = auxWire.read();

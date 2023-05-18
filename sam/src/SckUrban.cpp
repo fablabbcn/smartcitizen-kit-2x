@@ -443,10 +443,7 @@ Sck_SHT31::Sck_SHT31(TwoWire *localWire, uint8_t customAddress)
 }
 bool Sck_SHT31::start()
 {
-	_Wire->begin();
-	_Wire->beginTransmission(address);
-	byte error = _Wire->endTransmission();
-	if (error != 0) return false;
+	if (!I2Cdetect(&Wire, address)) return false;
 
 	delay(1); 		// In case the device was off
 	sendComm(SOFT_RESET); 	// Send reset command
@@ -927,7 +924,6 @@ bool Sck_MPL3115A2::getTemperature()
 // PM sensor
 bool Sck_PM::start()
 {
-	if (debug) Serial.println("PM: Starting sensor");
 	if (started) return true;
 
 	pinMode(pinPM_ENABLE, OUTPUT);

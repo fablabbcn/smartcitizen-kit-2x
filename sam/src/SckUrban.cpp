@@ -433,8 +433,9 @@ Sck_SHT31::Sck_SHT31(TwoWire *localWire, uint8_t customAddress)
 }
 bool Sck_SHT31::start()
 {
-	if (!I2Cdetect(&Wire, address)) return false;
-
+    _Wire->begin();
+	if (!I2Cdetect(_Wire, address)) return false;
+	
 	delay(1); 		// In case the device was off
 	sendComm(SOFT_RESET); 	// Send reset command
 	delay(50); 		// Give time to finish reset

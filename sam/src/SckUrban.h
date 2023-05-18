@@ -197,6 +197,7 @@ class Sck_PM
 
 		RTCZero* rtc;
 		bool started = false;
+        bool alreadyFailed = false;
 		uint32_t wakeUpTime = 0;
 		uint8_t retries = 0;
 		const uint8_t MAX_RETRIES = 3;
@@ -335,7 +336,6 @@ class SckUrban
 			rtc = myrtc;
 		}
 
-		bool present();
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
 

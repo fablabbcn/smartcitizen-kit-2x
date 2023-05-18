@@ -1546,29 +1546,14 @@ void SckBase::urbanStart()
 {
 	analogReadResolution(12);
 
-	if (urban.present()) {
-
-		sckOut("Urban board detected");
-
-		// Try to start enabled sensors
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->location == BOARD_URBAN) {
-				if (config.sensors[wichSensor->type].enabled) enableSensor(wichSensor->type);
-				else sensors[wichSensor->type].enabled = false;
-			}
-		}
-
-	} else {
-
-		sckOut("No urban board detected!!");
-
-		// Disable all urban sensors
-		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-			OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-			if (wichSensor->location == BOARD_URBAN && wichSensor->enabled) disableSensor(wichSensor->type);
-		}
-	}
+    // Try to start enabled sensors
+    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+        if (wichSensor->location == BOARD_URBAN) {
+            if (config.sensors[wichSensor->type].enabled) enableSensor(wichSensor->type);
+                else sensors[wichSensor->type].enabled = false;
+        }
+    }
 }
 void SckBase::updateSensors()
 {

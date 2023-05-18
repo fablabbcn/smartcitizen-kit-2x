@@ -428,6 +428,16 @@ void monitorSensor_com(SckBase* base, String parameters)
 
 			// PM sensor needs to be notified that we are in monitor mode
 			if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) base->urban.sck_pm.monitor = true;
+            if (wichSensor.type == SENSOR_SPS30_PM_1  ||
+                wichSensor.type == SENSOR_SPS30_PM_25 ||
+                wichSensor.type == SENSOR_SPS30_PM_4  ||
+                wichSensor.type == SENSOR_SPS30_PM_10 ||
+                wichSensor.type == SENSOR_SPS30_PN_05 ||
+                wichSensor.type == SENSOR_SPS30_PN_1  ||
+                wichSensor.type == SENSOR_SPS30_PN_25 ||
+                wichSensor.type == SENSOR_SPS30_PN_4  ||
+                wichSensor.type == SENSOR_SPS30_PN_10 ||
+                wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.monitor = true;
 
 			base->getReading(&wichSensor);
 
@@ -450,6 +460,26 @@ void monitorSensor_com(SckBase* base, String parameters)
 			base->sckOut();
 		}
 	}
+    
+    // post monitor tasks
+    for (uint8_t i=0; i<index; i++) {
+
+        OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
+
+        // PM sensor needs to be notified that we are not in monitor mode anymore
+        if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) base->urban.sck_pm.monitor = false;
+        if (wichSensor.type == SENSOR_SPS30_PM_1  ||
+            wichSensor.type == SENSOR_SPS30_PM_25 ||
+            wichSensor.type == SENSOR_SPS30_PM_4  ||
+            wichSensor.type == SENSOR_SPS30_PM_10 ||
+            wichSensor.type == SENSOR_SPS30_PN_05 ||
+            wichSensor.type == SENSOR_SPS30_PN_1  ||
+            wichSensor.type == SENSOR_SPS30_PN_25 ||
+            wichSensor.type == SENSOR_SPS30_PN_4  ||
+            wichSensor.type == SENSOR_SPS30_PN_10 ||
+            wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.monitor = false;
+    }
+
 	if (sdSave) base->monitorFile.file.close();
 }
 void flash_com(SckBase* base, String parameters)

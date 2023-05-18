@@ -41,7 +41,17 @@ bool SckUrban::start(SensorType wichSensor)
 		case SENSOR_PN_25:
 		case SENSOR_PN_5:
 		case SENSOR_PN_10: 				if (sck_pm.start()) return true; break;
-		default: break;
+        case SENSOR_SPS30_PM_1:
+        case SENSOR_SPS30_PM_25:
+        case SENSOR_SPS30_PM_4:
+        case SENSOR_SPS30_PM_10:
+        case SENSOR_SPS30_PN_05:
+        case SENSOR_SPS30_PN_1:
+        case SENSOR_SPS30_PN_25:
+        case SENSOR_SPS30_PN_4:
+        case SENSOR_SPS30_PN_10:
+        case SENSOR_SPS30_TPSIZE:        return sck_sps30.start(wichSensor);
+        default: break;
 	}
 
 	return false;
@@ -70,6 +80,16 @@ bool SckUrban::stop(SensorType wichSensor)
 		case SENSOR_PN_25:
 		case SENSOR_PN_5:
 		case SENSOR_PN_10: 				if (sck_pm.stop()) return true; break;
+        case SENSOR_SPS30_PM_1:
+        case SENSOR_SPS30_PM_25:
+        case SENSOR_SPS30_PM_4:
+        case SENSOR_SPS30_PM_10:
+        case SENSOR_SPS30_PN_05:
+        case SENSOR_SPS30_PN_1:
+        case SENSOR_SPS30_PN_25:
+        case SENSOR_SPS30_PN_4:
+        case SENSOR_SPS30_PN_10:
+        case SENSOR_SPS30_TPSIZE:        return sck_sps30.stop(wichSensor);
 		default: break;
 	}
 
@@ -106,9 +126,18 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 		case SENSOR_PN_25: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn25); } return;
 		case SENSOR_PN_5: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn5); } return;
 		case SENSOR_PN_10: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn10); } return;
+        case SENSOR_SPS30_PM_1:     if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.mc_1p0);                   return; } break;
+        case SENSOR_SPS30_PM_25:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.mc_2p5);                   return; } break;
+        case SENSOR_SPS30_PM_4:     if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.mc_4p0);                   return; } break;
+        case SENSOR_SPS30_PM_10:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.mc_10p0);                  return; } break;
+        case SENSOR_SPS30_PN_05:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_0p5);                   return; } break;
+        case SENSOR_SPS30_PN_1:     if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_1p0);                   return; } break;
+        case SENSOR_SPS30_PN_25:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_2p5);                   return; } break;
+        case SENSOR_SPS30_PN_4:     if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_4p0);                   return; } break;
+        case SENSOR_SPS30_PN_10:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_10p0);                  return; } break;
+        case SENSOR_SPS30_TPSIZE:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.typical_particle_size);    return; } break;
 		default: break;
 	}
-	wichSensor->reading = "null";
 	wichSensor->state = -1;
 }
 bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
@@ -224,6 +253,61 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					return "\r\n";
 				}
 		}
+        case SENSOR_SPS30_PM_1:
+        case SENSOR_SPS30_PM_25:
+        case SENSOR_SPS30_PM_4:
+        case SENSOR_SPS30_PM_10:
+        case SENSOR_SPS30_PN_05:
+        case SENSOR_SPS30_PN_1:
+        case SENSOR_SPS30_PN_25:
+        case SENSOR_SPS30_PN_4:
+        case SENSOR_SPS30_PN_10:
+        case SENSOR_SPS30_TPSIZE:
+            {
+                if (command.startsWith("debug")) {
+
+                    command.replace("debug", "");
+                    command.trim();
+                    if (command.startsWith("1")) sck_sps30.debug = true;
+                    else if (command.startsWith("0")) sck_sps30.debug = false;
+
+                    sprintf(base->outBuff, "Debug: %s", sck_sps30.debug  ? "true" : "false");
+                    base->sckOut();
+                    return true;
+
+                } else if (command.startsWith("cleanint")) {
+
+					command.replace("cleanint", "");
+					command.trim();
+
+					if (command.length() > 0) {
+    					uint8_t newInterval = command.toInt();
+                        sprintf(base->outBuff, "Setting clean interval to %u days...", newInterval);
+                        base->sckOut();
+                        if (!sck_sps30.setCleaningInterval(newInterval)) {
+                            base->sckOut("Error setting new interval!!");
+                        }
+                    } 
+
+                    uint8_t currentInterval = sck_sps30.getCleaningInterval();
+                    sprintf(base->outBuff, "Current clean interval: %u days", currentInterval);
+                    base->sckOut();
+                    return "\r\n";
+
+                } else if (command.startsWith("doclean")) {
+
+                    base->sckOut("SPS30 cleaning started, it will take 10s...");
+                    sck_sps30.startCleaning();
+                    base->sckOut("Done!!!");
+                    return "\r\n";
+
+                }  else if (command.startsWith("help") || command.length() == 0) {
+					sprintf(base->outBuff, "Available commands:\r\n* debug: [0-1] Sets debug messages\r\n* doclean: Starts a cleaning\r\n* cleanint [interval in days]");
+					base->sckOut();
+					return "\r\n";
+                }
+            }
+
 		default: break;
 	}
 
@@ -1324,4 +1408,301 @@ bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
 	driveMode = wichDrivemode;
 	if (ccs.setDriveMode(driveMode) != CCS811Core::CCS811_Stat_SUCCESS) return false;
 	return true;
+}
+
+// Sensirion SPS30 PM sensor option
+bool Sck_SPS30::start(SensorType wichSensor)
+{
+	if (state != SPS30_OFF) {
+		// Mark this specific metric as enabled
+		for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+		return true;
+	}
+
+    // The SCK needs battery to survive the sensor startup current draw, with only usb power it normally does not work
+    // If battery is not present it enters a reset loop
+	pinMode(pinPM_ENABLE, OUTPUT);
+	digitalWrite(pinPM_ENABLE, HIGH);
+    delay(25);
+
+	if (!I2Cdetect(&Wire, address)) {
+        if (debug) Serial.println("SPS30 ERROR no i2c address found");
+        return false;
+    }
+
+    sensirion_i2c_init();
+
+    int result = sps30_probe();
+    if (result != 0) {
+        if (debug) {
+            Serial.print("Error probing for SPS30: ");
+            Serial.println("result");
+        }
+        return false;
+    }
+
+	// Mark this specific metric as enabled
+	for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+
+	state = SPS30_IDLE;
+
+    if (debug) Serial.println("SPS30 Started OK");
+	return true;
+}
+bool Sck_SPS30::stop(SensorType wichSensor)
+{
+    bool changed = false;
+
+	// Mark this specific metric as disabled
+	for (uint8_t i=0; i<totalMetrics; i++) {
+        if (enabled[i][0] == wichSensor) {
+            enabled[i][1] = 0;
+            changed = true;
+        }
+    }
+
+    // Check if any metric is still enabled
+	for (uint8_t i=0; i<totalMetrics; i++) {
+        if (enabled[i][1]) return changed;
+    }
+
+    // If no metric is enabled turn off power
+	if (debug) Serial.println("SPS30 Stoping sensor");
+	digitalWrite(pinPM_ENABLE, LOW);
+
+    state = SPS30_OFF;
+
+    return true;
+}
+bool Sck_SPS30::getReading(OneSensor* wichSensor)
+{
+	uint32_t now = rtc->getEpoch();
+
+    switch (state) {
+        case SPS30_SLEEP: {
+            // If last reading is recent doesn't make sense to get a new one
+            if (now - lastReading < warmUpPeriod[0] && !monitor) {
+                if (debug) Serial.println("SPS30: Less than warmUp period since last update, data is still valid...");
+                return true;
+            }
+            wake();
+        }
+        case SPS30_IDLE: {
+            int16_t result = sps30_start_measurement();
+            if (result < 0) {
+                if (debug) {
+                    Serial.print("Error starting measurement on SPS30: ");
+                    Serial.println(result);
+                }
+                return false; 
+            }
+
+            if (debug) Serial.println("SPS30: Started measurement");
+            measureStarted = now;
+            state = SPS30_WARM_UP_1;
+        }
+        case SPS30_WARM_UP_1: {
+
+            // On monitor mode we don't wait for warmUP'
+            if (monitor) {
+                if (!update(wichSensor->type)) return false;
+                else {
+                    lastReading = now;
+                    wichSensor->state = 0;
+                    return true;
+                }
+            }
+
+            uint32_t passed = now - measureStarted;
+
+            // If warmUp period has finished get a reading
+            if (passed >= warmUpPeriod[0]) {
+
+                if (!update(wichSensor->type)) return false;
+ 
+                // If the reading is low and second warmUp hasn't passed
+                if (pm_readings.nc_4p0 < concentrationThreshold && passed < warmUpPeriod[1]) {
+
+                    if (debug) Serial.println("SPS30: Concentration is low, we will wait for the second warm Up");
+                    state = SPS30_WARM_UP_2;
+                    wichSensor->state = warmUpPeriod[1] - passed; 	// Report how many seconds are missing to cover the first warm up period
+                    return true;
+                }
+
+                // return the reading
+                sleep();
+                lastReading = now;
+                wichSensor->state = 0;
+                return true;
+            }
+
+            wichSensor->state = warmUpPeriod[0] - passed;
+            if (debug) Serial.println("SPS30: Still on first warm up period");
+            return true;
+        }
+        case SPS30_WARM_UP_2: {
+
+            uint32_t passed = now - measureStarted;
+ 
+            if (passed <= warmUpPeriod[1]) {
+                wichSensor->state = warmUpPeriod[1] - passed; 	// Report how many seconds are missing to cover the second warm up period
+                if (debug) Serial.println("SPS30: Still on second warm up period");
+                return true;
+            }
+
+            if (!update(wichSensor->type)) return false;
+
+            if (!monitor) sleep();
+            lastReading = now;
+            wichSensor->state = 0;
+            return true;
+        }
+    }
+
+    return false;
+}
+uint8_t Sck_SPS30::getCleaningInterval()
+{
+    uint8_t interval_days;
+    int16_t response = sps30_get_fan_auto_cleaning_interval_days(&interval_days);
+    if (response < 0) {
+        if (debug) Serial.println("SPS30: error setting cleaning interval");
+        return response;
+    }
+    return interval_days;
+}
+bool Sck_SPS30::setCleaningInterval(uint8_t interval_days)
+{
+    //  max: 30 days, 0 to disable cleaning
+    if (interval_days < 0 || interval_days > 30) return false;
+
+    int16_t response = sps30_set_fan_auto_cleaning_interval_days(interval_days);
+    if (response < 0) {
+        if (debug) Serial.println("SPS30: error setting cleaning interval");
+        return false;
+    }
+
+    if (debug) {
+        Serial.print("SPS30: new cleaning interval: ");
+        Serial.println(interval_days);
+    }
+
+    // A note from the library:
+    // * (*) Note that due to a firmware bug, the reported interval is only updated on
+    // * sensor restart/reset. If the interval was thus updated after the last reset,
+    // * the old value is still reported. Power-cycle the sensor or call sps30_reset()
+    // * first if you need the latest value.
+
+    response = sps30_reset();
+    delay(SPS30_RESET_DELAY_USEC/1000); // Wait for 100000 us
+    if (response < 0) {
+        if (debug) Serial.println("SPS30: error while resseting sensor, new cleaning interval will not be updated until a good reset");
+        return false;
+    }
+
+    return true;
+}
+bool Sck_SPS30::startCleaning()
+{
+    wake();
+
+    state = SPS30_CLEANING;
+
+    // * Note that this command can only be run when the sensor is in measurement
+    // * mode, i.e. after sps30_start_measurement() without subsequent
+    // * sps30_stop_measurement().
+    int16_t result = sps30_start_measurement();
+    if (result < 0) {
+        if (debug) Serial.print("SPS30: Error before starting cleaning");
+        return false; 
+    }
+
+    int16_t response = sps30_start_manual_fan_cleaning();
+    if (response < 0) {
+        if (debug) Serial.println("SPS30: error on fan cleaning");
+        return false;
+    }
+
+    // Block while the cleaning is happening (msg to the user is sent by the control funcion)
+    delay(10500);
+    sleep();
+
+    return true;
+}
+bool Sck_SPS30::update(SensorType wichSensor)
+{
+    // Try to get new data
+    uint16_t data_ready;
+    int response = sps30_read_data_ready(&data_ready);
+    if (response < 0) {
+        if (debug) Serial.println("SPS30: error reading SPS30 data ready flag");
+        return false; // TODO this shouldn't fail this soon, some retrys and diagnostics should be done
+    } 
+
+    // TODO what happens if I haven't read data since 5 seconds, do I get the most recent?? CHECK THE DATASHEET
+    if (!data_ready) {
+        if (debug) Serial.println("SPS30: Data is not ready");
+        return false;
+    }
+
+    // Ask for the new data
+    response = sps30_read_measurement(&pm_readings);
+
+    // Convert PN readings from #/cm3 to #/0.1l
+    pm_readings.nc_0p5  *= 100;
+    pm_readings.nc_1p0  *= 100;
+    pm_readings.nc_2p5  *= 100;
+    pm_readings.nc_4p0  *= 100;
+    pm_readings.nc_10p0 *= 100;
+
+    if (response < 0) {
+        if (debug) Serial.println("SPS30: error getting SPS30 data");
+        return false;
+    }
+
+    return true;
+}
+bool Sck_SPS30::sleep()
+{
+    if (state != SPS30_IDLE) {
+        int16_t result = sps30_stop_measurement();
+        if (result < 0) {
+            if (debug) {
+                Serial.print("Error on stoping measurement SPS30: ");
+                Serial.println(result);
+            }
+            return false; 
+        }
+
+        measureStarted = 0;
+        state = SPS30_IDLE;
+    }
+
+    int16_t result = sps30_sleep();
+    if (result < 0) {
+        if (debug) {
+            Serial.print("Error on sleep SPS30: ");
+            Serial.println(result);
+        }
+        return false; 
+    }
+
+    if (debug) Serial.println("SPS30: going to sleep...");
+    state = SPS30_SLEEP;
+    return true;
+}
+bool Sck_SPS30::wake()
+{
+    int16_t result = sps30_wake_up();
+    if (result < 0) {
+        if (debug) {
+            Serial.print("Error starting measurement on SPS30: ");
+            Serial.println(result);
+        }
+        return false; 
+    }
+
+    if (debug) Serial.println("SPS30: Waking Up...");
+    state = SPS30_IDLE;
+    return true;
 }

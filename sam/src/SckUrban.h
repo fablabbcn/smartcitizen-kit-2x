@@ -11,6 +11,9 @@
 #include <I2S.h>
 #include <SparkFunCCS811.h>
 
+// Sensirion Library for SPS30
+// https://github.com/Sensirion/arduino-sps
+#include <sps30.h>
 
 // Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
 // It includes drivers for this sensors:
@@ -276,7 +279,53 @@ class Sck_CCS811
 		RTCZero* rtc;
 };
 
+class Sck_SPS30
+{
+    // TODO
+    // implement average option
+    // manage clean up periods
 
+    public:
+		Sck_SPS30(RTCZero* myrtc) {
+			rtc = myrtc;
+		}
+
+        const byte address = 0x69;
+		bool start(SensorType wichSensor);
+		bool stop(SensorType wichSensor);
+		bool getReading(OneSensor* wichSensor);
+        uint8_t getCleaningInterval();
+        bool setCleaningInterval(uint8_t interval_days);
+        bool startCleaning();
+        bool debug = true;
+        bool monitor = false;
+
+        // A struct of float to store de readings
+        struct sps30_measurement pm_readings;
+
+    private:
+        static const uint8_t totalMetrics = 10;
+		uint8_t enabled[totalMetrics][2] = { {SENSOR_SPS30_PM_1, 0}, {SENSOR_SPS30_PM_25, 0}, {SENSOR_SPS30_PM_4, 0}, {SENSOR_SPS30_PM_10, 0},
+                                   {SENSOR_SPS30_PN_05, 0}, {SENSOR_SPS30_PN_1, 0}, {SENSOR_SPS30_PN_25, 0}, {SENSOR_SPS30_PN_4, 0}, {SENSOR_SPS30_PN_10, 0}, 
+                                   {SENSOR_SPS30_TPSIZE, 0} };
+
+        enum SPS30State { SPS30_OFF, SPS30_IDLE, SPS30_SLEEP, SPS30_WARM_UP_1, SPS30_WARM_UP_2, SPS30_CLEANING };
+        SPS30State state = SPS30_OFF;
+
+        // bool started = false;
+
+		uint32_t lastReading = 0;
+        uint32_t measureStarted = 0;
+
+        // Sensirion recommends taking a reading after 16 seconds, if the reading is over 300#/cm3 the reading is OK, but if it is lower wait until 30 seconds and takeit again.
+        uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period 
+        uint16_t concentrationThreshold = 300;
+
+		RTCZero* rtc;
+        bool update(SensorType wichSensor);
+        bool sleep();
+        bool wake();
+};
 class SckUrban
 {
 	private:
@@ -311,4 +360,8 @@ class SckUrban
 
 		// PM sensor
 		Sck_PM sck_pm = Sck_PM(rtc);
+
+        // SPS30 PM sensor
+        Sck_SPS30 sck_sps30 = Sck_SPS30(rtc);
 };
+

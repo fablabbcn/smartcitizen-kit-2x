@@ -1172,63 +1172,63 @@ bool Sck_PM::stop()
 }
 bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 {
-	uint32_t now = rtc->getEpoch();
+    uint32_t now = rtc->getEpoch();
 
-	// If last reading is recent doesn't make sense to get a new one
-	if (now - lastReading < warmUpPeriod && !monitor) {
-		if (debug) Serial.println("PM: Less than warmUp period since last update, data is still valid...");
-		return true;
-	}
+    // If last reading is recent doesn't make sense to get a new one
+    if (now - lastReading < warmUpPeriod && !monitor) {
+        if (debug) Serial.println("PM: Less than warmUp period since last update, data is still valid...");
+        return true;
+    }
 
-	// Check if sensor is on
-	if (!started) start();
+    // Check if sensor is on
+    if (!started) start();
 
-	// Check if sensor is sleeping
-	if (wakeUpTime == 0) wake();
-	
-	// Are we still warming up?
-	uint32_t warmUpPassed = now - wakeUpTime;
-	if (warmUpPassed < warmUpPeriod) {
-		wichSensor->state = warmUpPeriod - warmUpPassed; 	// Report how many seconds are missing to cover the warm up period
-		if (debug) Serial.println("PM: Still on warm up period");
+    // Check if sensor is sleeping
+    if (wakeUpTime == 0) wake();
 
-		// Old sensors seem to wakeUp on active mode so we need to set them to passive each time.
-		if (SerialPM.available()) {
-			if (debug) Serial.println("PM: This seems to be an old sensor... changing to passive mode");
-			oldSensor = true;
-			while (SerialPM.available()) SerialPM.read();
-			if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE, true)) {
-				if (debug) Serial.println("PM: Failed setting passive mode");
-				stop();
-				return false;
-			}
-		}
-		return true;
-	}
+    // Are we still warming up?
+    uint32_t warmUpPassed = now - wakeUpTime;
+    if (warmUpPassed < warmUpPeriod) {
+        wichSensor->state = warmUpPeriod - warmUpPassed; 	// Report how many seconds are missing to cover the warm up period
+        if (debug) Serial.println("PM: Still on warm up period");
 
-	// Empty SerialPM internal buffer
-	while (SerialPM.available()) SerialPM.read();
-	
-	if (!sendCmd(PM_CMD_GET_PASSIVE_READING, 0x00, false)) return false;
+        // Old sensors seem to wakeUp on active mode so we need to set them to passive each time.
+        if (SerialPM.available()) {
+        if (debug) Serial.println("PM: This seems to be an old sensor... changing to passive mode");
+            oldSensor = true;
+            while (SerialPM.available()) SerialPM.read();
+            if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE, true)) {
+                if (debug) Serial.println("PM: Failed setting passive mode");
+                stop();
+                return false;
+            }
+        }
+        return true;
+    }
 
-	if (!fillBuffer()) return false;
+    // Empty SerialPM internal buffer
+    while (SerialPM.available()) SerialPM.read();
 
-	if (!processBuffer()) return false;
+    if (!sendCmd(PM_CMD_GET_PASSIVE_READING, 0x00, false)) return false;
 
-	// Only go to sleep if these conditions are met
-	if ( 	powerSave &&  									// PowerSave is enabled
-		((wichSensor->everyNint * base->config.readInterval) > (warmUpPeriod * 2)) && 	// Reading interval is twice the warmUpPeriod
-		!base->st.dynamic && 								// We are not in dynamic mode
-		!monitor) { 									// We are not in monitor mode
+    if (!fillBuffer()) return false;
 
-		if (debug) Serial.println("PM: going to sleep");
-		if (oldSensor) delay(50); 	// Old sensors don't work without a small delay between commands
-		if (!sleep()) return false;
-	}
+    if (!processBuffer()) return false;
 
-	monitor = false;
+    // Only go to sleep if these conditions are met
+    if ( 	powerSave &&  									// PowerSave is enabled
+        ((wichSensor->everyNint * base->config.readInterval) > (warmUpPeriod * 2)) && 	// Reading interval is twice the warmUpPeriod
+        !base->st.dynamic && 								// We are not in dynamic mode
+        !monitor) { 									// We are not in monitor mode
 
-	return true;
+        if (debug) Serial.println("PM: going to sleep");
+        if (oldSensor) delay(50); 	// Old sensors don't work without a small delay between commands
+        if (!sleep()) return false;
+    }
+
+    monitor = false;
+    wichSensor->state = 0;
+    return true;
 }
 bool Sck_PM::fillBuffer()
 {

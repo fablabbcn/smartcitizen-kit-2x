@@ -31,6 +31,16 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_PN_25:
         case SENSOR_PN_5:
         case SENSOR_PN_10:              return sck_pm.start();
+        case SENSOR_SPS30_PM_1:
+        case SENSOR_SPS30_PM_25:
+        case SENSOR_SPS30_PM_4:
+        case SENSOR_SPS30_PM_10:
+        case SENSOR_SPS30_PN_05:
+        case SENSOR_SPS30_PN_1:
+        case SENSOR_SPS30_PN_25:
+        case SENSOR_SPS30_PN_4:
+        case SENSOR_SPS30_PN_10:
+        case SENSOR_SPS30_TPSIZE:        return sck_sps30.start(wichSensor);
         default: break;
     }
 
@@ -60,6 +70,16 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_PN_25:
         case SENSOR_PN_5:
         case SENSOR_PN_10:              return sck_pm.stop();
+        case SENSOR_SPS30_PM_1:
+        case SENSOR_SPS30_PM_25:
+        case SENSOR_SPS30_PM_4:
+        case SENSOR_SPS30_PM_10:
+        case SENSOR_SPS30_PN_05:
+        case SENSOR_SPS30_PN_1:
+        case SENSOR_SPS30_PN_25:
+        case SENSOR_SPS30_PN_4:
+        case SENSOR_SPS30_PN_10:
+        case SENSOR_SPS30_TPSIZE:       return sck_sps30.stop(wichSensor);
         default: break;
     }
 
@@ -1388,6 +1408,9 @@ bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
 // Sensirion SPS30 PM sensor option
 bool Sck_SPS30::start(SensorType wichSensor)
 {
+    // If detection already failed dont try again until next reset
+    if (state == SPS30_NOT_DETECTED) return false;
+
 	if (state != SPS30_OFF) {
 		// Mark this specific metric as enabled
 		for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
@@ -1400,6 +1423,8 @@ bool Sck_SPS30::start(SensorType wichSensor)
 	digitalWrite(pinPM_ENABLE, HIGH);
     delay(25);
 
+    state = SPS30_NOT_DETECTED;
+
 	if (!I2Cdetect(&Wire, address)) {
         if (debug) Serial.println("SPS30 ERROR no i2c address found");
         return false;
@@ -1409,20 +1434,17 @@ bool Sck_SPS30::start(SensorType wichSensor)
 
     int result = sps30_probe();
     if (result != 0) {
-        if (debug) {
-            Serial.print("Error probing for SPS30: ");
-            Serial.println("result");
-        }
+        Serial.print("Error probing for SPS30: ");
+        Serial.println(result);
         return false;
     }
 
-	// Mark this specific metric as enabled
-	for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
-
+    // Detection succeeded
+    if (debug) Serial.println("SPS30 Started OK");
 	state = SPS30_IDLE;
 
-    if (debug) Serial.println("SPS30 Started OK");
-	return true;
+    // Call start again to just enable the corresponding metric
+	return start(wichSensor);
 }
 bool Sck_SPS30::stop(SensorType wichSensor)
 {
@@ -1495,9 +1517,8 @@ bool Sck_SPS30::getReading(OneSensor* wichSensor)
 
                 if (!update(wichSensor->type)) return false;
  
-                // If the reading is low and second warmUp hasn't passed
-                if (pm_readings.nc_4p0 < concentrationThreshold && passed < warmUpPeriod[1]) {
-
+                // If the reading is low (the tyhreshold is in #/cm3) and second warmUp hasn't passed we keep waiting
+                if ((pm_readings.nc_4p0 / 100) < concentrationThreshold && passed < warmUpPeriod[1]) {
                     if (debug) Serial.println("SPS30: Concentration is low, we will wait for the second warm Up");
                     state = SPS30_WARM_UP_2;
                     wichSensor->state = warmUpPeriod[1] - passed; 	// Report how many seconds are missing to cover the first warm up period
@@ -1519,7 +1540,7 @@ bool Sck_SPS30::getReading(OneSensor* wichSensor)
 
             uint32_t passed = now - measureStarted;
  
-            if (passed <= warmUpPeriod[1]) {
+            if (passed < warmUpPeriod[1]) {
                 wichSensor->state = warmUpPeriod[1] - passed; 	// Report how many seconds are missing to cover the second warm up period
                 if (debug) Serial.println("SPS30: Still on second warm up period");
                 return true;
@@ -1663,6 +1684,7 @@ bool Sck_SPS30::sleep()
     }
 
     if (debug) Serial.println("SPS30: going to sleep...");
+    monitor = false;
     state = SPS30_SLEEP;
     return true;
 }

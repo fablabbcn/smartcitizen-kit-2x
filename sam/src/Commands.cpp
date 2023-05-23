@@ -477,7 +477,7 @@ void monitorSensor_com(SckBase* base, String parameters)
             wichSensor.type == SENSOR_SPS30_PN_25 ||
             wichSensor.type == SENSOR_SPS30_PN_4  ||
             wichSensor.type == SENSOR_SPS30_PN_10 ||
-            wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.monitor = false;
+            wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.sleep();
     }
 
 	if (sdSave) base->monitorFile.file.close();

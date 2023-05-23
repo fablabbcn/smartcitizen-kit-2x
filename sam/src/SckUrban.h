@@ -295,30 +295,31 @@ class Sck_SPS30
 		bool start(SensorType wichSensor);
 		bool stop(SensorType wichSensor);
 		bool getReading(OneSensor* wichSensor);
+        bool sleep();
         uint8_t getCleaningInterval();
         bool setCleaningInterval(uint8_t interval_days);
         bool startCleaning();
         bool debug = true;
         bool monitor = false;
 
-        // A struct of float to store de readings
+        // A struct of float to store pm readings
         struct sps30_measurement pm_readings;
 
     private:
         static const uint8_t totalMetrics = 10;
 		uint8_t enabled[totalMetrics][2] = { {SENSOR_SPS30_PM_1, 0}, {SENSOR_SPS30_PM_25, 0}, {SENSOR_SPS30_PM_4, 0}, {SENSOR_SPS30_PM_10, 0},
-                                   {SENSOR_SPS30_PN_05, 0}, {SENSOR_SPS30_PN_1, 0}, {SENSOR_SPS30_PN_25, 0}, {SENSOR_SPS30_PN_4, 0}, {SENSOR_SPS30_PN_10, 0}, 
-                                   {SENSOR_SPS30_TPSIZE, 0} };
+                                             {SENSOR_SPS30_PN_05, 0}, {SENSOR_SPS30_PN_1, 0}, {SENSOR_SPS30_PN_25, 0}, {SENSOR_SPS30_PN_4, 0}, {SENSOR_SPS30_PN_10, 0}, 
+                                             {SENSOR_SPS30_TPSIZE, 0} };
 
-        enum SPS30State { SPS30_OFF, SPS30_IDLE, SPS30_SLEEP, SPS30_WARM_UP_1, SPS30_WARM_UP_2, SPS30_CLEANING };
+        enum SPS30State { SPS30_OFF, SPS30_IDLE, SPS30_SLEEP, SPS30_WARM_UP_1, SPS30_WARM_UP_2, SPS30_CLEANING, SPS30_NOT_DETECTED };
         SPS30State state = SPS30_OFF;
 
-        // bool started = false;
 
 		uint32_t lastReading = 0;
         uint32_t measureStarted = 0;
 
-        // Sensirion recommends taking a reading after 16 seconds, if the reading is over 300#/cm3 the reading is OK, but if it is lower wait until 30 seconds and takeit again.
+        // Sensirion recommends taking a reading after 16 seconds, if the Particle Number reading is over 300#/cm3 the reading is OK, but if it is lower wait until 30 seconds and takeit again.
+        // https://sensirion.com/media/documents/8600FF88/616542B5/Sensirion_PM_Sensors_Datasheet_SPS30.pdf
         uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period 
         uint16_t concentrationThreshold = 300;
 
@@ -364,4 +365,3 @@ class SckUrban
         // SPS30 PM sensor
         Sck_SPS30 sck_sps30 = Sck_SPS30(rtc);
 };
-

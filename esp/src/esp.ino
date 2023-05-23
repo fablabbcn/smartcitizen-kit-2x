@@ -4,31 +4,31 @@ SckESP esp;
 
 void setup()
 {
-	esp.setup();
+    esp.setup();
 }
 void loop()
 {
-	esp.update();
+    esp.update();
 }
 
 
 void ledToggle()
 {
-	esp._ledToggle();
+    esp._ledToggle();
 }
 time_t ntpProvider()
 {
-	return esp.getNtpTime();
+    return esp.getNtpTime();
 }
 void extSet(AsyncWebServerRequest *request)
 {
-	esp.webSet(request);
+    esp.webSet(request);
 }
 void extStatus(AsyncWebServerRequest *request)
 {
-	esp.webStatus(request);
+    esp.webStatus(request);
 }
 void extRoot(AsyncWebServerRequest *request)
 {
-	esp.webRoot(request);
+    esp.webRoot(request);
 }

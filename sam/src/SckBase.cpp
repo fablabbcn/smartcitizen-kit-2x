@@ -1738,7 +1738,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
 	sensors[wichSensor].oled_display = false;
 
 	// Avoid spamming with mesgs for every supported auxiliary sensor
-	if (sensors[wichSensor].location != BOARD_AUX) {
+	if (sensors[wichSensor].location == BOARD_BASE) {
 		sprintf(outBuff, "Failed enabling %s", sensors[wichSensor].title);
 		sckOut();
 	}

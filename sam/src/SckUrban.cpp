@@ -1835,9 +1835,6 @@ bool Sck_SPS30::wake()
     return true;
 }
 
-// this fixes a problem with Sensirion Arduino Core Library where sizeBuffer cannot hold more than 255, (samd21 i2c buffer is 256)
-// https://github.com/Sensirion/arduino-core/blob/main/src/SensirionI2CCommunication.cpp#LL82C5-L82C5
-#define I2C_BUFFER_LENGTH 255
 bool Sck_SEN5X::start(SensorType wichSensor)
 {
     // If detection already failed dont try again until next reset

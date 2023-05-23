@@ -164,7 +164,9 @@ static const uint8_t SCL = PIN_WIRE_SCL;
 static const uint8_t SDA1 = PIN_WIRE1_SDA;
 static const uint8_t SCL1 = PIN_WIRE1_SCL;
 
-
+// this fixes a problem with Sensirion Arduino Core Library where sizeBuffer cannot hold more than 255, (samd21 i2c buffer is 256)
+// https://github.com/Sensirion/arduino-core/blob/main/src/SensirionI2CCommunication.cpp#LL82C5-L82C5
+#define I2C_BUFFER_LENGTH 255
 /*
  * USB
  */

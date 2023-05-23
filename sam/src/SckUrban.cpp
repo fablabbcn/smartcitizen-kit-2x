@@ -1846,7 +1846,7 @@ bool Sck_SEN5X::start(SensorType wichSensor)
         bool wasEnabled = false;
 
         for (uint8_t i=0; i<totalMetrics; i++) {
-            if (enabled[i][0] == wichSensor && (enabled[i][2] & model == 1)) {
+            if (enabled[i][0] == wichSensor && ((enabled[i][2] & model) >= 1)) {
                 enabled[i][1] = 1;
                 wasEnabled = true;
             }
@@ -2096,7 +2096,7 @@ bool Sck_SEN5X::findModel()
 
     if (strcmp(cname, "SEN50") == 0) model = SEN50;
     else if (strcmp(cname, "SEN54") == 0) model = SEN54;
-    else if (strcmp(cname, "SEN55") == 0) model = SEN54;
+    else if (strcmp(cname, "SEN55") == 0) model = SEN55;
     else return false;
 
     return true;

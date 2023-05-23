@@ -438,6 +438,24 @@ void monitorSensor_com(SckBase* base, String parameters)
                 wichSensor.type == SENSOR_SPS30_PN_4  ||
                 wichSensor.type == SENSOR_SPS30_PN_10 ||
                 wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.monitor = true;
+            if (wichSensor.type == SENSOR_SEN5X_PM_1            ||
+                wichSensor.type ==SENSOR_SEN5X_PM_25            ||
+                wichSensor.type ==SENSOR_SEN5X_PM_4             ||
+                wichSensor.type ==SENSOR_SEN5X_PM_10            ||
+                wichSensor.type ==SENSOR_SEN5X_PN_05            ||
+                wichSensor.type ==SENSOR_SEN5X_PN_1             ||
+                wichSensor.type ==SENSOR_SEN5X_PN_25            ||
+                wichSensor.type ==SENSOR_SEN5X_PN_4             ||
+                wichSensor.type ==SENSOR_SEN5X_PN_10            ||
+                wichSensor.type ==SENSOR_SEN5X_TPSIZE           ||
+                wichSensor.type ==SENSOR_SEN5X_HUMIDITY         ||
+                wichSensor.type ==SENSOR_SEN5X_TEMPERATURE      ||
+                wichSensor.type ==SENSOR_SEN5X_VOCS_IDX         ||
+                wichSensor.type ==SENSOR_SEN5X_NOX_IDX          ||
+                wichSensor.type ==SENSOR_SEN5X_HUMIDITY_RAW     ||
+                wichSensor.type ==SENSOR_SEN5X_TEMPERATURE_RAW  ||
+                wichSensor.type ==SENSOR_SEN5X_VOCS_RAW         ||
+                wichSensor.type ==SENSOR_SEN5X_NOX_RAW) base-> urban.sck_sen5x.monitor = true;
 
 			base->getReading(&wichSensor);
 
@@ -460,7 +478,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 			base->sckOut();
 		}
 	}
-    
+ 
     // post monitor tasks
     for (uint8_t i=0; i<index; i++) {
 
@@ -478,6 +496,25 @@ void monitorSensor_com(SckBase* base, String parameters)
             wichSensor.type == SENSOR_SPS30_PN_4  ||
             wichSensor.type == SENSOR_SPS30_PN_10 ||
             wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.sleep();
+
+        if (wichSensor.type == SENSOR_SEN5X_PM_1            ||
+            wichSensor.type ==SENSOR_SEN5X_PM_25            ||
+            wichSensor.type ==SENSOR_SEN5X_PM_4             ||
+            wichSensor.type ==SENSOR_SEN5X_PM_10            ||
+            wichSensor.type ==SENSOR_SEN5X_PN_05            ||
+            wichSensor.type ==SENSOR_SEN5X_PN_1             ||
+            wichSensor.type ==SENSOR_SEN5X_PN_25            ||
+            wichSensor.type ==SENSOR_SEN5X_PN_4             ||
+            wichSensor.type ==SENSOR_SEN5X_PN_10            ||
+            wichSensor.type ==SENSOR_SEN5X_TPSIZE           ||
+            wichSensor.type ==SENSOR_SEN5X_HUMIDITY         ||
+            wichSensor.type ==SENSOR_SEN5X_TEMPERATURE      ||
+            wichSensor.type ==SENSOR_SEN5X_VOCS_IDX         ||
+            wichSensor.type ==SENSOR_SEN5X_NOX_IDX          ||
+            wichSensor.type ==SENSOR_SEN5X_HUMIDITY_RAW     ||
+            wichSensor.type ==SENSOR_SEN5X_TEMPERATURE_RAW  ||
+            wichSensor.type ==SENSOR_SEN5X_VOCS_RAW         ||
+            wichSensor.type ==SENSOR_SEN5X_NOX_RAW) base->urban.sck_sen5x.idle();
     }
 
 	if (sdSave) base->monitorFile.file.close();

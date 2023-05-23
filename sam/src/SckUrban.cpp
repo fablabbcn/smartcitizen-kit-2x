@@ -41,6 +41,24 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_SPS30_PN_4:
         case SENSOR_SPS30_PN_10:
         case SENSOR_SPS30_TPSIZE:        return sck_sps30.start(wichSensor);
+        case SENSOR_SEN5X_PM_1:
+        case SENSOR_SEN5X_PM_25:
+        case SENSOR_SEN5X_PM_4:
+        case SENSOR_SEN5X_PM_10:
+        case SENSOR_SEN5X_PN_05:
+        case SENSOR_SEN5X_PN_1:
+        case SENSOR_SEN5X_PN_25:
+        case SENSOR_SEN5X_PN_4:
+        case SENSOR_SEN5X_PN_10:
+        case SENSOR_SEN5X_TPSIZE:
+        case SENSOR_SEN5X_HUMIDITY:
+        case SENSOR_SEN5X_TEMPERATURE:
+        case SENSOR_SEN5X_VOCS_IDX:
+        case SENSOR_SEN5X_NOX_IDX:
+        case SENSOR_SEN5X_HUMIDITY_RAW:
+        case SENSOR_SEN5X_TEMPERATURE_RAW:
+        case SENSOR_SEN5X_VOCS_RAW:
+        case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.start(wichSensor);
         default: break;
     }
 
@@ -80,6 +98,24 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_SPS30_PN_4:
         case SENSOR_SPS30_PN_10:
         case SENSOR_SPS30_TPSIZE:       return sck_sps30.stop(wichSensor);
+        case SENSOR_SEN5X_PM_1:
+        case SENSOR_SEN5X_PM_25:
+        case SENSOR_SEN5X_PM_4:
+        case SENSOR_SEN5X_PM_10:
+        case SENSOR_SEN5X_PN_05:
+        case SENSOR_SEN5X_PN_1:
+        case SENSOR_SEN5X_PN_25:
+        case SENSOR_SEN5X_PN_4:
+        case SENSOR_SEN5X_PN_10:
+        case SENSOR_SEN5X_TPSIZE:
+        case SENSOR_SEN5X_HUMIDITY:
+        case SENSOR_SEN5X_TEMPERATURE:
+        case SENSOR_SEN5X_VOCS_IDX:
+        case SENSOR_SEN5X_NOX_IDX:
+        case SENSOR_SEN5X_HUMIDITY_RAW:
+        case SENSOR_SEN5X_TEMPERATURE_RAW:
+        case SENSOR_SEN5X_VOCS_RAW:
+        case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.stop(wichSensor);
         default: break;
     }
 
@@ -90,42 +126,60 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 {
 	wichSensor->state = 0;
 	switch(wichSensor->type) {
-		case SENSOR_LIGHT:			if (sck_bh1730fvc.get()) 			{ wichSensor->reading = String(sck_bh1730fvc.reading); return; } break;
-		case SENSOR_TEMPERATURE: 		if (sck_sht31.getReading()) 			{ wichSensor->reading = String(sck_sht31.temperature); return; } break;
-		case SENSOR_HUMIDITY: 			if (sck_sht31.getReading()) 			{ wichSensor->reading = String(sck_sht31.humidity); return; } break;
-		case SENSOR_NOISE_DBA: 			if (sck_noise.getReading(SENSOR_NOISE_DBA)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
-		case SENSOR_NOISE_DBC: 			if (sck_noise.getReading(SENSOR_NOISE_DBC)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
-		case SENSOR_NOISE_DBZ: 			if (sck_noise.getReading(SENSOR_NOISE_DBZ)) 	{ wichSensor->reading = String(sck_noise.readingDB); return; } break;
-		case SENSOR_NOISE_FFT: 			if (sck_noise.getReading(SENSOR_NOISE_FFT)) 	{
+		case SENSOR_LIGHT:                  if (sck_bh1730fvc.get())                    { wichSensor->reading = String(sck_bh1730fvc.reading);                          return; } break;
+		case SENSOR_TEMPERATURE:            if (sck_sht31.getReading())                 { wichSensor->reading = String(sck_sht31.temperature);                          return; } break;
+		case SENSOR_HUMIDITY:               if (sck_sht31.getReading())                 { wichSensor->reading = String(sck_sht31.humidity);                             return; } break;
+		case SENSOR_NOISE_DBA:              if (sck_noise.getReading(SENSOR_NOISE_DBA)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
+		case SENSOR_NOISE_DBC:              if (sck_noise.getReading(SENSOR_NOISE_DBC)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
+		case SENSOR_NOISE_DBZ:              if (sck_noise.getReading(SENSOR_NOISE_DBZ)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
+		case SENSOR_NOISE_FFT:              if (sck_noise.getReading(SENSOR_NOISE_FFT)) {
 								// TODO find a way to give access to readingsFFT instead of storing them on a String (too much RAM)
 								// For now it just prints the values to console
 								for (uint16_t i=1; i<sck_noise.FFT_NUM; i++) SerialUSB.println(sck_noise.readingFFT[i]);
 								return;
 							}
-		case SENSOR_CCS811_VOCS:		if (sck_ccs811.getReading(base)) 		{ wichSensor->reading = String(sck_ccs811.VOCgas); return; } break;
-		case SENSOR_CCS811_ECO2:		if (sck_ccs811.getReading(base)) 		{ wichSensor->reading = String(sck_ccs811.ECO2gas); return; } break;
-		case SENSOR_ALTITUDE:			if (sck_mpl3115A2.getAltitude()) 		{ wichSensor->reading = String(sck_mpl3115A2.altitude); return; } break;
-		case SENSOR_PRESSURE:			if (sck_mpl3115A2.getPressure()) 		{ wichSensor->reading = String(sck_mpl3115A2.pressure); return; } break;
-		case SENSOR_PRESSURE_TEMP:		if (sck_mpl3115A2.getTemperature()) 		{ wichSensor->reading = String(sck_mpl3115A2.temperature); return; } break;
-		case SENSOR_PM_1: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pm1); } return;
-		case SENSOR_PM_25: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pm25); } return;
-		case SENSOR_PM_10: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pm10); } return;
-		case SENSOR_PN_03: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn03); } return;
-		case SENSOR_PN_05: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn05); } return;
-		case SENSOR_PN_1: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn1); } return;
-		case SENSOR_PN_25: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn25); } return;
-		case SENSOR_PN_5: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn5); } return;
-		case SENSOR_PN_10: 			if (sck_pm.getReading(wichSensor, base)) { wichSensor->reading = String(sck_pm.pn10); } return;
-        case SENSOR_SPS30_PM_1:     if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.mc_1p0);                   return; } break;
-        case SENSOR_SPS30_PM_25:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.mc_2p5);                   return; } break;
-        case SENSOR_SPS30_PM_4:     if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.mc_4p0);                   return; } break;
-        case SENSOR_SPS30_PM_10:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.mc_10p0);                  return; } break;
-        case SENSOR_SPS30_PN_05:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_0p5);                   return; } break;
-        case SENSOR_SPS30_PN_1:     if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_1p0);                   return; } break;
-        case SENSOR_SPS30_PN_25:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_2p5);                   return; } break;
-        case SENSOR_SPS30_PN_4:     if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_4p0);                   return; } break;
-        case SENSOR_SPS30_PN_10:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.nc_10p0);                  return; } break;
-        case SENSOR_SPS30_TPSIZE:    if (sck_sps30.getReading(wichSensor))    { wichSensor->reading = String(sck_sps30.pm_readings.typical_particle_size);    return; } break;
+		case SENSOR_CCS811_VOCS:            if (sck_ccs811.getReading(base))            { wichSensor->reading = String(sck_ccs811.VOCgas);                              return; } break;
+		case SENSOR_CCS811_ECO2:            if (sck_ccs811.getReading(base))            { wichSensor->reading = String(sck_ccs811.ECO2gas);                             return; } break;
+		case SENSOR_ALTITUDE:               if (sck_mpl3115A2.getAltitude())            { wichSensor->reading = String(sck_mpl3115A2.altitude);                         return; } break;
+		case SENSOR_PRESSURE:               if (sck_mpl3115A2.getPressure())            { wichSensor->reading = String(sck_mpl3115A2.pressure);                         return; } break;
+		case SENSOR_PRESSURE_TEMP:          if (sck_mpl3115A2.getTemperature())         { wichSensor->reading = String(sck_mpl3115A2.temperature);                      return; } break;
+		case SENSOR_PM_1:                   if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm1);                                     return; } break;
+		case SENSOR_PM_25:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm25);                                    return; } break;
+		case SENSOR_PM_10:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm10);                                    return; } break;
+		case SENSOR_PN_03:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn03);                                    return; } break;
+		case SENSOR_PN_05:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn05);                                    return; } break;
+		case SENSOR_PN_1:                   if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn1);                                     return; } break;
+		case SENSOR_PN_25:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn25);                                    return; } break;
+		case SENSOR_PN_5:                   if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn5);                                     return; } break;
+		case SENSOR_PN_10:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn10);                                    return; } break;
+        case SENSOR_SPS30_PM_1:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_1p0);                   return; } break;
+        case SENSOR_SPS30_PM_25:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_2p5);                   return; } break;
+        case SENSOR_SPS30_PM_4:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_4p0);                   return; } break;
+        case SENSOR_SPS30_PM_10:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_10p0);                  return; } break;
+        case SENSOR_SPS30_PN_05:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_0p5);                   return; } break;
+        case SENSOR_SPS30_PN_1:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_1p0);                   return; } break;
+        case SENSOR_SPS30_PN_25:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_2p5);                   return; } break;
+        case SENSOR_SPS30_PN_4:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_4p0);                   return; } break;
+        case SENSOR_SPS30_PN_10:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_10p0);                  return; } break;
+        case SENSOR_SPS30_TPSIZE:           if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.typical_particle_size);    return; } break;
+        case SENSOR_SEN5X_PM_1:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM1p0);                                return; } break;
+        case SENSOR_SEN5X_PM_25:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM2p5);                                return; } break;
+        case SENSOR_SEN5X_PM_4:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM4p0);                                return; } break;
+        case SENSOR_SEN5X_PM_10:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM10p0);                               return; } break;
+        case SENSOR_SEN5X_PN_05:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN0p5);                                return; } break;
+        case SENSOR_SEN5X_PN_1:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN1p0);                                return; } break;
+        case SENSOR_SEN5X_PN_25:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN2p5);                                return; } break;
+        case SENSOR_SEN5X_PN_4:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN4p0);                                return; } break;
+        case SENSOR_SEN5X_PN_10:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN10p0);                               return; } break;
+        case SENSOR_SEN5X_TPSIZE:           if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.tSize);                                return; } break;
+        case SENSOR_SEN5X_HUMIDITY:         if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.humidity);                             return; } break;
+        case SENSOR_SEN5X_TEMPERATURE:      if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.temperature);                          return; } break;
+        case SENSOR_SEN5X_VOCS_IDX:         if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.vocIndex);                             return; } break;
+        case SENSOR_SEN5X_NOX_IDX:          if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.noxIndex);                             return; } break;
+        case SENSOR_SEN5X_HUMIDITY_RAW:     if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawHumidity);                          return; } break;
+        case SENSOR_SEN5X_TEMPERATURE_RAW:  if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawTemperature);                       return; } break;
+        case SENSOR_SEN5X_VOCS_RAW:         if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawVoc);                               return; } break;
+        case SENSOR_SEN5X_NOX_RAW:          if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawNox);                               return; } break;
 		default: break;
 	}
 	wichSensor->state = -1;
@@ -297,6 +351,83 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					return "\r\n";
                 }
             }
+        case SENSOR_SEN5X_PM_1:
+        case SENSOR_SEN5X_PM_25:
+        case SENSOR_SEN5X_PM_4:
+        case SENSOR_SEN5X_PM_10:
+        case SENSOR_SEN5X_PN_05:
+        case SENSOR_SEN5X_PN_1:
+        case SENSOR_SEN5X_PN_25:
+        case SENSOR_SEN5X_PN_4:
+        case SENSOR_SEN5X_PN_10:
+        case SENSOR_SEN5X_TPSIZE:
+        case SENSOR_SEN5X_HUMIDITY:
+        case SENSOR_SEN5X_TEMPERATURE:
+        case SENSOR_SEN5X_VOCS_IDX:
+        case SENSOR_SEN5X_NOX_IDX:
+        case SENSOR_SEN5X_HUMIDITY_RAW:
+        case SENSOR_SEN5X_TEMPERATURE_RAW:
+        case SENSOR_SEN5X_VOCS_RAW:
+        case SENSOR_SEN5X_NOX_RAW:
+            {
+                if (command.startsWith("debug")) {
+
+                    command.replace("debug", "");
+                    command.trim();
+                    if (command.startsWith("1")) sck_sen5x.debug = true;
+                    else if (command.startsWith("0")) sck_sen5x.debug = false;
+
+                    sprintf(base->outBuff, "Debug: %s", sck_sen5x.debug  ? "true" : "false");
+                    base->sckOut();
+                    return true;
+
+                } else if (command.startsWith("cleanint")) {
+
+					command.replace("cleanint", "");
+					command.trim();
+
+					if (command.length() > 0) {
+    					uint8_t newInterval = command.toInt();
+                        sprintf(base->outBuff, "Setting clean interval to %u days...", newInterval);
+                        base->sckOut();
+                        if (!sck_sen5x.setCleaningInterval(newInterval)) {
+                            base->sckOut("Error setting new interval!!");
+                        }
+                    } 
+
+                    uint8_t currentInterval = sck_sen5x.getCleaningInterval();
+                    sprintf(base->outBuff, "Current clean interval: %u days", currentInterval);
+                    base->sckOut();
+                    return "\r\n";
+
+                } else if (command.startsWith("doclean")) {
+
+                    base->sckOut("SEN5X cleaning started, it will take 10s...");
+                    sck_sen5x.startCleaning();
+                    base->sckOut("Done!!!");
+                    return "\r\n";
+
+                } else if (command.startsWith("version")) {
+
+                    if (sck_sen5x.getVer()) {
+                        sprintf(base->outBuff, 
+                                "SEN5X Firmware: %u.%u\r\nSEN5X Hardware: %u.%u\r\nSEN5X Protocol: %u.%u\r\nSEN5X Firmware debug: %u",
+                                sck_sen5x.firmwareMajor, sck_sen5x.firmwareMinor, 
+                                sck_sen5x.hardwareMajor, sck_sen5x.hardwareMinor,
+                                sck_sen5x.protocolMajor, sck_sen5x.protocolMinor,
+                                sck_sen5x.firmwareDebug);
+                        base->sckOut();
+					return "\r\n";
+                    }
+
+                }  else if (command.startsWith("help") || command.length() == 0) {
+					sprintf(base->outBuff, "Available commands:\r\n* debug: [0-1] Sets debug messages\r\n* doclean: Starts a cleaning\r\n* cleanint [interval in days]\r\n* version");
+					base->sckOut();
+					return "\r\n";
+                }
+
+            }
+
 
 		default: break;
 	}
@@ -1701,5 +1832,298 @@ bool Sck_SPS30::wake()
 
     if (debug) Serial.println("SPS30: Waking Up...");
     state = SPS30_IDLE;
+    return true;
+}
+
+// this fixes a problem with Sensirion Arduino Core Library where sizeBuffer cannot hold more than 255, (samd21 i2c buffer is 256)
+// https://github.com/Sensirion/arduino-core/blob/main/src/SensirionI2CCommunication.cpp#LL82C5-L82C5
+#define I2C_BUFFER_LENGTH 255
+bool Sck_SEN5X::start(SensorType wichSensor)
+{
+    // If detection already failed dont try again until next reset
+    if (state == SEN5X_NOT_DETECTED) return false;
+
+    // if state is not OFF the sensor is already started so we only enable the metric but we don't need to init the sensor again
+    if (state != SEN5X_OFF) {
+
+        bool wasEnabled = false;
+
+        for (uint8_t i=0; i<totalMetrics; i++) {
+            if (enabled[i][0] == wichSensor && (enabled[i][2] & model == 1)) {
+                enabled[i][1] = 1;
+                wasEnabled = true;
+            }
+        }
+        return wasEnabled;
+    }
+
+    // The SCK needs battery to survive the sensor startup current draw, with only usb power it normally does not work
+    // If battery is not present it  can enter a reset loop, (not always)
+    pinMode(pinPM_ENABLE, OUTPUT);
+    digitalWrite(pinPM_ENABLE, HIGH);
+    delay(25);
+
+    state = SEN5X_NOT_DETECTED;
+
+    if (!I2Cdetect(&Wire, address)) {
+        if (debug) Serial.println("SEN5X ERROR no device found on adress");
+        return false;
+    }
+
+    sen5x.begin(Wire);
+
+    delay(25); // without this there is an error on the deviceReset function
+
+    if (isError(sen5x.deviceReset())) return false;
+
+    if (!findModel()) {
+        Serial.println("SEN5X: error finding sensor model");
+        return false;
+    }
+
+    // Check if firmware version allows The direct switch between Measurement and RHT/Gas-Only Measurement mode
+    if (!getVer()) return false;
+    if (firmwareMajor < 2) {
+        Serial.println("SEN5X: error firmware is too old and will not work with this implementation");
+        return false;
+    }
+
+    // Detection succeeded
+    state = SEN5X_IDLE;
+
+    // Call start again to just enable the corresponding metric
+    return start(wichSensor);
+}
+bool Sck_SEN5X::stop(SensorType wichSensor)
+{
+    bool changed = false;
+
+    // Mark this specific metric as disabled
+    for (uint8_t i=0; i<totalMetrics; i++) {
+        if (enabled[i][0] == wichSensor) {
+            enabled[i][1] = 0;
+            changed = true;
+        }
+    }
+
+    // Check if any metric is still enabled
+    for (uint8_t i=0; i<totalMetrics; i++) {
+        if (enabled[i][1]) return changed;
+    }
+
+    // If no metric is enabled turn off power
+    if (debug) Serial.println("SEN5X: Stoping sensor");
+    digitalWrite(pinPM_ENABLE, LOW);
+
+    state = SEN5X_OFF;
+
+    return true;
+}
+bool Sck_SEN5X::getReading(OneSensor* wichSensor)
+{
+    uint32_t now = rtc->getEpoch();
+
+    switch (state) {
+        case SEN5X_OFF: {
+            return false;
+        }
+        case SEN5X_IDLE: {
+            // TODO manage low power and fast metrics (non PM) when PM is not being read
+            // if (wichSensor == SENSOR_SEN5X_HUMIDITY         ||
+            //     wichSensor == SENSOR_SEN5X_TEMPERATURE      ||
+            //     wichSensor == SENSOR_SEN5X_VOCS_IDX         ||
+            //     wichSensor == SENSOR_SEN5X_NOX_IDX          ||
+            //     wichSensor == SENSOR_SEN5X_HUMIDITY_RAW     ||
+            //     wichSensor == SENSOR_SEN5X_TEMPERATURE_RAW  ||
+            //     wichSensor == SENSOR_SEN5X_VOCS_RAW         ||
+            //     wichSensor == SENSOR_SEN5X_NOX_RAW) 
+            // {
+            //     sen5x.
+            // } else {
+            //
+            // }
+
+            // If last reading is recent doesn't make sense to get a new one
+            if (now - lastReading < warmUpPeriod[0] && !monitor) {
+                if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
+                return true;
+            }
+
+            if (isError(sen5x.startMeasurement())) return false;
+
+            if (debug) Serial.println("SEN5X: Started measurement (with PMs)");
+            measureStarted = now;
+            state = SEN5X_MEAS_WARMUP;
+        }
+        case SEN5X_MEAS_WARMUP: {
+
+            // On monitor mode we don't wait for warmUP'
+            if (monitor) {
+                if (!update(wichSensor->type)) return false;
+                else {
+                    lastReading = now;
+                    wichSensor->state = 0;
+                    return true;
+                }
+            }
+
+            // PM readings
+            uint32_t passed = now - measureStarted;
+
+            // If warmUp period has finished get a reading
+            if (passed >= warmUpPeriod[0]) {
+
+                if (!update(wichSensor->type)) return false;
+
+                // If the reading is low (the tyhreshold is in #/cm3) and second warmUp hasn't passed we keep waiting
+                if ((pN4p0 / 100) < concentrationThreshold && passed < warmUpPeriod[1]) {
+                    if (debug) Serial.println("SEN5X: Concentration is low, we will wait for the second warm Up");
+                    state = SEN5X_MEAS_WARMUP_2;
+                    wichSensor->state = warmUpPeriod[1] - passed; 	// Report how many seconds are missing to cover the first warm up period
+                    return true;
+                }
+
+                // Save power
+                idle();
+
+                // Return the reading
+                lastReading = now;
+                wichSensor->state = 0;
+                return true;
+            }
+
+            wichSensor->state = warmUpPeriod[0] - passed;
+            if (debug) Serial.println("SEN5X: Still on first warm up period");
+            return true;
+            break;
+        }
+        case SEN5X_MEAS_WARMUP_2: {
+
+            uint32_t passed = now - measureStarted;
+
+            if (passed < warmUpPeriod[1]) {
+                wichSensor->state = warmUpPeriod[1] - passed; 	// Report how many seconds are missing to cover the second warm up period
+                if (debug) Serial.println("SEN5X: Still on second warm up period");
+                return true;
+            }
+
+            if (!update(wichSensor->type)) return false;
+
+            // Save power
+            idle();
+
+            lastReading = now;
+            wichSensor->state = 0;
+            return true;
+        }
+        case SEN5X_MEAS_GAS: {
+            // TODO
+            break;
+        }
+        case SEN5X_NOT_DETECTED: {
+            return false;
+        }
+        default:
+            break;
+    }
+    return false;
+}
+bool Sck_SEN5X::idle()
+{
+    if (isError(sen5x.stopMeasurement())) return false;
+    else if (debug) Serial.println("SEN5X: Stopped measurement");
+
+    monitor = false;
+    state = SEN5X_IDLE;
+    measureStarted = 0;
+}
+uint8_t Sck_SEN5X::getCleaningInterval()
+{
+    // TODO
+    return true;
+}
+bool Sck_SEN5X::setCleaningInterval(uint8_t interval_days)
+{
+    // TODO 
+    return true;
+}
+bool Sck_SEN5X::startCleaning()
+{
+    // TODO
+    return true;
+}
+bool Sck_SEN5X::update(SensorType wichSensor)
+{
+    // Try to get new data
+    bool data_ready = false;
+    if(isError(sen5x.readDataReady(data_ready))) return false;
+
+    if (!data_ready) {
+        if (debug) Serial.println("SEN5X: Data is not ready");
+        return false;
+    }
+
+    // Ask for the new data
+    if (isError( sen5x.readMeasuredPmValues( pM1p0, pM2p5, pM4p0, pM10p0,
+                                            pN0p5, pN1p0, pN2p5, pN4p0, pN10p0,
+                                            tSize))) return false;
+
+    // Convert PN readings from #/cm3 to #/0.1l
+    pN0p5  *= 100;
+    pN1p0  *= 100;
+    pN2p5  *= 100;
+    pN4p0  *= 100;
+    pN10p0 *= 100;
+    tSize  *= 100;
+
+
+    // TODO manage temp hum and gas readings
+
+    return true;
+}
+bool Sck_SEN5X::findModel()
+{
+    const uint8_t nameSize = 32;
+    unsigned char name[nameSize];
+
+    if (isError(sen5x.getProductName(name, nameSize))) return false;
+
+    char cname[nameSize];
+    for (uint8_t i=0; i<nameSize; i++) { cname[i] = (char)name[i]; }
+
+    if (debug) {
+        Serial.print("SEN5X: found sensor model ");
+        Serial.println(cname);
+    }
+
+
+    if (strcmp(cname, "SEN50") == 0) model = SEN50;
+    else if (strcmp(cname, "SEN54") == 0) model = SEN54;
+    else if (strcmp(cname, "SEN55") == 0) model = SEN54;
+    else return false;
+
+    return true;
+}
+bool Sck_SEN5X::getVer()
+{
+    if (isError(sen5x.getVersion( firmwareMajor, firmwareMinor, firmwareDebug, 
+                                 hardwareMajor, hardwareMinor, 
+                                 protocolMajor, protocolMinor
+                                 ))) return false;
+
+    return true;
+}
+bool Sck_SEN5X::isError(uint16_t response)
+{
+    // No error return false;
+    if (response == 0) return false;
+
+    // In case of error (and debug is on), print msg
+    if (debug) {
+        char errorMessage[256];
+        errorToString(response, errorMessage, 256);
+        Serial.print("SEN5X: ");
+        Serial.println(errorMessage);
+    }
     return true;
 }

@@ -11,9 +11,14 @@
 #include <I2S.h>
 #include <SparkFunCCS811.h>
 
+
 // Sensirion Library for SPS30
 // https://github.com/Sensirion/arduino-sps
 #include <sps30.h>
+
+// Sensirion I2C SEN5X Arduino library
+// https://github.com/Sensirion/arduino-i2c-sen5x
+#include <SensirionI2CSen5x.h>
 
 // Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
 // It includes drivers for this sensors:
@@ -327,6 +332,89 @@ class Sck_SPS30
         bool update(SensorType wichSensor);
         bool wake();
 };
+
+#define I2C_BUFFER_LENGTH 256
+class Sck_SEN5X
+{
+    public:
+		Sck_SEN5X(RTCZero* myrtc) {
+			rtc = myrtc;
+		}
+
+        const byte address = 0x69;
+		bool start(SensorType wichSensor);
+		bool stop(SensorType wichSensor);
+		bool getReading(OneSensor* wichSensor);
+        bool idle();
+        uint8_t getCleaningInterval();
+        bool setCleaningInterval(uint8_t interval_days);
+        bool startCleaning();
+        bool debug = true;
+        bool monitor = false;
+
+        bool getVer();
+        uint8_t firmwareMajor;
+        uint8_t firmwareMinor;
+        bool firmwareDebug;
+        uint8_t hardwareMajor;
+        uint8_t hardwareMinor;
+        uint8_t protocolMajor;
+        uint8_t protocolMinor;
+
+        // PM metrics
+        float pM1p0;
+        float pM2p5;
+        float pM4p0;
+        float pM10p0;
+        float pN0p5;
+        float pN1p0;
+        float pN2p5;
+        float pN4p0;
+        float pN10p0;
+        float tSize;
+
+        // Other
+        float humidity;
+        float temperature;
+        float vocIndex;
+        float noxIndex;
+        int16_t rawHumidity;
+        int16_t rawTemperature;
+        uint16_t rawVoc;
+        uint16_t rawNox;
+
+    private:
+        enum SEN5Xmodel { SEN5X_UNKNOWN = 0, SEN50 = 0b001, SEN54 = 0b010, SEN55 = 0b100 };
+        SEN5Xmodel model = SEN5X_UNKNOWN;
+
+        static const uint8_t totalMetrics = 18;
+        // Each metric has { SENSOR_TYPE, enabled/disabled, SUPPORTED_MODELS }
+        // SUPPORTED_MODELS: b001:SEN50, b010:SEN54, b100:SEN55 and any combination
+		uint8_t enabled[totalMetrics][3] = { 
+            {SENSOR_SEN5X_PM_1, 0, 0b111}, {SENSOR_SEN5X_PM_25, 0, 0b111}, {SENSOR_SEN5X_PM_4, 0, 0b111}, {SENSOR_SEN5X_PM_10, 0, 0b111},
+            {SENSOR_SEN5X_PN_05, 0, 0b111}, {SENSOR_SEN5X_PN_1, 0, 0b111}, {SENSOR_SEN5X_PN_25, 0, 0b111}, {SENSOR_SEN5X_PN_4, 0, 0b111}, {SENSOR_SPS30_PN_10, 0, 0b111}, {SENSOR_SPS30_TPSIZE, 0, 0b111},
+            {SENSOR_SEN5X_HUMIDITY, 0, 0b110}, {SENSOR_SEN5X_TEMPERATURE, 0, 0b110}, {SENSOR_SEN5X_VOCS_IDX, 0, 0b110}, {SENSOR_SEN5X_NOX_IDX, 0, 0b100},
+            {SENSOR_SEN5X_HUMIDITY_RAW, 0, 0b110}, {SENSOR_SEN5X_TEMPERATURE_RAW, 0, 0b110}, {SENSOR_SEN5X_VOCS_RAW, 0, 0b110}, {SENSOR_SEN5X_NOX_RAW, 0, 0b100} };
+
+        enum SEN5XState { SEN5X_OFF, SEN5X_IDLE, SEN5X_MEAS_WARMUP, SEN5X_MEAS_WARMUP_2, SEN5X_MEAS_GAS, SEN5X_NOT_DETECTED };
+        SEN5XState state = SEN5X_OFF;
+
+		uint32_t lastReading = 0;
+        uint32_t measureStarted = 0;
+
+        // Sensirion recommends taking a reading after 16 seconds, if the Perticle number reading is over 100#/cm3 the reading is OK, but if it is lower wait until 30 seconds and take it again.
+        // https://sensirion.com/resource/application_note/low_power_mode/sen5x
+        uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period 
+        uint16_t concentrationThreshold = 100;
+
+		RTCZero* rtc;
+        bool update(SensorType wichSensor);
+        bool findModel();
+        bool isError(uint16_t response);
+
+        SensirionI2CSen5x sen5x;
+};
+
 class SckUrban
 {
 	private:
@@ -363,4 +451,8 @@ class SckUrban
 
         // SPS30 PM sensor
         Sck_SPS30 sck_sps30 = Sck_SPS30(rtc);
+
+        // SEN5X PM, [temp, hum, vocs, nox] sensor
+        Sck_SEN5X sck_sen5x = Sck_SEN5X(rtc);
 };
+

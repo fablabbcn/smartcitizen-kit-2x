@@ -325,7 +325,6 @@ class Sck_SPS30
 
 		RTCZero* rtc;
         bool update(SensorType wichSensor);
-        bool sleep();
         bool wake();
 };
 class SckUrban

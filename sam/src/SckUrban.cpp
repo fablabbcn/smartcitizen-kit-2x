@@ -1920,37 +1920,52 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 {
     uint32_t now = rtc->getEpoch();
 
+    // Check if metric is in the PM or gas group
+    bool gas = false;
+    for (uint8_t i=0; i<totalMetrics; i++) {
+        if (enabled[i][0] == wichSensor->type && ((enabled[i][2] & 1) == 0)) gas = true;
+    }
+
+    // Gas metrics are not dependant of warmUp periods
+    if (gas) {
+        if (now - lastReadingGas < warmUpPeriod[0] && !monitor) {
+            if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
+            return true;
+        }
+
+        if (state == SEN5X_IDLE) {
+            if (isError(sen5x.startMeasurementWithoutPm())) return false;
+            if (debug) Serial.println("SEN5X: Started measurement (without PMs)");
+            state = SEN5X_MEAS_GAS;
+        }
+
+        // If data is not ready yet wait one second
+        if (!update(wichSensor->type)) wichSensor->state = 1;
+        else {
+            wichSensor->state = 0;
+            lastReadingGas = now;
+            if (state == SEN5X_MEAS_GAS) idle(); 
+        }
+        return true;
+    }
+
     switch (state) {
         case SEN5X_OFF: {
             return false;
         }
         case SEN5X_IDLE: {
-            // TODO manage low power and fast metrics (non PM) when PM is not being read
-            // if (wichSensor == SENSOR_SEN5X_HUMIDITY         ||
-            //     wichSensor == SENSOR_SEN5X_TEMPERATURE      ||
-            //     wichSensor == SENSOR_SEN5X_VOCS_IDX         ||
-            //     wichSensor == SENSOR_SEN5X_NOX_IDX          ||
-            //     wichSensor == SENSOR_SEN5X_HUMIDITY_RAW     ||
-            //     wichSensor == SENSOR_SEN5X_TEMPERATURE_RAW  ||
-            //     wichSensor == SENSOR_SEN5X_VOCS_RAW         ||
-            //     wichSensor == SENSOR_SEN5X_NOX_RAW)
-            // {
-            //     sen5x.
-            // } else {
-            //
-            // }
 
-            // If last reading is recent doesn't make sense to get a new one
-            if (now - lastReading < warmUpPeriod[0] && !monitor) {
-                if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
-                return true;
-            }
+                // If last reading is recent doesn't make sense to get a new one
+                if (now - lastReading < warmUpPeriod[0] && !monitor) {
+                    if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
+                    return true;
+                }
 
-            if (isError(sen5x.startMeasurement())) return false;
+                if (isError(sen5x.startMeasurement())) return false;
 
-            if (debug) Serial.println("SEN5X: Started measurement (with PMs)");
-            measureStarted = now;
-            state = SEN5X_MEAS_WARMUP;
+                if (debug) Serial.println("SEN5X: Started measurement (with PMs)");
+                measureStarted = now;
+                state = SEN5X_MEAS_WARMUP;
         }
         case SEN5X_MEAS_WARMUP: {
 
@@ -2013,10 +2028,6 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
             wichSensor->state = 0;
             return true;
         }
-        case SEN5X_MEAS_GAS: {
-            // TODO
-            break;
-        }
         case SEN5X_NOT_DETECTED: {
             return false;
         }
@@ -2060,10 +2071,19 @@ bool Sck_SEN5X::update(SensorType wichSensor)
         return false;
     }
 
+    // TODO manejar aqui los tipos de sensores y siempre retornar solo el que toca,
+    // de esta manera aqui puedo checar que tan viejo es el valor y si recibo algo que no sea 0xFFFF
+
     // Ask for the new data
+    // For standard metrics
+    if (isError( sen5x.readMeasuredValues( pM1p0, pM2p5, pM4p0, pM10p0,
+                                              humidity, temperature, vocIndex, noxIndex))) return false;
+    // For PN's and particle size'
     if (isError( sen5x.readMeasuredPmValues( pM1p0, pM2p5, pM4p0, pM10p0,
                                             pN0p5, pN1p0, pN2p5, pN4p0, pN10p0,
                                             tSize))) return false;
+    // for RAW values
+    if (isError( sen5x.readMeasuredRawValues( rawHumidity, rawTemperature, rawVoc, rawNox)));
 
     // Convert PN readings from #/cm3 to #/0.1l
     pN0p5  *= 100;
@@ -2072,9 +2092,6 @@ bool Sck_SEN5X::update(SensorType wichSensor)
     pN4p0  *= 100;
     pN10p0 *= 100;
     tSize  *= 100;
-
-
-    // TODO manage temp hum and gas readings
 
     return true;
 }

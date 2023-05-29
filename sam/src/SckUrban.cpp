@@ -7,73 +7,63 @@ void SERCOM5_Handler() {
 	SerialPM.IrqHandler();
 }
 
-bool SckUrban::present()
-{
-	if (sck_bh1730fvc.start()) return true;
-	if (sck_sht31.start()) return true;
-	if (sck_mpl3115A2.start()) return true;
-	if (sck_ccs811.start()) return true;
-	if (sck_pm.start()) return true;
-
-	return false;
-}
 bool SckUrban::start(SensorType wichSensor)
 {
-	switch(wichSensor) {
-		case SENSOR_LIGHT: 				if (sck_bh1730fvc.start()) return true; break;
-		case SENSOR_TEMPERATURE:
-		case SENSOR_HUMIDITY: 				if (sck_sht31.start()) return true; break;
-		case SENSOR_NOISE_DBA:
-		case SENSOR_NOISE_DBC:
-		case SENSOR_NOISE_DBZ:
-		case SENSOR_NOISE_FFT: 				if (sck_noise.start()) return true; break;
-		case SENSOR_ALTITUDE:
-		case SENSOR_PRESSURE:
-		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.start()) return true; break;
-		case SENSOR_CCS811_VOCS:			return sck_ccs811.start(); break;
-		case SENSOR_CCS811_ECO2: 			return sck_ccs811.start(); break;
-		case SENSOR_PM_1:
-		case SENSOR_PM_25:
-		case SENSOR_PM_10:
-		case SENSOR_PN_03:
-		case SENSOR_PN_05:
-		case SENSOR_PN_1:
-		case SENSOR_PN_25:
-		case SENSOR_PN_5:
-		case SENSOR_PN_10: 				if (sck_pm.start()) return true; break;
-		default: break;
-	}
+    switch(wichSensor) {
+        case SENSOR_LIGHT:              return sck_bh1730fvc.start();
+        case SENSOR_TEMPERATURE:
+        case SENSOR_HUMIDITY:           return sck_sht31.start();
+        case SENSOR_NOISE_DBA:
+        case SENSOR_NOISE_DBC:
+        case SENSOR_NOISE_DBZ:
+        case SENSOR_NOISE_FFT:          return sck_noise.start();
+        case SENSOR_ALTITUDE:
+        case SENSOR_PRESSURE:
+        case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.start();
+        case SENSOR_CCS811_VOCS:        return sck_ccs811.start();
+        case SENSOR_CCS811_ECO2:        return sck_ccs811.start();
+        case SENSOR_PM_1:
+        case SENSOR_PM_25:
+        case SENSOR_PM_10:
+        case SENSOR_PN_03:
+        case SENSOR_PN_05:
+        case SENSOR_PN_1:
+        case SENSOR_PN_25:
+        case SENSOR_PN_5:
+        case SENSOR_PN_10:              return sck_pm.start();
+        default: break;
+    }
 
-	return false;
+    return false;
 }
 bool SckUrban::stop(SensorType wichSensor)
 {
-	switch(wichSensor) {
-		case SENSOR_LIGHT: 				if (sck_bh1730fvc.stop()) return true; break;
-		case SENSOR_TEMPERATURE:
-		case SENSOR_HUMIDITY: 				if (sck_sht31.stop()) return true; break;
-		case SENSOR_NOISE_DBA:
-		case SENSOR_NOISE_DBC:
-		case SENSOR_NOISE_DBZ:
-		case SENSOR_NOISE_FFT: 				if (sck_noise.stop()) return true;
-		case SENSOR_ALTITUDE:
-		case SENSOR_PRESSURE:
-		case SENSOR_PRESSURE_TEMP: 			if (sck_mpl3115A2.stop()) return true; break;
-		case SENSOR_CCS811_VOCS:			return sck_ccs811.stop(); break;
-		case SENSOR_CCS811_ECO2: 			return sck_ccs811.stop(); break;
-		case SENSOR_PM_1:
-		case SENSOR_PM_25:
-		case SENSOR_PM_10:
-		case SENSOR_PN_03:
-		case SENSOR_PN_05:
-		case SENSOR_PN_1:
-		case SENSOR_PN_25:
-		case SENSOR_PN_5:
-		case SENSOR_PN_10: 				if (sck_pm.stop()) return true; break;
-		default: break;
-	}
+    switch(wichSensor) {
+        case SENSOR_LIGHT:              return sck_bh1730fvc.stop();
+        case SENSOR_TEMPERATURE:
+        case SENSOR_HUMIDITY:           return sck_sht31.stop();
+        case SENSOR_NOISE_DBA:
+        case SENSOR_NOISE_DBC:
+        case SENSOR_NOISE_DBZ:
+        case SENSOR_NOISE_FFT:          return sck_noise.stop();
+        case SENSOR_ALTITUDE:
+        case SENSOR_PRESSURE:
+        case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.stop();
+        case SENSOR_CCS811_VOCS:
+        case SENSOR_CCS811_ECO2:        return sck_ccs811.stop();
+        case SENSOR_PM_1:
+        case SENSOR_PM_25:
+        case SENSOR_PM_10:
+        case SENSOR_PN_03:
+        case SENSOR_PN_05:
+        case SENSOR_PN_1:
+        case SENSOR_PN_25:
+        case SENSOR_PN_5:
+        case SENSOR_PN_10:              return sck_pm.stop();
+        default: break;
+    }
 
-	return false;
+    return false;
 }
 
 void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
@@ -443,11 +433,9 @@ Sck_SHT31::Sck_SHT31(TwoWire *localWire, uint8_t customAddress)
 }
 bool Sck_SHT31::start()
 {
-	_Wire->begin();
-	_Wire->beginTransmission(address);
-	byte error = _Wire->endTransmission();
-	if (error != 0) return false;
-
+    _Wire->begin();
+	if (!I2Cdetect(_Wire, address)) return false;
+	
 	delay(1); 		// In case the device was off
 	sendComm(SOFT_RESET); 	// Send reset command
 	delay(50); 		// Give time to finish reset
@@ -566,6 +554,8 @@ bool Sck_Noise::start()
 
 	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
 	while (GCLK->STATUS.bit.SYNCBUSY);
+
+    if (!getReading(SENSOR_NOISE_DBA)) return false;
 
 	alreadyStarted = true;
 	return true;
@@ -927,8 +917,8 @@ bool Sck_MPL3115A2::getTemperature()
 // PM sensor
 bool Sck_PM::start()
 {
-	if (debug) Serial.println("PM: Starting sensor");
 	if (started) return true;
+    else if (alreadyFailed) return false;
 
 	pinMode(pinPM_ENABLE, OUTPUT);
 	digitalWrite(pinPM_ENABLE, HIGH);
@@ -937,20 +927,23 @@ bool Sck_PM::start()
 	SerialPM.setTimeout(5000);
 
 	if (fillBuffer()) {
-		started = true;
-		wakeUpTime = rtc->getEpoch();
-		if (debug) Serial.println("PM: Started OK");
-
 		if (!sendCmd(PM_CMD_CHANGE_MODE, PM_MODE_PASSIVE, true)) {
 			if (debug) Serial.println("PM: Failed setting passive mode");
 			stop();
+            alreadyFailed = true;
 			return false;
 		}
+
+		started = true;
+		wakeUpTime = rtc->getEpoch();
+		if (debug) Serial.println("PM: Started OK");
 		return true;
 	}
 
 	if (debug) Serial.println("PM: serial port didn't started correctly");
 	stop();
+
+    alreadyFailed = true;
 	return false;
 }
 bool Sck_PM::stop()
@@ -995,7 +988,7 @@ bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
 				return false;
 			}
 		}
-		return false;
+		return true;
 	}
 
 	// Empty SerialPM internal buffer
@@ -1220,6 +1213,8 @@ bool Sck_PM::wake()
 bool Sck_CCS811::start()
 {
 	if (alreadyStarted) return true;
+
+	if (!I2Cdetect(&Wire, address)) return false;
 
 	if (!ccs.begin()) return false;
 

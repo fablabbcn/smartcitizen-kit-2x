@@ -213,12 +213,12 @@ class AllSensors
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_1,				"PM_1",			"PM 1.0",					89,		true,		true,		5, 			"ug/m3"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_25,				"PM_25",		"PM 2.5",					87,		true,		true,		5, 			"ug/m3"},
 			OneSensor { BOARD_URBAN,	240,	SENSOR_PM_10,				"PM_10",		"PM 10.0",					88,		true,		true,		5, 			"ug/m3"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_03,				"PN_03",		"PN 0.3",					0,		false,		true,		1, 			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_05,				"PN_05",		"PN 0.5",					0,		false,		true,		1, 			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_1,				"PN_1",			"PN 1.0",					0,		false,		true,		1, 			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_25,				"PN_25",		"PN 2.5",					0,		false,		true,		1, 			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_5,				"PN_5",			"PN 5.0",					0,		false,		true,		1, 			"#/0.1l"},
-			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_10,				"PN_10",		"PN 10.0",					0,		false,		true,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_03,				"PN_03",		"PN 0.3",					165,		false,		true,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_05,				"PN_05",		"PN 0.5",					166,		false,		true,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_1,				"PN_1",			"PN 1.0",					167,		false,		true,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_25,				"PN_25",		"PN 2.5",					168,		false,		true,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_5,				"PN_5",			"PN 5.0",					169,		false,		true,		1, 			"#/0.1l"},
+			OneSensor { BOARD_URBAN,	240,	SENSOR_PN_10,				"PN_10",		"PN 10.0",				170,		false,		true,		1, 			"#/0.1l"},
 
 			// I2C Auxiliary Sensors
 			// SCK Gases Board for Alphasense (3 Gas sensor Slots, + SHT31 Temp-Humidity)

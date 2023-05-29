@@ -22,7 +22,7 @@ enum SCKmodes {
 
 // Output
 enum OutLevels { OUT_SILENT, OUT_NORMAL, OUT_VERBOSE, OUT_COUNT	};
-enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH };
+enum PrioLevels { PRIO_LOW, PRIO_MED, PRIO_HIGH, PRIO_ERROR };
 
 enum errorType { 
 	ERROR_NONE, 
@@ -67,4 +67,5 @@ struct Configuration {
 	Extra extra;
 	uint16_t sleepTimer = 30; 					// Sleep after this amount of minutes, 480 minutes max (0 to disable sleep)
 	Offline offline;
+	bool sanityResetFlag = true;
 };

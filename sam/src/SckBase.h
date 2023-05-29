@@ -139,6 +139,7 @@ class SckBase
 		SckFile debugFile {"DEBUG.TXT"};
 		SckFile speedFile {"SPEED.CSV"};
 		SckFile infoFile {"INFO.TXT"};
+		SckFile errorFile {"ERROR.LOG"};
 		// Sd card
 		bool sdSelect();
 		volatile bool sdInitPending = false;
@@ -244,7 +245,6 @@ class SckBase
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent", "Normal", "Verbose"	};
 		char outBuff[240];
-		void sckOut(String strOut, PrioLevels priority=PRIO_MED, bool newLine=true); 		// Accepts String object
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
 		void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
 		void prompt();

@@ -1,21 +1,19 @@
 #pragma once
 
+
 #include <SPI.h>
 #include <ESP8266WiFi.h>
 #include <Ticker.h>
 #include <TimeLib.h>
 #include "FS.h"
 #include <DNSServer.h>
-#include "RemoteDebug.h"
 #include <ArduinoJson.h>
-#include <RHReliableDatagram.h>
-#include <RH_Serial.h>
 #include <PubSubClient.h>
 #include <ESPAsyncWebServer.h>
 
 #include <Arduino.h>
-#include "Shared.h"
 #include "version.h"
+#include "SckSerial.h"
 
 #define MQTT_QOS 1
 #define MQTT_BUFF_SIZE 4096
@@ -28,11 +26,16 @@ struct Token { bool set=false; char token[7]="null"; };
 struct Mqtt { char server[64]; uint16_t port; };
 struct Ntp { char server[64]; uint16_t port; };
 struct ESP_Configuration {
-    Credentials credentials;
-    Token token;
-    Mqtt mqtt;
-    Ntp ntp;
-    bool debug_telnet = false;
+	Credentials credentials;
+	Token token;
+	Mqtt mqtt;
+	Ntp ntp;
+	bool debug_serial = true;
+};
+struct VersionInt { 
+	uint8_t mayor; 
+	uint8_t minor; 
+	uint8_t build; 
 };
 
 class SckESP
@@ -43,14 +46,9 @@ class SckESP
         void SAMbusUpdate();
         void debugOUT(String strOut);
 
-        // SAM communication
-        uint8_t netPack[NETPACK_TOTAL_SIZE];
-        char netBuff[NETBUFF_SIZE];
-        bool sendMessage(SAMMessage wichMessage);
-        bool sendMessage(SAMMessage wichMessage, const char *content);
-        bool sendMessage();
-        void receiveMessage(ESPMessage wichMessage);
-        bool bootedPending = false;
+		// SAM communication
+		VersionInt parseVersionStr(String versionStr);
+		bool bootedPending = false;
 
         // Notifications
         bool sendToken();
@@ -59,14 +57,13 @@ class SckESP
         bool sendTime();
         bool sendStartInfo();
 
-        // **** MQTT
-        bool mqttConnect();
-        bool mqttHellow();
-        bool mqttPublish();
-        bool mqttPublishRaw();
-        bool mqttInfo();
-        bool mqttInventory();
-        bool mqttCustom();
+		// **** MQTT
+		bool mqttConnect();
+		bool mqttHellow();
+		bool mqttPublishRaw();
+		bool mqttInfo();
+		bool mqttInventory();
+		bool mqttCustom();
 
         // Led control
         const uint8_t pinLED = 4;   // GPIO5

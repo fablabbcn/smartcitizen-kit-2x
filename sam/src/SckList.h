@@ -5,7 +5,7 @@
 
 #include "Sensors.h"
 #include "Pins.h"
-#include "Shared.h"
+#include "SckSerial.h"
 
 // Number of bytes to be used on FLASH (Always keep this a littel bit smaller than real size)
 #define SCKLIST_FLASH_SIZE 8388608

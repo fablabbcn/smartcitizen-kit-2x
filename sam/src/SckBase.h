@@ -9,8 +9,6 @@
 #include "SdFat.h"
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
-#include <RHReliableDatagram.h>
-#include <RH_Serial.h>
 #include <FlashStorage.h>
 #include <ArduinoJson.h>
 #include <LinkedList.h>
@@ -18,15 +16,17 @@
 #include "Pins.h"
 #include "SckLed.h"
 #include "SckBatt.h"
-#include "Shared.h"
 #include "Config.h"
 #include "Commands.h"
 #include "Sensors.h"
 #include "SckUrban.h"
 #include "SckAux.h"
 #include "SckList.h"
+#include "SckSerial.h"
 
 #include "version.h"
+
+#define IM_SAM
 
 class Status
     {
@@ -110,16 +110,12 @@ class SckBase
         uint32_t reviewStateMillis = 0;
         void enterSetup();
 
-        // ESP communication
-        uint8_t netPack[NETPACK_TOTAL_SIZE];
-        char netBuff[NETBUFF_SIZE];
-        void ESPbusUpdate();
-        void receiveMessage(SAMMessage wichMessage);
-        bool sendConfig();
-        uint32_t sendConfigTimer = 0;
-        uint8_t sendConfigCounter = 0;
-        bool pendingSyncConfig = false;
-        uint32_t generalUpdateTimer = 0;
+		// ESP communication
+		void ESPbusUpdate();
+		bool sendConfig();
+		uint32_t sendConfigTimer = 0;
+		uint8_t sendConfigCounter = 0;
+		uint32_t generalUpdateTimer = 0;
 
         // Button
         const uint16_t buttonLong = 5000;
@@ -237,13 +233,14 @@ class SckBase
         void ESPcontrol(ESPcontrols myESPControl);
         uint32_t espFlashSpeed = 115200;
 
-        // ESP communication
-        bool sendMessage(ESPMessage wichMessage, const char *content);
-        bool sendMessage(ESPMessage wichMessage);
-        bool sendMessage();
-        String ipAddress;
-        char hostname[17];
-        void mqttCustom(const char *topic, const char *payload);
+		// ESP communication
+		bool ESPsend(SCKMessage wichMessage);
+		bool ESPsend(SCKMessage wichMessage, const char *content);
+		bool pendingSyncConfig = false;
+		String ipAddress;
+		char hostname[17];
+		void mqttCustom(const char *topic, const char *payload);
+		char* serESPBuffPtr;
 
         // Output
         const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent", "Normal", "Verbose" };

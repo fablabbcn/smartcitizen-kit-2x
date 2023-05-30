@@ -63,6 +63,9 @@
 // Sparkfun library for SCD30 CO2 sensor
 #include <SparkFun_SCD30_Arduino_Library.h>
 
+// Sensirion I2C SFA3X library
+#include <SensirionI2CSfa3x.h>
+
 
 extern TwoWire auxWire;
 
@@ -179,7 +182,11 @@ class AuxBoards
             0x48,           // SENSOR_ADS1X15_XX_X
             0x49,           // SENSOR_ADS1X15_XX_X
             0x4a,           // SENSOR_ADS1X15_XX_X
-            0x4b            // SENSOR_ADS1X15_XX_X
+            0x4b,           // SENSOR_ADS1X15_XX_X
+
+            0x5d,           // SENSOR_SFA30_TEMPERATURE, 
+            0x5d,           // SENSOR_SFA30_HUMIDITY,    
+            0x5d,           // SENSOR_SFA30_FORMALDEHYDE,
         };
 
         bool start(SckBase *base, SensorType wichSensor);
@@ -724,6 +731,28 @@ class Sck_SCD30
         bool started = false;
         uint16_t measInterval = 2;  // "2-1800 seconds"
         SCD30 sparkfun_scd30;
+    };
+
+class Sck_SFA30
+    {
+    public:
+        const byte deviceAddress = 0x5d;
+        bool start(SensorType wichSensor);
+        bool stop(SensorType wichSensor);
+        bool getReading(SensorType wichSensor);
+        bool debug = false;
+
+        float temperature = 0;
+        float humidity = 0;
+        float formaldehyde = 0;
+
+    private:
+        static const uint8_t totalMetrics = 3;
+        uint8_t enabled[totalMetrics][2] = { {SENSOR_SFA30_TEMPERATURE, 0}, {SENSOR_SFA30_HUMIDITY, 0}, {SENSOR_SFA30_FORMALDEHYDE, 0} };
+        bool started = false;
+        bool isError(uint16_t response);
+
+        SensirionI2CSfa3x sfa30;
     };
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);

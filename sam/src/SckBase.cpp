@@ -4,13 +4,11 @@
 // Hardware Auxiliary I2C bus
 TwoWire auxWire(&sercom1, pinAUX_WIRE_SDA, pinAUX_WIRE_SCL);
 void SERCOM1_Handler(void) {
-
-    auxWire.onService();
+	auxWire.onService();
 }
 
 // ESP communication
-RH_Serial driver(SerialESP);
-RHReliableDatagram manager(driver, SAM_ADDRESS);
+SckSerial serESP(SerialESP);
 
 // Auxiliary I2C devices
 AuxBoards auxBoards;
@@ -20,54 +18,52 @@ FlashStorage(eepromConfig, Configuration);
 
 void SckBase::setup()
 {
-    // Led
-    led.setup();
+	// Led
+	led.setup();
 
-    // ESP Configuration
-    pinMode(pinPOWER_ESP, OUTPUT);
-    pinMode(pinESP_CH_PD, OUTPUT);
-    pinMode(pinESP_GPIO0, OUTPUT);
-    SerialESP.begin(serialBaudrate);
-    manager.init();
-    manager.setTimeout(30);
-    manager.setRetries(16);
-    ESPcontrol(ESP_OFF);
+	// ESP Configuration
+	pinMode(pinPOWER_ESP, OUTPUT);
+	pinMode(pinESP_CH_PD, OUTPUT);
+	pinMode(pinESP_GPIO0, OUTPUT);
+	serESP.begin();
+	serESPBuffPtr = serESP.buff;
+	ESPcontrol(ESP_OFF);
 
-    // Internal I2C bus setup
-    Wire.begin();
+	// Internal I2C bus setup
+	Wire.begin();
 
-    // Button interrupt and wakeup
-    pinMode(pinBUTTON, INPUT_PULLUP);
-    attachInterrupt(pinBUTTON, ISR_button, CHANGE);
-    EExt_Interrupts in = g_APinDescription[pinBUTTON].ulExtInt;
-    configGCLK6();
-    EIC->WAKEUP.reg |= (1 << in);
+	// Button interrupt and wakeup
+	pinMode(pinBUTTON, INPUT_PULLUP);
+	attachInterrupt(pinBUTTON, ISR_button, CHANGE);
+	EExt_Interrupts in = g_APinDescription[pinBUTTON].ulExtInt;
+	configGCLK6();
+	EIC->WAKEUP.reg |= (1 << in);
 
-    // RTC setup
-    rtc.begin();
-    uint32_t now = rtc.getEpoch();
-    if (rtc.isConfigured() && (now > 1514764800)) st.timeStat.setOk();  // If greater than 01/01/2018
-    else {
-        rtc.setTime(0, 0, 0);
-        rtc.setDate(1, 1, 15);
-    }
-    espStarted = now;
+	// RTC setup
+	rtc.begin();
+	uint32_t now = rtc.getEpoch();
+	if (rtc.isConfigured() && (now > 1514764800)) st.timeStat.setOk();	// If greater than 01/01/2018
+	else {
+		rtc.setTime(0, 0, 0);
+		rtc.setDate(1, 1, 15);
+	}
+	espStarted = now;
 
-    // Flash storage
-    sckOut("Starting flash memory...");
-    led.update(led.WHITE, led.PULSE_ERROR);
-    wichGroupPublishing.group = -1;     // No group is being published yet
-    int8_t rcode = readingsList.setup();
-    if (rcode == 1) sckOut("Found problems on flash memory, it was formated...");
-    else if (rcode == -1) {
-        while (true) {
-            sckOut("Error starting flash memory!!!");
-            delay(1000);
-        }
-    }
-    led.update(led.WHITE, led.PULSE_STATIC);
+	// Flash storage
+	sckOut("Starting flash memory...");
+	led.update(led.WHITE, led.PULSE_ERROR);
+	wichGroupPublishing.group = -1;  	// No group is being published yet
+	int8_t rcode = readingsList.setup();
+	if (rcode == 1) sckOut("Found problems on flash memory, it was formated...");
+	else if (rcode == -1) {
+		while (true) {
+			sckOut("Error starting flash memory!!!");
+			delay(1000);
+		}
+	}
+	led.update(led.WHITE, led.PULSE_STATIC);
 
-    /* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
+/* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
 
 #ifdef autoTest
     // TODO verify led blinking...
@@ -238,7 +234,10 @@ void SckBase::reviewState()
     /* sdDetect() */
     /* buttonEvent(); */
 
-    if (st.onShell) {
+	// update ESP serial communication error status
+	if (serESP.error) st.error = ERROR_ESP;
+
+	if (st.onShell) {
 
     } else if (st.onSetup) {
 
@@ -283,7 +282,7 @@ void SckBase::reviewState()
 
             } else if (st.timeStat.retry()) {
 
-                if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
+				if (ESPsend(ESPMES_GET_TIME, "")) sckOut("Asking time to ESP...");
 
             } else if (st.timeStat.error) {
 
@@ -376,7 +375,7 @@ void SckBase::reviewState()
 
                         if (st.helloStat.retry()) {
 
-                            if (sendMessage(ESPMES_MQTT_HELLO, "")) sckOut("Hello sent!");
+							if (ESPsend(ESPMES_MQTT_HELLO, ""))	sckOut("Hello sent!");
 
                         } else if (st.helloStat.error) {
 
@@ -633,50 +632,50 @@ void SckBase::plot(String value, const char *title, const char *unit)
 // **** Config
 void SckBase::loadConfig()
 {
+	sckOut("Loading configuration from eeprom...");
 
-    sckOut("Loading configuration from eeprom...");
+	Configuration savedConf = eepromConfig.read();
 
-    Configuration savedConf = eepromConfig.read();
+	if (savedConf.valid) config = savedConf;
+	else {
+		sckOut("Can't find valid configuration!!! loading defaults...");
+		saveConfig(true);
+	}
 
-    if (savedConf.valid) config = savedConf;
-    else {
-        sckOut("Can't find valid configuration!!! loading defaults...");
-        saveConfig(true);
-    }
+	// Load saved intervals
+	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+		wichSensor->everyNint = config.sensors[wichSensor->type].everyNint;
+	}
 
-    // Load saved intervals
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-        OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
-        wichSensor->everyNint = config.sensors[wichSensor->type].everyNint;
-    }
+	st.wifiSet = config.credentials.set;
+	st.tokenSet = config.token.set;
+	st.tokenError = false;
+	st.mode = config.mode;
+	readingsList.debug = config.debug.flash;
+	serESP.debug = config.debug.serial;
 
-    st.wifiSet = config.credentials.set;
-    st.tokenSet = config.token.set;
-    st.tokenError = false;
-    st.mode = config.mode;
-    readingsList.debug = config.debug.flash;
+	snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
+	memcpy(&hostname[12], &config.mac.address[12], 2);
+	memcpy(&hostname[14], &config.mac.address[15], 2);
+	hostname[16] = '\0';
 
-    snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
-    memcpy(&hostname[12], &config.mac.address[12], 2);
-    memcpy(&hostname[14], &config.mac.address[15], 2);
-    hostname[16] = '\0';
+	// CSS vocs sensor baseline loading
+	if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
+		sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
+		sckOut();
+		urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
+	}
 
-    // CSS vocs sensor baseline loading
-    if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
-        sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
-        sckOut();
-        urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
-    }
-
-    // PMS sensor warmUpperiod and powerSave config
-    urban.sck_pm.warmUpPeriod = config.extra.pmWarmUpPeriod;
-    urban.sck_pm.powerSave = config.extra.pmPowerSave;
+	// PMS sensor warmUpperiod and powerSave config
+	urban.sck_pm.warmUpPeriod = config.extra.pmWarmUpPeriod;
+	urban.sck_pm.powerSave = config.extra.pmPowerSave;
 }
 void SckBase::saveConfig(bool defaults)
 {
-    // Save to eeprom
-    if (defaults) {
-        Configuration defaultConfig;
+	// Load defaults
+	if (defaults) {
+		Configuration defaultConfig;
 
         config = defaultConfig;
 
@@ -694,9 +693,10 @@ void SckBase::saveConfig(bool defaults)
     // Sensor enabled/disabled state is only saved if it is setted in config.sensors the runtime state (sensors) is not saved.
     // This means that if you want to make sensor state persistent you have to change explicitly config.sensors
 
-    eepromConfig.write(config);
-    sckOut("Saved configuration on eeprom!!", PRIO_LOW);
-    lastUserEvent = millis();
+	// Save to eeprom
+	eepromConfig.write(config);
+	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
+	lastUserEvent = millis();
 
     // Update state
     st.mode = config.mode;
@@ -736,11 +736,11 @@ void SckBase::saveConfig(bool defaults)
 
     } else if (st.mode == MODE_SD) {
 
-        st.helloPending = false;
-        st.onSetup = false;
-        led.update(led.PINK, led.PULSE_SOFT);
-        sendMessage(ESPMES_STOP_AP, "");
-        st.error = ERROR_NONE;
+		st.helloPending = false;
+		st.onSetup = false;
+		led.update(led.PINK, led.PULSE_SOFT);
+		ESPsend(ESPMES_STOP_AP, "");
+		st.error = ERROR_NONE;
 
     }
 
@@ -753,448 +753,384 @@ Configuration SckBase::getConfig()
 }
 bool SckBase::sendConfig()
 {
-    if (!st.espON) {
-        ESPcontrol(ESP_ON);
-        return false;
-    }
-    if (st.espBooting) return false;
+	if (!st.espON) {
+		ESPcontrol(ESP_ON);
+		return false;
+	}
+	if (st.espBooting) return false;
 
-    StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-    JsonObject json = jsonBuffer.to<JsonObject>();
+	StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 
-    json["cs"] = (uint8_t)config.credentials.set;
-    json["ss"] = config.credentials.ssid;
-    json["pa"] = config.credentials.pass;
-    json["ts"] = (uint8_t)config.token.set;
-    json["to"] = config.token.token;
-    json["ms"] = config.mqtt.server;
-    json["mp"] = config.mqtt.port;
-    json["ns"] = config.ntp.server;
-    json["np"] = config.ntp.port;
-    json["ver"] = SAMversion;
-    json["bd"] = SAMbuildDate;
-    json["tn"] = (uint8_t)config.debug.telnet;
+	json["cs"] = (uint8_t)config.credentials.set;
+	json["ss"] = config.credentials.ssid;
+	json["pa"] = config.credentials.pass;
+	json["ts"] = (uint8_t)config.token.set;
+	json["to"] = config.token.token;
+	json["ms"] = config.mqtt.server;
+	json["mp"] = config.mqtt.port;
+	json["ns"] = config.ntp.server;
+	json["np"] = config.ntp.port;
+	json["ver"] = SAMversion;
+	json["bd"] = SAMbuildDate;
+	json["sd"] = (uint8_t)config.debug.serial;
 
-    if (!st.onSetup && ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet))) json["ac"] = (uint8_t)ESPMES_CONNECT;
-    else json["ac"] = (uint8_t)ESPMES_START_AP;
+	if (!st.onSetup && ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet))) json["ac"] = (uint8_t)ESPMES_CONNECT;
+	else json["ac"] = (uint8_t)ESPMES_START_AP;
 
-    sprintf(netBuff, "%c", ESPMES_SET_CONFIG);
-    serializeJson(json, &netBuff[1], NETBUFF_SIZE);
+	serializeJson(json, serESP.buff, NETBUFF_SIZE);
 
-    if (sendMessage()) {
-        pendingSyncConfig = false;
-        sendConfigCounter = 0;
-        sckOut("Synced config with ESP!!", PRIO_LOW);
-        return true;
-    }
+	if (ESPsend(ESPMES_SET_CONFIG)) {
+		pendingSyncConfig = false;
+		sendConfigCounter = 0;
+		sckOut("Synced config with ESP!!", PRIO_LOW);
+		return true;
+	}
 
-    return false;
+	return false;
 }
 bool SckBase::publishInfo()
 {
-    // Info file
-    if (!espInfoUpdated) sendMessage(ESPMES_GET_NETINFO);
-    else {
-        // Publish info to platform
+	// Info file
+	if (!espInfoUpdated) ESPsend(ESPMES_GET_NETINFO, "");
+	else {
+		// Publish info to platform
 
-        /* { */
-        /*  "time":"2018-07-17T06:55:06Z", */
-        /*  "hw_ver":"2.0", */
-        /*  "id":"6C4C1AF4504E4B4B372E314AFF031619", */
-        /*  "sam_ver":"0.3.0-ce87e64", */
-        /*  "sam_bd":"2018-07-17T06:55:06Z", */
-        /*  "mac":"AB:45:2D:33:98", */
-        /*  "esp_ver":"0.3.0-ce87e64", */
-        /*  "esp_bd":"2018-07-17T06:55:06Z" */
-        /* } */
+		/* { */
+		/* 	"time":"2018-07-17T06:55:06Z", */
+		/* 	"hw_ver":"2.0", */
+		/* 	"id":"6C4C1AF4504E4B4B372E314AFF031619", */
+		/* 	"sam_ver":"0.3.0-ce87e64", */
+		/* 	"sam_bd":"2018-07-17T06:55:06Z", */
+		/* 	"mac":"AB:45:2D:33:98", */
+		/* 	"esp_ver":"0.3.0-ce87e64", */
+		/* 	"esp_bd":"2018-07-17T06:55:06Z" */
+		/* } */
 
-        if (!st.espON) {
-            ESPcontrol(ESP_ON);
-            return false;
-        }
+		if (!st.espON) {
+			ESPcontrol(ESP_ON);
+			return false;
+		}
 
-        getUniqueID();
+		getUniqueID();
 
-        StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-        JsonObject json = jsonBuffer.to<JsonObject>();
+		StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+		JsonObject json = jsonBuffer.to<JsonObject>();
 
-        json["time"] = ISOtimeBuff;
-        json["hw_ver"] = hardwareVer.c_str();
-        json["id"] = uniqueID_str;
-        json["sam_ver"] = SAMversion.c_str();
-        json["sam_bd"] = SAMbuildDate.c_str();
-        json["mac"] = config.mac.address;
-        json["esp_ver"] = ESPversion.c_str();
-        json["esp_bd"] = ESPbuildDate.c_str();
+		json["time"] = ISOtimeBuff;
+		json["hw_ver"] = hardwareVer.c_str();
+		json["id"] = uniqueID_str;
+		json["sam_ver"] = SAMversion.c_str();
+		json["sam_bd"] = SAMbuildDate.c_str();
+		json["mac"] = config.mac.address;
+		json["esp_ver"] = ESPversion.c_str();
+		json["esp_bd"] = ESPbuildDate.c_str();
 
-        sprintf(netBuff, "%c", ESPMES_MQTT_INFO);
-        serializeJson(json, &netBuff[1], NETBUFF_SIZE);
-        if (sendMessage()) return true;
-    }
-    return false;
+		serializeJson(json, serESP.buff, NETBUFF_SIZE);
+		if (ESPsend(ESPMES_MQTT_INFO)) return true;
+	}
+	return false;
 }
 
 // **** ESP
 void SckBase::ESPcontrol(ESPcontrols controlCommand)
 {
-    switch(controlCommand){
-        case ESP_OFF:
-            {
-                sckOut("ESP off...", PRIO_LOW);
-                st.espON = false;
-                st.espBooting = false;
-                digitalWrite(pinESP_CH_PD, LOW);
-                digitalWrite(pinPOWER_ESP, HIGH);
-                digitalWrite(pinESP_GPIO0, LOW);
-                sprintf(outBuff, "Esp was on for %lu seconds", (rtc.getEpoch() - espStarted));
-                espStarted = 0;
-                break;
-            }
-        case ESP_FLASH:
-            {
-                led.update(led.WHITE, led.PULSE_STATIC);
+	switch(controlCommand){
+		case ESP_OFF:
+		{
+				sckOut("ESP off...", PRIO_LOW);
+				st.espON = false;
+				st.espBooting = false;
+				digitalWrite(pinESP_CH_PD, LOW);
+				digitalWrite(pinPOWER_ESP, HIGH);
+				digitalWrite(pinESP_GPIO0, LOW);
+				sprintf(outBuff, "Esp was on for %lu seconds", (rtc.getEpoch() - espStarted));
+				espStarted = 0;
+				break;
+		}
+		case ESP_FLASH:
+		{
+				led.update(led.WHITE, led.PULSE_STATIC);
 
-                SerialESP.begin(espFlashSpeed);
-                delay(100);
+				SerialESP.begin(espFlashSpeed);
+				delay(100);
 
-                digitalWrite(pinESP_CH_PD, LOW);
-                digitalWrite(pinPOWER_ESP, HIGH);
-                digitalWrite(pinESP_GPIO0, LOW);    // LOW for flash mode
-                delay(100);
+				digitalWrite(pinESP_CH_PD, LOW);
+				digitalWrite(pinPOWER_ESP, HIGH);
+				digitalWrite(pinESP_GPIO0, LOW);	// LOW for flash mode
+				delay(100);
 
-                digitalWrite(pinESP_CH_PD, HIGH);
-                digitalWrite(pinPOWER_ESP, LOW);
+				digitalWrite(pinESP_CH_PD, HIGH);
+				digitalWrite(pinPOWER_ESP, LOW);
 
-                uint32_t flashTimeout = millis();
-                uint32_t startTimeout = millis();
-                while(1) {
-                    if (SerialUSB.available()) {
-                        SerialESP.write(SerialUSB.read());
-                        flashTimeout = millis();
-                    }
-                    if (SerialESP.available()) {
-                        SerialUSB.write(SerialESP.read());
-                    }
-                    if (millis() - flashTimeout > 1000) {
-                        if (millis() - startTimeout > 10000) sck_reset();  // Initial 10 seconds for the flashing to start
-                    }
-                }
-                break;
-            }
-        case ESP_ON:
-            {
-                if (st.espBooting || st.espON) return;
-                sckOut("ESP on...", PRIO_LOW);
-                digitalWrite(pinESP_CH_PD, HIGH);
-                digitalWrite(pinESP_GPIO0, HIGH);       // HIGH for normal mode
-                digitalWrite(pinPOWER_ESP, LOW);
-                st.wifiStat.reset();
-                st.espON = true;
-                st.espBooting = true;
-                espStarted = rtc.getEpoch();
-                break;
+				uint32_t flashTimeout = millis();
+				uint32_t startTimeout = millis();
+				while(1) {
+					if (SerialUSB.available()) {
+						SerialESP.write(SerialUSB.read());
+						flashTimeout = millis();
+					}
+					if (SerialESP.available()) {
+						SerialUSB.write(SerialESP.read());
+					}
+					if (millis() - flashTimeout > 1000) {
+						if (millis() - startTimeout > 10000) sck_reset();  // Initial 10 seconds for the flashing to start
+					}
+				}
+				break;
+		}
+		case ESP_ON:
+		{
+				if (st.espBooting || st.espON) return;
+				digitalWrite(pinESP_CH_PD, HIGH);
+				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
+				digitalWrite(pinPOWER_ESP, LOW);
+				st.wifiStat.reset();
+				st.espON = true;
+				st.espBooting = true;
+				espStarted = rtc.getEpoch();
 
-            }
-        case ESP_REBOOT:
-            {
-                sckOut("Restarting ESP...", PRIO_LOW);
-                ESPcontrol(ESP_OFF);
-                delay(50);
-                ESPcontrol(ESP_ON);
-                break;
-            }
-        case ESP_WAKEUP:
-            {
-                sckOut("ESP wake up...");
-                digitalWrite(pinESP_CH_PD, HIGH);
-                st.espON = true;
-                espStarted = rtc.getEpoch();
-                break;
-            }
-        case ESP_SLEEP:
-            {
-                sckOut("ESP deep sleep...", PRIO_LOW);
-                sendMessage(ESPMES_LED_OFF);
-                st.espON = false;
-                st.espBooting = false;
-                digitalWrite(pinESP_CH_PD, LOW);
-                sprintf(outBuff, "Esp was awake for %lu seconds", (rtc.getEpoch() - espStarted));
-                sckOut(PRIO_LOW);
-                espStarted = 0;
-                break;
-            }
-    }
+				// Wait for boot...
+				uint32_t startPoint = millis();
+				while (st.espBooting) {
+					if (millis() - startPoint > 1000) {
+						sckOut("ESP not starting!!!", PRIO_HIGH);
+						st.error = ERROR_ESP;
+						break;
+					}		
+					ESPbusUpdate();
+				}
+				sckOut("ESP on", PRIO_LOW);
+				break;
+		}
+		case ESP_REBOOT:
+		{
+				sckOut("Restarting ESP...", PRIO_LOW);
+				ESPcontrol(ESP_OFF);
+				delay(50);
+				ESPcontrol(ESP_ON);
+				break;
+		}
+		case ESP_WAKEUP:
+		{
+				if (st.espBooting || st.espON) return;
+				sckOut("ESP wake up...");
+				digitalWrite(pinESP_CH_PD, HIGH);
+				st.espON = true;
+				espStarted = rtc.getEpoch();
+				break;
+		}
+		case ESP_SLEEP:
+		{
+				sckOut("ESP deep sleep...", PRIO_LOW);
+				ESPsend(ESPMES_LED_OFF, "");
+				st.espON = false;
+				st.espBooting = false;
+				digitalWrite(pinESP_CH_PD, LOW);
+				sprintf(outBuff, "Esp was awake for %lu seconds", (rtc.getEpoch() - espStarted));
+				sckOut(PRIO_LOW);
+				espStarted = 0;
+				break;
+		}
+	}
+}
+bool SckBase::ESPsend(SCKMessage wichMessage)
+{
+	if (!st.espON) ESPcontrol(ESP_ON);
+
+	return serESP.send(wichMessage);
+}
+bool SckBase::ESPsend(SCKMessage wichMessage, const char *content)
+{
+	// Check if message fits on buffer
+	if (strlen(content) > NETBUFF_SIZE) return false;
+
+	// Fills buffer with content
+	sprintf(serESP.buff, "%s", content);
+
+	return ESPsend(wichMessage);
 }
 void SckBase::ESPbusUpdate()
 {
-    if (manager.available()) {
+	if (!serESP.receive()) return;
 
-        uint8_t len = NETPACK_TOTAL_SIZE;
+	switch(serESP.msg) {
+		case SAMMES_SET_CONFIG:
+		{
+				sckOut("Received new config from ESP");
+				StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, serESP.buff);
+				JsonObject json = jsonBuffer.as<JsonObject>();
 
-        if (manager.recvfromAck(netPack, &len)) {
+				if (json.containsKey("mo")) {
+					String stringMode = json["mo"];
+					if (stringMode.startsWith("net")) config.mode = MODE_NET;
+					else if (stringMode.startsWith("sd")) config.mode = MODE_SD;
+				} else config.mode = MODE_NOT_CONFIGURED;
 
-            if (config.debug.esp) {
-                sprintf(outBuff, "Receiving msg from ESP in %i parts", netPack[0]);
-                sckOut();
-            }
+				if (json.containsKey("pi")) {
+					if (json["pi"] > minimal_publish_interval && json["pi"] < max_publish_interval)	config.publishInterval = json["pi"];
+				} else config.publishInterval = default_publish_interval;
 
-            // Identify received command
-            uint8_t pre = netPack[1];
-            SAMMessage wichMessage = static_cast<SAMMessage>(pre);
-
-            // Get content from first package (1 byte less than the rest)
-            memcpy(netBuff, &netPack[2], NETPACK_CONTENT_SIZE - 1);
-
-            // Get the rest of the packages (if they exist)
-            for (uint8_t i=0; i<netPack[0]-1; i++) {
-                if (manager.recvfromAckTimeout(netPack, &len, 500)) {
-                    memcpy(&netBuff[(i * NETPACK_CONTENT_SIZE) + (NETPACK_CONTENT_SIZE - 1)], &netPack[1], NETPACK_CONTENT_SIZE);
-                }
-                else return;
-            }
-
-            if (config.debug.esp) sckOut(netBuff);
-
-            // Process message
-            receiveMessage(wichMessage);
-        }
-    }
-}
-bool SckBase::sendMessage(ESPMessage wichMessage)
-{
-    sprintf(netBuff, "%c", wichMessage);
-    return sendMessage();
-}
-bool SckBase::sendMessage(ESPMessage wichMessage, const char *content)
-{
-    sprintf(netBuff, "%c%s", wichMessage, content);
-    return sendMessage();
-}
-bool SckBase::sendMessage()
-{
-
-    // This function is used when netbuff is already filled with command and content
-
-    if (!st.espON || st.espBooting) {
-        if (config.debug.esp) sckOut("Can't send message, ESP is off or still booting...");
-        return false;
-    }
-
-    uint16_t totalSize = strlen(netBuff);
-    uint8_t totalParts = (totalSize + NETPACK_CONTENT_SIZE - 1)  / NETPACK_CONTENT_SIZE;
-
-    if (config.debug.esp) {
-        sprintf(outBuff, "Sending msg to ESP with %i parts and %i bytes", totalParts, totalSize);
-        sckOut();
-        sckOut(netBuff);
-    }
+				if (json.containsKey("ss")) {
+					config.credentials.set = true;
+					strcpy(config.credentials.ssid, json["ss"]);
+					if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
+				} else config.credentials.set = false;
 
 
-    for (uint8_t i=0; i<totalParts; i++) {
-        netPack[0] = totalParts;
-        memcpy(&netPack[1], &netBuff[(i * NETPACK_CONTENT_SIZE)], NETPACK_CONTENT_SIZE);
-        if (!manager.sendtoWait(netPack, NETPACK_TOTAL_SIZE, ESP_ADDRESS)) {
-            sckOut("Failed sending mesg to ESP!!!", PRIO_LOW);
-            return false;
-        }
-        if (config.debug.esp) {
-            sprintf(outBuff, "Sent part num %i", i);
-            sckOut();
-            for(uint16_t i=0; i<NETPACK_TOTAL_SIZE; i++) SerialUSB.print((char)netPack[i]);
-            SerialUSB.println("");
-        }
-    }
-    return true;
-}
-void SckBase::receiveMessage(SAMMessage wichMessage)
-{
-    switch(wichMessage) {
-        case SAMMES_SET_CONFIG:
-            {
-                sckOut("Received new config from ESP");
-                StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-                deserializeJson(jsonBuffer, netBuff);
-                JsonObject json = jsonBuffer.as<JsonObject>();
+				if (json.containsKey("to")) {
+					config.token.set = true;
+					strcpy(config.token.token, json["to"]);
+				} else config.token.set = false;
 
-                if (json.containsKey("mo")) {
-                    String stringMode = json["mo"];
-                    if (stringMode.startsWith("net")) config.mode = MODE_NET;
-                    else if (stringMode.startsWith("sd")) config.mode = MODE_SD;
-                } else config.mode = MODE_NOT_CONFIGURED;
+				st.helloPending = true;
+				saveConfig();
+				break;
 
-                if (json.containsKey("pi")) {
-                    if (json["pi"] > minimal_publish_interval && json["pi"] < max_publish_interval) config.publishInterval = json["pi"];
-                } else config.publishInterval = default_publish_interval;
+		}
+		case SAMMES_NETINFO:
+		{
+				StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+				deserializeJson(jsonBuffer, serESP.buff);
+				JsonObject json = jsonBuffer.as<JsonObject>();
 
-                if (json.containsKey("ss")) {
-                    config.credentials.set = true;
-                    strcpy(config.credentials.ssid, json["ss"]);
-                    if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
-                } else config.credentials.set = false;
+				ipAddress = json["ip"].as<String>();
 
+				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname, ipAddress.c_str(), config.mac.address);
+				sckOut();
+				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
+				sckOut();
 
-                if (json.containsKey("to")) {
-                    config.token.set = true;
-                    strcpy(config.token.token, json["to"]);
-                } else config.token.set = false;
+				break;
+		}
+		case SAMMES_WIFI_CONNECTED:
 
-                st.helloPending = true;
-                saveConfig();
-                break;
+			sckOut("Connected to wifi!!");
+			st.wifiStat.setOk();
+			if (!timeSyncAfterBoot) {
+				if (ESPsend(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
+			}
+			break;
 
-            }
-        case SAMMES_DEBUG:
-            {
+		case SAMMES_SSID_ERROR:
 
-                sckOut("ESP --> ", PRIO_HIGH, false);
-                sckOut(netBuff);
-                break;
+			sckOut("Access point not found!!", PRIO_ERROR);
+			st.wifiStat.error = true;
+			st.error = ERROR_AP;
+			break;
 
-            }
-        case SAMMES_NETINFO:
-            {
-                StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-                deserializeJson(jsonBuffer, netBuff);
-                JsonObject json = jsonBuffer.as<JsonObject>();
+		case SAMMES_PASS_ERROR:
 
-                ipAddress = json["ip"].as<String>();
+			sckOut("Wrong wifi password!!", PRIO_ERROR);
+			st.wifiStat.error = true;
+			st.error = ERROR_PASS;
+			break;
 
-                sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname, ipAddress.c_str(), config.mac.address);
-                sckOut();
-                sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
-                sckOut();
+		case SAMMES_WIFI_UNKNOWN_ERROR:
 
-                break;
-            }
-        case SAMMES_WIFI_CONNECTED:
+			sckOut("Unknown wifi error!!", PRIO_ERROR);
+			st.wifiStat.error = true;
+			st.error = ERROR_WIFI_UNKNOWN;
+			break;
 
-            sckOut("Connected to wifi!!");
-            st.wifiStat.setOk();
-            if (!timeSyncAfterBoot) {
-                if (sendMessage(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
-            }
-            break;
+		case SAMMES_TIME:
+		{
+				String strTime = String(serESP.buff);
+				setTime(strTime);
+				break;
+		}
+		case SAMMES_MQTT_HELLO_OK:
+		{
+				st.helloPending = false;
+				st.helloStat.setOk();
+				sckOut("Hello OK!!");
+				break;
+		}
+		case SAMMES_MQTT_PUBLISH_OK:
 
-        case SAMMES_SSID_ERROR:
+			st.publishStat.setOk();
+			break;
 
-            sckOut("Access point not found!!", PRIO_ERROR);
-            st.wifiStat.error = true;
-            st.error = ERROR_AP;
-            break;
+		case SAMMES_MQTT_PUBLISH_ERROR:
 
-        case SAMMES_PASS_ERROR:
+			sckOut("MQTT publish failed!!", PRIO_ERROR);
+			st.publishStat.error = true;
+			st.error = ERROR_MQTT;
+			break;
 
-            sckOut("Wrong wifi password!!", PRIO_ERROR);
-            st.wifiStat.error = true;
-            st.error = ERROR_PASS;
-            break;
+		case SAMMES_MQTT_INFO_OK:
 
-        case SAMMES_WIFI_UNKNOWN_ERROR:
+			st.infoStat.setOk();
+			infoPublished = true;
+			sckOut("Info publish OK!!");
+			break;
 
-            sckOut("Unknown wifi error!!", PRIO_ERROR);
-            st.wifiStat.error = true;
-            st.error = ERROR_WIFI_UNKNOWN;
-            break;
+		case SAMMES_MQTT_INFO_ERROR:
 
-        case SAMMES_TIME:
-            {
-                String strTime = String(netBuff);
-                setTime(strTime);
-                break;
-            }
-        case SAMMES_MQTT_HELLO_OK:
-            {
-                st.helloPending = false;
-                st.helloStat.setOk();
-                sckOut("Hello OK!!");
-                break;
-            }
-        case SAMMES_MQTT_PUBLISH_OK:
+			st.infoStat.error = true;
+			sckOut("Info publish failed!!", PRIO_ERROR);
+			st.error = ERROR_MQTT;
+			break;
 
-            st.publishStat.setOk();
-            break;
+		case SAMMES_MQTT_CUSTOM_OK:
 
-        case SAMMES_MQTT_PUBLISH_ERROR:
+			sckOut("Custom MQTT publish OK!!");
+			break;
 
-            sckOut("MQTT publish failed!!", PRIO_ERROR);
-            st.publishStat.error = true;
-            st.error = ERROR_MQTT;
-            break;
+		case SAMMES_MQTT_CUSTOM_ERROR:
 
-        case SAMMES_MQTT_INFO_OK:
+			sckOut("Custom MQTT publish failed!!", PRIO_ERROR);
+			st.error = ERROR_MQTT;
+			break;
 
-            st.infoStat.setOk();
-            infoPublished = true;
-            sckOut("Info publish OK!!");
-            break;
+		case SAMMES_BOOTED:
+		{
+			sckOut("ESP finished booting");
 
-        case SAMMES_MQTT_INFO_ERROR:
+			st.espBooting = false;
 
-            st.infoStat.error = true;
-            sckOut("Info publish failed!!", PRIO_ERROR);
-            st.error = ERROR_MQTT;
-            break;
+			StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+			deserializeJson(jsonBuffer, serESP.buff);
+			JsonObject json = jsonBuffer.as<JsonObject>();
 
-        case SAMMES_MQTT_CUSTOM_OK:
+			String macAddress = json["mac"].as<String>();
+			ESPversion = json["ver"].as<String>();
+			ESPbuildDate = json["bd"].as<String>();
 
-            sckOut("Custom MQTT publish OK!!");
-            break;
+			// Udate mac address and hostname if we haven't yet
+			if (!config.mac.valid) {
+				sckOut("Updated MAC address");
+				sprintf(config.mac.address, "%s", macAddress.c_str());
+				config.mac.valid = true;
+				saveConfig();
+				snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
+				memcpy(&hostname[12], &config.mac.address[12], 2);
+				memcpy(&hostname[14], &config.mac.address[15], 2);
+				hostname[16] = '\0';
+			}
 
-        case SAMMES_MQTT_CUSTOM_ERROR:
+			if (!espInfoUpdated) {
+				espInfoUpdated = true;
+				saveInfo();
+			}
 
-            sckOut("Custom MQTT publish failed!!", PRIO_ERROR);
-            st.error = ERROR_MQTT;
-            break;
-
-        case SAMMES_BOOTED:
-            {
-                sckOut("ESP finished booting");
-
-                st.espBooting = false;
-
-                StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-                deserializeJson(jsonBuffer, netBuff);
-                JsonObject json = jsonBuffer.as<JsonObject>();
-
-                String macAddress = json["mac"].as<String>();
-                ESPversion = json["ver"].as<String>();
-                ESPbuildDate = json["bd"].as<String>();
-
-                // Udate mac address and hostname if we haven't yet
-                if (!config.mac.valid) {
-                    sckOut("Updated MAC address");
-                    sprintf(config.mac.address, "%s", macAddress.c_str());
-                    config.mac.valid = true;
-                    saveConfig();
-                    snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
-                    memcpy(&hostname[12], &config.mac.address[12], 2);
-                    memcpy(&hostname[14], &config.mac.address[15], 2);
-                    hostname[16] = '\0';
-                }
-
-                if (!espInfoUpdated) {
-                    espInfoUpdated = true;
-                    saveInfo();
-                }
-
-                pendingSyncConfig = true;
-                break;
-            }
-        default: break;
-    }
+			pendingSyncConfig = true;
+			break;
+		}
+		default: break;
+	}
 }
 void SckBase::mqttCustom(const char *topic, const char *payload)
 {
-    StaticJsonDocument<JSON_BUFFER_SIZE> jsonBuffer;
-    JsonObject json = jsonBuffer.to<JsonObject>();
+	StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+	JsonObject json = jsonBuffer.to<JsonObject>();
 
     json["to"] = topic;
     json["pl"] = payload;
 
-    sprintf(netBuff, "%c", ESPMES_MQTT_CUSTOM);
-    serializeJson(json, &netBuff[1], NETBUFF_SIZE);
-
-    if (sendMessage()) sckOut("MQTT message sent to ESP...", PRIO_LOW);
+	serializeJson(json, serESP.buff, NETBUFF_SIZE);
+	if (ESPsend(ESPMES_MQTT_CUSTOM)) sckOut("MQTT message sent to ESP...", PRIO_LOW);
 }
 
 // **** SD card
@@ -1859,31 +1795,31 @@ bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 }
 bool SckBase::netPublish()
 {
-    if (!st.espON) {
-        ESPcontrol(ESP_ON);
-        return false;
-    }
+	if (!st.espON) {
+		ESPcontrol(ESP_ON);
+		return false;
+	}
 
-    bool result = false;
-    wichGroupPublishing = readingsList.readGroup(readingsList.PUB_NET);
-    if (wichGroupPublishing.group >= 0) {
-        sprintf(outBuff, "(%s) Sent readings to platform.", ISOtimeBuff);
-        sckOut();
-        sckOut(netBuff, PRIO_LOW);
-        result = sendMessage();
-    } else {
-        timeToPublish = false;      // There are no more readings available
-    }
+	bool result = false;
+	wichGroupPublishing = readingsList.readGroup(readingsList.PUB_NET);
+	if (wichGroupPublishing.group >= 0) {
+		sprintf(outBuff, "(%s) Sent readings to platform.", ISOtimeBuff);
+		sckOut();
+		sckOut(serESP.buff, PRIO_LOW);
+		result = ESPsend(ESPMES_MQTT_PUBLISH);
+	} else {
+		timeToPublish = false; 		// There are no more readings available
+	}
 
-    // Wait for response or timeout
-    uint32_t timeout = millis();
-    while (millis() - timeout < 1000) {
-        ESPbusUpdate();
-        if (st.publishStat.ok || st.publishStat.error) break;
-        if (millis() - lastUserEvent < 1000) break;
-    }
+	// Wait for response or timeout
+	uint32_t timeout = millis();
+	while (millis() - timeout < 1000) {
+		ESPbusUpdate();
+		if (st.publishStat.ok || st.publishStat.error) break;
+		if (millis() - lastUserEvent < 1000) break;
+	}
 
-    return result;
+	return result;
 }
 bool SckBase::sdPublish()
 {

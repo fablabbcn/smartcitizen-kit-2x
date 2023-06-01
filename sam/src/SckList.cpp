@@ -1,6 +1,8 @@
 #include "SckList.h"
 #include "SckBase.h"
 
+extern SckSerial serESP;
+
 // General flash utilities
 int8_t SckList::_flashStart()
 {
@@ -622,12 +624,10 @@ uint8_t SckList::_formatNET(GroupIndex wichGroup, char* buffer)
 
     uint8_t readingNum = _countReadings(wichGroup);
 
-    // Prepare buffer for ESP format
-    sprintf(buffer, "%c", ESPMES_MQTT_PUBLISH);     // Write command to buffer
-
-    // Write time
-    base->epoch2iso(flash.readULong(wichGroup.address + GROUP_TIME), base->ISOtimeBuff);
-    sprintf(buffer + strlen(buffer), "{t:%s", base->ISOtimeBuff);
+	// Prepare buffer for ESP format
+	// Write time
+	base->epoch2iso(flash.readULong(wichGroup.address + GROUP_TIME), base->ISOtimeBuff);
+	sprintf(buffer, "{t:%s", base->ISOtimeBuff);
 
     if (debug) {
         sprintf(base->outBuff, "F: (%s) -> ", base->ISOtimeBuff);
@@ -858,9 +858,9 @@ SckList::GroupIndex SckList::readGroup(PubFlags wichFlag, GroupIndex forceIndex)
         _getGrpAddr(&thisGroup);
     }
 
-    uint8_t readingNum = 0;
-    if (wichFlag == PUB_SD) readingNum = _formatSD(thisGroup, flashBuff);
-    else if (wichFlag == PUB_NET) readingNum = _formatNET(thisGroup, base->netBuff);
+	uint8_t readingNum = 0;
+	if (wichFlag == PUB_SD) readingNum = _formatSD(thisGroup, flashBuff);
+	else if (wichFlag == PUB_NET) readingNum = _formatNET(thisGroup, base->serESPBuffPtr);
 
     if (readingNum > 0) return thisGroup;
 
@@ -900,67 +900,67 @@ uint32_t SckList::countGroups(PubFlags wichFlag)
 
 uint16_t SckList::recover(uint16_t wichSector, PubFlags wichFlag)
 {
-    if (debug) {
-        sprintf(base->outBuff, "F: Recovering groups on sector %u and %s", wichSector, wichFlag == PUB_NET ? "publishing them to the network" : "saving them to sdcard");
-        base->sckOut();
-    }
+	if (debug) {
+		sprintf(base->outBuff, "F: Recovering groups on sector %u and %s", wichSector, wichFlag == PUB_NET ? "publishing them to the network" : "saving them to sdcard");
+		base->sckOut();
+	}
 
-    uint16_t groupNum = _countSectGroups(wichSector, PUB_NET, PUBLISHED, true);  // Gets all groups with in the sector (getAll = true)
-    uint16_t totalRecovered = 0;
+	uint16_t groupNum = _countSectGroups(wichSector, PUB_NET, PUBLISHED, true);  // Gets all groups with in the sector (getAll = true)
+	uint16_t totalRecovered = 0;
 
-    for (int16_t i=0; i<groupNum; i++) {
+	for (int16_t i=0; i<groupNum; i++) {
 
 
-        // prepare the flash group
-        GroupIndex thisGroup = {(int16_t)wichSector, i};
-        GroupIndex tryingGroup = readGroup(wichFlag, thisGroup);
+		// prepare the flash group
+		GroupIndex thisGroup = {(int16_t)wichSector, i};
+		GroupIndex tryingGroup = readGroup(wichFlag, thisGroup);
 
-        if (wichFlag == PUB_SD) {
+		if (wichFlag == PUB_SD) {
 
-            // Save to sdcard
-            if (!base->sdPublish()) {
-                sprintf(base->outBuff, "Group %u of sector %u saving to sd-card ERROR!!", i, wichSector);
-                base->sckOut();
-            } else {
-                _setGrpPublished(thisGroup, wichFlag);
-                totalRecovered++;
-                base->epoch2iso(flash.readULong(tryingGroup.address + GROUP_TIME), base->ISOtimeBuff);  // print time stamp to buffer
-                sprintf(base->outBuff, "(%s) - Group %u of sector %u saved to sd-card OK!", base->ISOtimeBuff, i, wichSector);
-                base->sckOut();
-            }
-        } else {
-            // Make sure ESP is ready
-            if (!base->st.espON) {
-                base->ESPcontrol(base->ESP_ON);
-                while (base->st.espBooting) base->ESPbusUpdate();
-            }
+			// Save to sdcard
+			if (!base->sdPublish()) {
+				sprintf(base->outBuff, "Group %u of sector %u saving to sd-card ERROR!!", i, wichSector);
+				base->sckOut();
+			} else {
+				_setGrpPublished(thisGroup, wichFlag);
+				totalRecovered++;
+				base->epoch2iso(flash.readULong(tryingGroup.address + GROUP_TIME), base->ISOtimeBuff); 	// print time stamp to buffer
+				sprintf(base->outBuff, "(%s) - Group %u of sector %u saved to sd-card OK!", base->ISOtimeBuff, i, wichSector);
+				base->sckOut();
+			}
+		} else {
+			// Make sure ESP is ready
+			if (!base->st.espON) {
+				base->ESPcontrol(base->ESP_ON);
+				while (base->st.espBooting) base->ESPbusUpdate();
+			}
 
-            // Send MQTT and wait for response or timeout (10 seconds)
-            uint32_t timeout = millis();
-            while (millis() - timeout < 10000) {
+			// Send MQTT and wait for response or timeout (10 seconds)
+			uint32_t timeout = millis();
+			while (millis() - timeout < 10000) {
 
-                if (base->st.publishStat.retry()) base->sendMessage();
+				if (base->st.publishStat.retry()) serESP.send(ESPMES_MQTT_PUBLISH);
 
-                base->ESPbusUpdate();
-                if (base->st.publishStat.ok) {
-                    _setGrpPublished(thisGroup, wichFlag);
-                    totalRecovered++;
-                    base->st.publishStat.reset();
-                    base->epoch2iso(flash.readULong(tryingGroup.address + GROUP_TIME), base->ISOtimeBuff);  // print time stamp to buffer
-                    sprintf(base->outBuff, "(%s) - Group %u of sector %u published OK!", base->ISOtimeBuff, i, wichSector);
-                    base->sckOut();
-                    break;
-                }
-                if (base->st.publishStat.error) {
-                    sprintf(base->outBuff, "Group %u of sector %u publish ERROR!!", i, wichSector);
-                    base->sckOut();
-                    base->st.publishStat.reset();
-                    break;
-                }
-            }
-        }
-    }
-    return totalRecovered;
+				base->ESPbusUpdate();
+				if (base->st.publishStat.ok) {
+					_setGrpPublished(thisGroup, wichFlag);
+					totalRecovered++;
+					base->st.publishStat.reset();
+					base->epoch2iso(flash.readULong(tryingGroup.address + GROUP_TIME), base->ISOtimeBuff); 	// print time stamp to buffer
+					sprintf(base->outBuff, "(%s) - Group %u of sector %u published OK!", base->ISOtimeBuff, i, wichSector);
+					base->sckOut();
+					break;
+				}
+				if (base->st.publishStat.error) {
+					sprintf(base->outBuff, "Group %u of sector %u publish ERROR!!", i, wichSector);
+					base->sckOut();
+					base->st.publishStat.reset();
+					break;
+				}
+			}
+		}
+	}
+	return totalRecovered;
 }
 SckList::SectorInfo SckList::sectorInfo(uint16_t wichSector)
 {

@@ -5,6 +5,7 @@ bin/
 inventory.csv
 inventory.csv.BAK
 */.pio
+TODO.md
 
 # MAC stuff
 */.DS_Store

@@ -2552,6 +2552,7 @@ float Sck_SCD30::tempOffset(float userTemp, bool off)
 
 bool Sck_SFA30::start(SensorType wichSensor)
 {
+    delay(10); // Without this, Humidity detection fails sometimes
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
     if (started) {
@@ -2561,8 +2562,6 @@ bool Sck_SFA30::start(SensorType wichSensor)
     }
 
     sfa30.begin(auxWire);
-
-    // if (isError(sfa30.deviceReset())) return false;
 
     if (isError(sfa30.startContinuousMeasurement())) return false;
 

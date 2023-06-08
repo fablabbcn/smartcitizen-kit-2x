@@ -7,6 +7,10 @@ void SERCOM5_Handler() {
     SerialPM.IrqHandler();
 }
 
+
+// SEN5X flash space to save last cleaning date
+FlashStorage(eepromLastCleaning, Sck_SEN5X::lastCleaning);
+
 bool SckUrban::start(SensorType wichSensor)
 {
     switch(wichSensor) {
@@ -41,6 +45,24 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_SPS30_PN_4:
         case SENSOR_SPS30_PN_10:
         case SENSOR_SPS30_TPSIZE:        return sck_sps30.start(wichSensor);
+        case SENSOR_SEN5X_PM_1:
+        case SENSOR_SEN5X_PM_25:
+        case SENSOR_SEN5X_PM_4:
+        case SENSOR_SEN5X_PM_10:
+        case SENSOR_SEN5X_PN_05:
+        case SENSOR_SEN5X_PN_1:
+        case SENSOR_SEN5X_PN_25:
+        case SENSOR_SEN5X_PN_4:
+        case SENSOR_SEN5X_PN_10:
+        case SENSOR_SEN5X_TPSIZE:
+        case SENSOR_SEN5X_HUMIDITY:
+        case SENSOR_SEN5X_TEMPERATURE:
+        case SENSOR_SEN5X_VOCS_IDX:
+        case SENSOR_SEN5X_NOX_IDX:
+        case SENSOR_SEN5X_HUMIDITY_RAW:
+        case SENSOR_SEN5X_TEMPERATURE_RAW:
+        case SENSOR_SEN5X_VOCS_RAW:
+        case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.start(wichSensor);
         default: break;
     }
 
@@ -80,6 +102,24 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_SPS30_PN_4:
         case SENSOR_SPS30_PN_10:
         case SENSOR_SPS30_TPSIZE:       return sck_sps30.stop(wichSensor);
+        case SENSOR_SEN5X_PM_1:
+        case SENSOR_SEN5X_PM_25:
+        case SENSOR_SEN5X_PM_4:
+        case SENSOR_SEN5X_PM_10:
+        case SENSOR_SEN5X_PN_05:
+        case SENSOR_SEN5X_PN_1:
+        case SENSOR_SEN5X_PN_25:
+        case SENSOR_SEN5X_PN_4:
+        case SENSOR_SEN5X_PN_10:
+        case SENSOR_SEN5X_TPSIZE:
+        case SENSOR_SEN5X_HUMIDITY:
+        case SENSOR_SEN5X_TEMPERATURE:
+        case SENSOR_SEN5X_VOCS_IDX:
+        case SENSOR_SEN5X_NOX_IDX:
+        case SENSOR_SEN5X_HUMIDITY_RAW:
+        case SENSOR_SEN5X_TEMPERATURE_RAW:
+        case SENSOR_SEN5X_VOCS_RAW:
+        case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.stop(wichSensor);
         default: break;
     }
 
@@ -126,6 +166,24 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_SPS30_PN_4:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_4p0);                   return; } break;
         case SENSOR_SPS30_PN_10:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_10p0);                  return; } break;
         case SENSOR_SPS30_TPSIZE:           if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.typical_particle_size);    return; } break;
+        case SENSOR_SEN5X_PM_1:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM1p0);                                return; } break;
+        case SENSOR_SEN5X_PM_25:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM2p5);                                return; } break;
+        case SENSOR_SEN5X_PM_4:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM4p0);                                return; } break;
+        case SENSOR_SEN5X_PM_10:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM10p0);                               return; } break;
+        case SENSOR_SEN5X_PN_05:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN0p5);                                return; } break;
+        case SENSOR_SEN5X_PN_1:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN1p0);                                return; } break;
+        case SENSOR_SEN5X_PN_25:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN2p5);                                return; } break;
+        case SENSOR_SEN5X_PN_4:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN4p0);                                return; } break;
+        case SENSOR_SEN5X_PN_10:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pN10p0);                               return; } break;
+        case SENSOR_SEN5X_TPSIZE:           if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.tSize);                                return; } break;
+        case SENSOR_SEN5X_HUMIDITY:         if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.humidity);                             return; } break;
+        case SENSOR_SEN5X_TEMPERATURE:      if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.temperature);                          return; } break;
+        case SENSOR_SEN5X_VOCS_IDX:         if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.vocIndex);                             return; } break;
+        case SENSOR_SEN5X_NOX_IDX:          if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.noxIndex);                             return; } break;
+        case SENSOR_SEN5X_HUMIDITY_RAW:     if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawHumidity);                          return; } break;
+        case SENSOR_SEN5X_TEMPERATURE_RAW:  if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawTemperature);                       return; } break;
+        case SENSOR_SEN5X_VOCS_RAW:         if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawVoc);                               return; } break;
+        case SENSOR_SEN5X_NOX_RAW:          if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawNox);                               return; } break;
         default: break;
     }
     wichSensor->state = -1;
@@ -296,6 +354,73 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                     base->sckOut();
                     return "\r\n";
                 }
+            }
+
+        case SENSOR_SEN5X_PM_1:
+        case SENSOR_SEN5X_PM_25:
+        case SENSOR_SEN5X_PM_4:
+        case SENSOR_SEN5X_PM_10:
+        case SENSOR_SEN5X_PN_05:
+        case SENSOR_SEN5X_PN_1:
+        case SENSOR_SEN5X_PN_25:
+        case SENSOR_SEN5X_PN_4:
+        case SENSOR_SEN5X_PN_10:
+        case SENSOR_SEN5X_TPSIZE:
+        case SENSOR_SEN5X_HUMIDITY:
+        case SENSOR_SEN5X_TEMPERATURE:
+        case SENSOR_SEN5X_VOCS_IDX:
+        case SENSOR_SEN5X_NOX_IDX:
+        case SENSOR_SEN5X_HUMIDITY_RAW:
+        case SENSOR_SEN5X_TEMPERATURE_RAW:
+        case SENSOR_SEN5X_VOCS_RAW:
+        case SENSOR_SEN5X_NOX_RAW:
+            {
+                if (command.startsWith("debug")) {
+
+                    command.replace("debug", "");
+                    command.trim();
+                    if (command.startsWith("1")) sck_sen5x.debug = true;
+                    else if (command.startsWith("0")) sck_sen5x.debug = false;
+
+                    sprintf(base->outBuff, "Debug: %s", sck_sen5x.debug  ? "true" : "false");
+                    base->sckOut();
+                    return true;
+
+                } else if (command.startsWith("doclean")) {
+
+                    sck_sen5x.startCleaning();
+                    return "\r\n";
+
+                } else if (command.startsWith("lastclean")) {
+
+                    Sck_SEN5X::lastCleaning when = eepromLastCleaning.read();
+ 
+                    if (!when.valid) {
+                        base->sckOut("No valid date for last cleaning");
+
+                    } else {
+                        base->epoch2iso(when.time, base->ISOtimeBuff);
+                        sprintf(base->outBuff, "Last cleaning date: %s (UTC)", base->ISOtimeBuff);
+                        base->sckOut();
+                    }
+                    return "\r\n";
+
+                } else if (command.startsWith("doclean")) {
+
+                } else if (command.startsWith("version")) {
+
+                    if (sck_sen5x.getVer()) {
+                        sprintf(base->outBuff, "SEN5X Firmware: %f\r\nSEN5X Hardware: %f\r\nSEN5X Protocol: %f", sck_sen5x.firmwareVer, sck_sen5x.hardwareVer, sck_sen5x.protocolVer);
+                        base->sckOut();
+					return "\r\n";
+                    }
+
+                }  else if (command.startsWith("help") || command.length() == 0) {
+					sprintf(base->outBuff, "Available commands:\r\n* debug: [0-1] Sets debug messages\r\n* doclean: Starts a cleaning\r\n* lastClean\r\n* version");
+					base->sckOut();
+					return "\r\n";
+                }
+
             }
 
         default: break;
@@ -1702,4 +1827,528 @@ bool Sck_SPS30::wake()
     if (debug) Serial.println("SPS30: Waking Up...");
     state = SPS30_IDLE;
     return true;
+}
+
+bool Sck_SEN5X::start(SensorType wichSensor)
+{
+    // If detection already failed dont try again until next reset
+    if (state == SEN5X_NOT_DETECTED) return false;
+
+    // if state is not OFF the sensor is already started so we only enable the metric but we don't need to init the sensor again
+    if (state != SEN5X_OFF) {
+        for (uint8_t i=0; i<totalMetrics; i++) {
+            if (enabled[i][0] == wichSensor && (enabled[i][2] & model) > 0) {
+                enabled[i][1] = 1;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // The SCK needs battery to survive the sensor startup current draw, with only usb power it normally does not work
+    // If battery is not present it  can enter a reset loop, (not always)
+    pinMode(pinPM_ENABLE, OUTPUT);
+    digitalWrite(pinPM_ENABLE, HIGH);
+    delay(25);
+
+    state = SEN5X_NOT_DETECTED;
+
+    if (!I2Cdetect(&Wire, address)) {
+        if (debug) Serial.println("SEN5X ERROR no device found on adress");
+        return false;
+    }
+
+    delay(25); // without this there is an error on the deviceReset function
+
+    if (!sen_sendCommand(SEN5X_RESET)) {
+        if (debug) Serial.println("SEN5X: Error reseting device");
+        return false;
+    }
+    delay(200); // From Sensirion Arduino library
+
+    if (!findModel()) {
+        Serial.println("SEN5X: error finding sensor model");
+        return false;
+    }
+
+    // Check if firmware version allows The direct switch between Measurement and RHT/Gas-Only Measurement mode
+    if (!getVer()) return false;
+    if (firmwareVer < 2) {
+        Serial.println("SEN5X: error firmware is too old and will not work with this implementation");
+        return false;
+    }
+
+    // Detection succeeded
+    state = SEN5X_IDLE;
+
+    // Check if it is time to do a cleaning
+    lastCleaning when = eepromLastCleaning.read();
+    if (when.valid) {
+        uint32_t passed = rtc->getEpoch() - when.time;
+        if (passed > ONE_WEEK_IN_SECONDS) {
+            if (debug) Serial.println("SEN5X: More than a week since las cleaning, doing it...");
+            startCleaning();
+        } else {
+            if (debug) {
+                Serial.print("Last cleaning date (in epoch): ");
+                Serial.println(when.time);
+            }
+        }
+    } else {
+            if (debug) Serial.println("SEN5X: No claning date saved, cleaning now...");
+            startCleaning();
+    }
+
+    // Call start again to just enable the corresponding metric
+    return start(wichSensor);
+}
+bool Sck_SEN5X::stop(SensorType wichSensor)
+{
+    bool changed = false;
+
+    // Mark this specific metric as disabled
+    for (uint8_t i=0; i<totalMetrics; i++) {
+        if (enabled[i][0] == wichSensor) {
+            enabled[i][1] = 0;
+            changed = true;
+        }
+    }
+
+    // Check if any metric is still enabled
+    for (uint8_t i=0; i<totalMetrics; i++) {
+        if (enabled[i][1]) return changed;
+    }
+
+    // If no metric is enabled turn off power
+    if (debug) Serial.println("SEN5X: Stoping sensor");
+    digitalWrite(pinPM_ENABLE, LOW);
+
+    state = SEN5X_OFF;
+
+    return true;
+}
+bool Sck_SEN5X::getReading(OneSensor* wichSensor)
+{
+    uint32_t now = rtc->getEpoch();
+
+    switch (state) {
+        case SEN5X_OFF: {
+            return false;
+        }
+        case SEN5X_IDLE: {
+
+            // If last reading is recent doesn't make sense to get a new one
+            if (now - lastReading < warmUpPeriod[0] && !monitor) {
+                if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
+                return true;
+            }
+
+            if (!sen_sendCommand(SEN5X_START_MEASUREMENT)) {
+                if (debug) Serial.println("SEN5X: Error starting measurement");
+                return false;
+            }
+            delay(50); // From Sensirion Arduino library
+
+            if (debug) Serial.println("SEN5X: Started measurement (with PMs)");
+            measureStarted = now;
+            state = SEN5X_MEASUREMENT;
+        }
+        case SEN5X_MEASUREMENT: {
+
+            // MONITOR MODE
+            // On monitor mode we don't wait for warmUP'
+            if (monitor) {
+                if (update(wichSensor->type) != 0) return false;
+                else {
+                    lastReading = now;
+                    wichSensor->state = 0;
+                    return true;
+                }
+            }
+
+            uint32_t passed = now - measureStarted;
+
+            if (passed < warmUpPeriod[0]) {
+                wichSensor->state = warmUpPeriod[0] - passed; 	// Report how many seconds are missing to cover the warm up period
+                if (debug) Serial.println("SEN5X: Still on first warm up period");
+                return true;
+            }
+
+            // Lets get the readings
+            if (update(wichSensor->type) != 0) return false;
+
+            // If the reading is low (the tyhreshold is in #/cm3) and second warmUp hasn't passed we keep waiting
+            if ((pN4p0 / 100) < concentrationThreshold && passed < warmUpPeriod[1]) {
+                if (debug) Serial.println("SEN5X: Concentration is low, we will wait for the second warm Up");
+                state = SEN5X_MEASUREMENT_2;
+                wichSensor->state = warmUpPeriod[1] - passed; 	// Report how many seconds are missing to cover the first warm up period
+                return true;
+            }
+
+            // Save power
+            idle();
+
+            // Return the reading
+            lastReading = now;
+            wichSensor->state = 0;
+            return true;
+
+        } 
+        case SEN5X_MEASUREMENT_2: {
+
+            uint32_t passed = now - measureStarted;
+
+            if (passed < warmUpPeriod[1]) {
+                wichSensor->state = warmUpPeriod[1] - passed; 	// Report how many seconds are missing to cover the second warm up period
+                if (debug) Serial.println("SEN5X: Still on second warm up period");
+                return true;
+            }
+
+            if (update(wichSensor->type) != 0) return false;
+
+            // Save power
+            idle();
+
+            lastReading = now;
+            wichSensor->state = 0;
+            return true;
+        }
+        case SEN5X_NOT_DETECTED: {
+            return false;
+        }
+    }
+    return false;
+}
+bool Sck_SEN5X::idle()
+{
+    if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
+        if (debug) Serial.println("SEN5X: Error stoping measurement");
+        return false;
+    }
+    delay(200); // From Sensirion Arduino library
+
+    if (debug) Serial.println("SEN5X: Stoping measurement mode");
+    monitor = false;
+    state = SEN5X_IDLE;
+    measureStarted = 0;
+}
+bool Sck_SEN5X::startCleaning()
+{
+    state = SEN5X_CLEANING;
+
+    // Note that this command can only be run when the sensor is in measurement mode
+    if (!sen_sendCommand(SEN5X_START_MEASUREMENT)) {
+        if (debug) Serial.println("SEN5X: Error starting measurment mode");
+        return false;
+    }
+    delay(50); // From Sensirion Arduino library
+ 
+    if (!sen_sendCommand(SEN5X_START_FAN_CLEANING)) {
+        if (debug) Serial.println("SEN5X: Error starting fan cleaning");
+        return false;
+    }
+    delay(20); // From Sensirion Arduino library
+
+    // This message will be always printed so the user knows the SCK it's not hanged
+    Serial.println("SEN5X: Started fan cleaning it will take 10 seconds...");
+ 
+    uint16_t started = millis();
+    while (millis() - started < 10500) {
+        Serial.print(".");
+        delay(500);
+    }
+    if (debug) Serial.println(" done!!");
+
+    // Save timestamp in flash so we know when a week has passed
+    lastCleaning when;
+    when.time = rtc->getEpoch();
+    eepromLastCleaning.write(when);
+
+    idle();
+    return true;
+}
+uint8_t Sck_SEN5X::update(SensorType wichSensor)
+{
+    // Try to get new data
+    if (!sen_sendCommand(SEN5X_READ_DATA_READY)){
+        if (debug) Serial.println("SEN5X: Error sending command data ready flag");
+        return 2;
+    }
+    delay(20); // From Sensirion Arduino library
+
+    uint8_t dataReadyBuffer[3];
+    size_t charNumber = sen_readBuffer(&dataReadyBuffer[0], 3);
+    if (charNumber == 0) {
+        if (debug) Serial.println("SEN5X: Error getting device version value");
+        return 2;
+    }
+
+    bool data_ready = dataReadyBuffer[1];
+
+    if (!data_ready) {
+        if (debug) Serial.println("SEN5X: Data is not ready");
+        return 1;
+    }
+
+    if(!sen_readValues()) {
+        if (debug) Serial.println("SEN5X: Error getting readings");
+        return 2;
+    }
+
+    if(!sen_readPmValues()) {
+        if (debug) Serial.println("SEN5X: Error getting PM readings");
+        return 2;
+    }
+
+    if(!sen_readRawValues()) {
+        if (debug) Serial.println("SEN5X: Error getting Raw readings");
+        return 2;
+    }
+
+    return 0;
+}
+bool Sck_SEN5X::findModel()
+{
+    if (!sen_sendCommand(SEN5X_GET_PRODUCT_NAME)) {
+        if (debug) Serial.println("SEN5X: Error asking for product name");
+        return false;
+    }
+    delay(50); // From Sensirion Arduino library
+
+    const uint8_t nameSize = 48;
+    uint8_t name[nameSize];
+    size_t charNumber = sen_readBuffer(&name[0], nameSize);
+    if (charNumber == 0) {
+        if (debug) Serial.println("SEN5X: Error getting device name");
+        return false;
+    }
+
+    // We only check the last character that defines the model SEN5X
+    switch(name[4])
+    {
+        case 48:
+            model = SEN50;
+            break;
+        case 52:
+            model = SEN54;
+            break;
+        case 53:
+            model = SEN55;
+            break;
+    }
+
+    if (debug) {
+        Serial.print("SEN5X: found sensor model SEN5");
+        Serial.println((char)name[4]);
+    }
+
+    return true;
+}
+bool Sck_SEN5X::getVer()
+{
+    if (!sen_sendCommand(SEN5X_GET_FIRMWARE_VERSION)){
+        if (debug) Serial.println("SEN5X: Error sending version command");
+        return false;
+    }
+    delay(20); // From Sensirion Arduino library
+
+    uint8_t versionBuffer[12];
+    size_t charNumber = sen_readBuffer(&versionBuffer[0], 3);
+    if (charNumber == 0) {
+        if (debug) Serial.println("SEN5X: Error getting data ready flag value");
+        return false;
+    }
+
+    firmwareVer = versionBuffer[0] + (versionBuffer[1] / 10);
+    hardwareVer = versionBuffer[3] + (versionBuffer[4] / 10);
+    protocolVer = versionBuffer[5] + (versionBuffer[6] / 10);
+
+    if (debug) {
+        Serial.print("SEN5X Firmware Version: ");
+        Serial.println(firmwareVer);
+        Serial.print("SEN5X Hardware Version: ");
+        Serial.println(hardwareVer);
+        Serial.print("SEN5X Protocol Version: ");
+        Serial.println(protocolVer);
+    }
+
+    return true;
+}
+bool Sck_SEN5X::sen_readValues()
+{
+    if (!sen_sendCommand(SEN5X_READ_VALUES)){
+        if (debug) Serial.println("SEN5X: Error sending read command");
+        return false;
+    }
+    delay(20); // From Sensirion Arduino library
+
+    uint8_t dataBuffer[24];
+    size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 24);
+    if (receivedNumber == 0) {
+        if (debug) Serial.println("SEN5X: Error getting values");
+        return false;
+    }
+
+    // First get the integers
+    uint16_t uint_pM1p0        = static_cast<uint16_t>((dataBuffer[0]  << 8) | dataBuffer[1]);
+    uint16_t uint_pM2p5        = static_cast<uint16_t>((dataBuffer[2]  << 8) | dataBuffer[3]);
+    uint16_t uint_pM4p0        = static_cast<uint16_t>((dataBuffer[4]  << 8) | dataBuffer[5]);
+    uint16_t uint_pM10p0       = static_cast<uint16_t>((dataBuffer[6]  << 8) | dataBuffer[7]);
+    int16_t  int_humidity      = static_cast<int16_t>((dataBuffer[8]   << 8) | dataBuffer[9]);
+    int16_t  int_temperature   = static_cast<int16_t>((dataBuffer[10]  << 8) | dataBuffer[11]);
+    int16_t  int_vocIndex      = static_cast<int16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
+    int16_t  int_noxIndex      = static_cast<int16_t>((dataBuffer[14]  << 8) | dataBuffer[15]);
+
+    // convert them based on Sensirion Arduino lib
+    pM1p0          = uint_pM1p0      / 10.0f; 
+    pM2p5          = uint_pM2p5      / 10.0f; 
+    pM4p0          = uint_pM4p0      / 10.0f; 
+    pM10p0         = uint_pM10p0     / 10.0f; 
+    humidity       = int_humidity    / 100.0f;
+    temperature    = int_temperature / 200.0f; 
+    vocIndex       = int_vocIndex    / 10.0f;
+    noxIndex       = int_noxIndex    / 10.0f;
+
+    return true;
+}
+bool Sck_SEN5X::sen_readPmValues()
+{
+    if (!sen_sendCommand(SEN5X_READ_PM_VALUES)){
+        if (debug) Serial.println("SEN5X: Error sending read command");
+        return false;
+    }
+    delay(20); // From Sensirion Arduino library
+ 
+    uint8_t dataBuffer[30];
+    size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 30);
+    if (receivedNumber == 0) {
+        if (debug) Serial.println("SEN5X: Error getting PM values");
+        return false;
+    }
+
+    // First get the integers
+    // uint16_t uint_pM1p0   = static_cast<uint16_t>((dataBuffer[0]   << 8) | dataBuffer[1]);
+    // uint16_t uint_pM2p5   = static_cast<uint16_t>((dataBuffer[2]   << 8) | dataBuffer[3]);
+    // uint16_t uint_pM4p0   = static_cast<uint16_t>((dataBuffer[4]   << 8) | dataBuffer[5]);
+    // uint16_t uint_pM10p0  = static_cast<uint16_t>((dataBuffer[6]   << 8) | dataBuffer[7]);
+    uint16_t uint_pN0p5   = static_cast<uint16_t>((dataBuffer[8]   << 8) | dataBuffer[9]);
+    uint16_t uint_pN1p0   = static_cast<uint16_t>((dataBuffer[10]  << 8) | dataBuffer[11]);
+    uint16_t uint_pN2p5   = static_cast<uint16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
+    uint16_t uint_pN4p0   = static_cast<uint16_t>((dataBuffer[14]  << 8) | dataBuffer[15]);
+    uint16_t uint_pN10p0  = static_cast<uint16_t>((dataBuffer[16]  << 8) | dataBuffer[17]);
+    uint16_t uint_tSize   = static_cast<uint16_t>((dataBuffer[18]  << 8) | dataBuffer[19]);
+ 
+    // convert them based on Sensirion Arduino lib
+    // pM1p0   = uint_pM1p0  / 10.0f;
+    // pM2p5   = uint_pM2p5  / 10.0f;
+    // pM4p0   = uint_pM4p0  / 10.0f;
+    // pM10p0  = uint_pM10p0 / 10.0f;
+    pN0p5   = uint_pN0p5  / 10.0f;
+    pN1p0   = uint_pN1p0  / 10.0f;
+    pN2p5   = uint_pN2p5  / 10.0f;
+    pN4p0   = uint_pN4p0  / 10.0f;
+    pN10p0  = uint_pN10p0 / 10.0f;
+    tSize   = uint_tSize  / 1000.0f;
+
+    // Convert PN readings from #/cm3 to #/0.1l
+    pN0p5  *= 100;
+    pN1p0  *= 100;
+    pN2p5  *= 100;
+    pN4p0  *= 100;
+    pN10p0 *= 100;
+    tSize  *= 100;
+ 
+    return true;
+}
+bool Sck_SEN5X::sen_readRawValues()
+{
+    if (!sen_sendCommand(SEN5X_READ_RAW_VALUES)){
+        if (debug) Serial.println("SEN5X: Error sending read command");
+        return false;
+    }
+    delay(20); // From Sensirion Arduino library
+    //
+    uint8_t dataBuffer[12];
+    size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 12);
+    if (receivedNumber == 0) {
+        if (debug) Serial.println("SEN5X: Error getting Raw values");
+        return false;
+    }
+
+    // Get values
+    rawHumidity     = static_cast<int16_t>((dataBuffer[0]   << 8) | dataBuffer[1]);
+    rawTemperature  = static_cast<int16_t>((dataBuffer[2]   << 8) | dataBuffer[3]);
+    rawVoc          = static_cast<uint16_t>((dataBuffer[4]  << 8) | dataBuffer[5]);
+    rawNox          = static_cast<uint16_t>((dataBuffer[6]  << 8) | dataBuffer[7]);
+
+    return true;
+}
+bool Sck_SEN5X::sen_sendCommand(uint16_t wichCommand)
+{
+    uint8_t toSend[2];
+    toSend[0] = static_cast<uint8_t>((wichCommand & 0xFF00) >> 8);
+    toSend[1] = static_cast<uint8_t>((wichCommand & 0x00FF) >> 0);
+
+    Wire.beginTransmission(address);
+    size_t writtenBytes = Wire.write(toSend, 2);
+    uint8_t i2c_error = Wire.endTransmission();
+
+    if (writtenBytes != 2) {
+        if (debug) Serial.println("SEN5X: Error writting on I2C bus");
+        return false;
+    }
+
+    if (i2c_error != 0) {
+        if (debug) {
+            Serial.print("SEN5X: Error on I2c communication: ");
+            Serial.println(i2c_error);
+        }
+        return false;
+    }
+    return true;
+}
+uint8_t Sck_SEN5X::sen_readBuffer(uint8_t* buffer, uint8_t byteNumber)
+{
+    size_t readedBytes = Wire.requestFrom(address, byteNumber);
+
+    if (readedBytes != byteNumber) {
+        if (debug) Serial.println("SEN5X: Error reading I2C bus");
+        return 0;
+    }
+
+    uint8_t i = 0;
+    uint8_t receivedBytes = 0;
+    while (readedBytes > 0) {
+        buffer[i++] = Wire.read();
+        buffer[i++] = Wire.read();
+        uint8_t recvCRC = Wire.read();
+        uint8_t calcCRC = sen_CRC(&buffer[i - 2]);
+        if (recvCRC != calcCRC) {
+            if (debug) Serial.println("SEN5X: Checksum error while receiving msg");
+            return 0;
+        }
+        readedBytes -=3;
+        receivedBytes += 2;
+    }
+
+    return receivedBytes;
+}
+uint8_t Sck_SEN5X::sen_CRC(uint8_t* buffer)
+{
+    // This code is based on Sensirion's own implementation https://github.com/Sensirion/arduino-core/blob/41fd02cacf307ec4945955c58ae495e56809b96c/src/SensirionCrc.cpp
+    uint8_t crc = 0xff;
+
+    for (uint8_t i=0; i<2; i++){
+
+        crc ^= buffer[i];
+
+        for (uint8_t bit=8; bit>0; bit--) {
+            if (crc & 0x80)
+                crc = (crc << 1) ^ 0x31;
+            else
+                crc = (crc << 1);
+        }
+    }
+
+    return crc;
 }

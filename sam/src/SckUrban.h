@@ -328,6 +328,109 @@ class Sck_SPS30
         bool wake();
     };
 
+#define ONE_WEEK_IN_SECONDS 604800
+
+class Sck_SEN5X
+    {
+        //TODO
+        // Implement average option and test if it makes a difference
+
+    public:
+        Sck_SEN5X(RTCZero* myrtc) {
+            rtc = myrtc;
+        }
+
+        const byte address = 0x69;
+
+        bool start(SensorType wichSensor);
+        bool stop(SensorType wichSensor);
+        bool getReading(OneSensor* wichSensor);
+        bool idle();
+        bool startCleaning();
+        bool debug = false;
+        bool monitor = false;
+
+        bool getVer();
+        float firmwareVer = -1;
+        float hardwareVer = -1;
+        float protocolVer = -1; 
+
+        // PM metrics
+        float pM1p0;
+        float pM2p5;
+        float pM4p0;
+        float pM10p0;
+        float pN0p5;
+        float pN1p0;
+        float pN2p5;
+        float pN4p0;
+        float pN10p0;
+        float tSize;
+
+        // Other
+        float humidity;
+        float temperature;
+        float vocIndex;
+        float noxIndex;
+        int16_t rawHumidity;
+        int16_t rawTemperature;
+        uint16_t rawVoc;
+        uint16_t rawNox;
+
+        struct lastCleaning { uint32_t time; bool valid=true; };
+
+    private:
+
+        // Commands
+        uint16_t SEN5X_RESET                        = 0xD304;
+        uint16_t SEN5X_GET_PRODUCT_NAME             = 0xD014;
+        uint16_t SEN5X_GET_FIRMWARE_VERSION         = 0xD100;
+        uint16_t SEN5X_START_MEASUREMENT            = 0x0021;
+        uint16_t SEN5X_START_MEASUREMENT_RHT_GAS    = 0x0037;
+        uint16_t SEN5X_STOP_MEASUREMENT             = 0x0104;
+        uint16_t SEN5X_READ_DATA_READY              = 0x0202;
+        uint16_t SEN5X_START_FAN_CLEANING           = 0x5607;
+
+        uint16_t SEN5X_READ_VALUES                  = 0x3C4;
+        uint16_t SEN5X_READ_RAW_VALUES              = 0x3D2;
+        uint16_t SEN5X_READ_PM_VALUES               = 0x413;
+
+
+        enum SEN5Xmodel { SEN5X_UNKNOWN = 0, SEN50 = 0b001, SEN54 = 0b010, SEN55 = 0b100 };
+        SEN5Xmodel model = SEN5X_UNKNOWN;
+
+        static const uint8_t totalMetrics = 18;
+        // Each metric has { SENSOR_TYPE, enabled/disabled, SUPPORTED_MODELS }
+        // SUPPORTED_MODELS: b001:SEN50, b010:SEN54, b100:SEN55 and any combination
+        uint8_t enabled[totalMetrics][3] = { 
+            {SENSOR_SEN5X_PM_1, 0, 0b111}, {SENSOR_SEN5X_PM_25, 0, 0b111}, {SENSOR_SEN5X_PM_4, 0, 0b111}, {SENSOR_SEN5X_PM_10, 0, 0b111},
+            {SENSOR_SEN5X_PN_05, 0, 0b111}, {SENSOR_SEN5X_PN_1, 0, 0b111}, {SENSOR_SEN5X_PN_25, 0, 0b111}, {SENSOR_SEN5X_PN_4, 0, 0b111}, {SENSOR_SEN5X_PN_10, 0, 0b111}, {SENSOR_SEN5X_TPSIZE, 0, 0b111},
+            {SENSOR_SEN5X_HUMIDITY, 0, 0b110}, {SENSOR_SEN5X_TEMPERATURE, 0, 0b110}, {SENSOR_SEN5X_VOCS_IDX, 0, 0b110}, {SENSOR_SEN5X_NOX_IDX, 0, 0b100},
+            {SENSOR_SEN5X_HUMIDITY_RAW, 0, 0b110}, {SENSOR_SEN5X_TEMPERATURE_RAW, 0, 0b110}, {SENSOR_SEN5X_VOCS_RAW, 0, 0b110}, {SENSOR_SEN5X_NOX_RAW, 0, 0b100} };
+
+        enum SEN5XState { SEN5X_OFF, SEN5X_IDLE, SEN5X_MEASUREMENT, SEN5X_MEASUREMENT_2, SEN5X_CLEANING, SEN5X_NOT_DETECTED };
+        SEN5XState state = SEN5X_OFF;
+
+        uint32_t lastReading = 0;
+        uint32_t measureStarted = 0;
+
+        // Sensirion recommends taking a reading after 16 seconds, if the Perticle number reading is over 100#/cm3 the reading is OK, but if it is lower wait until 30 seconds and take it again.
+        // https://sensirion.com/resource/application_note/low_power_mode/sen5x
+        uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period 
+        uint16_t concentrationThreshold = 100;
+
+        RTCZero* rtc;
+        uint8_t update(SensorType wichSensor); // returns: 0: ok, 1: data is not yet ready, 2: error
+        bool findModel();
+
+        bool sen_sendCommand(uint16_t wichCommand);
+        uint8_t sen_readBuffer(uint8_t* buffer, uint8_t byteNumber); // Return number of bytes received
+        uint8_t sen_CRC(uint8_t* buffer);
+        bool sen_readValues();
+        bool sen_readPmValues();
+        bool sen_readRawValues();
+    };
+
 class SckUrban
     {
     private:
@@ -364,4 +467,7 @@ class SckUrban
 
         // SPS30 PM sensor
         Sck_SPS30 sck_sps30 = Sck_SPS30(rtc);
+
+        // SEN5X PM, [temp, hum, vocs, nox] sensor
+        Sck_SEN5X sck_sen5x = Sck_SEN5X(rtc);
     };

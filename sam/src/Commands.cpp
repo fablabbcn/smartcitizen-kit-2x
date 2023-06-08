@@ -439,24 +439,6 @@ void monitorSensor_com(SckBase* base, String parameters)
                 wichSensor.type == SENSOR_SPS30_PN_4  ||
                 wichSensor.type == SENSOR_SPS30_PN_10 ||
                 wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.monitor = true;
-            if (wichSensor.type == SENSOR_SEN5X_PM_1            ||
-                wichSensor.type ==SENSOR_SEN5X_PM_25            ||
-                wichSensor.type ==SENSOR_SEN5X_PM_4             ||
-                wichSensor.type ==SENSOR_SEN5X_PM_10            ||
-                wichSensor.type ==SENSOR_SEN5X_PN_05            ||
-                wichSensor.type ==SENSOR_SEN5X_PN_1             ||
-                wichSensor.type ==SENSOR_SEN5X_PN_25            ||
-                wichSensor.type ==SENSOR_SEN5X_PN_4             ||
-                wichSensor.type ==SENSOR_SEN5X_PN_10            ||
-                wichSensor.type ==SENSOR_SEN5X_TPSIZE           ||
-                wichSensor.type ==SENSOR_SEN5X_HUMIDITY         ||
-                wichSensor.type ==SENSOR_SEN5X_TEMPERATURE      ||
-                wichSensor.type ==SENSOR_SEN5X_VOCS_IDX         ||
-                wichSensor.type ==SENSOR_SEN5X_NOX_IDX          ||
-                wichSensor.type ==SENSOR_SEN5X_HUMIDITY_RAW     ||
-                wichSensor.type ==SENSOR_SEN5X_TEMPERATURE_RAW  ||
-                wichSensor.type ==SENSOR_SEN5X_VOCS_RAW         ||
-                wichSensor.type ==SENSOR_SEN5X_NOX_RAW) base-> urban.sck_sen5x.monitor = true;
 
             base->getReading(&wichSensor);
 
@@ -497,25 +479,6 @@ void monitorSensor_com(SckBase* base, String parameters)
             wichSensor.type == SENSOR_SPS30_PN_4  ||
             wichSensor.type == SENSOR_SPS30_PN_10 ||
             wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.sleep();
-
-        if (wichSensor.type == SENSOR_SEN5X_PM_1            ||
-            wichSensor.type ==SENSOR_SEN5X_PM_25            ||
-            wichSensor.type ==SENSOR_SEN5X_PM_4             ||
-            wichSensor.type ==SENSOR_SEN5X_PM_10            ||
-            wichSensor.type ==SENSOR_SEN5X_PN_05            ||
-            wichSensor.type ==SENSOR_SEN5X_PN_1             ||
-            wichSensor.type ==SENSOR_SEN5X_PN_25            ||
-            wichSensor.type ==SENSOR_SEN5X_PN_4             ||
-            wichSensor.type ==SENSOR_SEN5X_PN_10            ||
-            wichSensor.type ==SENSOR_SEN5X_TPSIZE           ||
-            wichSensor.type ==SENSOR_SEN5X_HUMIDITY         ||
-            wichSensor.type ==SENSOR_SEN5X_TEMPERATURE      ||
-            wichSensor.type ==SENSOR_SEN5X_VOCS_IDX         ||
-            wichSensor.type ==SENSOR_SEN5X_NOX_IDX          ||
-            wichSensor.type ==SENSOR_SEN5X_HUMIDITY_RAW     ||
-            wichSensor.type ==SENSOR_SEN5X_TEMPERATURE_RAW  ||
-            wichSensor.type ==SENSOR_SEN5X_VOCS_RAW         ||
-            wichSensor.type ==SENSOR_SEN5X_NOX_RAW) base->urban.sck_sen5x.idle();
     }
 
     if (sdSave) base->monitorFile.file.close();
@@ -902,98 +865,98 @@ void esp_com(SckBase* base, String parameters)
 }
 void netInfo_com(SckBase* base, String parameters)
 {
-    base->ESPsend(ESPMES_GET_NETINFO, "");
+
+	base->ESPsend(ESPMES_GET_NETINFO, "");
 }
 void time_com(SckBase* base, String parameters)
 {
+	base->epoch2iso(base->rtc.getEpoch(), base->ISOtimeBuff);
+	base->sckOut();
 
-    base->epoch2iso(base->rtc.getEpoch(), base->ISOtimeBuff);
-    base->sckOut();
+	if (parameters.length() <= 0) {
 
-    if (parameters.length() <= 0) {
+		if (base->ISOtime()) {
+			sprintf(base->outBuff, "Time: %s", base->ISOtimeBuff);
+			base->sckOut();
+		} else {
+			base->sckOut("Time is not synced, trying to sync...");
+			base->ESPsend(ESPMES_GET_TIME, "");
+		}
+	}
 
-        if (base->ISOtime()) {
-            sprintf(base->outBuff, "Time: %s", base->ISOtimeBuff);
-            base->sckOut();
-            } else {
-            base->sckOut("Time is not synced, trying to sync...");
-            base->ESPsend(ESPMES_GET_TIME, "");
-        }
-    }
+	// Force sync
+	if (parameters.equals("-sync")) {
+		if (!base->st.espON) {
+			base->ESPcontrol(base->ESP_ON);
+			delay(200);
+		}
+		if (base->ESPsend(ESPMES_GET_TIME, "")) base->sckOut("Asking time to ESP...");
+	}
 
-    // Force sync
-    if (parameters.equals("-sync")) {
-        if (!base->st.espON) {
-            base->ESPcontrol(base->ESP_ON);
-        delay(200);
-        }
-        if (base->ESPsend(ESPMES_GET_TIME, "")) base->sckOut("Asking time to ESP...");
-    }
-
-    // Receive Epoch time and sync
-    if (parameters.toInt() > 0) base->setTime(parameters);
+	// Receive Epoch time and sync
+	if (parameters.toInt() > 0) base->setTime(parameters);
 }
 void hello_com(SckBase* base, String parameters)
 {
-    if (base->ESPsend(ESPMES_MQTT_HELLO, "")) base->sckOut("Hello sent!");
-    base->sckOut("Waiting for MQTT hello response...");
+	if (base->ESPsend(ESPMES_MQTT_HELLO, "")) base->sckOut("Hello sent!");
+	base->sckOut("Waiting for MQTT hello response...");
 }
 void debug_com(SckBase* base, String parameters)
 {
-    // Set
-    bool saveNeeded = false;
-if (parameters.length() > 0) {
-        if (parameters.indexOf("-sdcard") >= 0) {
-            base->config.debug.sdcard = !base->config.debug.sdcard;
-            sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
-            base->sckOut();
-            saveNeeded = true;
-        }
-        if (parameters.indexOf("-oled") >= 0) {
-            base->config.debug.oled = !base->config.debug.oled;
-            sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
-            base->sckOut();
-            saveNeeded = true;
-        }
-        if (parameters.indexOf("-flash") >= 0) {
-            base->readingsList.debug = !base->readingsList.debug;
-            base->config.debug.flash = !base->config.debug.flash;
-            sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
-            base->sckOut();
-            saveNeeded = true;
-        }
-        if (parameters.indexOf("-speed") >= 0) {
-            base->config.debug.speed = !base->config.debug.speed;
-            sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
-            base->sckOut();
-            saveNeeded = true;
-        }
-        if (parameters.indexOf("-serial") >= 0) {
-            base->config.debug.serial = !base->config.debug.serial;
-            serESP.debug = base->config.debug.serial;
-            sprintf(base->outBuff, "Serial debug: %s", base->config.debug.serial ? "true" : "false");
-            base->sckOut();
-            saveNeeded = true;
-            base->pendingSyncConfig = true; // Make sur the config is sent to ESP
-        }
-        // Get
-    } else {
-        sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
-        base->sckOut();
+	// Set
+	bool saveNeeded = false;
+	if (parameters.length() > 0) {
+		if (parameters.indexOf("-sdcard") >= 0) {
+			base->config.debug.sdcard = !base->config.debug.sdcard;
+			sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
+			base->sckOut();
+			saveNeeded = true;
+		}
+		if (parameters.indexOf("-oled") >= 0) {
+			base->config.debug.oled = !base->config.debug.oled;
+			sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
+			base->sckOut();
+			saveNeeded = true;
+		}
+		if (parameters.indexOf("-flash") >= 0) {
+			base->readingsList.debug = !base->readingsList.debug;
+			base->config.debug.flash = !base->config.debug.flash;
+			sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
+			base->sckOut();
+			saveNeeded = true;
+		}
+		if (parameters.indexOf("-speed") >= 0) {
+			base->config.debug.speed = !base->config.debug.speed;
+			sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
+			base->sckOut();
+			saveNeeded = true;
+		}
+		if (parameters.indexOf("-serial") >= 0) {
+			base->config.debug.serial = !base->config.debug.serial;
+			serESP.debug = base->config.debug.serial;
+			sprintf(base->outBuff, "Serial debug: %s", base->config.debug.serial ? "true" : "false");
+			base->sckOut();
+			saveNeeded = true;
+			base->pendingSyncConfig = true; // Make sur the config is sent to ESP
+		}
+	// Get
+	} else {
+		sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
+		base->sckOut();
 
-        sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
-        base->sckOut();
+		sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
+		base->sckOut();
 
-        sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
-        base->sckOut();
+		sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
+		base->sckOut();
 
-        sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
-        base->sckOut();
+		sprintf(base->outBuff, "Speed debug: %s", base->config.debug.speed ? "true" : "false");
+		base->sckOut();
 
-        sprintf(base->outBuff, "Serial debug: %s", base->config.debug.serial ? "true" : "false");
-        base->sckOut();
-    }
-    if (saveNeeded) base->saveConfig();
+		sprintf(base->outBuff, "Serial debug: %s", base->config.debug.serial ? "true" : "false");
+		base->sckOut();
+	}
+	if (saveNeeded) base->saveConfig();
 }
 void shell_com(SckBase* base, String parameters)
 {
@@ -1073,69 +1036,80 @@ void offline_com(SckBase* base, String parameters)
 }
 void mqttConfig_com(SckBase* base, String parameters)
 {
-    // Set
-    if (parameters.length() > 0) {
+	// Set
+	if (parameters.length() > 0) {
 
-        int16_t serverI = parameters.indexOf("-host");
-        if (serverI >= 0) {
-            String serverC = parameters.substring(serverI+6, parameters.indexOf(" ", serverI+6));
-            if (serverC.length() < 64) {
-                serverC.toCharArray(base->config.mqtt.server, 64);
-            } else {
-                sprintf(base->outBuff, "Mqtt host name should be less than 64 chars");
-                base->sckOut();
-            }
-        }
+		int16_t serverI = parameters.indexOf("-host");
+		if (serverI >= 0) {
+			String serverC = parameters.substring(serverI+6, parameters.indexOf(" ", serverI+6));
+			if (serverC.length() < 64) {
+				serverC.toCharArray(base->config.mqtt.server, 64);
+			} else {
+				sprintf(base->outBuff, "Mqtt host name should be less than 64 chars");
+				base->sckOut();
+			}
+		}
 
-        int16_t portI = parameters.indexOf("-port");
-        if (portI >= 0) {
-            String portC = parameters.substring(portI+6, parameters.indexOf(" ", portI+6));
-            uint16_t portV = portC.toInt();
-            if (portV > 0) base->config.mqtt.port = portV;
-                else {
-                sprintf(base->outBuff, "Error setting Mqtt server port");
-                base->sckOut();
-            }
-        }
-        base->pendingSyncConfig = true;
-        base->saveConfig();
-    }
+		int16_t portI = parameters.indexOf("-port");
+		if (portI >= 0) {
+			String portC = parameters.substring(portI+6, parameters.indexOf(" ", portI+6));
+			uint16_t portV = portC.toInt();
+			if (portV > 0) base->config.mqtt.port = portV;
+			else {
+				sprintf(base->outBuff, "Error setting Mqtt server port");
+				base->sckOut();
+			}
+		}
+		base->pendingSyncConfig = true;
+		base->saveConfig();
+	}
+	
+	// Get
+	Configuration currentConfig = base->getConfig();
 
-    // Get
-    Configuration currentConfig = base->getConfig();
+	sprintf(base->outBuff, "Mqtt Host: %s", currentConfig.mqtt.server);
+	base->sckOut();
+	sprintf(base->outBuff, "Mqtt Port: %u", currentConfig.mqtt.port);
+	base->sckOut();
+	
 }
 void ntpConfig_com(SckBase* base, String parameters)
 {
-    // Set
-    if (parameters.length() > 0) {
+	// Set
+	if (parameters.length() > 0) {
 
-        int16_t serverI = parameters.indexOf("-host");
-        if (serverI >= 0) {
-            String serverC = parameters.substring(serverI+6, parameters.indexOf(" ", serverI+6));
-            if (serverC.length() < 64) {
-                serverC.toCharArray(base->config.ntp.server, 64);
-            } else {
-                sprintf(base->outBuff, "NTP host name should be less than 64 chars");
-                base->sckOut();
-            }
-        }
+		int16_t serverI = parameters.indexOf("-host");
+		if (serverI >= 0) {
+			String serverC = parameters.substring(serverI+6, parameters.indexOf(" ", serverI+6));
+			if (serverC.length() < 64) {
+				serverC.toCharArray(base->config.ntp.server, 64);
+			} else {
+				sprintf(base->outBuff, "NTP host name should be less than 64 chars");
+				base->sckOut();
+			}
+		}
 
-        int16_t portI = parameters.indexOf("-port");
-        if (portI >= 0) {
-            String portC = parameters.substring(portI+6, parameters.indexOf(" ", portI+6));
-            uint16_t portV = portC.toInt();
-            if (portV > 0) base->config.ntp.port = portV;
-                else {
-                sprintf(base->outBuff, "Error setting NTP server port");
-                base->sckOut();
-            }
-        }
-        base->pendingSyncConfig = true;
-        base->saveConfig();
-    }
+		int16_t portI = parameters.indexOf("-port");
+		if (portI >= 0) {
+			String portC = parameters.substring(portI+6, parameters.indexOf(" ", portI+6));
+			uint16_t portV = portC.toInt();
+			if (portV > 0) base->config.ntp.port = portV;
+			else {
+				sprintf(base->outBuff, "Error setting NTP server port");
+				base->sckOut();
+			}
+		}
+		base->pendingSyncConfig = true;
+		base->saveConfig();
+	}
+	
+	// Get
+	Configuration currentConfig = base->getConfig();
 
-    // Get
-    Configuration currentConfig = base->getConfig();
+	sprintf(base->outBuff, "NTP Host: %s", currentConfig.ntp.server);
+	base->sckOut();
+	sprintf(base->outBuff, "NTP Port: %u", currentConfig.ntp.port);
+	base->sckOut();
 }
 void sleep_com(SckBase* base, String parameters)
 {

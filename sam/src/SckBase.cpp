@@ -124,7 +124,9 @@ void SckBase::setup()
                 enableSensor(wichSensor->type);
             } else {
                 wichSensor->enabled = false;
+#ifdef WITH_SENSOR_GROVE_OLED
                 wichSensor->oled_display = false;
+#endif
             }
         }
     }
@@ -203,14 +205,18 @@ void SckBase::update()
             }
         }
 
+#ifdef WITH_GPS
         // If we have a GPS update it and get time if needed
         if (sensors[SENSOR_GPS_FIX_QUALITY].enabled){
             auxBoards.updateGPS();
             if (!st.timeStat.ok) getReading(&sensors[SENSOR_GPS_FIX_QUALITY]);
         }
+#endif
 
+#ifdef WITH_SENSOR_GROVE_OLED
         // If we have a screen update it
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
+#endif
     }
 }
 
@@ -614,20 +620,24 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
         } else st.cardPresent = false;
     }
 
+#ifdef WITH_SENSOR_GROVE_OLED
     // Debug output to oled display
     if (config.debug.oled) {
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.print(outBuff);
     }
+#endif
 }
 void SckBase::prompt()
 {
     sprintf(outBuff, "%s", "SCK > ");
     sckOut(PRIO_MED, false);
 }
+#ifdef WITH_SENSOR_GROVE_OLED
 void SckBase::plot(String value, const char *title, const char *unit)
 {
     auxBoards.plot(value, title, unit);
 }
+#endif
 
 // **** Config
 void SckBase::loadConfig()
@@ -660,6 +670,7 @@ void SckBase::loadConfig()
 	memcpy(&hostname[14], &config.mac.address[15], 2);
 	hostname[16] = '\0';
 
+#ifdef WITH_URBAN
 	// CSS vocs sensor baseline loading
 	if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
 		sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
@@ -667,9 +678,12 @@ void SckBase::loadConfig()
 		urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
 	}
 
+#ifdef WITH_PM
 	// PMS sensor warmUpperiod and powerSave config
 	urban.sck_pm.warmUpPeriod = config.extra.pmWarmUpPeriod;
 	urban.sck_pm.powerSave = config.extra.pmPowerSave;
+#endif
+#endif
 }
 void SckBase::saveConfig(bool defaults)
 {
@@ -684,7 +698,9 @@ void SckBase::saveConfig(bool defaults)
             SensorType wichSensorType = static_cast<SensorType>(i);
 
             config.sensors[wichSensorType].enabled = sensors[wichSensorType].defaultEnabled;
+#ifdef WITH_SENSOR_GROVE_OLED
             config.sensors[wichSensorType].oled_display = true;
+#endif
             config.sensors[wichSensorType].everyNint = sensors[wichSensorType].defaultEveryNint;
         }
         pendingSyncConfig = true;
@@ -1203,6 +1219,7 @@ bool SckBase::saveInfo()
 // **** Power
 void SckBase::sck_reset()
 {
+#ifdef WITH_URBAN
     // Save updated CCS sensor baseline
     if (I2Cdetect(&Wire, urban.sck_ccs811.address)) {
         uint16_t savedBaseLine = urban.sck_ccs811.getBaseline();
@@ -1214,6 +1231,7 @@ void SckBase::sck_reset()
             eepromConfig.write(config);
         }
     }
+#endif
 
     sckOut("Bye!!");
     NVIC_SystemReset();
@@ -1234,8 +1252,10 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
         sprintf(outBuff, "Sleeping forever!!! (until a button click)");
         sckOut();
 
+#ifdef WITH_URBAN
         // Stop CCS811 VOCS sensor
         urban.stop(SENSOR_CCS811_VOCS);
+#endif
 
         // Detach sdcard interrupt to avoid spurious wakeup
         // There is no need to reattach since after this sleep there is always a reset
@@ -1269,9 +1289,11 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     __WFI();
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 
+#ifdef WITH_URBAN
     // Recover Noise sensor timer
     REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
     while (GCLK->STATUS.bit.SYNCBUSY);
+#endif
 }
 void SckBase::updatePower()
 {
@@ -1326,8 +1348,9 @@ void SckBase::updatePower()
 
                 sckOut("Emergency low battery!!", PRIO_ERROR);
                 st.error = ERROR_BATT;
+#ifdef WITH_SENSOR_GROVE_OLED
                 auxBoards.updateDisplay(this, true);        // Force update of screen before going to sleep
-
+#endif
                 // Ignore last user event and go to sleep
                 lastUserEvent = 0;
 
@@ -1387,6 +1410,7 @@ void SckBase::updateDynamic(uint32_t now)
     if (millis() - lastSpeedMonitoring < 1000) return;
     lastSpeedMonitoring = millis();
 
+#ifdef WITH_GPS
     if (!getReading(&sensors[SENSOR_GPS_SPEED])) return;
     if (!getReading(&sensors[SENSOR_GPS_FIX_QUALITY])) return;
     if (!getReading(&sensors[SENSOR_GPS_HDOP])) return;
@@ -1438,6 +1462,7 @@ void SckBase::updateDynamic(uint32_t now)
             speedFile.file.close();
         } else st.cardPresent = false;
     }
+#endif
 }
 void SckBase::sleepLoop()
 {
@@ -1469,8 +1494,10 @@ void SckBase::sleepLoop()
         updateSensors();
         updatePower();
 
+#ifdef WITH_SENSOR_GROVE_OLED
         // If we have a screen update it
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
+#endif
 
         now = rtc.getEpoch();
     }
@@ -1502,7 +1529,9 @@ void SckBase::updateSensors()
     if (!st.timeStat.ok) return;
     if (st.onSetup) return;
 
+#ifdef WITH_GPS
     if (sensors[SENSOR_GPS_SPEED].enabled) updateDynamic(now);
+#endif
 
     bool sensorsReady = false;
 
@@ -1664,14 +1693,17 @@ bool SckBase::enableSensor(SensorType wichSensor)
         sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
         sckOut();
         sensors[wichSensor].enabled = true;
+#ifdef WITH_SENSOR_GROVE_OLED
         sensors[wichSensor].oled_display = config.sensors[wichSensor].oled_display;  // Show detected sensors on oled display if config is true (default).
+#endif
         writeHeader = true;
         return true;
     }
 
     sensors[wichSensor].enabled = false;
+#ifdef WITH_SENSOR_GROVE_OLED
     sensors[wichSensor].oled_display = false;
-
+#endif
     // Avoid spamming with mesgs for every supported auxiliary sensor
     if (sensors[wichSensor].location == BOARD_BASE) {
         sprintf(outBuff, "Failed enabling %s", sensors[wichSensor].title);
@@ -1750,6 +1782,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
     // Sensor reading ERROR, save null value
     if (wichSensor->state == -1) wichSensor->reading == "null";
 
+#ifdef WITH_URBAN
     // Temperature / Humidity temporary Correction
     // TODO remove this when calibration routine is ready
     if (wichSensor->type == SENSOR_TEMPERATURE) {
@@ -1767,6 +1800,7 @@ bool SckBase::getReading(OneSensor *wichSensor)
         float aux_hum = wichSensor->reading.toFloat();
         wichSensor->reading = String(aux_hum + 10);
     }
+#endif
 
     return true;
 }

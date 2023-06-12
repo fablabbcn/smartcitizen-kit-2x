@@ -7,36 +7,51 @@
 #include <Wire.h>
 #include <FlashStorage.h>
 
+#ifdef WITH_INA219
 // INA219 libs
 #include <Adafruit_INA219.h>
+#endif
 
+#ifdef WITH_GASES_BOARD
 // Gases Board libs
 #include <GasesBoard.h>
+#endif
 
 // Urban board library
 #include <SckUrban.h>
 
+#ifdef WITH_SENSOR_GROVE_OLED
 // Groove_OLED libs
 #include <U8g2lib.h>
 // Icons for screen
 #include <Icons.h>
+#endif
 
 // DS2482 library (I2C-1Wire bridge)
 #include <DS2482.h>
 
+#ifdef WITH_CHIRP
 // I2C Moisture Sensor (chirp)
 #include <I2CSoilMoistureSensor.h>
+#endif
 
+#ifdef WITH_DALLAS_TEMP
 // Libraries for DallasTemp
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#endif
 
+#ifdef WTIH_RANGE
 // Sparkfun VL6180x time of flight range finder
 #include <SparkFun_VL6180X.h>
+#endif
 
+#ifdef WITH_BME680
 // Adafruit BME608 library
 #include <Adafruit_BME680.h>
+#endif
 
+#ifdef WITH_GPS
 // Library for GPS data parsing
 #include "TinyGPS++.h"
 
@@ -48,9 +63,12 @@
 #undef ID   // Fix conflict with define on SPIMemory.h
 #endif
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
+#endif
 
+#ifdef WITH_ADS1X15
 // Adafruit library for ADS1x15 12/16 bits ADC
 #include <Adafruit_ADS1015.h>
+#endif
 
 // ADS Tester (Only supported in version 2.0 and greater)
 // This function is only for internal purposes
@@ -60,11 +78,15 @@
 #include "GasesBoardTester.h"
 #endif
 
+#ifdef WITH_SCD30
 // Sparkfun library for SCD30 CO2 sensor
 #include <SparkFun_SCD30_Arduino_Library.h>
+#endif
 
+#ifdef  WITH_SFA30
 // Sensirion I2C SFA3X library
 #include <SensirionI2CSfa3x.h>
+#endif
 
 
 extern TwoWire auxWire;
@@ -90,120 +112,122 @@ class AuxBoards
 
     public:
 
-        // List for storing Auxiliary sensors I2C address (SENSOR_COUNT - (BASE AND URBAN SENSORS))
-        // TODO: store this in epprom, load it on boot, make a function to change the addresses by console command
-        byte devAddress[SENSOR_COUNT - 24] {
-            0x55,           // SENSOR_GASESBOARD_SLOT_1A,
-            0x55,           // SENSOR_GASESBOARD_SLOT_1W,
-            0x56,           // SENSOR_GASESBOARD_SLOT_2A,
-            0x56,           // SENSOR_GASESBOARD_SLOT_2W,
-            0x54,           // SENSOR_GASESBOARD_SLOT_3A,
-            0x54,           // SENSOR_GASESBOARD_SLOT_3W,
-            0x44,           // SENSOR_GASESBOARD_TEMPERATURE,
-            0x44,           // SENSOR_GASESBOARD_HUMIDITY,
+        // List for storing Auxiliary sensors I2C address
+        // TODO review and update this list, it may better be on other place.
+        // 0x55,           // SENSOR_GASESBOARD_SLOT_1A,
+        // 0x55,           // SENSOR_GASESBOARD_SLOT_1W,
+        // 0x56,           // SENSOR_GASESBOARD_SLOT_2A,
+        // 0x56,           // SENSOR_GASESBOARD_SLOT_2W,
+        // 0x54,           // SENSOR_GASESBOARD_SLOT_3A,
+        // 0x54,           // SENSOR_GASESBOARD_SLOT_3W,
+        // 0x44,           // SENSOR_GASESBOARD_TEMPERATURE,
+        // 0x44,           // SENSOR_GASESBOARD_HUMIDITY,
+        //
+        // 0x50,           // SENSOR_GROOVE_I2C_ADC,
+        //
+        // 0x41,           // SENSOR_INA219_BUSVOLT,
+        // 0x41,           // SENSOR_INA219_SHUNT,
+        // 0x41,           // SENSOR_INA219_CURRENT,
+        // 0x41,           // SENSOR_INA219_LOADVOLT,
+        //
+        // 0x18,           // SENSOR_WATER_TEMP_DS18B20,
+        // 0x66,           // SENSOR_ATLAS_TEMPERATURE,
+        // 0x63,           // SENSOR_ATLAS_PH,
+        // 0x64,           // SENSOR_ATLAS_EC,
+        // 0x64,           // SENSOR_ATLAS_EC_SG,
+        // 0x64,           // SENSOR_ATLAS_EC_SAL,
+        // 0x64,           // SENSOR_ATLAS_EC_TDS,
+        // 0x61,           // SENSOR_ATLAS_DO,
+        // 0x61,           // SENSOR_ATLAS_DO_SAT,
+        // 0x62,           // SENSOR_ATLAS_ORP,
+        //
+        // 0x61,           // SENSOR_SCD30_CO2,    --> Conflict with SENSOR_ATLAS_DO
+        // 0x61,           // SENSOR_SCD30_TEMP,   --> Conflict with SENSOR_ATLAS_DO
+        // 0x61,           // SENSOR_SCD30_HUM,    --> Conflict with SENSOR_ATLAS_DO
+        //
+        // 0x20,           // SENSOR_CHIRP_MOISTURE_RAW,
+        // 0x20,           // SENSOR_CHIRP_MOISTURE,
+        // 0x20,           // SENSOR_CHIRP_TEMPERATURE,
+        // 0x20,           // SENSOR_CHIRP_LIGHT,
+ 
+        // 0x02,           // SENSOR_EXT_PM_1,
+        // 0x02,           // SENSOR_EXT_PM_25,
+        // 0x02,           // SENSOR_EXT_PM_10,
+        // 0x02,           // SENSOR_EXT_PN_03,
+        // 0x02,           // SENSOR_EXT_PN_05,
+        // 0x02,           // SENSOR_EXT_PN_1,
+        // 0x02,           // SENSOR_EXT_PN_25,
+        // 0x02,           // SENSOR_EXT_PN_5,
+        // 0x02,           // SENSOR_EXT_PN_10,
+        // 0x02,           // SENSOR_EXT_A_PM_1,
+        // 0x02,           // SENSOR_EXT_A_PM_25,
+        // 0x02,           // SENSOR_EXT_A_PM_10,
+        // 0x02,           // SENSOR_EXT_A_PN_03,
+        // 0x02,           // SENSOR_EXT_A_PN_05,
+        // 0x02,           // SENSOR_EXT_A_PN_1,
+        // 0x02,           // SENSOR_EXT_A_PN_25,
+        // 0x02,           // SENSOR_EXT_A_PN_5,
+        // 0x02,           // SENSOR_EXT_A_PN_10,
+        // 0x02,           // SENSOR_EXT_B_PM_1,
+        // 0x02,           // SENSOR_EXT_B_PM_25,
+        // 0x02,           // SENSOR_EXT_B_PM_10,
+        // 0x02,           // SENSOR_EXT_B_PN_03,
+        // 0x02,           // SENSOR_EXT_B_PN_05,
+        // 0x02,           // SENSOR_EXT_B_PN_1,
+        // 0x02,           // SENSOR_EXT_B_PN_25,
+        // 0x02,           // SENSOR_EXT_B_PN_5,
+        // 0x02,           // SENSOR_EXT_B_PN_10,
 
-            0x50,           // SENSOR_GROOVE_I2C_ADC,
+        // 0x02,           // SENSOR_PM_DALLAS_TEMP,
+        // 0x00,           // SENSOR_DALLAS_TEMP,      -- 2 wire (no I2C address)
+        //
+        // 0x44,           // SENSOR_SHT31_TEMP,
+        // 0x44,           // SENSOR_SHT31_HUM,
+        // 0x45,           // SENSOR_SHT35_TEMP,
+        // 0x45,           // SENSOR_SHT35_HUM,
+        //
+        // 0x29,           // SENSOR_RANGE_LIGHT,
+        // 0x29,           // SENSOR_RANGE_DISTANCE,
+        //
+        // 0x77,           // SENSOR_BME680_TEMPERATURE,
+        // 0x77,           // SENSOR_BME680_HUMIDITY,
+        // 0x77,           // SENSOR_BME680_PRESSURE,
+        // 0x77,           // SENSOR_BME680_VOCS,
+        //
+        // 0x02,           // SENSOR_GPS_* Grove Gps (on PM board)
+        // 0x10,           // SENSOR_GPS_* XA111 Gps
+        // 0x42,           // SENSOR_GPS_* NEO-M8U Gps
 
-            0x41,           // SENSOR_INA219_BUSVOLT,
-            0x41,           // SENSOR_INA219_SHUNT,
-            0x41,           // SENSOR_INA219_CURRENT,
-            0x41,           // SENSOR_INA219_LOADVOLT,
-
-            0x18,           // SENSOR_WATER_TEMP_DS18B20,
-            0x66,           // SENSOR_ATLAS_TEMPERATURE,
-            0x63,           // SENSOR_ATLAS_PH,
-            0x64,           // SENSOR_ATLAS_EC,
-            0x64,           // SENSOR_ATLAS_EC_SG,
-            0x64,           // SENSOR_ATLAS_EC_SAL,
-            0x64,           // SENSOR_ATLAS_EC_TDS,
-            0x61,           // SENSOR_ATLAS_DO,
-            0x61,           // SENSOR_ATLAS_DO_SAT,
-            0x62,           // SENSOR_ATLAS_ORP,
-
-            0x61,           // SENSOR_SCD30_CO2,    --> Conflict with SENSOR_ATLAS_DO
-            0x61,           // SENSOR_SCD30_TEMP,   --> Conflict with SENSOR_ATLAS_DO
-            0x61,           // SENSOR_SCD30_HUM,    --> Conflict with SENSOR_ATLAS_DO
-
-            0x20,           // SENSOR_CHIRP_MOISTURE_RAW,
-            0x20,           // SENSOR_CHIRP_MOISTURE,
-            0x20,           // SENSOR_CHIRP_TEMPERATURE,
-            0x20,           // SENSOR_CHIRP_LIGHT,
-
-            0x02,           // SENSOR_EXT_PM_1,
-            0x02,           // SENSOR_EXT_PM_25,
-            0x02,           // SENSOR_EXT_PM_10,
-            0x02,           // SENSOR_EXT_PN_03,
-            0x02,           // SENSOR_EXT_PN_05,
-            0x02,           // SENSOR_EXT_PN_1,
-            0x02,           // SENSOR_EXT_PN_25,
-            0x02,           // SENSOR_EXT_PN_5,
-            0x02,           // SENSOR_EXT_PN_10,
-            0x02,           // SENSOR_EXT_A_PM_1,
-            0x02,           // SENSOR_EXT_A_PM_25,
-            0x02,           // SENSOR_EXT_A_PM_10,
-            0x02,           // SENSOR_EXT_A_PN_03,
-            0x02,           // SENSOR_EXT_A_PN_05,
-            0x02,           // SENSOR_EXT_A_PN_1,
-            0x02,           // SENSOR_EXT_A_PN_25,
-            0x02,           // SENSOR_EXT_A_PN_5,
-            0x02,           // SENSOR_EXT_A_PN_10,
-            0x02,           // SENSOR_EXT_B_PM_1,
-            0x02,           // SENSOR_EXT_B_PM_25,
-            0x02,           // SENSOR_EXT_B_PM_10,
-            0x02,           // SENSOR_EXT_B_PN_03,
-            0x02,           // SENSOR_EXT_B_PN_05,
-            0x02,           // SENSOR_EXT_B_PN_1,
-            0x02,           // SENSOR_EXT_B_PN_25,
-            0x02,           // SENSOR_EXT_B_PN_5,
-            0x02,           // SENSOR_EXT_B_PN_10,
-
-            0x02,           // SENSOR_PM_DALLAS_TEMP,
-            0x00,           // SENSOR_DALLAS_TEMP,      -- 2 wire (no I2C address)
-
-            0x44,           // SENSOR_SHT31_TEMP,
-            0x44,           // SENSOR_SHT31_HUM,
-            0x45,           // SENSOR_SHT35_TEMP,
-            0x45,           // SENSOR_SHT35_HUM,
-
-            0x29,           // SENSOR_RANGE_LIGHT,
-            0x29,           // SENSOR_RANGE_DISTANCE,
-
-            0x77,           // SENSOR_BME680_TEMPERATURE,
-            0x77,           // SENSOR_BME680_HUMIDITY,
-            0x77,           // SENSOR_BME680_PRESSURE,
-            0x77,           // SENSOR_BME680_VOCS,
-
-            0x02,           // SENSOR_GPS_* Grove Gps (on PM board)
-            0x10,           // SENSOR_GPS_* XA111 Gps
-            0x42,           // SENSOR_GPS_* NEO-M8U Gps
-
-            0x3c,           // SENSOR_GROOVE_OLED,
-
-            0x48,           // SENSOR_ADS1X15_XX_X
-            0x49,           // SENSOR_ADS1X15_XX_X
-            0x4a,           // SENSOR_ADS1X15_XX_X
-            0x4b,           // SENSOR_ADS1X15_XX_X
-
-            0x5d,           // SENSOR_SFA30_TEMPERATURE, 
-            0x5d,           // SENSOR_SFA30_HUMIDITY,    
-            0x5d,           // SENSOR_SFA30_FORMALDEHYDE,
-        };
+        // 0x3c,           // SENSOR_GROOVE_OLED,
+        // 0x48,           // SENSOR_ADS1X15_XX_X
+        // 0x49,           // SENSOR_ADS1X15_XX_X
+        // 0x4a,           // SENSOR_ADS1X15_XX_X
+        // 0x4b,           // SENSOR_ADS1X15_XX_X
+        //
+        // 0x5d,           // SENSOR_SFA30_TEMPERATURE, 
+        // 0x5d,           // SENSOR_SFA30_HUMIDITY,    
+        // 0x5d,           // SENSOR_SFA30_FORMALDEHYDE,
 
         bool start(SckBase *base, SensorType wichSensor);
         bool stop(SensorType wichSensor);
         void getReading(SckBase *base, OneSensor *wichSensor);
         bool getBusyState(SensorType wichSensor);
         String control(SensorType wichSensor, String command);
+#ifdef WITH_SENSOR_GROVE_OLED
         void print(char *payload);
         void updateDisplay(SckBase* base, bool force=false);
         void plot(String value, const char *title=NULL, const char *unit=NULL);
+#endif
+#ifdef WITH_GPS
         bool updateGPS();
+#endif
 
         EepromAuxData data;
         bool dataLoaded = false;
     private:
     };
 
+#ifdef WITH_GROVE_I2C_ADC
 class GrooveI2C_ADC
     {
     public:
@@ -225,7 +249,9 @@ class GrooveI2C_ADC
 
     private:
     };
+#endif
 
+#ifdef WITH_INA219
 class INA219
     {
     public:
@@ -241,7 +267,9 @@ class INA219
 
     private:
     };
+#endif
 
+#ifdef WITH_SENSOR_GROVE_OLED
 // This implementation works with a 128x128 pixel Oled screen with SH1107 controler
 class Groove_OLED
     {
@@ -290,7 +318,9 @@ class Groove_OLED
         SensorType lastShown;
         uint32_t showStartTime = 0;
     };
+#endif
 
+#ifdef WITH_DS18B20
 /*! @class DS2482_100
  *  @brief class for handling the DS18B20 temperature sensor connected to the I2C port
  *   through the DS2482-100 board. This was based on an example made by
@@ -320,7 +350,9 @@ class WaterTemp_DS18B20
         float getReading();
     private:
     };
+#endif
 
+#ifdef WITH_ATLAS
 class Atlas
     {
     public:
@@ -406,7 +438,9 @@ class Atlas
 
     private:
     };
+#endif
 
+#ifdef WITH_CHIRP
 class Moisture
     {
     private:
@@ -436,24 +470,34 @@ class Moisture
         // * Send sensor to sleep between readings (needs FIX, it hangs)
         void sleep();
     };
+#endif
 
+#ifdef WITH_PM
 enum PMslot {SLOT_A, SLOT_B, SLOT_AVG};
+#endif
 enum PMcommands
 {
+#ifdef WITH_PM
     START_PMA,      // Start PM in slot A
     START_PMB,          // Start PM in slot B
     GET_PMA,        // Get values for PM in slot A
     GET_PMB,        // Get values for PM in slot B
     STOP_PMA,       // Stop PM in slot A
     STOP_PMB,       // Stop PM in slot B
+#endif
+#ifdef WITH_DALLAS_TEMP
     DALLASTEMP_START,
     DALLASTEMP_STOP,
     GET_DALLASTEMP,
+#endif
+#ifdef WITH_GPS
     GROVEGPS_START,
     GROVEGPS_STOP,
     GROVEGPS_GET
+#endif
 };
 
+#ifdef WITH_PM
 class PMsensor
     {
     public:
@@ -497,7 +541,9 @@ class PMsensor
         uint32_t lastReading = 0;
         PMslot _slot;
     };
+#endif
 
+#ifdef WITH_DALLAS_TEMP
 class PM_DallasTemp
     {
     public:
@@ -513,7 +559,9 @@ class PM_DallasTemp
 
         float reading;
     };
+#endif
 
+#ifdef WITH_GPS
 struct GpsReadings
 {
     // Data (40 bytes)
@@ -556,7 +604,9 @@ struct GpsReadings
     bool timeValid = false;
     uint32_t epochTime = 0;
 };
+#endif
 
+#ifdef WITH_GPS
 class GPS_Source
     {
     public:
@@ -627,7 +677,9 @@ class NEOM8UGPS: public GPS_Source
         uint32_t lastReading = 0;
 
     };
+#endif
 
+#ifdef WITH_DALLAS_TEMP
 class Sck_DallasTemp
     {
         // This is for a Dallas temperature sensor connected to the plugged in Aux groove connector using pin pinAUX_WIRE_SCL (13 - PA17)
@@ -640,7 +692,9 @@ class Sck_DallasTemp
     private:
         uint8_t _oneWireAddress[8];
     };
+#endif
 
+#ifdef WTIH_RANGE
 class Sck_Range
     {
     public:
@@ -656,7 +710,9 @@ class Sck_Range
         bool alreadyStarted = false;
         VL6180x vl6180x = VL6180x(deviceAddress);
     };
+#endif
 
+#ifdef WITH_BME680
 class Sck_BME680
     {
     public:
@@ -675,7 +731,9 @@ class Sck_BME680
         bool alreadyStarted = false;
         Adafruit_BME680 bme;
     };
+#endif
 
+#ifdef WITH_ADS1X15
 class Sck_ADS1X15
     {
     public:
@@ -706,7 +764,9 @@ class Sck_ADS1X15
         // TODO
         // Test ADS1015
     };
+#endif
 
+#ifdef WITH_SCD30
 class Sck_SCD30
     {
     public:
@@ -732,7 +792,9 @@ class Sck_SCD30
         uint16_t measInterval = 2;  // "2-1800 seconds"
         SCD30 sparkfun_scd30;
     };
+#endif
 
+#ifdef  WITH_SFA30
 class Sck_SFA30
     {
     public:
@@ -754,6 +816,7 @@ class Sck_SFA30
 
         SensirionI2CSfa3x sfa30;
     };
+#endif
 
 void writeI2C(byte deviceAddress, byte instruction, byte data);
 byte readI2C(byte deviceAddress, byte instruction);

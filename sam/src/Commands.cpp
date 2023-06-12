@@ -159,8 +159,12 @@ void sensorConfig_com(SckBase* base, String parameters)
                 snprintf(base->outBuff, sizeof(base->outBuff), "%s -> every %i int (%lu sec)", base->sensors[thisType].title, base->sensors[thisType].everyNint, (base->sensors[thisType].everyNint * base->config.readInterval));
                 base->sckOut(PRIO_MED, false);
 
+#ifdef WITH_SENSOR_GROVE_OLED
                 if (base->sensors[SENSOR_GROVE_OLED].enabled && base->config.sensors[thisType].oled_display)  base->sckOut(" - oled");
                 else base->sckOut(" ");
+#else
+                base->sckOut(" ");
+#endif
             }
         }
 
@@ -170,6 +174,8 @@ void sensorConfig_com(SckBase* base, String parameters)
         SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(0, sensorEndIndex));
         bool saveNeeded = false;
 
+#ifdef WITH_URBAN
+#ifdef WITH_PM
         // PM and PN sensors are grouped to make changes to the full group
         SensorType urban_pm[] = { SENSOR_PM_1, SENSOR_PM_25, SENSOR_PM_10 };
         SensorType urban_pn[] = { SENSOR_PN_03, SENSOR_PN_05, SENSOR_PN_1, SENSOR_PN_25, SENSOR_PN_5, SENSOR_PN_10 };
@@ -189,6 +195,8 @@ void sensorConfig_com(SckBase* base, String parameters)
                 }
             }
         }
+#endif
+#endif
 
         if (sensorToChange == SENSOR_COUNT) {
             base->sckOut("ERROR sensor not found");
@@ -202,6 +210,8 @@ void sensorConfig_com(SckBase* base, String parameters)
                 // Enable sensor also in config to make changes persistent
                 base->config.sensors[sensorToChange].enabled = true;
 
+#ifdef WITH_URBAN
+#ifdef WITH_PM
                 // Just for PM/PN enable the rest of sensors in the same group
                 for (uint8_t i=1; i<groupToChange_size; i++) {
                     // Enable them in runtime
@@ -213,10 +223,16 @@ void sensorConfig_com(SckBase* base, String parameters)
                     sprintf(base->outBuff, "Enabling %s", base->sensors[groupToChange[i]].title);
                     base->sckOut();
                 }
+#endif
+#endif
                 saveNeeded = true;
             } else {
                 sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
+#ifdef WITH_URBAN
+#ifdef WITH_PM
                 if (groupToChange > 0) sprintf(base->outBuff, "%s and its sensor group", base->outBuff);
+#endif
+#endif
                 base->sckOut();
             }
 
@@ -227,6 +243,8 @@ void sensorConfig_com(SckBase* base, String parameters)
             // Disable sensor also in config to make changes persistent
             base->config.sensors[sensorToChange].enabled = false;
 
+#ifdef WITH_URBAN
+#ifdef WITH_PM
             // Just for PM/PN disable the rest of sensors in the same group
             for (uint8_t i=1; i<groupToChange_size; i++) {
                 // Disable them in runtime
@@ -238,9 +256,12 @@ void sensorConfig_com(SckBase* base, String parameters)
                 sprintf(base->outBuff, "Disabling %s", base->sensors[groupToChange[i]].title);
                 base->sckOut();
             }
+#endif
+#endif
             saveNeeded = true;
         }
 
+#ifdef WITH_SENSOR_GROVE_OLED
         if (parameters.indexOf("-oled") >=0) {
 
             base->config.sensors[sensorToChange].oled_display = !base->config.sensors[sensorToChange].oled_display;
@@ -252,7 +273,7 @@ void sensorConfig_com(SckBase* base, String parameters)
             saveNeeded = true;
 
         }
-
+#endif
         if (parameters.indexOf("-interval") >=0) {
 
             // Get the number of seconds user asked for as new interval
@@ -267,6 +288,8 @@ void sensorConfig_com(SckBase* base, String parameters)
             snprintf(base->outBuff, sizeof(base->outBuff), "The sensor read interval is calculated as a multiple of general read interval (%u)", base->config.readInterval);
             base->sckOut();
             if (newEveryNint < 255) {
+#ifdef WITH_URBAN
+#ifdef WITH_PM
                 if (groupToChange_size > 0) {
                     // Just for PM/PN change all the sensors in the same group
                     for (uint8_t i=0; i<groupToChange_size; i++) {
@@ -276,11 +299,17 @@ void sensorConfig_com(SckBase* base, String parameters)
                         base->sckOut();
                     }
                 } else {
+#endif
+#endif
                     base->sensors[sensorToChange].everyNint = newEveryNint;
                     base->config.sensors[sensorToChange].everyNint = newEveryNint;
                     sprintf(base->outBuff, "Changing interval of %s to %lu", base->sensors[sensorToChange].title, base->sensors[sensorToChange].everyNint * base->config.readInterval);
                     base->sckOut();
+#ifdef WITH_URBAN
+#ifdef WITH_PM
                 }
+#endif
+#endif
                 saveNeeded = true;
             } else {
                 base->sckOut("Wrong new interval!!!");
@@ -396,7 +425,9 @@ void monitorSensor_com(SckBase* base, String parameters)
     for (uint8_t i=0; i<index; i++) {
         sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
         if (i < index - 1) snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t", base->outBuff);
+#ifdef WITH_SENSOR_GROVE_OLED
         if (oled && i==0) base->plot(base->sensors[sensorsToMonitor[i]].reading, base->sensors[sensorsToMonitor[i]].title, base->sensors[sensorsToMonitor[i]].unit);
+#endif
     }
     if (sdSave) base->monitorFile.file.println(base->outBuff);
     base->sckOut();
@@ -427,8 +458,12 @@ void monitorSensor_com(SckBase* base, String parameters)
 
             OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 
+#ifdef WITH_URBAN
+#ifdef WITH_PM
             // PM sensor needs to be notified that we are in monitor mode
             if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) base->urban.sck_pm.monitor = true;
+#endif
+#ifdef WITH_SPS30
             if (wichSensor.type == SENSOR_SPS30_PM_1  ||
                 wichSensor.type == SENSOR_SPS30_PM_25 ||
                 wichSensor.type == SENSOR_SPS30_PM_4  ||
@@ -439,16 +474,20 @@ void monitorSensor_com(SckBase* base, String parameters)
                 wichSensor.type == SENSOR_SPS30_PN_4  ||
                 wichSensor.type == SENSOR_SPS30_PN_10 ||
                 wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.monitor = true;
+#endif
+#endif
 
             base->getReading(&wichSensor);
 
             if (wichSensor.state == 0) {
                 snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t%s", base->outBuff, wichSensor.reading.c_str());
 
+#ifdef WITH_SENSOR_GROVE_OLED
                 if (theFirst && oled) {
                     base->plot(wichSensor.reading);
                     theFirst = false;
                 }
+#endif
                 printit++;
 
             } else snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s", base->outBuff, "none");
@@ -467,8 +506,12 @@ void monitorSensor_com(SckBase* base, String parameters)
 
         OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 
+#ifdef WITH_URBAN
+#ifdef WITH_PM
         // PM sensor needs to be notified that we are not in monitor mode anymore
         if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) base->urban.sck_pm.monitor = false;
+#endif
+#ifdef WITH_SPS30
         if (wichSensor.type == SENSOR_SPS30_PM_1  ||
             wichSensor.type == SENSOR_SPS30_PM_25 ||
             wichSensor.type == SENSOR_SPS30_PM_4  ||
@@ -479,6 +522,8 @@ void monitorSensor_com(SckBase* base, String parameters)
             wichSensor.type == SENSOR_SPS30_PN_4  ||
             wichSensor.type == SENSOR_SPS30_PN_10 ||
             wichSensor.type == SENSOR_SPS30_TPSIZE) base->urban.sck_sps30.sleep();
+#endif
+#endif
     }
 
     if (sdSave) base->monitorFile.file.close();
@@ -912,12 +957,14 @@ void debug_com(SckBase* base, String parameters)
 			base->sckOut();
 			saveNeeded = true;
 		}
+#ifdef WITH_SENSOR_GROVE_OLED
 		if (parameters.indexOf("-oled") >= 0) {
 			base->config.debug.oled = !base->config.debug.oled;
 			sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
 			base->sckOut();
 			saveNeeded = true;
 		}
+#endif
 		if (parameters.indexOf("-flash") >= 0) {
 			base->readingsList.debug = !base->readingsList.debug;
 			base->config.debug.flash = !base->config.debug.flash;
@@ -944,9 +991,10 @@ void debug_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
 		base->sckOut();
 
+#ifdef WITH_SENSOR_GROVE_OLED
 		sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
 		base->sckOut();
-
+#endif
 		sprintf(base->outBuff, "Flash memory debug: %s", base->config.debug.flash ? "true" : "false");
 		base->sckOut();
 

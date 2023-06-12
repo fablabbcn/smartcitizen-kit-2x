@@ -6,14 +6,18 @@
 
 #include <Sensors.h>
 #include "Pins.h"
+#ifdef WITH_URBAN
 #include <Adafruit_MPL3115A2.h>
 #include "SckSoundTables.h"
 #include <I2S.h>
 #include <SparkFunCCS811.h>
 
+#ifdef WITH_SPS30
 // Sensirion Library for SPS30
 // https://github.com/Sensirion/arduino-sps
 #include <sps30.h>
+#endif
+#endif
 
 // Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
 // It includes drivers for this sensors:
@@ -37,6 +41,7 @@ enum SensorState
     SENSOR_ERROR
 };
 
+#ifdef WITH_URBAN
 // Light
 class Sck_BH1730FVC
     {
@@ -149,6 +154,7 @@ class Sck_MPL3115A2
         bool getTemperature();
     };
 
+#ifdef WITH_PM
 //PM sensors
 class Sck_PM
     {
@@ -239,6 +245,7 @@ class Sck_PM
         bool debug = false;
         bool monitor = false;
     };
+#endif
 
 // VOC ans ECO2 - CCS811
 class Sck_CCS811
@@ -280,6 +287,7 @@ class Sck_CCS811
         RTCZero* rtc;
     };
 
+#ifdef WITH_SPS30
 class Sck_SPS30
     {
         // TODO
@@ -327,9 +335,10 @@ class Sck_SPS30
         bool update(SensorType wichSensor);
         bool wake();
     };
+#endif
 
 #define ONE_WEEK_IN_SECONDS 604800
-
+#ifdef WITH_SEN5X
 class Sck_SEN5X
     {
         //TODO
@@ -430,6 +439,8 @@ class Sck_SEN5X
         bool sen_readPmValues();
         bool sen_readRawValues();
     };
+#endif
+#endif
 
 class SckUrban
     {
@@ -447,6 +458,7 @@ class SckUrban
         void getReading(SckBase *base, OneSensor *wichSensor);
         bool control(SckBase *base, SensorType wichSensor, String command);
 
+#ifdef WITH_URBAN
         // Light
         Sck_BH1730FVC sck_bh1730fvc;
 
@@ -462,12 +474,19 @@ class SckUrban
         // VOC and ECO2
         Sck_CCS811 sck_ccs811 = Sck_CCS811(rtc);
 
+#ifdef WITH_PM
         // PM sensor
         Sck_PM sck_pm = Sck_PM(rtc);
+#endif
 
+#ifdef WITH_SPS30
         // SPS30 PM sensor
         Sck_SPS30 sck_sps30 = Sck_SPS30(rtc);
+#endif
 
+#ifdef WITH_SEN5X
         // SEN5X PM, [temp, hum, vocs, nox] sensor
         Sck_SEN5X sck_sen5x = Sck_SEN5X(rtc);
+#endif
+#endif
     };

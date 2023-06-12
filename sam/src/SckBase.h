@@ -248,7 +248,9 @@ class SckBase
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
 		void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
 		void prompt();
+#ifdef WITH_SENSOR_GROVE_OLED
 		void plot(String value, const char *title=NULL, const char *unit=NULL);
+#endif
 
 		// Button
 		volatile bool butState = true;

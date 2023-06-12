@@ -8,12 +8,17 @@ void SERCOM5_Handler() {
 }
 
 
+#ifdef WITH_URBAN
+#ifdef WITH_SEN5X
 // SEN5X flash space to save last cleaning date
 FlashStorage(eepromLastCleaning, Sck_SEN5X::lastCleaning);
+#endif
+#endif
 
 bool SckUrban::start(SensorType wichSensor)
 {
     switch(wichSensor) {
+#ifdef WITH_URBAN
         case SENSOR_LIGHT:              return sck_bh1730fvc.start();
         case SENSOR_TEMPERATURE:
         case SENSOR_HUMIDITY:           return sck_sht31.start();
@@ -26,6 +31,7 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.start();
         case SENSOR_CCS811_VOCS:        return sck_ccs811.start();
         case SENSOR_CCS811_ECO2:        return sck_ccs811.start();
+#ifdef WITH_PM
         case SENSOR_PM_1:
         case SENSOR_PM_25:
         case SENSOR_PM_10:
@@ -35,6 +41,8 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_PN_25:
         case SENSOR_PN_5:
         case SENSOR_PN_10:              return sck_pm.start();
+#endif
+#ifdef WITH_SPS30
         case SENSOR_SPS30_PM_1:
         case SENSOR_SPS30_PM_25:
         case SENSOR_SPS30_PM_4:
@@ -45,6 +53,8 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_SPS30_PN_4:
         case SENSOR_SPS30_PN_10:
         case SENSOR_SPS30_TPSIZE:        return sck_sps30.start(wichSensor);
+#endif
+#ifdef WITH_SEN5X
         case SENSOR_SEN5X_PM_1:
         case SENSOR_SEN5X_PM_25:
         case SENSOR_SEN5X_PM_4:
@@ -63,6 +73,8 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_SEN5X_TEMPERATURE_RAW:
         case SENSOR_SEN5X_VOCS_RAW:
         case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.start(wichSensor);
+#endif
+#endif
         default: break;
     }
 
@@ -71,6 +83,7 @@ bool SckUrban::start(SensorType wichSensor)
 bool SckUrban::stop(SensorType wichSensor)
 {
     switch(wichSensor) {
+#ifdef WITH_URBAN
         case SENSOR_LIGHT:              return sck_bh1730fvc.stop();
         case SENSOR_TEMPERATURE:
         case SENSOR_HUMIDITY:           return sck_sht31.stop();
@@ -83,6 +96,7 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.stop();
         case SENSOR_CCS811_VOCS:
         case SENSOR_CCS811_ECO2:        return sck_ccs811.stop();
+#ifdef WITH_PM
         case SENSOR_PM_1:
         case SENSOR_PM_25:
         case SENSOR_PM_10:
@@ -92,6 +106,8 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_PN_25:
         case SENSOR_PN_5:
         case SENSOR_PN_10:              return sck_pm.stop();
+#endif
+#ifdef WITH_SPS30
         case SENSOR_SPS30_PM_1:
         case SENSOR_SPS30_PM_25:
         case SENSOR_SPS30_PM_4:
@@ -102,6 +118,8 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_SPS30_PN_4:
         case SENSOR_SPS30_PN_10:
         case SENSOR_SPS30_TPSIZE:       return sck_sps30.stop(wichSensor);
+#endif
+#ifdef WITH_SEN5X
         case SENSOR_SEN5X_PM_1:
         case SENSOR_SEN5X_PM_25:
         case SENSOR_SEN5X_PM_4:
@@ -120,6 +138,8 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_SEN5X_TEMPERATURE_RAW:
         case SENSOR_SEN5X_VOCS_RAW:
         case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.stop(wichSensor);
+#endif
+#endif
         default: break;
     }
 
@@ -130,6 +150,7 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 {
     wichSensor->state = 0;
     switch(wichSensor->type) {
+#ifdef WITH_URBAN
         case SENSOR_LIGHT:                  if (sck_bh1730fvc.get())                    { wichSensor->reading = String(sck_bh1730fvc.reading);                          return; } break;
         case SENSOR_TEMPERATURE:            if (sck_sht31.getReading())                 { wichSensor->reading = String(sck_sht31.temperature);                          return; } break;
         case SENSOR_HUMIDITY:               if (sck_sht31.getReading())                 { wichSensor->reading = String(sck_sht31.humidity);                             return; } break;
@@ -147,6 +168,7 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_ALTITUDE:               if (sck_mpl3115A2.getAltitude())            { wichSensor->reading = String(sck_mpl3115A2.altitude);                         return; } break;
         case SENSOR_PRESSURE:               if (sck_mpl3115A2.getPressure())            { wichSensor->reading = String(sck_mpl3115A2.pressure);                         return; } break;
         case SENSOR_PRESSURE_TEMP:          if (sck_mpl3115A2.getTemperature())         { wichSensor->reading = String(sck_mpl3115A2.temperature);                      return; } break;
+#ifdef WITH_PM
         case SENSOR_PM_1:                   if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm1);                                     return; } break;
         case SENSOR_PM_25:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm25);                                    return; } break;
         case SENSOR_PM_10:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm10);                                    return; } break;
@@ -156,6 +178,8 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_PN_25:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn25);                                    return; } break;
         case SENSOR_PN_5:                   if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn5);                                     return; } break;
         case SENSOR_PN_10:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn10);                                    return; } break;
+#endif
+#ifdef WITH_SPS30
         case SENSOR_SPS30_PM_1:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_1p0);                   return; } break;
         case SENSOR_SPS30_PM_25:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_2p5);                   return; } break;
         case SENSOR_SPS30_PM_4:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_4p0);                   return; } break;
@@ -166,6 +190,8 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_SPS30_PN_4:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_4p0);                   return; } break;
         case SENSOR_SPS30_PN_10:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_10p0);                  return; } break;
         case SENSOR_SPS30_TPSIZE:           if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.typical_particle_size);    return; } break;
+#endif
+#ifdef WITH_SEN5X
         case SENSOR_SEN5X_PM_1:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM1p0);                                return; } break;
         case SENSOR_SEN5X_PM_25:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM2p5);                                return; } break;
         case SENSOR_SEN5X_PM_4:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM4p0);                                return; } break;
@@ -184,6 +210,8 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_SEN5X_TEMPERATURE_RAW:  if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawTemperature);                       return; } break;
         case SENSOR_SEN5X_VOCS_RAW:         if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawVoc);                               return; } break;
         case SENSOR_SEN5X_NOX_RAW:          if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawNox);                               return; } break;
+#endif
+#endif
         default: break;
     }
     wichSensor->state = -1;
@@ -192,6 +220,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 {
 
     switch (wichSensor) {
+#ifdef WITH_URBAN
         case SENSOR_NOISE_DBA:
         case SENSOR_NOISE_DBC:
         case SENSOR_NOISE_DBZ:
@@ -241,6 +270,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                 }
 
             }
+#ifdef WITH_PM
         case SENSOR_PM_1:
         case SENSOR_PM_25:
         case SENSOR_PM_10:
@@ -301,6 +331,8 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                     return "\r\n";
                 }
             }
+#endif
+#ifdef WITH_SPS30
         case SENSOR_SPS30_PM_1:
         case SENSOR_SPS30_PM_25:
         case SENSOR_SPS30_PM_4:
@@ -355,7 +387,8 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                     return "\r\n";
                 }
             }
-
+#endif
+#ifdef WITH_SEN5X
         case SENSOR_SEN5X_PM_1:
         case SENSOR_SEN5X_PM_25:
         case SENSOR_SEN5X_PM_4:
@@ -422,6 +455,8 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                 }
 
             }
+#endif
+#endif
 
         default: break;
     }
@@ -430,6 +465,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
     return false;
 }
 
+#ifdef WITH_URBAN
 // Light
 bool Sck_BH1730FVC::start()
 {
@@ -1123,6 +1159,7 @@ bool Sck_MPL3115A2::getTemperature()
     return true;
 }
 
+#ifdef WITH_PM
 // PM sensor
 bool Sck_PM::start()
 {
@@ -1417,6 +1454,7 @@ bool Sck_PM::wake()
     wakeUpTime = rtc->getEpoch();
     return true;
 }
+#endif
 
 // VOC and ECO2
 bool Sck_CCS811::start()
@@ -1530,6 +1568,7 @@ bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
     return true;
 }
 
+#ifdef WITH_SPS30
 // Sensirion SPS30 PM sensor option
 bool Sck_SPS30::start(SensorType wichSensor)
 {
@@ -1828,7 +1867,9 @@ bool Sck_SPS30::wake()
     state = SPS30_IDLE;
     return true;
 }
+#endif
 
+#ifdef WITH_SEN5X
 bool Sck_SEN5X::start(SensorType wichSensor)
 {
     // If detection already failed dont try again until next reset
@@ -2352,3 +2393,5 @@ uint8_t Sck_SEN5X::sen_CRC(uint8_t* buffer)
 
     return crc;
 }
+#endif
+#endif

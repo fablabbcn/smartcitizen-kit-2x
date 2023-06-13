@@ -1936,8 +1936,11 @@ bool Sck_SEN5X::start(SensorType wichSensor)
             }
         }
     } else {
-            if (debug) Serial.println("SEN5X: No claning date saved, cleaning now...");
-            startCleaning();
+        // We asume the SCK  has just been updated or it is new, so no need to trigger a cleaning.
+        // Just save the timestamp to do a cleaning one week from now.
+        when.time = rtc->getEpoch();
+        when.valid = true;
+        eepromLastCleaning.write(when);
     }
 
     // Call start again to just enable the corresponding metric

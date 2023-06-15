@@ -11,7 +11,11 @@ void SERCOM5_Handler() {
 #ifdef WITH_URBAN
 #ifdef WITH_SEN5X
 // SEN5X flash space to save last cleaning date
-FlashStorage(eepromLastCleaning, Sck_SEN5X::lastCleaning);
+FlashStorage(eepromSEN5xLastCleaning, Sck_SEN5X::lastCleaning);
+#endif
+#ifdef WITH_SPS30
+// SPS30 flash space to save last cleaning date
+FlashStorage(eepromSPS30LastCleaning, Sck_SPS30::lastCleaning);
 #endif
 #endif
 
@@ -355,25 +359,6 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                     base->sckOut();
                     return true;
 
-                } else if (command.startsWith("cleanint")) {
-
-                    command.replace("cleanint", "");
-                    command.trim();
-
-                    if (command.length() > 0) {
-                        uint8_t newInterval = command.toInt();
-                        sprintf(base->outBuff, "Setting clean interval to %u days...", newInterval);
-                        base->sckOut();
-                        if (!sck_sps30.setCleaningInterval(newInterval)) {
-                            base->sckOut("Error setting new interval!!");
-                        }
-                    }
-
-                    uint8_t currentInterval = sck_sps30.getCleaningInterval();
-                    sprintf(base->outBuff, "Current clean interval: %u days", currentInterval);
-                    base->sckOut();
-                    return "\r\n";
-
                 } else if (command.startsWith("doclean")) {
 
                     base->sckOut("SPS30 cleaning started, it will take 10s...");
@@ -381,8 +366,22 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                     base->sckOut("Done!!!");
                     return "\r\n";
 
+                } else if (command.startsWith("lastclean")) {
+
+                    Sck_SPS30::lastCleaning when = eepromSPS30LastCleaning.read();
+ 
+                    if (!when.valid) {
+                        base->sckOut("No valid date for last cleaning");
+
+                    } else {
+                        base->epoch2iso(when.time, base->ISOtimeBuff);
+                        sprintf(base->outBuff, "Last cleaning date: %s (UTC)", base->ISOtimeBuff);
+                        base->sckOut();
+                    }
+                    return "\r\n";
+
                 }  else if (command.startsWith("help") || command.length() == 0) {
-                    sprintf(base->outBuff, "Available commands:\r\n* debug: [0-1] Sets debug messages\r\n* doclean: Starts a cleaning\r\n* cleanint [interval in days]");
+                    sprintf(base->outBuff, "Available commands:\r\n* debug: [0-1] Sets debug messages\r\n* doclean: Starts a cleaning\r\n* lastClean\r\n");
                     base->sckOut();
                     return "\r\n";
                 }
@@ -426,7 +425,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 
                 } else if (command.startsWith("lastclean")) {
 
-                    Sck_SEN5X::lastCleaning when = eepromLastCleaning.read();
+                    Sck_SEN5X::lastCleaning when = eepromSEN5xLastCleaning.read();
  
                     if (!when.valid) {
                         base->sckOut("No valid date for last cleaning");
@@ -1607,6 +1606,28 @@ bool Sck_SPS30::start(SensorType wichSensor)
     if (debug) Serial.println("SPS30 Started OK");
     state = SPS30_IDLE;
 
+    // Check if it is time to do a cleaning
+    lastCleaning when = eepromSPS30LastCleaning.read();
+    if (when.valid) {
+        uint32_t passed = rtc->getEpoch() - when.time;
+        if (passed > ONE_WEEK_IN_SECONDS) {
+            if (debug) Serial.println("SPS30: More than a week since las cleaning, doing it...");
+            startCleaning();
+        } else {
+            if (debug) {
+                Serial.print("Last cleaning date (in epoch): ");
+                Serial.println(when.time);
+            }
+        }
+    } else {
+        // We asume the SCK  has just been updated or it is new, so no need to trigger a cleaning.
+        // Just save the timestamp to do a cleaning one week from now.
+        when.time = rtc->getEpoch();
+        when.valid = true;
+        eepromSPS30LastCleaning.write(when);
+        if (debug) Serial.println("SPS30: No valid last cleaning date found, saving it now");
+    }
+
     // Call start again to just enable the corresponding metric
     return start(wichSensor);
 }
@@ -1721,47 +1742,6 @@ bool Sck_SPS30::getReading(OneSensor* wichSensor)
 
     return false;
 }
-uint8_t Sck_SPS30::getCleaningInterval()
-{
-    uint8_t interval_days;
-    int16_t response = sps30_get_fan_auto_cleaning_interval_days(&interval_days);
-    if (response < 0) {
-        if (debug) Serial.println("SPS30: error setting cleaning interval");
-        return response;
-    }
-    return interval_days;
-}
-bool Sck_SPS30::setCleaningInterval(uint8_t interval_days)
-{
-    //  max: 30 days, 0 to disable cleaning
-    if (interval_days < 0 || interval_days > 30) return false;
-
-    int16_t response = sps30_set_fan_auto_cleaning_interval_days(interval_days);
-    if (response < 0) {
-        if (debug) Serial.println("SPS30: error setting cleaning interval");
-        return false;
-    }
-
-    if (debug) {
-        Serial.print("SPS30: new cleaning interval: ");
-        Serial.println(interval_days);
-    }
-
-    // A note from the library:
-    // * (*) Note that due to a firmware bug, the reported interval is only updated on
-    // * sensor restart/reset. If the interval was thus updated after the last reset,
-    // * the old value is still reported. Power-cycle the sensor or call sps30_reset()
-    // * first if you need the latest value.
-
-    response = sps30_reset();
-    delay(SPS30_RESET_DELAY_USEC/1000); // Wait for 100000 us
-    if (response < 0) {
-        if (debug) Serial.println("SPS30: error while resseting sensor, new cleaning interval will not be updated until a good reset");
-        return false;
-    }
-
-    return true;
-}
 bool Sck_SPS30::startCleaning()
 {
     wake();
@@ -1784,8 +1764,18 @@ bool Sck_SPS30::startCleaning()
     }
 
     // Block while the cleaning is happening (msg to the user is sent by the control funcion)
-    delay(10500);
+    uint16_t started = millis();
+    while (millis() - started < 10500) {
+        Serial.print(".");
+        delay(500);
+    }
+    if (debug) Serial.println(" done!!");
     sleep();
+
+    // Save timestamp in flash so we know when a week has passed
+    lastCleaning when;
+    when.time = rtc->getEpoch();
+    eepromSPS30LastCleaning.write(when);
 
     return true;
 }
@@ -1923,7 +1913,7 @@ bool Sck_SEN5X::start(SensorType wichSensor)
     state = SEN5X_IDLE;
 
     // Check if it is time to do a cleaning
-    lastCleaning when = eepromLastCleaning.read();
+    lastCleaning when = eepromSEN5xLastCleaning.read();
     if (when.valid) {
         uint32_t passed = rtc->getEpoch() - when.time;
         if (passed > ONE_WEEK_IN_SECONDS) {
@@ -1940,7 +1930,8 @@ bool Sck_SEN5X::start(SensorType wichSensor)
         // Just save the timestamp to do a cleaning one week from now.
         when.time = rtc->getEpoch();
         when.valid = true;
-        eepromLastCleaning.write(when);
+        eepromSEN5xLastCleaning.write(when);
+        if (debug) Serial.println("SEN5X: No valid last cleaning date found, saving it now");
     }
 
     // Call start again to just enable the corresponding metric
@@ -2106,7 +2097,7 @@ bool Sck_SEN5X::startCleaning()
     // Save timestamp in flash so we know when a week has passed
     lastCleaning when;
     when.time = rtc->getEpoch();
-    eepromLastCleaning.write(when);
+    eepromSEN5xLastCleaning.write(when);
 
     idle();
     return true;

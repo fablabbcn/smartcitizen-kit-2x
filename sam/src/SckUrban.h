@@ -291,8 +291,7 @@ class Sck_CCS811
 class Sck_SPS30
     {
         // TODO
-        // implement average option
-        // manage clean up periods
+        // implement average option and test it
 
     public:
         Sck_SPS30(RTCZero* myrtc) {
@@ -304,11 +303,11 @@ class Sck_SPS30
         bool stop(SensorType wichSensor);
         bool getReading(OneSensor* wichSensor);
         bool sleep();
-        uint8_t getCleaningInterval();
-        bool setCleaningInterval(uint8_t interval_days);
         bool startCleaning();
         bool debug = true;
         bool monitor = false;
+
+        struct lastCleaning { uint32_t time; bool valid=true; };
 
         // A struct of float to store pm readings
         struct sps30_measurement pm_readings;
@@ -328,8 +327,8 @@ class Sck_SPS30
 
         // Sensirion recommends taking a reading after 16 seconds, if the Particle Number reading is over 300#/cm3 the reading is OK, but if it is lower wait until 30 seconds and takeit again.
         // https://sensirion.com/media/documents/8600FF88/616542B5/Sensirion_PM_Sensors_Datasheet_SPS30.pdf
-        uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period
-        uint16_t concentrationThreshold = 300;
+        const uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period
+        const uint16_t concentrationThreshold = 300;
 
         RTCZero* rtc;
         bool update(SensorType wichSensor);
@@ -391,18 +390,18 @@ class Sck_SEN5X
     private:
 
         // Commands
-        uint16_t SEN5X_RESET                        = 0xD304;
-        uint16_t SEN5X_GET_PRODUCT_NAME             = 0xD014;
-        uint16_t SEN5X_GET_FIRMWARE_VERSION         = 0xD100;
-        uint16_t SEN5X_START_MEASUREMENT            = 0x0021;
-        uint16_t SEN5X_START_MEASUREMENT_RHT_GAS    = 0x0037;
-        uint16_t SEN5X_STOP_MEASUREMENT             = 0x0104;
-        uint16_t SEN5X_READ_DATA_READY              = 0x0202;
-        uint16_t SEN5X_START_FAN_CLEANING           = 0x5607;
+        const uint16_t SEN5X_RESET                        = 0xD304;
+        const uint16_t SEN5X_GET_PRODUCT_NAME             = 0xD014;
+        const uint16_t SEN5X_GET_FIRMWARE_VERSION         = 0xD100;
+        const uint16_t SEN5X_START_MEASUREMENT            = 0x0021;
+        const uint16_t SEN5X_START_MEASUREMENT_RHT_GAS    = 0x0037;
+        const uint16_t SEN5X_STOP_MEASUREMENT             = 0x0104;
+        const uint16_t SEN5X_READ_DATA_READY              = 0x0202;
+        const uint16_t SEN5X_START_FAN_CLEANING           = 0x5607;
 
-        uint16_t SEN5X_READ_VALUES                  = 0x3C4;
-        uint16_t SEN5X_READ_RAW_VALUES              = 0x3D2;
-        uint16_t SEN5X_READ_PM_VALUES               = 0x413;
+        const uint16_t SEN5X_READ_VALUES                  = 0x3C4;
+        const uint16_t SEN5X_READ_RAW_VALUES              = 0x3D2;
+        const uint16_t SEN5X_READ_PM_VALUES               = 0x413;
 
 
         enum SEN5Xmodel { SEN5X_UNKNOWN = 0, SEN50 = 0b001, SEN54 = 0b010, SEN55 = 0b100 };

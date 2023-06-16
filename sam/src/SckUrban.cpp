@@ -817,7 +817,6 @@ bool Sck_Noise::getReading(SensorType wichSensor)
     while (millis() - startPoint < 200) I2S.read();
 
     // Fill buffer with samples from I2S bus
-    int32_t source[SAMPLE_NUM];
     uint16_t bufferIndex = 0;
 
     startPoint = millis();
@@ -893,7 +892,6 @@ bool Sck_Noise::getReading(SensorType wichSensor)
 }
 bool Sck_Noise::FFT(int32_t *source)
 {
-    int16_t scaledSource[SAMPLE_NUM];
     double divider = dynamicScale(source, scaledSource);
 
     applyWindow(scaledSource, hannWindow, SAMPLE_NUM);

@@ -65,7 +65,7 @@ class Sck_BH1730FVC
         float DATA1;            // Infrared Light
     public:
         bool debug = false;
-        uint8_t address = 0x29;
+        const uint8_t address = 0x29;
         int reading;
         bool start();
         bool stop();
@@ -86,8 +86,8 @@ class Sck_SHT31
         const uint16_t SOFT_RESET = 0x30A2;
         const uint16_t SINGLE_SHOT_HIGH_REP = 0x2400;
 
-        uint32_t timeout = 100; // Time in ms to wait for a reading
-        uint8_t retrys = 3;
+        const uint32_t timeout = 100; // Time in ms to wait for a reading
+        const uint8_t retrys = 3;
         bool debug = false;
         bool update();
         bool sendComm(uint16_t comm);
@@ -107,19 +107,6 @@ class Sck_SHT31
 // Noise
 class Sck_Noise
     {
-    private:
-        bool alreadyStarted = false;
-        const double RMS_HANN = 0.61177;
-        const uint8_t FULL_SCALE_DBSPL = 120;
-        const uint8_t BIT_LENGTH = 24;
-        const double FULL_SCALE_DBFS = 20*log10(pow(2,(BIT_LENGTH)));
-        bool FFT(int32_t *source);
-        void arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab);
-        void arm_radix2_butterfly( int16_t * pSrc, int16_t fftLen, int16_t * pCoef);
-        void applyWindow(int16_t *src, const uint16_t *window, uint16_t len);
-        double dynamicScale(int32_t *source, int16_t *scaledSource);
-        void fft2db();
-
     public:
         bool debugFlag = false;
         const uint32_t sampleRate = 44100;
@@ -130,6 +117,21 @@ class Sck_Noise
         bool start();
         bool stop();
         bool getReading(SensorType wichSensor);
+
+    private:
+        bool alreadyStarted = false;
+        const double RMS_HANN = 0.61177;
+        const uint8_t FULL_SCALE_DBSPL = 120;
+        const uint8_t BIT_LENGTH = 24;
+        const double FULL_SCALE_DBFS = 20*log10(pow(2,(BIT_LENGTH)));
+        int32_t source[SAMPLE_NUM]; // 2k 
+        int16_t scaledSource[SAMPLE_NUM]; // 1k 
+        bool FFT(int32_t *source);
+        void arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab);
+        void arm_radix2_butterfly( int16_t * pSrc, int16_t fftLen, int16_t * pCoef);
+        void applyWindow(int16_t *src, const uint16_t *window, uint16_t len);
+        double dynamicScale(int32_t *source, int16_t *scaledSource);
+        void fft2db();
 
     };
 
@@ -143,7 +145,7 @@ class Sck_MPL3115A2
         Adafruit_MPL3115A2 Adafruit_mpl3115A2 = Adafruit_MPL3115A2();
 
     public:
-        uint8_t address = 0x60;
+        const uint8_t address = 0x60;
         float altitude;
         float pressure;
         float temperature;

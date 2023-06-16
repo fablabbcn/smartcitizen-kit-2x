@@ -331,14 +331,14 @@ class WaterTemp_DS18B20
 
     public:
 
-        byte deviceAddress = 0x18;
+        const byte deviceAddress = 0x18;
 
         DS2482 DS_bridge = DS2482(0);
 
         byte data[9];
         byte addr[8];
 
-        uint8_t conf =0x05;
+        const uint8_t conf =0x05;
 
         bool detected = false;
 
@@ -430,9 +430,9 @@ class Atlas
         bool tempCompensation();
         uint8_t getResponse();
 
-        uint16_t longWait = 910; //ms
-        uint16_t mediumWait = 610; //ms
-        uint16_t shortWait = 310; //ms
+        const uint16_t longWait = 910; //ms
+        const uint16_t mediumWait = 610; //ms
+        const uint16_t shortWait = 310; //ms
 
         bool detected = false;
 
@@ -444,7 +444,7 @@ class Atlas
 class Moisture
     {
     private:
-        byte deviceAddress = 0x20;
+        const byte deviceAddress = 0x20;
         I2CSoilMoistureSensor chirp = I2CSoilMoistureSensor(deviceAddress);
         bool alreadyStarted = false;
 
@@ -727,7 +727,7 @@ class Sck_BME680
         float VOCgas;
     private:
         uint32_t lastTime = 0;
-        uint32_t minTime = 1000;    // Avoid taking readings more often than this value (ms)
+        const uint32_t minTime = 1000;    // Avoid taking readings more often than this value (ms)
         bool alreadyStarted = false;
         Adafruit_BME680 bme;
     };
@@ -757,7 +757,7 @@ class Sck_ADS1X15
 #endif
 
     private:
-        float VOLTAGE = 3.3;
+        const float VOLTAGE = 3.3;
         bool started = false;
         Adafruit_ADS1115 ads = Adafruit_ADS1115(&auxWire);
 

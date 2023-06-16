@@ -807,45 +807,68 @@ bool SckBase::sendConfig()
 }
 bool SckBase::publishInfo()
 {
-	// Info file
-	if (!espInfoUpdated) ESPsend(ESPMES_GET_NETINFO, "");
-	else {
-		// Publish info to platform
+    // Info file
+    if (!espInfoUpdated) ESPsend(ESPMES_GET_NETINFO, "");
+    else {
+        // Publish info to platform
 
-		/* { */
-		/* 	"time":"2018-07-17T06:55:06Z", */
-		/* 	"hw_ver":"2.0", */
-		/* 	"id":"6C4C1AF4504E4B4B372E314AFF031619", */
-		/* 	"sam_ver":"0.3.0-ce87e64", */
-		/* 	"sam_bd":"2018-07-17T06:55:06Z", */
-		/* 	"mac":"AB:45:2D:33:98", */
-		/* 	"esp_ver":"0.3.0-ce87e64", */
-		/* 	"esp_bd":"2018-07-17T06:55:06Z" */
-		/* } */
+        /* { */
+        /* 	"time":"2018-07-17T06:55:06Z", */
+        /* 	"hw_ver":"2.0", */
+        /* 	"id":"6C4C1AF4504E4B4B372E314AFF031619", */
+        /* 	"sam_ver":"0.3.0-ce87e64", */
+        /* 	"sam_bd":"2018-07-17T06:55:06Z", */
+        /* 	"mac":"AB:45:2D:33:98", */
+        /* 	"esp_ver":"0.3.0-ce87e64", */
+        /* 	"esp_bd":"2018-07-17T06:55:06Z" */
+        /*  "rcause":"POR" */
+        /* } */
 
-		if (!st.espON) {
-			ESPcontrol(ESP_ON);
-			return false;
-		}
+        if (!st.espON) {
+            ESPcontrol(ESP_ON);
+            return false;
+        }
 
-		getUniqueID();
+        getUniqueID();
 
-		StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
-		JsonObject json = jsonBuffer.to<JsonObject>();
+        StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+        JsonObject json = jsonBuffer.to<JsonObject>();
 
-		json["time"] = ISOtimeBuff;
-		json["hw_ver"] = hardwareVer.c_str();
-		json["id"] = uniqueID_str;
-		json["sam_ver"] = SAMversion.c_str();
-		json["sam_bd"] = SAMbuildDate.c_str();
-		json["mac"] = config.mac.address;
-		json["esp_ver"] = ESPversion.c_str();
-		json["esp_bd"] = ESPbuildDate.c_str();
+json["time"] = ISOtimeBuff;
+        json["hw_ver"] = hardwareVer.c_str();
+        json["id"] = uniqueID_str;
+        json["sam_ver"] = SAMversion.c_str();
+        json["sam_bd"] = SAMbuildDate.c_str();
+        json["mac"] = config.mac.address;
+        json["esp_ver"] = ESPversion.c_str();
+        json["esp_bd"] = ESPbuildDate.c_str();
 
-		serializeJson(json, serESP.buff, NETBUFF_SIZE);
-		if (ESPsend(ESPMES_MQTT_INFO)) return true;
-	}
-	return false;
+        uint8_t resetCause = PM->RCAUSE.reg;
+        switch(resetCause){
+            case 1:
+                json["rcause"] = "POR";         // Power On Reset
+                break;
+            case 2:
+                json["rcause"] = "BOD12";       // Brown Out 12 Detector Reset
+                break;
+            case 4:
+                json["rcause"] = "BOD33";       // Brown Out 33 Detector Reset
+                break;
+            case 16:
+                json["rcause"] = "EXT";         // External Reset");
+                break;
+            case 32:
+                json["rcause"] = "WDT";         // Watchdog Reset");
+                break;
+            case 64:
+                json["rcause"] = "SYST";        // System Reset Request");
+                break;
+        }
+
+        serializeJson(json, serESP.buff, NETBUFF_SIZE);
+        if (ESPsend(ESPMES_MQTT_INFO)) return true;
+    }
+    return false;
 }
 
 // **** ESP

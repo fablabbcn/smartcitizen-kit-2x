@@ -74,8 +74,12 @@ void SckESP::update()
 		switch (currentWIFIStatus) {
 			case WL_CONNECTED:
 			{
-				ledSet(1);
-				serSAM.send(SAMMES_WIFI_CONNECTED, "");
+                // On every connection we check RSSI and send it
+                char charRSSI[8];
+                snprintf(charRSSI, 8, "%i", getRSSI());
+				
+                ledSet(1);
+                serSAM.send(SAMMES_WIFI_CONNECTED, charRSSI);
 				break;
 			}
 			case WL_CONNECT_FAILED: 
@@ -129,6 +133,17 @@ void SckESP::tryConnection()
 void SckESP::wifiOFF()
 {
     WiFi.mode(WIFI_OFF);
+}
+int32_t SckESP::getRSSI()
+{
+    const uint8_t readNum = 32;
+    int32_t myRSSI = 0;
+
+    for (uint8_t i=0; i<readNum; i++) {
+        myRSSI += WiFi.RSSI();
+    }
+
+    return myRSSI / readNum;
 }
 
 // **** Input/Output
@@ -238,11 +253,20 @@ void SckESP::SAMbusUpdate()
 
             stopAP();
             break;
+
         case ESPMES_LED_OFF:
 
             ledSet(0);
             break;
 
+        case ESPMES_GET_RSSI:
+        {
+            debugOUT("Asked for WiFi RSSI value");
+            char charRSSI[8];
+            snprintf(charRSSI, 8, "%i", getRSSI());
+            serSAM.send(SAMMES_RSSI, charRSSI);
+            break;
+        }
         default: break;
     }
 }

@@ -161,6 +161,8 @@ class SckBase
 		bool timeToPublish = false;
 		void urbanStart();
 		void updateSensors();
+        uint32_t lastRSSIUpdate = 0;
+        bool getRSSI(OneSensor* wichSensor);
 		bool netPublish();
 		bool sdPublish(); 				//  Publishes the provided group of readings to sdcard (if available)
 		LinkedList<SensorType> pendingSensorsLinkedList;

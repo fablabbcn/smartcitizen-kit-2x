@@ -38,6 +38,7 @@ enum SensorType
     SENSOR_BATT_PERCENT,
     SENSOR_BATT_VOLTAGE,
     SENSOR_SDCARD,
+    SENSOR_RSSI,
 
 #ifdef WITH_URBAN
     // Urban Sensors
@@ -291,7 +292,8 @@ class AllSensors
             // Base Sensors
             OneSensor { BOARD_BASE,     100,    SENSOR_BATT_PERCENT,            "BATT",             "Battery",                              10,     true,       false,      1,  "%"         },
             OneSensor { BOARD_BASE,     100,    SENSOR_BATT_VOLTAGE,            "BATT_VOLT",        "Battery voltage",                      0,      false,      false,      1,  "V"         },
-            OneSensor { BOARD_BASE,     100,    SENSOR_SDCARD,                  "SDCARD",           "SDcard present",                       0,      false,      false,      1,  "Present"   },
+            OneSensor { BOARD_BASE,     100,    SENSOR_SDCARD,                  "SDCARD",           "SD card",                              0,      true,       false,      1,  "Present"   },
+            OneSensor { BOARD_BASE,     100,    SENSOR_RSSI,                    "RSSI ",            "WiFi RSSI",                            0,      true,       false,      3,  "dBm"       },
 
 #ifdef WITH_URBAN
             // Urban Sensors

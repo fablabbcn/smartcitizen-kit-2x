@@ -1045,8 +1045,12 @@ void SckBase::ESPbusUpdate()
 		}
 		case SAMMES_WIFI_CONNECTED:
 
-			sckOut("Connected to wifi!!");
 			st.wifiStat.setOk();
+            sensors[SENSOR_RSSI].reading = serESP.buff;
+            lastRSSIUpdate = rtc.getEpoch();
+
+			snprintf(outBuff, 240, "Connected to wifi!!- RSSI: %s", serESP.buff);
+            sckOut();
 			if (!timeSyncAfterBoot) {
 				if (ESPsend(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
 			}
@@ -1694,11 +1698,9 @@ bool SckBase::enableSensor(SensorType wichSensor)
             {
                 switch (wichSensor) {
                     case SENSOR_BATT_VOLTAGE:
-                    case SENSOR_BATT_PERCENT:
-                        // Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
-                        result = true;
-                        break;
+                    case SENSOR_BATT_PERCENT: // Allow enabling battery even if its not present so it can be posted to platform (reading will return -1 if the batery is not present)
                     case SENSOR_SDCARD:
+                    case SENSOR_RSSI:
                         result = true;
                         break;
                     default: break;
@@ -1745,6 +1747,7 @@ bool SckBase::disableSensor(SensorType wichSensor)
                     case SENSOR_BATT_PERCENT:
                     case SENSOR_BATT_VOLTAGE:
                     case SENSOR_SDCARD:
+                    case SENSOR_RSSI:
                         result = true;
                         break;
                     default: break;
@@ -1773,18 +1776,23 @@ bool SckBase::getReading(OneSensor *wichSensor)
                     case SENSOR_BATT_PERCENT:
                         if (!battery.present) wichSensor->reading = String("-1");
                         else wichSensor->reading = String(battery.percent(&charger));
+                        wichSensor->state = 0;
                         break;
                     case SENSOR_BATT_VOLTAGE:
                         if (!battery.present) wichSensor->reading = String("-1");
                         else wichSensor->reading = String(battery.voltage());
+                        wichSensor->state = 0;
                         break;
                     case SENSOR_SDCARD:
                         if (st.cardPresent) wichSensor->reading = String("1");
                         else wichSensor->reading = String("0");
+                        wichSensor->state = 0;
+                        break;
+                    case SENSOR_RSSI:
+                        getRSSI(wichSensor);
                         break;
                     default: break;
                 }
-                wichSensor->state = 0;
                 break;
             }
         case BOARD_URBAN:
@@ -1965,6 +1973,63 @@ bool SckBase::sdPublish()
     sckOut("ERROR failed publishing to SD card");
     led.update(led.PINK, led.PULSE_ERROR);
     return false;
+}
+bool SckBase::getRSSI(OneSensor* wichSensor)
+{
+    // To be able to use monitor mode on this sensor, the ESP MUST be on and CONNECTED before issuing the monitor command
+    // We recommend the following:
+    // > shell -on
+    // > esp -on
+    // and when WiFi is connected: 
+    // > monitor rssi
+
+    // Check that the reading interval is the same as the publish interval (we don't want to turn on theESP just for this)
+    if (wichSensor->everyNint * config.readInterval != config.publishInterval) {
+        uint8_t newEveryNint = config.publishInterval / config.readInterval;
+        if (newEveryNint < 1) newEveryNint = 1;
+        wichSensor->everyNint = newEveryNint;
+        saveConfig();
+        sprintf(outBuff, "RSSI interval must be the same as publish interval!!\r\ncorrecting it to %i", config.readInterval * newEveryNint);
+        sckOut();
+    }
+
+    // If less than a publish interval has passed and ESP is not connected, the reading from the last established connection is still the valid one.
+    // We don't want to start the ESP only to check the RSSI, we update this reading only when publishing
+    uint32_t now = rtc.getEpoch();
+    if ((now - lastRSSIUpdate) < (config.publishInterval + 5) && !st.wifiStat.ok) {
+        wichSensor->state = 0;
+        return true;
+    }
+
+    wichSensor->state = -1;
+
+    // We don't want to turn on the ESP just to take a RSSI reading'
+    if (!st.espON) return false;
+
+    // Ask ESP for reading
+    serESP.send(ESPMES_GET_RSSI);
+
+    // Wait for answer
+    uint32_t started = millis();
+    while (!serESP.receive()) {
+        if (millis() - started > 1000) {
+            return false;
+        }
+    }
+ 
+    // Check if it is our answer
+    if (serESP.msg != SAMMES_RSSI) return false;
+ 
+    // Wifi.RSSI() seems to return 31 on error
+    if (strcmp("31", serESP.buff) == 0) {
+        wichSensor->reading = "null";
+        return false;
+    } 
+
+    // All seems OK
+    wichSensor->reading = serESP.buff;
+    wichSensor->state = 0;
+    return true;
 }
 
 // **** Time

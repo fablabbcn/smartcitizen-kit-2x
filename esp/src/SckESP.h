@@ -82,6 +82,7 @@ class SckESP
         int currentWIFIStatus;
         void tryConnection();
         void wifiOFF();
+        int32_t getRSSI();
 
         // Config
         ESP_Configuration config;

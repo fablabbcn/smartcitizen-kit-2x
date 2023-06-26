@@ -31,16 +31,15 @@ def blockPrint():
 def enablePrint():
     sys.stdout = sys.__stdout__
 
-
 if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv or len(sys.argv) < 2 or (not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv):
-    if not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv:
-        print('\nYou need to specify at least one action!!!\n')
-    print('USAGE:\n\nmake.py [options] action[s] target[s] -p port -f')
-    print('\noptions: -v: verbose -k: keep configuration')
-    print('actions: boot (only for sam), build, flash')
-    print('targets: sam, esp [-p port [-f]]')
-    print('-p port [-f]: specify a port instead of scanning')
-    print('-f: option ignores serial device description (must contain Smartcitizen otherwise)')
+    print('USAGE:\n\n\tpython make.py [options] action[s] target[s]')
+    print('\nOptions:') 
+    print('\t-v: verbose')
+    print('\t-k: keep configuration')
+    print('\t-p port: specify a port instead of scanning')
+    print('\t-f: force flashing even if no SCK is found, (port must be specified)')
+    print('\nActions:\n\tboot: flash SAM bootloader (Extra hardware is needed)\n\tbuild: build firmware\n\tflash: upload compiled code')
+    print('\nTargets:\n\tsam: SAMD21 chip\n\tesp: ESP8266 (WiFi) chip')
     sys.exit()
 
 verbose = False
@@ -58,7 +57,7 @@ if 'flash' in sys.argv:
     if '-p' in sys.argv:
         port = sys.argv[sys.argv.index('-p')+1]
         if '-f' in sys.argv: force = True
-    elif '-f' in sys.argv: ERROR('No force action if port is not specified'); sys.exit()
+    elif '-f' in sys.argv: ERROR('Port must be specified to force flashing'); sys.exit()
     if not kit.begin(port=port, force=force): sys.exit()
     if '-k' in sys.argv: 
         kit.getConfig()

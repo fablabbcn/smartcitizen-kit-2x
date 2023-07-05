@@ -127,6 +127,7 @@ class SckBase
 
 		// Configuration
 		void loadConfig();
+        bool createInfo(char* buffer, bool pretty=false);
 		bool publishInfo();
 		bool espInfoUpdated = false;
 		bool infoPublished = false;
@@ -179,7 +180,7 @@ class SckBase
 
 	public:
 		const String hardwareVer = "2.1";
-		const String SAMversion	= SAMverNum + "-" + String(__GIT_HASH__); 		// mayor.minor.build-gitcommit
+		const String SAMversion	= SAMverNum + "-" + String(__GIT_HASH__) + "-" + String(__GIT_BRANCH__); 		// mayor.minor.build-gitcommit-branch
 		const String SAMbuildDate = String(__ISO_DATE__);
 		String ESPversion = "not synced";
 		String ESPbuildDate = "not synced";
@@ -246,7 +247,7 @@ class SckBase
 
 		// Output
 		const char *outLevelTitles[OUT_COUNT] PROGMEM = { "Silent", "Normal", "Verbose"	};
-		char outBuff[240];
+		char outBuff[NETBUFF_SIZE];
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
 		void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
 		void prompt();

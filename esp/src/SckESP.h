@@ -122,7 +122,7 @@ class SckESP
 
 
     public:
-        const String ESPversion = ESPverNum + "-" + String(__GIT_HASH__);   // mayor.minor.build-gitcommit
+        const String ESPversion = ESPverNum + "-" + String(__GIT_HASH__) + "-" + String(__GIT_BRANCH__);   // mayor.minor.build-gitcommit-branch
         const String ESPbuildDate = String(__ISO_DATE__);
         String SAMversion = "not synced";
         String SAMbuildDate = "not synced";

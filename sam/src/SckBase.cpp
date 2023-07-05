@@ -805,67 +805,72 @@ bool SckBase::sendConfig()
 
 	return false;
 }
+bool SckBase::createInfo(char* buffer, bool pretty)
+{
+    /* { */
+    /* 	"time":"2018-07-17T06:55:06Z", */
+    /* 	"hw_ver":"2.0", */
+    /* 	"id":"6C4C1AF4504E4B4B372E314AFF031619", */
+    /* 	"sam_ver":"0.3.0-ce87e64", */
+    /* 	"sam_bd":"2018-07-17T06:55:06Z", */
+    /* 	"mac":"AB:45:2D:33:98", */
+    /* 	"esp_ver":"0.3.0-ce87e64", */
+    /* 	"esp_bd":"2018-07-17T06:55:06Z" */
+    /*  "rcause":"POR" */
+    /* } */
+
+    ISOtime();
+    getUniqueID();
+
+    StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+    JsonObject json = jsonBuffer.to<JsonObject>();
+
+    json["time"] = ISOtimeBuff;
+    json["hw_ver"] = hardwareVer.c_str();
+    json["id"] = uniqueID_str;
+    json["sam_ver"] = SAMversion.c_str();
+    json["sam_bd"] = SAMbuildDate.c_str();
+    json["mac"] = config.mac.address;
+    json["esp_ver"] = ESPversion.c_str();
+    json["esp_bd"] = ESPbuildDate.c_str();
+
+    uint8_t resetCause = PM->RCAUSE.reg;
+    switch(resetCause){
+        case 1:
+            json["rcause"] = "POR";         // Power On Reset
+            break;
+        case 2:
+            json["rcause"] = "BOD12";       // Brown Out 12 Detector Reset
+            break;
+        case 4:
+            json["rcause"] = "BOD33";       // Brown Out 33 Detector Reset
+            break;
+        case 16:
+            json["rcause"] = "EXT";         // External Reset");
+            break;
+        case 32:
+            json["rcause"] = "WDT";         // Watchdog Reset");
+            break;
+        case 64:
+            json["rcause"] = "SYST";        // System Reset Request");
+            break;
+    }
+
+    if (pretty) serializeJsonPretty(json, buffer, NETBUFF_SIZE);
+    else serializeJson(json, buffer, NETBUFF_SIZE);
+}
 bool SckBase::publishInfo()
 {
     // Info file
     if (!espInfoUpdated) ESPsend(ESPMES_GET_NETINFO, "");
     else {
-        // Publish info to platform
-
-        /* { */
-        /* 	"time":"2018-07-17T06:55:06Z", */
-        /* 	"hw_ver":"2.0", */
-        /* 	"id":"6C4C1AF4504E4B4B372E314AFF031619", */
-        /* 	"sam_ver":"0.3.0-ce87e64", */
-        /* 	"sam_bd":"2018-07-17T06:55:06Z", */
-        /* 	"mac":"AB:45:2D:33:98", */
-        /* 	"esp_ver":"0.3.0-ce87e64", */
-        /* 	"esp_bd":"2018-07-17T06:55:06Z" */
-        /*  "rcause":"POR" */
-        /* } */
 
         if (!st.espON) {
             ESPcontrol(ESP_ON);
             return false;
         }
 
-        getUniqueID();
-
-        StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
-        JsonObject json = jsonBuffer.to<JsonObject>();
-
-json["time"] = ISOtimeBuff;
-        json["hw_ver"] = hardwareVer.c_str();
-        json["id"] = uniqueID_str;
-        json["sam_ver"] = SAMversion.c_str();
-        json["sam_bd"] = SAMbuildDate.c_str();
-        json["mac"] = config.mac.address;
-        json["esp_ver"] = ESPversion.c_str();
-        json["esp_bd"] = ESPbuildDate.c_str();
-
-        uint8_t resetCause = PM->RCAUSE.reg;
-        switch(resetCause){
-            case 1:
-                json["rcause"] = "POR";         // Power On Reset
-                break;
-            case 2:
-                json["rcause"] = "BOD12";       // Brown Out 12 Detector Reset
-                break;
-            case 4:
-                json["rcause"] = "BOD33";       // Brown Out 33 Detector Reset
-                break;
-            case 16:
-                json["rcause"] = "EXT";         // External Reset");
-                break;
-            case 32:
-                json["rcause"] = "WDT";         // Watchdog Reset");
-                break;
-            case 64:
-                json["rcause"] = "SYST";        // System Reset Request");
-                break;
-        }
-
-        serializeJson(json, serESP.buff, NETBUFF_SIZE);
+        if (!createInfo(serESP.buff)) return false;
         if (ESPsend(ESPMES_MQTT_INFO)) return true;
     }
     return false;
@@ -1081,6 +1086,7 @@ void SckBase::ESPbusUpdate()
 		{
 				String strTime = String(serESP.buff);
 				setTime(strTime);
+				saveInfo();
 				break;
 		}
 		case SAMMES_MQTT_HELLO_OK:
@@ -1187,10 +1193,8 @@ bool SckBase::sdInit()
         st.cardPresent = true;
 
         // Check if there is a info file on sdcard
-        if (!sd.exists(infoFile.name)) {
-            infoSaved = false;
-            saveInfo();
-        }
+        if (!sd.exists(infoFile.name)) infoSaved = false;
+        saveInfo();
         return true;
     }
     sckOut("ERROR on Sd card Init!!!");
@@ -1229,13 +1233,14 @@ bool SckBase::saveInfo()
         if (sdSelect()) {
             if (sd.exists(infoFile.name)) sd.remove(infoFile.name);
             infoFile.file = sd.open(infoFile.name, FILE_WRITE);
-            getUniqueID();
-            sprintf(outBuff, "Hardware Version: %s\r\nSAM Hardware ID: %s\r\nSAM version: %s\r\nSAM build date: %s", hardwareVer.c_str(), uniqueID_str, SAMversion.c_str(), SAMbuildDate.c_str());
-            infoFile.file.println(outBuff);
-            sprintf(outBuff, "ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s\r\n", config.mac.address, ESPversion.c_str(), ESPbuildDate.c_str());
-            infoFile.file.println(outBuff);
+
+            if (!createInfo(outBuff, true)) return false;
+            infoFile.file.write(outBuff, strlen(outBuff));
             infoFile.file.close();
-            infoSaved = true;
+
+            // If ESP info or time are not there, save it, but again when the data is ready.
+            if (espInfoUpdated && st.timeStat.ok) infoSaved = true;
+
             sckOut("Saved INFO.TXT file!!");
             return true;
         }

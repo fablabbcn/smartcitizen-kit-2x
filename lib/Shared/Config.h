@@ -73,4 +73,5 @@ struct Configuration {
 	uint16_t sleepTimer = 30; 					// Sleep after this amount of minutes, 480 minutes max (0 to disable sleep)
 	Offline offline;
 	bool sanityResetFlag = true;
+    uint8_t ledBrightness = 100;
 };

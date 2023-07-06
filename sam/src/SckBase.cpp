@@ -51,17 +51,16 @@ void SckBase::setup()
 
 	// Flash storage
 	sckOut("Starting flash memory...");
-	led.update(led.WHITE, led.PULSE_ERROR);
 	wichGroupPublishing.group = -1;  	// No group is being published yet
 	int8_t rcode = readingsList.setup();
 	if (rcode == 1) sckOut("Found problems on flash memory, it was formated...");
 	else if (rcode == -1) {
+        led.update(led.WHITE, led.PULSE_ERROR);
 		while (true) {
 			sckOut("Error starting flash memory!!!");
 			delay(1000);
 		}
 	}
-	led.update(led.WHITE, led.PULSE_STATIC);
 
 /* #define autoTest  // Uncomment for doing Gases autotest, you also need to uncomment  TODO complete this */
 
@@ -664,6 +663,7 @@ void SckBase::loadConfig()
 	st.mode = config.mode;
 	readingsList.debug = config.debug.flash;
 	serESP.debug = config.debug.serial;
+    led.brightness = config.ledBrightness;
 
 	snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");
 	memcpy(&hostname[12], &config.mac.address[12], 2);
@@ -790,6 +790,7 @@ bool SckBase::sendConfig()
 	json["ver"] = SAMversion;
 	json["bd"] = SAMbuildDate;
 	json["sd"] = (uint8_t)config.debug.serial;
+    json["lb"] = config.ledBrightness;
 
 	if (!st.onSetup && ((st.mode == MODE_NET && st.wifiSet && st.tokenSet) || (st.mode == MODE_SD && st.wifiSet))) json["ac"] = (uint8_t)ESPMES_CONNECT;
 	else json["ac"] = (uint8_t)ESPMES_START_AP;

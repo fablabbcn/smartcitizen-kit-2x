@@ -6,22 +6,18 @@ void SckLed::setup()
     pinMode(pinGREEN, OUTPUT);
     pinMode(pinBLUE, OUTPUT);
 
-    ledColor = colors[WHITE];
-    pulseMode = PULSE_STATIC;
-    tick();
+    update(WHITE, PULSE_SOFT, true);
 }
 void SckLed::update(ColorName colorName, pulseModes pulse, bool force)
 {
-
-    if (pulse == pulseMode && colorName == ledColor.name && !force) return;
+    // If there is no changes return without doing nothig
+    if ( pulse == pulseMode && colorName == ledColor.name && !force) return;
 
     pulseMode = pulse;
-    ledColor = colors[colorName];
+    ledColor = getColor(colorName);
     disableTimer5();
 
     switch (pulseMode) {
-        case PULSE_STATIC:
-            break;
         case PULSE_WARNING:
             blinkON = true;
             configureTimer5(slowInterval);
@@ -32,60 +28,58 @@ void SckLed::update(ColorName colorName, pulseModes pulse, bool force)
             break;
         case PULSE_SOFT:
             colorIndex = 0;
-            if (colorName == RED) currentPulse = pulseRed;
-            else if (colorName == BLUE) currentPulse = pulseBlue;
-            else if (colorName == PINK) currentPulse = pulsePink;
+            diffColor = getDiff(colorName);
             configureTimer5(refreshPeriod);
+            break;
     }
 
     tick();
 }
 void SckLed::tick()
 {
+    Color pulseColor;
+    bool digitalOFF = false;
 
-    if (pulseMode == PULSE_SOFT) {
-        Color c = *(currentPulse + colorIndex);
+    switch(pulseMode) {
+        case PULSE_SOFT:
 
-        if (chargeStatus == CHARGE_CHARGING) {
-            if (colorIndex >= 0 && colorIndex <= 2) c = colors[ORANGE];
-        } else if (chargeStatus == CHARGE_FINISHED) {
-            if (colorIndex >= 0 && colorIndex <= 2) c = colors[GREEN];
-        } else if (chargeStatus == CHARGE_LOW) {
-            if (colorIndex >= 6 && colorIndex <= 8) c = colors[ORANGE];
-            else if (colorIndex >= 11 && colorIndex <= 13) c = colors[ORANGE];
-            else if (colorIndex >= 16 && colorIndex <= 18) c = colors[ORANGE];
-            else c = *(currentPulse + 24);
-        }
+            // Calculate new color
+            pulseColor.r = (uint8_t)(diffColor.r * colorIndex);
+            pulseColor.g = (uint8_t)(diffColor.g * colorIndex);
+            pulseColor.b = (uint8_t)(diffColor.b * colorIndex);
 
-        analogWrite(pinRED, 255 - c.r);
-        analogWrite(pinGREEN, 255 - c.g);
-        analogWrite(pinBLUE, 255 - c.b);
-        if (colorIndex == 24) direction = -1;
-        else if (colorIndex == 0) direction = 1;
-        colorIndex += direction;
-    } else if (pulseMode == PULSE_STATIC) {
-        analogWrite(pinRED, 255 - ledColor.r);
-        analogWrite(pinGREEN, 255 - ledColor.g);
-        analogWrite(pinBLUE, 255 - ledColor.b);
-    } else {
-        if (blinkON) {
-            analogWrite(pinRED, 255 - ledColor.r);
-            analogWrite(pinGREEN, 255 - ledColor.g);
-            analogWrite(pinBLUE, 255 - ledColor.b);
-        } else if (pulseMode == PULSE_WARNING) {
-            analogWrite(pinRED, 255 - (ledColor.r / 8));
-            analogWrite(pinGREEN, 255 - (ledColor.g / 8));
-            analogWrite(pinBLUE, 255 - (ledColor.b / 8));
-        } else {
-            pinMode(pinRED, OUTPUT);
-            pinMode(pinGREEN, OUTPUT);
-            pinMode(pinBLUE, OUTPUT);
-            digitalWrite(pinRED, 1);
-            digitalWrite(pinGREEN, 1);
-            digitalWrite(pinBLUE, 1);
-        }
-        blinkON = !blinkON;
+            // Charge indicator blink if it is the case
+            if (chargeStatus == CHARGE_CHARGING) {
+                if (colorIndex >= 0 && colorIndex <= 2) pulseColor = getColor(ORANGE);
+            } else if (chargeStatus == CHARGE_FINISHED) {
+                if (colorIndex >= 0 && colorIndex <= 2) pulseColor = getColor(GREEN);
+            } else if (chargeStatus == CHARGE_LOW) {
+                if (colorIndex >= 6 && colorIndex <= 8) pulseColor = getColor(ORANGE);
+                else if (colorIndex >= 11 && colorIndex <= 13) pulseColor = getColor(ORANGE);
+                else if (colorIndex >= 16 && colorIndex <= 18) pulseColor = getColor(ORANGE);
+                else pulseColor = multiply(ledColor, 0.05);
+            }
+
+            // Move to new index
+            if (colorIndex == 24)       direction = -1;
+            else if (colorIndex == 0)   direction = 1;
+            colorIndex += direction;
+            break;
+
+        case PULSE_WARNING:
+        case PULSE_ERROR:
+            if (blinkON) {
+                pulseColor = ledColor;
+            } else {
+                if (pulseMode == PULSE_WARNING) pulseColor = multiply(ledColor, 0.1);
+                else pulseColor = multiply(ledColor, 0);
+            }
+            blinkON = !blinkON;
+            break;
     }
+
+    // apply changes
+    show(pulseColor);
 }
 void SckLed::off()
 {
@@ -101,6 +95,37 @@ void SckLed::off()
     digitalWrite(pinRED, HIGH);
     digitalWrite(pinGREEN, HIGH);
     digitalWrite(pinBLUE, HIGH);
+}
+void SckLed::show(Color color)
+{
+    Color c;
+    c.r = (uint8_t)((color.r * brightness) / 100);
+    c.g = (uint8_t)((color.g * brightness) / 100);
+    c.b = (uint8_t)((color.b * brightness) / 100);
+
+    if (c.r == 0) {
+        pinMode(pinRED, OUTPUT);
+        digitalWrite(pinRED, HIGH);
+    } else analogWrite(pinRED,     255 - c.r);
+
+    if ( c.g == 0) {
+        pinMode(pinGREEN, OUTPUT);
+        digitalWrite(pinGREEN, HIGH);
+    } else analogWrite(pinGREEN,   255 - c.g);
+
+
+    if (c.b == 0) {
+        pinMode(pinBLUE, OUTPUT);
+        digitalWrite(pinBLUE, HIGH);
+    } else analogWrite(pinBLUE,    255 - c.b);
+}
+SckLed::Color SckLed::multiply(Color wichColor, float mult)
+{
+    Color result;
+    result.r = wichColor.r * mult;
+    result.g = wichColor.g * mult;
+    result.b = wichColor.b * mult;
+    return result;
 }
 void SckLed::configureTimer5(uint16_t periodMS)
 {

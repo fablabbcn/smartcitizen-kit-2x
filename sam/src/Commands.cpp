@@ -1164,3 +1164,18 @@ void sleep_com(SckBase* base, String parameters)
     base->sckOFF = true;
     base->goToSleep();
 }
+void led_com(SckBase* base, String parameters)
+{
+	// Set
+	if (parameters.length() > 0) {
+        parameters.replace("led", "");
+        parameters.trim();
+        uint8_t newBrightness = parameters.toInt();
+        base->led.brightness = newBrightness;
+        base->config.ledBrightness = newBrightness;
+        base->saveConfig();
+    }
+
+	sprintf(base->outBuff, "led brightness: %u", base->led.brightness);
+	base->sckOut();
+}

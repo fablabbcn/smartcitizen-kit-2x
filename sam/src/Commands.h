@@ -36,6 +36,7 @@ enum CommandType {
     COM_MQTT_CONFIG,
     COM_NTP_CONFIG,
     COM_SLEEP,
+    COM_LED,
 
     COM_COUNT
 };
@@ -67,6 +68,7 @@ void offline_com(SckBase* base, String parameters);
 void mqttConfig_com(SckBase* base, String parameters);
 void ntpConfig_com(SckBase* base, String parameters);
 void sleep_com(SckBase* base, String parameters);
+void led_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -105,9 +107,9 @@ public:
         OneCom {90,     COM_MONITOR_SENSOR, "monitor",  "Continously read sensor: monitor [-sd] [-notime] [-noms] [-oled] [sensorName[,sensorNameN]]",                                                                                                  monitorSensor_com},
         OneCom {100,    COM_DEBUG,          "debug",    "Toggle debug messages: debug [-sdcard] [-oled] [-flash] [-speed] [-serial]",                                                                                                                   debug_com},
 #else
-        OneCom {80,     COM_LIST_SENSOR,    "sensor",   "Shows/sets sensor state or interval: sensor sensor-name [-enable or -disable] [-interval interval(seconds)]",                                                                          sensorConfig_com},
-        OneCom {90,     COM_MONITOR_SENSOR, "monitor",  "Continously read sensor: monitor [-sd] [-notime] [-noms] [sensorName[,sensorNameN]]",                                                                                                  monitorSensor_com},
-        OneCom {100,    COM_DEBUG,          "debug",    "Toggle debug messages: debug [-sdcard] [-flash] [-speed] [-serial]",                                                                                                                   debug_com},
+        OneCom {80,     COM_LIST_SENSOR,    "sensor",   "Shows/sets sensor state or interval: sensor sensor-name [-enable or -disable] [-interval interval(seconds)]",                                                                                  sensorConfig_com},
+        OneCom {90,     COM_MONITOR_SENSOR, "monitor",  "Continously read sensor: monitor [-sd] [-notime] [-noms] [sensorName[,sensorNameN]]",                                                                                                          monitorSensor_com},
+        OneCom {100,    COM_DEBUG,          "debug",    "Toggle debug messages: debug [-sdcard] [-flash] [-speed] [-serial]",                                                                                                                           debug_com},
 #endif
         OneCom {90,     COM_READ_SENSOR,    "read",     "Reads sensor: read [sensorName]",                                                                                                                                                              readSensor_com},
         OneCom {90,     COM_CONTROL_SENSOR, "control",  "Control sensor: control [sensorName] [command]",                                                                                                                                               controlSensor_com},
@@ -124,7 +126,9 @@ public:
         OneCom {100,    COM_OFFLINE,        "offline",  "Configure offline periods and WiFi retry interval: [-retryint seconds] [-period start-hour end-hour (UTC 0-23)]",                                                                              offline_com},
         OneCom {100,    COM_MQTT_CONFIG,    "mqttsrv",  "Configure mqtt server address and port: [-host serverName] [-port portNum]",                                                                                                                   mqttConfig_com},
         OneCom {100,    COM_NTP_CONFIG,     "ntpsrv",   "Configure ntp server address and port: [-host serverName] [-port portNum]",                                                                                                                    ntpConfig_com},
-        OneCom {100,    COM_SLEEP,          "sleep",    "Send the kit to sleep",                                                                                                                                                                        sleep_com}
+        OneCom {100,    COM_SLEEP,          "sleep",    "Send the kit to sleep",                                                                                                                                                                        sleep_com},
+        OneCom {100,    COM_LED,            "led",      "Changes led brightness: led [percent]",                                                                                                                                                        led_com}
+
     };
 
 		OneCom & operator[](CommandType type) {

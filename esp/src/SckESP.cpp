@@ -19,6 +19,7 @@ void SckESP::setup()
     // LED outputs
     pinMode(pinLED, OUTPUT);
     digitalWrite(pinLED, LOW);
+    analogWriteRange(255);
 
 	// SAM communication
 	serSAM.begin();
@@ -158,40 +159,41 @@ void SckESP::SAMbusUpdate()
 	switch(serSAM.msg)
 	{
 		case ESPMES_SET_CONFIG:
-		{
-			StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
-			deserializeJson(jsonBuffer, serSAM.buff);
-			JsonObject json = jsonBuffer.as<JsonObject>();
-			config.credentials.set = json["cs"];
-			strcpy(config.credentials.ssid, json["ss"]);
-			strcpy(config.credentials.pass, json["pa"]);
-			config.token.set = json["ts"];
-			strcpy(config.token.token, json["to"]);
-			strcpy(config.mqtt.server, json["ms"]);
-			config.mqtt.port = json["mp"];
-			strcpy(config.ntp.server, json["ns"]);
-			config.ntp.port = json["np"];
-			SAMversion = json["ver"].as<String>();
-			SAMbuildDate = json["bd"].as<String>();
-			uint8_t action = json["ac"];
-			SCKMessage wichAction = static_cast<SCKMessage>(action);
-			config.debug_serial = json["sd"];
-			serSAM.debug = config.debug_serial;
+        {
+            StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+            deserializeJson(jsonBuffer, serSAM.buff);
+            JsonObject json = jsonBuffer.as<JsonObject>();
+            config.credentials.set = json["cs"];
+            strcpy(config.credentials.ssid, json["ss"]);
+            strcpy(config.credentials.pass, json["pa"]);
+            config.token.set = json["ts"];
+            strcpy(config.token.token, json["to"]);
+            strcpy(config.mqtt.server, json["ms"]);
+            config.mqtt.port = json["mp"];
+            strcpy(config.ntp.server, json["ns"]);
+            config.ntp.port = json["np"];
+            SAMversion = json["ver"].as<String>();
+            SAMbuildDate = json["bd"].as<String>();
+            uint8_t action = json["ac"];
+            SCKMessage wichAction = static_cast<SCKMessage>(action);
+            config.debug_serial = json["sd"];
+            serSAM.debug = config.debug_serial;
+            if (json.containsKey("lb")) config.ledBrightness = json["lb"];
 
-                // Do we need to update ESP firmware?
-                VersionInt ESPversionInt = parseVersionStr(ESPversion);
-                VersionInt SAMversionInt = parseVersionStr(SAMversion);
+            // Do we need to update ESP firmware?
+            VersionInt ESPversionInt = parseVersionStr(ESPversion);
+            VersionInt SAMversionInt = parseVersionStr(SAMversion);
 
-                if ((SAMversionInt.mayor != ESPversionInt.mayor) || (SAMversionInt.minor != ESPversionInt.minor)) updateNeeded = true;
-                else updateNeeded= false;
+            if ((SAMversionInt.mayor != ESPversionInt.mayor) || (SAMversionInt.minor != ESPversionInt.minor)) updateNeeded = true;
+            else updateNeeded= false;
 
-                saveConfig(config);
+            saveConfig(config);
 
-                if (wichAction == ESPMES_START_AP) startAP();
-                else if (wichAction == ESPMES_CONNECT) tryConnection();
+            if (wichAction == ESPMES_START_AP) startAP();
+            else if (wichAction == ESPMES_CONNECT) tryConnection();
 
-                break;
-            }
+            break;
+        }
         case ESPMES_GET_NETINFO:
 
             sendNetinfo();
@@ -806,6 +808,7 @@ bool SckESP::saveConfig()
 	json["mp"] = config.mqtt.port;
 	json["ns"] = config.ntp.server;
 	json["np"] = config.ntp.port;
+    json["lb"] = config.ledBrightness;
 		
     File configFile = SPIFFS.open(configFileName, "w");
     if (configFile) {
@@ -845,7 +848,10 @@ bool SckESP::loadConfig()
 			if (json.containsKey("ms")) strcpy(config.mqtt.server, json["ms"]);
 			if (json.containsKey("mp")) config.mqtt.port = json["mp"];
 			if (json.containsKey("ns")) strcpy(config.ntp.server, json["ms"]);
-			if (json.containsKey("np")) config.ntp.port = json["mp"];
+			if (json.containsKey("np")) config.ntp.port = json["np"];
+
+            // led brightness
+			if (json.containsKey("lb")) config.ledBrightness = json["lb"];
 		}
 		configFile.close();
 		debugOUT("Loaded configuration!!");
@@ -861,8 +867,10 @@ bool SckESP::loadConfig()
 // **** Led
 void SckESP::ledSet(uint8_t value)
 {
+    // config.ledBrightness = 10;
+    uint16_t bright = (uint16_t)(config.ledBrightness * 255.0 / 100.0);
     blink.detach();
-    if (value) analogWrite(pinLED, 820);
+    if (value) analogWrite(pinLED, 255 - bright);
     else digitalWrite(pinLED, HIGH);
 }
 void SckESP::ledBlink(float rate)
@@ -871,10 +879,12 @@ void SckESP::ledBlink(float rate)
 }
 void SckESP::_ledToggle()
 {
+    // config.ledBrightness = 10;
     ledValue = abs(ledValue - 1);
-    /* digitalWrite(pinLED, ledValue); */
-    if (ledValue) analogWrite(pinLED, 820);
-    else digitalWrite(pinLED, HIGH);
+    if (ledValue) {
+        uint16_t bright = (uint16_t)(config.ledBrightness * 255.0 / 100.0);
+        analogWrite(pinLED, 255 - bright);
+    } else digitalWrite(pinLED, HIGH);
 }
 
 // **** Time

@@ -31,6 +31,7 @@ struct ESP_Configuration {
 	Mqtt mqtt;
 	Ntp ntp;
 	bool debug_serial = true;
+    uint8_t ledBrightness = 100;
 };
 struct VersionInt { 
 	uint8_t mayor; 
@@ -69,8 +70,8 @@ class SckESP
         const uint8_t pinLED = 4;   // GPIO5
         uint8_t ledValue = 0;
         Ticker blink;
-        uint16_t LED_SLOW = 350;
-        uint16_t LED_FAST = 100;
+        const uint16_t LED_SLOW = 350;
+        const uint16_t LED_FAST = 100;
         void ledSet(uint8_t value);
         void ledBlink(float rate);
         void ledOff();

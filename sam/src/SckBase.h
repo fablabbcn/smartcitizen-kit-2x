@@ -6,12 +6,14 @@
 #include <RTCZero.h>
 #include <time.h>
 #include <SPI.h>
-#include "SdFat.h"
 #include "SAMD_pinmux_report.h"
 #include "wiring_private.h"
 #include <FlashStorage.h>
 #include <ArduinoJson.h>
 #include <LinkedList.h>
+
+#include "SdFat.h"
+#define DISABLE_CHIP_SELECT pinCS_FLASH 
 
 #include "Pins.h"
 #include "SckLed.h"
@@ -132,15 +134,6 @@ class SckBase
 		bool espInfoUpdated = false;
 		bool infoPublished = false;
 
-		// STORAGE
-		// files
-		struct SckFile {char name[16]; File file;};
-		SckFile configFile {"CONFIG.TXT"};
-		SckFile postFile {};
-		SckFile debugFile {"DEBUG.TXT"};
-		SckFile speedFile {"SPEED.CSV"};
-		SckFile infoFile {"INFO.TXT"};
-		SckFile errorFile {"ERROR.LOG"};
 		// Sd card
 		bool sdSelect();
 		volatile bool sdInitPending = false;
@@ -263,10 +256,26 @@ class SckBase
 		// Commands
 		AllCommands commands;
 
+		// STORAGE
 		// SDcard
-		SdFat sd;
+        // SdFat32 sd;      // FAT16/FAT32 support
+        SdFs sd;            // FAT16/FAT32 and exFAT support
 		bool sdDetect();
+        enum fileCom { FILECOM_LS, FILECOM_RM, FILECOM_LESS, FILECOM_ALLCSV };
+        void fileManager(fileCom command, const char* name);
+        uint16_t headerChkSum(FsFile thisFile);
+		// files
+		// struct SckFile {char name[16]; File32 file;};   // FAT16/FAT32 support
+		struct SckFile {char name[16]; FsFile file;};   // FAT16/FAT32 and exFAT support
+        FsFile freeFile;
+		SckFile configFile {"CONFIG.TXT"};
+		SckFile postFile {};
+		SckFile debugFile {"DEBUG.TXT"};
+		SckFile speedFile {"SPEED.CSV"};
+		SckFile infoFile {"INFO.TXT"};
+		SckFile errorFile {"ERROR.LOG"};
 		SckFile monitorFile {"MONITOR.CSV"};
+
 
 		// Power
 		void sck_reset();

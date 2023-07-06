@@ -37,6 +37,7 @@ enum CommandType {
     COM_NTP_CONFIG,
     COM_SLEEP,
     COM_LED,
+    COM_FILE,
 
     COM_COUNT
 };
@@ -69,6 +70,7 @@ void mqttConfig_com(SckBase* base, String parameters);
 void ntpConfig_com(SckBase* base, String parameters);
 void sleep_com(SckBase* base, String parameters);
 void led_com(SckBase* base, String parameters);
+void file_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -94,7 +96,7 @@ public:
 
     OneCom com_list[COM_COUNT] {
 
-        //  place   type            title       help                                                                    function
+        //  place       type                title       help                                                                    function
         OneCom {10,     COM_RESET,          "reset",    "Resets the SCK",                                                                                                                                                                               reset_com},
         OneCom {20,     COM_GET_VERSION,    "version",  "Shows versions and Hardware ID",                                                                                                                                                               getVersion_com},
         OneCom {30,     COM_RESET_CAUSE,    "rcause",   "Show last reset cause (debug)",                                                                                                                                                                resetCause_com},
@@ -127,7 +129,8 @@ public:
         OneCom {100,    COM_MQTT_CONFIG,    "mqttsrv",  "Configure mqtt server address and port: [-host serverName] [-port portNum]",                                                                                                                   mqttConfig_com},
         OneCom {100,    COM_NTP_CONFIG,     "ntpsrv",   "Configure ntp server address and port: [-host serverName] [-port portNum]",                                                                                                                    ntpConfig_com},
         OneCom {100,    COM_SLEEP,          "sleep",    "Send the kit to sleep",                                                                                                                                                                        sleep_com},
-        OneCom {100,    COM_LED,            "led",      "Changes led brightness: led [percent]",                                                                                                                                                        led_com}
+        OneCom {100,    COM_LED,            "led",      "Changes led brightness: led [percent]",                                                                                                                                                        led_com},
+        OneCom {100,    COM_FILE,           "file",     "SD card file operations: [-ls] [-rm filename] [-less filename] [-allcsv]",                                                                                                                     file_com}
 
     };
 

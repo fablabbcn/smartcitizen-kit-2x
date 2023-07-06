@@ -186,13 +186,13 @@ void SckBase::update()
             // Just do this every hour
             if (rtc.getEpoch() % 3600 == 0) {
                 if (sdSelect()) {
-                    debugFile.file = sd.open(debugFile.name, FILE_WRITE);
+                    debugFile.file.open(debugFile.name, FILE_WRITE);
                     if (debugFile.file) {
 
                         uint32_t debugSize = debugFile.file.size();
 
                         // If file is bigger than 50mb rename the file.
-                        if (debugSize >= 52428800) debugFile.file.rename(sd.vwd(), "DEBUG01.TXT");
+                        if (debugSize >= 52428800) debugFile.file.rename("DEBUG01.TXT");
                         debugFile.file.close();
 
                     } else {
@@ -596,7 +596,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
     // Debug output to sdcard
     if (config.debug.sdcard) {
         if (!sdSelect()) return;
-        debugFile.file = sd.open(debugFile.name, FILE_WRITE);
+        debugFile.file.open(debugFile.name, FILE_WRITE);
         if (debugFile.file) {
             ISOtime();
             debugFile.file.print(ISOtimeBuff);
@@ -609,7 +609,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
     // Append to Error log on sdcard
     if (priority == PRIO_ERROR) {
         if (!sdSelect()) return;
-        errorFile.file = sd.open(errorFile.name, FILE_WRITE);
+        errorFile.file.open(errorFile.name, FILE_WRITE);
         if (errorFile.file) {
             ISOtime();
             errorFile.file.print(ISOtimeBuff);
@@ -1189,9 +1189,27 @@ bool SckBase::sdInit()
     sdInitPending = false;
     st.cardPresentErrorPrinted = false;
 
-    if (sd.begin(pinCS_SDCARD, SPI_HALF_SPEED)) {
-        sckOut("Sd card ready to use");
+    // TODO
+    // Test this
+    // Change SPI_SPEED to SD_SCK_MHZ(50) for best performance.
+    if (sd.begin(pinCS_SDCARD, SD_SCK_MHZ(4))) {
+ 
+        // TODO organize this in another cardInfo function
+        // TODO include space left
+        uint32_t size = sd.card()->sectorCount();
+        if (size == 0) {
+            sckOut("Can't determine the card size.");
+            st.cardPresent = false;     // If we cant initialize sdcard, don't use it!
+            return false;
+        }
+
+        uint32_t sizeMB = 0.000512 * size + 0.5;
+        sprintf(outBuff, "Card size: %u MB\r\nVolume is FAT %i, Cluster size (bytes): %i", sizeMB, int(sd.vol()->fatType()), sd.vol()->bytesPerCluster());
+        sckOut();
+
         st.cardPresent = true;
+
+        sckOut("Sd card ready to use");
 
         // Check if there is a info file on sdcard
         if (!sd.exists(infoFile.name)) infoSaved = false;
@@ -1233,7 +1251,7 @@ bool SckBase::saveInfo()
     if (!infoSaved) {
         if (sdSelect()) {
             if (sd.exists(infoFile.name)) sd.remove(infoFile.name);
-            infoFile.file = sd.open(infoFile.name, FILE_WRITE);
+            infoFile.file.open(infoFile.name, FILE_WRITE);
 
             if (!createInfo(outBuff, true)) return false;
             infoFile.file.write(outBuff, strlen(outBuff));
@@ -1247,6 +1265,111 @@ bool SckBase::saveInfo()
         }
     }
     return false;
+}
+void SckBase::fileManager(fileCom command, const char* name)
+{
+    #define FBUFF_SIZE 32
+
+    switch(command)
+    {
+        case FILECOM_LS:
+            sckOut("Files found (date time size name): ");
+            sd.ls(LS_R | LS_DATE | LS_SIZE);
+            break;
+
+        case FILECOM_RM:
+            // TODO manage dirs
+            if (!sd.remove(name)) sprintf(outBuff, "ERROR deleting %s", name);
+            else sprintf(outBuff, "Deleting %s", name);
+            sckOut();
+            break;
+
+        case FILECOM_LESS:
+
+            // Open file
+            if (!freeFile.open(name, O_RDONLY)) {
+                sprintf(outBuff, "ERROR opening file %s", name);
+                sckOut();
+                break;
+            }
+ 
+            // Print file name
+            sprintf(outBuff, "\r\n%s\r\n==============", name);
+            sckOut();
+
+            // Get chunks (a lot faster!)
+            char fbuff[FBUFF_SIZE];
+            while (freeFile.available() > FBUFF_SIZE) {
+                freeFile.read(fbuff, FBUFF_SIZE);
+                Serial.write(fbuff, FBUFF_SIZE);
+            }
+
+            // Get remaining chars
+            while (freeFile.available()) Serial.write(freeFile.read());
+            freeFile.close();
+            break;
+
+        case FILECOM_ALLCSV:
+            sckOut("Showing all CSV files");
+            FsFile dir;
+ 
+            // Open root dir
+            if (!dir.open("/")) {
+                sckOut("ERROR opening directory");
+                break;
+            }
+            dir.rewindDirectory();
+
+            uint16_t prevHeadChkSum = 0;
+
+            while (freeFile.openNext(&dir, O_RDONLY)) {
+ 
+                // Check if the file is a CSV
+                char fbuff[FBUFF_SIZE];
+                freeFile.getName(fbuff, FBUFF_SIZE);
+                char * pch;
+                pch = strstr(fbuff, ".CSV");
+
+
+                if (!freeFile.isDir() && pch != NULL) {
+
+                    // Check if the header is the same as the previous one, if not print it with a blank and a separator line on top
+                    uint16_t newHeadChkSum = headerChkSum(freeFile);
+                    if (newHeadChkSum == prevHeadChkSum) {
+                        // Ignore the first 3 lines (the first one is already ignored)
+                        uint8_t nl = 0;
+                        while (nl <= 3) if (freeFile.read() == '\n') nl++;
+                    } else {
+                        freeFile.rewind();
+                        Serial.println("\n\n<<<<<----------- NEW FILE ------------>>>>>");
+                        prevHeadChkSum = newHeadChkSum;
+                    }
+ 
+                    // Get chunks (a lot faster!)
+                    while (freeFile.available() > FBUFF_SIZE) {
+                        freeFile.read(fbuff, FBUFF_SIZE);
+                        Serial.write(fbuff, FBUFF_SIZE);
+                    }
+ 
+                    // Get remaining chars
+                    while (freeFile.available()) Serial.write(freeFile.read());
+
+                }
+                freeFile.close();
+            }
+            break;
+    }
+}
+uint16_t SckBase::headerChkSum(FsFile thisFile)
+{
+    thisFile.rewind();
+    uint16_t csCalc = 0;
+    char lastChar;
+    while (lastChar != '\n') {
+        lastChar = thisFile.read();
+        csCalc ^= lastChar;
+    }
+    return csCalc;
 }
 
 // **** Power
@@ -1900,7 +2023,7 @@ bool SckBase::sdPublish()
     if (!sd.exists(postFile.name)) writeHeader = true;
     else {
         if (writeHeader) {
-            // This means actual enabled/disabled sensors are different from saved ones
+            // This means actual enabled/disabled sensors can be different from saved ones
             // So we rename original file and start a new one
             char newName[13];
             char prefix[13];
@@ -1916,7 +2039,7 @@ bool SckBase::sdPublish()
         }
     }
 
-    postFile.file = sd.open(postFile.name, FILE_WRITE);
+    postFile.file.open(postFile.name, FILE_WRITE);
 
     if (postFile.file) {
 

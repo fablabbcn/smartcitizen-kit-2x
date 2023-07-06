@@ -365,7 +365,8 @@ void monitorSensor_com(SckBase* base, String parameters)
             base->sckOut("ERROR No sd card found!!!");
             return;
         }
-        base->monitorFile.file = base->sd.open(base->monitorFile.name, FILE_WRITE);
+        // base->monitorFile.file = base->sd.open(base->monitorFile.name, FILE_WRITE);
+        base->monitorFile.file.open(base->monitorFile.name, FILE_WRITE);
     }
     if (parameters.indexOf("-notime") >=0) {
         printTime = false;
@@ -1178,4 +1179,37 @@ void led_com(SckBase* base, String parameters)
 
 	sprintf(base->outBuff, "led brightness: %u", base->led.brightness);
 	base->sckOut();
+}
+void file_com(SckBase* base, String parameters)
+{
+	if (parameters.length() > 0) {
+
+		int16_t start = parameters.indexOf("-ls");
+        if (start >= 0) {
+            base->fileManager(base->FILECOM_LS, "");
+            return;
+        }
+
+		start = parameters.indexOf("-rm");
+		if (start>= 0) {
+			String name = parameters.substring(start+4);
+            name.trim();
+            base->fileManager(base->FILECOM_RM, name.c_str());
+            return;
+		}
+
+		start = parameters.indexOf("-less");
+		if (start>= 0) {
+			String name = parameters.substring(start+6);
+            name.trim();
+            base->fileManager(base->FILECOM_LESS, name.c_str());
+            return;
+		}
+
+		start = parameters.indexOf("-allcsv");
+        if (start >= 0) {
+            base->fileManager(base->FILECOM_ALLCSV, "");
+            return;
+        }
+    }
 }

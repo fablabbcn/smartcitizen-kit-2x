@@ -135,7 +135,6 @@ class SckBase
 		bool infoPublished = false;
 
 		// Sd card
-		bool sdSelect();
 		volatile bool sdInitPending = false;
 		bool sdInit();
 		bool saveInfo();
@@ -256,25 +255,23 @@ class SckBase
 		// Commands
 		AllCommands commands;
 
-		// STORAGE
-		// SDcard
-        // SdFat32 sd;      // FAT16/FAT32 support
-        SdFs sd;            // FAT16/FAT32 and exFAT support
+		// Sd card Storage
+        FsFile sckFile;   // FAT16/FAT32 and exFAT support. For only FAT16/32 use "File32 sckFile;" (saves some flash). Also remember to change SdFs 
+        #define SD_CONFIG_NAME  "CONFIG.TXT"
+        #define SD_DEBUG_NAME   "DEBUG.TXT"
+        #define SD_SPEED_NAME   "SPEED.TXT"
+        #define SD_INFO_NAME    "INFO.TXT"
+        #define SD_ERROR_NAME   "ERROR.TXT"
+        #define SD_MONITOR_NAME "MONITOR.TXT"
+        SdFs sd;            // FAT16/FAT32 and exFAT support. For only FAT16/32 use "SdFat32 sd;" (saves some flash)
 		bool sdDetect();
         enum fileCom { FILECOM_LS, FILECOM_RM, FILECOM_LESS, FILECOM_ALLCSV };
         void fileManager(fileCom command, const char* name);
-        uint16_t headerChkSum(FsFile thisFile);
-		// files
-		// struct SckFile {char name[16]; File32 file;};   // FAT16/FAT32 support
-		struct SckFile {char name[16]; FsFile file;};   // FAT16/FAT32 and exFAT support
-        FsFile freeFile;
-		SckFile configFile {"CONFIG.TXT"};
-		SckFile postFile {};
-		SckFile debugFile {"DEBUG.TXT"};
-		SckFile speedFile {"SPEED.CSV"};
-		SckFile infoFile {"INFO.TXT"};
-		SckFile errorFile {"ERROR.LOG"};
-		SckFile monitorFile {"MONITOR.CSV"};
+        uint16_t headerChkSum(char* fileName);
+        uint16_t headerChkSum(FsFile* thisFile);
+        uint16_t RAMheaderChkSum();
+        void saveHeader(FsFile* thisFile);
+
 
 
 		// Power

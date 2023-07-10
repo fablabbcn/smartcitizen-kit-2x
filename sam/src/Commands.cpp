@@ -365,8 +365,7 @@ void monitorSensor_com(SckBase* base, String parameters)
             base->sckOut("ERROR No sd card found!!!");
             return;
         }
-        // base->monitorFile.file = base->sd.open(base->monitorFile.name, FILE_WRITE);
-        base->monitorFile.file.open(base->monitorFile.name, FILE_WRITE);
+        base->sckFile.open(SD_MONITOR_NAME, FILE_WRITE);
     }
     if (parameters.indexOf("-notime") >=0) {
         printTime = false;
@@ -430,7 +429,7 @@ void monitorSensor_com(SckBase* base, String parameters)
         if (oled && i==0) base->plot(base->sensors[sensorsToMonitor[i]].reading, base->sensors[sensorsToMonitor[i]].title, base->sensors[sensorsToMonitor[i]].unit);
 #endif
     }
-    if (sdSave) base->monitorFile.file.println(base->outBuff);
+    if (sdSave) base->sckFile.println(base->outBuff);
     base->sckOut();
 
     // Readings
@@ -497,7 +496,7 @@ void monitorSensor_com(SckBase* base, String parameters)
         // If we are missing sensors we don't print the output
         if (printit == index) {
             lastMillis = provLastMillis;
-            if (sdSave) base->monitorFile.file.println(base->outBuff);
+            if (sdSave) base->sckFile.println(base->outBuff);
             base->sckOut();
         }
     }
@@ -527,7 +526,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 #endif
     }
 
-    if (sdSave) base->monitorFile.file.close();
+    if (sdSave) base->sckFile.close();
 }
 void flash_com(SckBase* base, String parameters)
 {

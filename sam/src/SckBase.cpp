@@ -185,22 +185,20 @@ void SckBase::update()
         if (config.debug.sdcard) {
             // Just do this every hour
             if (rtc.getEpoch() % 3600 == 0) {
-                if (sdSelect()) {
-                    debugFile.file.open(debugFile.name, FILE_WRITE);
-                    if (debugFile.file) {
+                sckFile.open(SD_DEBUG_NAME, FILE_WRITE);
+                if (sckFile) {
 
-                        uint32_t debugSize = debugFile.file.size();
+                    uint32_t debugSize = sckFile.size();
 
-                        // If file is bigger than 50mb rename the file.
-                        if (debugSize >= 52428800) debugFile.file.rename("DEBUG01.TXT");
-                        debugFile.file.close();
+                    // If file is bigger than 50mb rename the file.
+                    if (debugSize >= 52428800) sckFile.rename("DEBUG01.TXT");
+                    sckFile.close();
 
-                    } else {
-                        st.cardPresent = false;
-                        st.cardPresentErrorPrinted = false;
-                    }
-
+                } else {
+                    st.cardPresent = false;
+                    st.cardPresentErrorPrinted = false;
                 }
+
             }
         }
 
@@ -468,7 +466,7 @@ void SckBase::reviewState()
         if (st.espON && !pendingSyncConfig) ESPcontrol(ESP_OFF);
 
         if (!st.cardPresent && !st.cardPresentErrorPrinted) {
-if (sdDetect()) sdInit();   // Retry sd card init
+            if (sdDetect()) sdInit();   // Retry sd card init
         }
 
         if (!st.cardPresent) {
@@ -595,27 +593,25 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
 
     // Debug output to sdcard
     if (config.debug.sdcard) {
-        if (!sdSelect()) return;
-        debugFile.file.open(debugFile.name, FILE_WRITE);
-        if (debugFile.file) {
+        sckFile.open(SD_DEBUG_NAME, FILE_WRITE);
+        if (sckFile) {
             ISOtime();
-            debugFile.file.print(ISOtimeBuff);
-            debugFile.file.print("-->");
-            debugFile.file.println(outBuff);
-            debugFile.file.close();
+            sckFile.print(ISOtimeBuff);
+            sckFile.print("-->");
+            sckFile.println(outBuff);
+            sckFile.close();
         } else st.cardPresent = false;
     }
 
     // Append to Error log on sdcard
     if (priority == PRIO_ERROR) {
-        if (!sdSelect()) return;
-        errorFile.file.open(errorFile.name, FILE_WRITE);
-        if (errorFile.file) {
+        sckFile.open(SD_ERROR_NAME, FILE_WRITE);
+        if (sckFile) {
             ISOtime();
-            errorFile.file.print(ISOtimeBuff);
-            errorFile.file.print("-->");
-            errorFile.file.println(outBuff);
-            errorFile.file.close();
+            sckFile.print(ISOtimeBuff);
+            sckFile.print("-->");
+            sckFile.println(outBuff);
+            sckFile.close();
         } else st.cardPresent = false;
     }
 
@@ -1189,13 +1185,10 @@ bool SckBase::sdInit()
     sdInitPending = false;
     st.cardPresentErrorPrinted = false;
 
-    // TODO
-    // Test this
-    // Change SPI_SPEED to SD_SCK_MHZ(50) for best performance.
-    if (sd.begin(pinCS_SDCARD, SD_SCK_MHZ(4))) {
+    // Change SPI speed to SD_SCK_MHZ(4) in case of innestability.
+    if (sd.begin(pinCS_SDCARD, SD_SCK_MHZ(50))) {
  
-        // TODO organize this in another cardInfo function
-        // TODO include space left
+        // Print some info about the card
         uint32_t size = sd.card()->sectorCount();
         if (size == 0) {
             sckOut("Can't determine the card size.");
@@ -1212,7 +1205,7 @@ bool SckBase::sdInit()
         sckOut("Sd card ready to use");
 
         // Check if there is a info file on sdcard
-        if (!sd.exists(infoFile.name)) infoSaved = false;
+        if (!sd.exists(SD_INFO_NAME)) infoSaved = false;
         saveInfo();
         return true;
     }
@@ -1232,54 +1225,44 @@ bool SckBase::sdDetect()
         sckOut("Sdcard inserted");
         sdInitPending = true;
         return true;
-    } else sckOut("No Sdcard found!!");
+    } else sckOut("Sdcard removed or not found!!");
     return false;
-}
-bool SckBase::sdSelect()
-{
-
-    if (!st.cardPresent) return false;
-
-    digitalWrite(pinCS_FLASH, HIGH);    // disables Flash
-    digitalWrite(pinCS_SDCARD, LOW);
-
-    return true;
 }
 bool SckBase::saveInfo()
 {
     // Save info to sdcard
     if (!infoSaved) {
-        if (sdSelect()) {
-            if (sd.exists(infoFile.name)) sd.remove(infoFile.name);
-            infoFile.file.open(infoFile.name, FILE_WRITE);
+        if (sd.exists(SD_INFO_NAME)) sd.remove(SD_INFO_NAME);
+        sckFile.open(SD_INFO_NAME, FILE_WRITE);
 
-            if (!createInfo(outBuff, true)) return false;
-            infoFile.file.write(outBuff, strlen(outBuff));
-            infoFile.file.close();
+        if (!createInfo(outBuff, true)) return false;
+        sckFile.write(outBuff, strlen(outBuff));
+        sckFile.close();
 
-            // If ESP info or time are not there, save it, but again when the data is ready.
-            if (espInfoUpdated && st.timeStat.ok) infoSaved = true;
+        // If ESP info or time are not there, save it, but again when the data is ready.
+        if (espInfoUpdated && st.timeStat.ok) infoSaved = true;
 
-            sckOut("Saved INFO.TXT file!!");
-            return true;
-        }
+        sckOut("Saved INFO.TXT file!!");
+        return true;
     }
     return false;
 }
 void SckBase::fileManager(fileCom command, const char* name)
 {
+    // TODO hacer un comando -wipe que deje la sd limpia
+    // TODO revisar como será el volcado de flash a sdcard cuando haya datos viejos
+
     #define FBUFF_SIZE 32
 
     switch(command)
     {
         case FILECOM_LS:
             sckOut("Files found (date time size name): ");
-            sd.ls(LS_R | LS_DATE | LS_SIZE);
+            sd.ls(LS_DATE | LS_SIZE);
             break;
 
         case FILECOM_RM:
-            // TODO manage dirs
-            if (!sd.remove(name)) sprintf(outBuff, "ERROR deleting %s", name);
+            if (!sd.remove(name)) sprintf(outBuff, "ERROR deleting %s (Directories can't be removed')", name);
             else sprintf(outBuff, "Deleting %s", name);
             sckOut();
             break;
@@ -1287,7 +1270,7 @@ void SckBase::fileManager(fileCom command, const char* name)
         case FILECOM_LESS:
 
             // Open file
-            if (!freeFile.open(name, O_RDONLY)) {
+            if (!sckFile.open(name, O_RDONLY)) {
                 sprintf(outBuff, "ERROR opening file %s", name);
                 sckOut();
                 break;
@@ -1299,14 +1282,14 @@ void SckBase::fileManager(fileCom command, const char* name)
 
             // Get chunks (a lot faster!)
             char fbuff[FBUFF_SIZE];
-            while (freeFile.available() > FBUFF_SIZE) {
-                freeFile.read(fbuff, FBUFF_SIZE);
+            while (sckFile.available() > FBUFF_SIZE) {
+                sckFile.read(fbuff, FBUFF_SIZE);
                 Serial.write(fbuff, FBUFF_SIZE);
             }
 
             // Get remaining chars
-            while (freeFile.available()) Serial.write(freeFile.read());
-            freeFile.close();
+            while (sckFile.available()) Serial.write(sckFile.read());
+            sckFile.close();
             break;
 
         case FILECOM_ALLCSV:
@@ -1322,54 +1305,125 @@ void SckBase::fileManager(fileCom command, const char* name)
 
             uint16_t prevHeadChkSum = 0;
 
-            while (freeFile.openNext(&dir, O_RDONLY)) {
+            while (sckFile.openNext(&dir, O_RDONLY)) {
  
                 // Check if the file is a CSV
                 char fbuff[FBUFF_SIZE];
-                freeFile.getName(fbuff, FBUFF_SIZE);
+                sckFile.getName(fbuff, FBUFF_SIZE);
                 char * pch;
                 pch = strstr(fbuff, ".CSV");
 
 
-                if (!freeFile.isDir() && pch != NULL) {
+                if (!sckFile.isDir() && pch != NULL) {
 
                     // Check if the header is the same as the previous one, if not print it with a blank and a separator line on top
-                    uint16_t newHeadChkSum = headerChkSum(freeFile);
+                    uint16_t newHeadChkSum = headerChkSum(&sckFile);
                     if (newHeadChkSum == prevHeadChkSum) {
                         // Ignore the first 3 lines (the first one is already ignored)
                         uint8_t nl = 0;
-                        while (nl <= 3) if (freeFile.read() == '\n') nl++;
+                        while (nl <= 3) if (sckFile.read() == '\n') nl++;
                     } else {
-                        freeFile.rewind();
+                        sckFile.rewind();
                         Serial.println("\n\n<<<<<----------- NEW FILE ------------>>>>>");
                         prevHeadChkSum = newHeadChkSum;
                     }
  
                     // Get chunks (a lot faster!)
-                    while (freeFile.available() > FBUFF_SIZE) {
-                        freeFile.read(fbuff, FBUFF_SIZE);
+                    while (sckFile.available() > FBUFF_SIZE) {
+                        sckFile.read(fbuff, FBUFF_SIZE);
                         Serial.write(fbuff, FBUFF_SIZE);
                     }
  
                     // Get remaining chars
-                    while (freeFile.available()) Serial.write(freeFile.read());
+                    while (sckFile.available()) Serial.write(sckFile.read());
 
                 }
-                freeFile.close();
+                sckFile.close();
             }
             break;
     }
 }
-uint16_t SckBase::headerChkSum(FsFile thisFile)
+uint16_t SckBase::headerChkSum(char* fileName)
 {
-    thisFile.rewind();
+    sckFile.open(fileName, O_RDONLY);
+    return headerChkSum(&sckFile);
+}
+uint16_t SckBase::headerChkSum(FsFile* thisFile)
+{
+    // Calculate checkSum
     uint16_t csCalc = 0;
-    char lastChar;
-    while (lastChar != '\n') {
-        lastChar = thisFile.read();
+    char lastChar = thisFile->read();
+    while (lastChar != '\r') {
         csCalc ^= lastChar;
+        lastChar = thisFile->read();
     }
     return csCalc;
+}
+uint16_t SckBase::RAMheaderChkSum()
+{
+    // Store header in outBuff
+    uint16_t buffIdx = sprintf(outBuff, "TIME");
+    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        SensorType wichSensor = sensors.sensorsPriorized(i);
+        if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
+            buffIdx += sprintf(&outBuff[buffIdx], ",%s", sensors[wichSensor].shortTitle);
+        }
+    }
+ 
+    // Calc checkSum
+    uint16_t csCalc = 0;
+    for (uint16_t i=0; i<buffIdx; i++){
+        csCalc ^= outBuff[i];
+    }
+
+    return csCalc;
+}
+void SckBase::saveHeader(FsFile* thisFile)
+{
+    // Short title line
+    Serial.println(thisFile->print("TIME"));
+    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        SensorType wichSensor = sensors.sensorsPriorized(i);
+        if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
+            thisFile->print(",");
+            thisFile->print(sensors[wichSensor].shortTitle);
+        }
+    }
+
+    // Unit line
+    thisFile->println("");
+    thisFile->print("ISO 8601");
+    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        SensorType wichSensor = sensors.sensorsPriorized(i);
+        if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
+            thisFile->print(",");
+            if (String(sensors[wichSensor].unit).length() > 0) {
+                thisFile->print(sensors[wichSensor].unit);
+            }
+        }
+    }
+
+    // Title line
+    thisFile->println("");
+    thisFile->print("Time");
+    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        SensorType wichSensor = sensors.sensorsPriorized(i);
+        if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
+            thisFile->print(",");
+            thisFile->print(sensors[wichSensor].title);
+        }
+    }
+
+    // Platform id line
+    thisFile->println("");
+    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        SensorType wichSensor = sensors.sensorsPriorized(i);
+        if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
+            thisFile->print(",");
+            thisFile->print(sensors[wichSensor].id);
+        }
+    }
+    thisFile->println("");
 }
 
 // **** Power
@@ -1604,7 +1658,6 @@ void SckBase::updateDynamic(uint32_t now)
 
     // Debug speed readings to sdcard
     if (config.debug.speed) {
-        if (!sdSelect()) return;
         speedFile.file = sd.open(speedFile.name, FILE_WRITE);
         if (speedFile.file) {
             ISOtime();
@@ -2017,91 +2070,54 @@ bool SckBase::netPublish()
 }
 bool SckBase::sdPublish()
 {
-    if (!sdSelect()) return false;
+    // Create the name with YY-MM-DD.CSV
+    char postfileName[32];
+    sprintf(postfileName, "%02d-%02d-%02d.CSV", rtc.getYear(), rtc.getMonth(), rtc.getDay());
 
-    sprintf(postFile.name, "%02d-%02d-%02d.CSV", rtc.getYear(), rtc.getMonth(), rtc.getDay());
-    if (!sd.exists(postFile.name)) writeHeader = true;
-    else {
-        if (writeHeader) {
-            // This means actual enabled/disabled sensors can be different from saved ones
-            // So we rename original file and start a new one
-            char newName[13];
-            char prefix[13];
-            sprintf(prefix, "%02d-%02d-%02d.", rtc.getYear(), rtc.getMonth(), rtc.getDay());
-            bool fileExists = true;
-            uint16_t fileNumber = 1;
-            while (fileExists) {
-                sprintf(newName, "%s%02u", prefix, fileNumber);
-                fileNumber++;
-                if (!sd.exists(newName)) fileExists = false;
-            }
-            sd.rename(postFile.name, newName);
+    bool exist = sd.exists(postfileName);
+
+    // If the file has a different set of sensors, we need to create a new file, so rename existing one.
+    if (exist && headerChkSum(postfileName) != RAMheaderChkSum()) {
+
+        // Rename file as YY-MM-DD_NN.CSV, NN will start in 01 and grow if needed
+        char newName[16];
+        bool fileExists = true;
+        uint8_t fileNumber = 1;
+        while (fileExists) {
+            sprintf(newName, "%02d-%02d-%02d_%02u.CSV", rtc.getYear(), rtc.getMonth(), rtc.getDay() , fileNumber);
+            fileNumber++;
+            if (!sd.exists(newName)) fileExists = false;
         }
-    }
+        sprintf(outBuff, "Sensor config changed, renaming old csv file to %s", newName);
+        sckOut();
+        sd.rename(postfileName, newName);
+  
+        // We need to write header since we are going to start a new file
+        exist = false;
+    } 
 
-    postFile.file.open(postFile.name, FILE_WRITE);
-
-    if (postFile.file) {
-
-        // Write headers
-        if (writeHeader) {
-            postFile.file.print("TIME");
-            for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-                SensorType wichSensor = sensors.sensorsPriorized(i);
-                if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
-                    postFile.file.print(",");
-                    postFile.file.print(sensors[wichSensor].shortTitle);
-                }
-            }
-            postFile.file.println("");
-            postFile.file.print("ISO 8601");
-            for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-                SensorType wichSensor = sensors.sensorsPriorized(i);
-                if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
-                    postFile.file.print(",");
-                    if (String(sensors[wichSensor].unit).length() > 0) {
-                        postFile.file.print(sensors[wichSensor].unit);
-                    }
-                }
-            }
-            postFile.file.println("");
-            postFile.file.print("Time");
-            for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-                SensorType wichSensor = sensors.sensorsPriorized(i);
-                if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
-                    postFile.file.print(",");
-                    postFile.file.print(sensors[wichSensor].title);
-                }
-            }
-            postFile.file.println("");
-            for (uint8_t i=0; i<SENSOR_COUNT; i++) {
-                SensorType wichSensor = sensors.sensorsPriorized(i);
-                if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
-                    postFile.file.print(",");
-                    postFile.file.print(sensors[wichSensor].id);
-                }
-            }
-            postFile.file.println("");
-            writeHeader = false;
-        }
-
-        postFile.file.print(readingsList.flashBuff);
-        postFile.file.close();
-
-        if (st.mode == MODE_SD) {
-            timeToPublish = false;
-            lastPublishTime = rtc.getEpoch();
-        }
-        return true;
-
-    } else  {
+    // Try to open file
+    if (!sckFile.open(postfileName, FILE_WRITE)) {
         st.cardPresent = false;
         st.cardPresentErrorPrinted = false;
+        sckOut("ERROR failed publishing to SD card");
+        led.update(led.PINK, led.PULSE_ERROR);
+        return false;
     }
 
-    sckOut("ERROR failed publishing to SD card");
-    led.update(led.PINK, led.PULSE_ERROR);
-    return false;
+    // If file didn't existed  or was renamed we need to save the header
+    if (!exist) saveHeader(&sckFile);
+
+    // Save readings and close the file
+    sckFile.print(readingsList.flashBuff);
+    sckFile.close();
+
+    // Update state
+    if (st.mode == MODE_SD) {
+        timeToPublish = false;
+        lastPublishTime = rtc.getEpoch();
+    }
+    return true;
 }
 bool SckBase::getRSSI(OneSensor* wichSensor)
 {

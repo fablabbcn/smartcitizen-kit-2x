@@ -66,6 +66,8 @@ void SckLed::tick()
             colorIndex += direction;
             break;
 
+        case PULSE_STATIC:
+            blinkON = true;
         case PULSE_WARNING:
         case PULSE_ERROR:
             if (blinkON) {

@@ -2405,18 +2405,16 @@ uint8_t Sck_SEN5X::sen_CRC(uint8_t* buffer)
 }
 #endif
 #ifdef WITH_BME68X
-Sck_BME68X::Sck_BME68X(Adafruit_BME680 *bme, byte customAddress)
+Sck_BME68X::Sck_BME68X(byte customAddress)
 {
-    _bme =  bme;
     address = customAddress;
 }
 bool Sck_BME68X::start()
 {
-    SerialUSB.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+
     if (alreadyStarted) return true;
 
-    if (!_bme->begin(address)) {
-        Serial.println("111111111111111111111111");
+    if (!_bme.begin(address)) {
         return false;
     }
 
@@ -2431,14 +2429,14 @@ bool Sck_BME68X::stop()
 bool Sck_BME68X::getReading()
 {
     if (millis() - lastTime > minTime) {
-        if (!_bme->performReading()) return false;
+        if (!_bme.performReading()) return false;
         lastTime = millis();
     }
 
-    temperature = _bme->temperature;
-    humidity = _bme->humidity;
-    pressure = _bme->pressure / 1000;  // Converted to kPa
-    VOCgas = _bme->gas_resistance;
+    temperature = _bme.temperature;
+    humidity = _bme.humidity;
+    pressure = _bme.pressure / 1000;  // Converted to kPa
+    VOCgas = _bme.gas_resistance;
 
     return true;
 }

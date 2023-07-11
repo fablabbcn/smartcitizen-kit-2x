@@ -452,7 +452,7 @@ class Sck_BME68X
     {
     public:
         // Conntructor
-        Sck_BME68X(Adafruit_BME680 *bme, byte customAddress=0x76);
+        Sck_BME68X(byte customAddress=0x76);
 
         byte address;
         bool start();
@@ -464,11 +464,10 @@ class Sck_BME68X
         float pressure;
         float VOCgas;
     private:
-        TwoWire *_Wire;
+        Adafruit_BME680 _bme = Adafruit_BME680(&Wire);
         uint32_t lastTime = 0;
         const uint32_t minTime = 1000;    // Avoid taking readings more often than this value (ms)
         bool alreadyStarted = false;
-        Adafruit_BME680 *_bme;
     };
 #endif
 #endif
@@ -521,8 +520,7 @@ class SckUrban
 #endif
 #ifdef WITH_BME68X
         // BME68X, Temperature, Humidity, Barometric Pressure, Gases
-        Adafruit_BME680 bme = Adafruit_BME680(&Wire);
-        Sck_BME68X sck_bme68x = Sck_BME68X(&bme);
+        Sck_BME68X sck_bme68x = Sck_BME68X();
 #endif
 #endif
     };

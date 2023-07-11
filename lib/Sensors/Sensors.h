@@ -99,8 +99,14 @@ enum SensorType
     SENSOR_SEN5X_VOCS_RAW,
     SENSOR_SEN5X_NOX_RAW,
 #endif
+#ifdef WITH_BME68X
+    SENSOR_BME68X_TEMPERATURE,
+    SENSOR_BME68X_HUMIDITY,
+    SENSOR_BME68X_PRESSURE,
+    SENSOR_BME68X_VOCS,
 #endif
 
+#endif
 #ifdef WITH_GASES_BOARD
     // I2C Auxiliary Sensors
     SENSOR_GASESBOARD_SLOT_1A,
@@ -182,13 +188,6 @@ enum SensorType
 #ifdef WTIH_RANGE
     SENSOR_RANGE_LIGHT,
     SENSOR_RANGE_DISTANCE,
-#endif
-
-#ifdef WITH_BME680
-    SENSOR_BME680_TEMPERATURE,
-    SENSOR_BME680_HUMIDITY,
-    SENSOR_BME680_PRESSURE,
-    SENSOR_BME680_VOCS,
 #endif
 
 #ifdef WITH_GPS
@@ -355,8 +354,14 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_VOCS_RAW,          "SEN5X_VOCS_RAW",   "SEN5X Vocs Raw",                       207,    true,       true,       5,              },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_NOX_RAW,           "SEN5X_NOX_RAW",    "SEN5X NOx Raw",                        208,    true,       true,       5,              },
 #endif
+#ifdef WITH_BME68X
+            OneSensor { BOARD_URBAN,      0,      SENSOR_BME68X_TEMPERATURE,      "BME68X_TEMP",      "Temperature BME680",                   0,      true,       false,      1,  "C"         },
+            OneSensor { BOARD_URBAN,      0,      SENSOR_BME68X_HUMIDITY,         "BME68X_HUM",       "Humidity BME680",                      0,      true,       false,      1,  "%"         },
+            OneSensor { BOARD_URBAN,      100,    SENSOR_BME68X_PRESSURE,         "BME68X_PRESS",     "Barometric pressure BME680",           0,      true,       false,      1,  "kPa"       },
+            OneSensor { BOARD_URBAN,      100,    SENSOR_BME68X_VOCS,             "BME68X_VOCS",      "VOC Gas BME680",                       0,      true,       false,      1,  "Ohms"      },
 #endif
 
+#endif
             // I2C Auxiliary Sensors
 #ifdef WITH_GASES_BOARD
             // SCK Gases Board for Alphasense (3 Gas sensor Slots, + SHT31 Temp-Humidity)
@@ -446,12 +451,6 @@ class AllSensors
             OneSensor { BOARD_AUX,      100,    SENSOR_RANGE_DISTANCE,          "EXT_RANGE_DIST",   "Ext Range Distance",                   98,     true,       false,      1,  "mm"        },
 #endif
 
-#ifdef WITH_BME680
-            OneSensor { BOARD_AUX,      0,      SENSOR_BME680_TEMPERATURE,      "BME680_TEMP",      "Temperature BME680",                   0,      true,       false,      1,  "C"         },
-            OneSensor { BOARD_AUX,      0,      SENSOR_BME680_HUMIDITY,         "BME680_HUM",       "Humidity BME680",                      0,      true,       false,      1,  "%"         },
-            OneSensor { BOARD_AUX,      100,    SENSOR_BME680_PRESSURE,         "BME680_PRESS",     "Barometric pressure BME680",           0,      true,       false,      1,  "kPa"       },
-            OneSensor { BOARD_AUX,      100,    SENSOR_BME680_VOCS,             "BME680_VOCS",      "VOC Gas BME680",                       0,      true,       false,      1,  "Ohms"      },
-#endif
 
 #ifdef WITH_GPS
             OneSensor { BOARD_AUX,      100,    SENSOR_GPS_FIX_QUALITY,         "GPS_FIX",          "GPS Fix Quality",                      128,    true,       false,      1,              },

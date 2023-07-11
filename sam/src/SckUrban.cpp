@@ -78,6 +78,12 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_SEN5X_VOCS_RAW:
         case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.start(wichSensor);
 #endif
+#ifdef WITH_BME68X
+        case SENSOR_BME68X_TEMPERATURE:
+        case SENSOR_BME68X_HUMIDITY:
+        case SENSOR_BME68X_PRESSURE:
+        case SENSOR_BME68X_VOCS:        return sck_bme68x.start();
+#endif
 #endif
         default: break;
     }
@@ -142,6 +148,12 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_SEN5X_TEMPERATURE_RAW:
         case SENSOR_SEN5X_VOCS_RAW:
         case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.stop(wichSensor);
+#endif
+#ifdef WITH_BME68X
+        case SENSOR_BME68X_TEMPERATURE:
+        case SENSOR_BME68X_HUMIDITY:
+        case SENSOR_BME68X_PRESSURE:
+        case SENSOR_BME68X_VOCS:        return sck_bme68x.stop();
 #endif
 #endif
         default: break;
@@ -214,6 +226,12 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_SEN5X_TEMPERATURE_RAW:  if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawTemperature);                       return; } break;
         case SENSOR_SEN5X_VOCS_RAW:         if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawVoc);                               return; } break;
         case SENSOR_SEN5X_NOX_RAW:          if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawNox);                               return; } break;
+#endif
+#ifdef WITH_BME68X
+        case SENSOR_BME68X_TEMPERATURE:     if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.temperature);                         return; } break;
+        case SENSOR_BME68X_HUMIDITY:        if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.humidity);                            return; } break;
+        case SENSOR_BME68X_PRESSURE:        if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.pressure);                            return; } break;
+        case SENSOR_BME68X_VOCS:            if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.VOCgas);                              return; } break;
 #endif
 #endif
         default: break;
@@ -2384,6 +2402,45 @@ uint8_t Sck_SEN5X::sen_CRC(uint8_t* buffer)
     }
 
     return crc;
+}
+#endif
+#ifdef WITH_BME68X
+Sck_BME68X::Sck_BME68X(Adafruit_BME680 *bme, byte customAddress)
+{
+    _bme =  bme;
+    address = customAddress;
+}
+bool Sck_BME68X::start()
+{
+    SerialUSB.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    if (alreadyStarted) return true;
+
+    if (!_bme->begin(address)) {
+        Serial.println("111111111111111111111111");
+        return false;
+    }
+
+    alreadyStarted = true;
+    return true;
+}
+bool Sck_BME68X::stop()
+{
+    alreadyStarted = false;
+    return true;
+}
+bool Sck_BME68X::getReading()
+{
+    if (millis() - lastTime > minTime) {
+        if (!_bme->performReading()) return false;
+        lastTime = millis();
+    }
+
+    temperature = _bme->temperature;
+    humidity = _bme->humidity;
+    pressure = _bme->pressure / 1000;  // Converted to kPa
+    VOCgas = _bme->gas_resistance;
+
+    return true;
 }
 #endif
 #endif

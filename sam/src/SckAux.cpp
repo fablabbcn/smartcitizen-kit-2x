@@ -40,9 +40,6 @@ Sck_SHT31           sht35       = Sck_SHT31(&auxWire, 0x45);
 #ifdef WTIH_RANGE
 Sck_Range           range;
 #endif
-#ifdef WITH_BME680
-Sck_BME680          bme680;
-#endif
 #ifdef WITH_GPS
 Sck_GPS             gps;
 PM_Grove_GPS        pmGroveGps;
@@ -161,12 +158,6 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 #ifdef WTIH_RANGE
         case SENSOR_RANGE_DISTANCE:
         case SENSOR_RANGE_LIGHT:                    return range.start();
-#endif
-#ifdef WITH_BME680
-        case SENSOR_BME680_TEMPERATURE:
-        case SENSOR_BME680_HUMIDITY:
-        case SENSOR_BME680_PRESSURE:
-        case SENSOR_BME680_VOCS:                    return bme680.start();
 #endif
 #ifdef WITH_GPS
         case SENSOR_GPS_FIX_QUALITY:
@@ -287,12 +278,6 @@ bool AuxBoards::stop(SensorType wichSensor)
 #ifdef WTIH_RANGE
         case SENSOR_RANGE_DISTANCE:
         case SENSOR_RANGE_LIGHT:                    return range.stop();
-#endif
-#ifdef WITH_BME680
-        case SENSOR_BME680_TEMPERATURE:
-        case SENSOR_BME680_HUMIDITY:
-        case SENSOR_BME680_PRESSURE:
-        case SENSOR_BME680_VOCS:                    return bme680.stop();
 #endif
 #ifdef WITH_GPS
         case SENSOR_GPS_FIX_QUALITY:
@@ -415,12 +400,6 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
 #ifdef WTIH_RANGE
         case SENSOR_RANGE_DISTANCE:                 if (range.getReading(SENSOR_RANGE_DISTANCE))    { wichSensor->reading = String(range.readingDistance); return; } break;
         case SENSOR_RANGE_LIGHT:                    if (range.getReading(SENSOR_RANGE_LIGHT))   { wichSensor->reading = String(range.readingLight); return; } break;
-#endif
-#ifdef WITH_BME680
-        case SENSOR_BME680_TEMPERATURE:             if (bme680.getReading())            { wichSensor->reading = String(bme680.temperature); return; } break;
-        case SENSOR_BME680_HUMIDITY:                if (bme680.getReading())            { wichSensor->reading = String(bme680.humidity); return; } break;
-        case SENSOR_BME680_PRESSURE:                if (bme680.getReading())            { wichSensor->reading = String(bme680.pressure); return; } break;
-        case SENSOR_BME680_VOCS:                    if (bme680.getReading())            { wichSensor->reading = String(bme680.VOCgas); return; } break;
 #endif
 #ifdef WITH_GPS
         case SENSOR_GPS_FIX_QUALITY:                if (gps.getReading(base, SENSOR_GPS_FIX_QUALITY))   { wichSensor->reading = String(gps.r.fixQuality); return; } break;
@@ -2420,37 +2399,6 @@ bool Sck_Range::getReading(SensorType wichSensor)
         default:
             return false;
     }
-    return true;
-}
-#endif
-
-#ifdef WITH_BME680
-bool Sck_BME680::start()
-{
-    if (alreadyStarted) return true;
-
-    if (!bme.begin(deviceAddress)) return false;
-
-    alreadyStarted = true;
-    return true;
-}
-bool Sck_BME680::stop()
-{
-    alreadyStarted = false;
-    return true;
-}
-bool Sck_BME680::getReading()
-{
-    if (millis() - lastTime > minTime) {
-        if (!bme.performReading()) return false;
-        lastTime = millis();
-    }
-
-    temperature = bme.temperature;
-    humidity = bme.humidity;
-    pressure = bme.pressure / 1000;  // Converted to kPa
-    VOCgas = bme.gas_resistance;
-
     return true;
 }
 #endif

@@ -17,6 +17,11 @@
 // https://github.com/Sensirion/arduino-sps
 #include <sps30.h>
 #endif
+
+#ifdef WITH_BME68X
+// Adafruit BME608 library
+#include <Adafruit_BME680.h>
+#endif
 #endif
 
 // Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
@@ -25,8 +30,9 @@
 // * Light - BH1730FVC -> (0x29)
 // * Temperature and Humidity - SHT31 -> (0x44)
 // * Noise  - Invensense ICS43432 I2S microphone;microphone:
-// * Barometric pressure - MPL3115 -> (0x60)
-// * VOC and ECO2 - CCS811 -> (0x5a)
+// 2.2 DEPRECATED (MOVE TO AUX) -> * Barometric pressure - MPL3115 -> (0x60)
+// 2.2 DEPRECATED (MOVE TO AUX) -> * VOC and ECO2 - CCS811 -> (0x5a)
+// * Barometric Pressure, Temperature, Humidity and Gas - BME688 -> (0x0x76 or 0x77)
 
 class SckBase;
 
@@ -441,6 +447,30 @@ class Sck_SEN5X
         bool sen_readRawValues();
     };
 #endif
+#ifdef WITH_BME68X
+class Sck_BME68X
+    {
+    public:
+        // Conntructor
+        Sck_BME68X(Adafruit_BME680 *bme, byte customAddress=0x76);
+
+        byte address;
+        bool start();
+        bool stop();
+        bool getReading();
+
+        float temperature;
+        float humidity;
+        float pressure;
+        float VOCgas;
+    private:
+        TwoWire *_Wire;
+        uint32_t lastTime = 0;
+        const uint32_t minTime = 1000;    // Avoid taking readings more often than this value (ms)
+        bool alreadyStarted = false;
+        Adafruit_BME680 *_bme;
+    };
+#endif
 #endif
 
 class SckUrban
@@ -488,6 +518,11 @@ class SckUrban
 #ifdef WITH_SEN5X
         // SEN5X PM, [temp, hum, vocs, nox] sensor
         Sck_SEN5X sck_sen5x = Sck_SEN5X(rtc);
+#endif
+#ifdef WITH_BME68X
+        // BME68X, Temperature, Humidity, Barometric Pressure, Gases
+        Adafruit_BME680 bme = Adafruit_BME680(&Wire);
+        Sck_BME68X sck_bme68x = Sck_BME68X(&bme);
 #endif
 #endif
     };

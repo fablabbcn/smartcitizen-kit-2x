@@ -46,11 +46,6 @@
 #include <SparkFun_VL6180X.h>
 #endif
 
-#ifdef WITH_BME680
-// Adafruit BME608 library
-#include <Adafruit_BME680.h>
-#endif
-
 #ifdef WITH_GPS
 // Library for GPS data parsing
 #include "TinyGPS++.h"
@@ -188,11 +183,6 @@ class AuxBoards
         //
         // 0x29,           // SENSOR_RANGE_LIGHT,
         // 0x29,           // SENSOR_RANGE_DISTANCE,
-        //
-        // 0x77,           // SENSOR_BME680_TEMPERATURE,
-        // 0x77,           // SENSOR_BME680_HUMIDITY,
-        // 0x77,           // SENSOR_BME680_PRESSURE,
-        // 0x77,           // SENSOR_BME680_VOCS,
         //
         // 0x02,           // SENSOR_GPS_* Grove Gps (on PM board)
         // 0x10,           // SENSOR_GPS_* XA111 Gps
@@ -709,27 +699,6 @@ class Sck_Range
 
         bool alreadyStarted = false;
         VL6180x vl6180x = VL6180x(deviceAddress);
-    };
-#endif
-
-#ifdef WITH_BME680
-class Sck_BME680
-    {
-    public:
-        const byte deviceAddress = 0x77;
-        bool start();
-        bool stop();
-        bool getReading();
-
-        float temperature;
-        float humidity;
-        float pressure;
-        float VOCgas;
-    private:
-        uint32_t lastTime = 0;
-        const uint32_t minTime = 1000;    // Avoid taking readings more often than this value (ms)
-        bool alreadyStarted = false;
-        Adafruit_BME680 bme;
     };
 #endif
 

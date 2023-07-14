@@ -1441,6 +1441,9 @@ void SckBase::sck_reset()
             eepromConfig.write(config);
         }
     }
+    if (I2Cdetect(&Wire, urban.sck_sen5x.address)) {
+        urban.sck_sen5x.vocStateToEeprom();
+    }
 #endif
 
     sckOut("Bye!!");

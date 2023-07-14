@@ -394,23 +394,29 @@ class Sck_SEN5X
         uint16_t rawNox;
 
         struct lastCleaning { uint32_t time; bool valid=true; };
+        struct VOCstateStruct { uint8_t state[12]; bool valid=true; };
+
+        # define SEN5X_VOC_STATE_BUFFER_SIZE 12
+        uint8_t VOCstate[SEN5X_VOC_STATE_BUFFER_SIZE];
+        bool vocStateToEeprom();
 
     private:
 
         // Commands
-        const uint16_t SEN5X_RESET                        = 0xD304;
-        const uint16_t SEN5X_GET_PRODUCT_NAME             = 0xD014;
-        const uint16_t SEN5X_GET_FIRMWARE_VERSION         = 0xD100;
-        const uint16_t SEN5X_START_MEASUREMENT            = 0x0021;
-        const uint16_t SEN5X_START_MEASUREMENT_RHT_GAS    = 0x0037;
-        const uint16_t SEN5X_STOP_MEASUREMENT             = 0x0104;
-        const uint16_t SEN5X_READ_DATA_READY              = 0x0202;
-        const uint16_t SEN5X_START_FAN_CLEANING           = 0x5607;
+        #define SEN5X_RESET                        0xD304
+        #define SEN5X_GET_PRODUCT_NAME             0xD014
+        #define SEN5X_GET_FIRMWARE_VERSION         0xD100
+        #define SEN5X_START_MEASUREMENT            0x0021
+        #define SEN5X_START_MEASUREMENT_RHT_GAS    0x0037
+        #define SEN5X_STOP_MEASUREMENT             0x0104
+        #define SEN5X_READ_DATA_READY              0x0202
+        #define SEN5X_START_FAN_CLEANING           0x5607
+        #define SEN5X_RW_VOCS_STATE                0x6181
 
-        const uint16_t SEN5X_READ_VALUES                  = 0x3C4;
-        const uint16_t SEN5X_READ_RAW_VALUES              = 0x3D2;
-        const uint16_t SEN5X_READ_PM_VALUES               = 0x413;
-
+        #define SEN5X_READ_VALUES                  0x03C4
+        #define SEN5X_READ_RAW_VALUES              0x03D2
+        #define SEN5X_READ_PM_VALUES               0x0413
+ 
 
         enum SEN5Xmodel { SEN5X_UNKNOWN = 0, SEN50 = 0b001, SEN54 = 0b010, SEN55 = 0b100 };
         SEN5Xmodel model = SEN5X_UNKNOWN;
@@ -440,11 +446,16 @@ class Sck_SEN5X
         bool findModel();
 
         bool sen_sendCommand(uint16_t wichCommand);
+        bool sen_sendCommand(uint16_t wichCommand, uint8_t* buffer, uint8_t byteNumber=0);
         uint8_t sen_readBuffer(uint8_t* buffer, uint8_t byteNumber); // Return number of bytes received
         uint8_t sen_CRC(uint8_t* buffer);
         bool sen_readValues();
         bool sen_readPmValues();
         bool sen_readRawValues();
+
+        bool vocStateFromEeprom();
+        bool vocStateToSensor();
+        bool vocStateFromSensor();
     };
 #endif
 #ifdef WITH_BME68X

@@ -2,25 +2,25 @@
 
 // Urban PM Sensors
 #define WITH_SEN5X              // Saves 1088 bytes
-#define WITH_SPS30              // Saves 576 bytes
+// #define WITH_SPS30              // Saves 576 bytes
 #define WITH_PM                 // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
 #define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
 
 // Auxiliary Sensors (ALl this sensors use around 8kb)
 // #define WITH_SENSOR_GROVE_OLED  // Saves 2496 bytes
 // #define WITH_GASES_BOARD        // Saves 756 bytes
-#define WITH_GROVE_I2C_ADC      // Saves 244 bytes
-#define WITH_INA219             // Saves 388 bytes
-#define WITH_DS18B20            // Saves 260 bytes
-#define WITH_ATLAS              // Saves 884 bytes
-#define WITH_CHIRP              // Saves 404 bytes
-#define WITH_DALLAS_TEMP        // Saves 292 bytes
+// #define WITH_GROVE_I2C_ADC      // Saves 244 bytes
+// #define WITH_INA219             // Saves 388 bytes
+// #define WITH_DS18B20            // Saves 260 bytes
+// #define WITH_ATLAS              // Saves 884 bytes
+// #define WITH_CHIRP              // Saves 404 bytes
+// #define WITH_DALLAS_TEMP        // Saves 292 bytes
 // #define WITH_GPS                // Saves 1508 bytes
-#define WITH_RANGE              // Saves 292 bytes
-#define WITH_BME680             // Saves 644 bytes
-#define WITH_ADS1X15            // Saves 1172 bytes
-#define WITH_SCD30              // Saves 500 bytes
-#define WITH_SFA30              // Saves 468 bytes
+// #define WITH_RANGE              // Saves 292 bytes
+// #define WITH_BME68X             // Saves 644 bytes
+// #define WITH_ADS1X15            // Saves 1172 bytes
+// #define WITH_SCD30              // Saves 500 bytes
+// #define WITH_SFA30              // Saves 468 bytes
 
 #include <Arduino.h>
 
@@ -41,6 +41,7 @@ enum SensorType
     SENSOR_RSSI,
 
 #ifdef WITH_URBAN
+
     // Urban Sensors
     SENSOR_LIGHT,
     SENSOR_TEMPERATURE,
@@ -54,6 +55,7 @@ enum SensorType
     SENSOR_PRESSURE_TEMP,
     SENSOR_CCS811_VOCS,
     SENSOR_CCS811_ECO2,
+
 #ifdef WITH_PM
     SENSOR_PM_1,
     SENSOR_PM_25,
@@ -99,6 +101,7 @@ enum SensorType
     SENSOR_SEN5X_VOCS_RAW,
     SENSOR_SEN5X_NOX_RAW,
 #endif
+
 #ifdef WITH_BME68X
     SENSOR_BME68X_TEMPERATURE,
     SENSOR_BME68X_HUMIDITY,
@@ -133,6 +136,7 @@ enum SensorType
 #ifdef WITH_DS18B20
     SENSOR_WATER_TEMP_DS18B20,
 #endif
+
 #ifdef WITH_ATLAS
     SENSOR_ATLAS_TEMPERATURE,
     SENSOR_ATLAS_PH,
@@ -290,9 +294,10 @@ class AllSensors
 
             // Base Sensors
             OneSensor { BOARD_BASE,     100,    SENSOR_BATT_PERCENT,            "BATT",             "Battery",                              10,     true,       false,      1,  "%"         },
-            OneSensor { BOARD_BASE,     100,    SENSOR_BATT_VOLTAGE,            "BATT_VOLT",        "Battery voltage",                      0,      false,      false,      1,  "V"         },
-            OneSensor { BOARD_BASE,     100,    SENSOR_SDCARD,                  "SDCARD",           "SD card",                              0,      true,       false,      1,  "Present"   },
-            OneSensor { BOARD_BASE,     100,    SENSOR_RSSI,                    "RSSI ",            "WiFi RSSI",                            0,      true,       false,      3,  "dBm"       },
+            OneSensor { BOARD_BASE,     100,    SENSOR_BATT_VOLTAGE,            "BATT_VOLT",        "Battery voltage",                      222,    false,      false,      1,  "V"         },
+            OneSensor { BOARD_BASE,     100,    SENSOR_SDCARD,                  "SDCARD",           "SD card",                              221,    true,       false,      1,  "Present"   },
+            OneSensor { BOARD_BASE,     100,    SENSOR_RSSI,                    "RSSI",             "WiFi RSSI",                            220,    true,       false,      3,  "dBm"       },
+            // WIiFi count
 
 #ifdef WITH_URBAN
             // Urban Sensors
@@ -300,25 +305,26 @@ class AllSensors
             OneSensor { BOARD_URBAN,    0,      SENSOR_TEMPERATURE,             "TEMP",             "Temperature",                          55,     true,       false,      1,  "C"         },
             OneSensor { BOARD_URBAN,    0,      SENSOR_HUMIDITY,                "HUM",              "Humidity",                             56,     true,       false,      1,  "%"         },
             OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_DBA,               "NOISE_A",          "Noise dBA",                            53,     true,       true,       1,  "dBA"       },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_DBC,               "NOISE_B",          "Noise dBC",                            0,      false,      true,       1,  "dBC"       },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_DBZ,               "NOISE_Z",          "Noise dBZ",                            0,      false,      true,       1,  "dB"        },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_DBC,               "NOISE_B",          "Noise dBC",                            217,    false,      true,       1,  "dBC"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_DBZ,               "NOISE_Z",          "Noise dBZ",                            218,    false,      true,       1,  "dB"        },
             OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_FFT,               "NOISE_FFT",        "Noise FFT",                            0,      false,      true,       1,              },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_ALTITUDE,                "ALT",              "Altitude",                             0,      false,      false,      1,  "M"         },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_ALTITUDE,                "ALT",              "Altitude",                             219,    false,      false,      1,  "M"         },
             OneSensor { BOARD_URBAN,    100,    SENSOR_PRESSURE,                "PRESS",            "Barometric pressure",                  58,     true,       false,      1,  "kPa"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_PRESSURE_TEMP,           "PRESS_TEMP",       "Pressure internal temperature",        0,      false,      false,      1,  "C"         },
             OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_VOCS,             "CCS811_VOCS",      "VOC Gas CCS811",                       113,    true,       true,       1,  "ppb"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_ECO2,             "CCS811_ECO2",      "eCO2 Gas CCS811",                      112,    true,       true,       1,  "ppm"       },
 
 #ifdef WITH_PM
+        // TODO cambiar los nombres a este pm para que no se confunda con los demas
             OneSensor { BOARD_URBAN,    240,    SENSOR_PM_1,                    "PM_1",             "PM 1.0",                               89,     true,       true,       5,  "ug/m3"     },
             OneSensor { BOARD_URBAN,    240,    SENSOR_PM_25,                   "PM_25",            "PM 2.5",                               87,     true,       true,       5,  "ug/m3"     },
             OneSensor { BOARD_URBAN,    240,    SENSOR_PM_10,                   "PM_10",            "PM 10.0",                              88,     true,       true,       5,  "ug/m3"     },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_03,                   "PN_03",            "PN 0.3",                               0,      false,      true,       1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_05,                   "PN_05",            "PN 0.5",                               0,      false,      true,       1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_1,                    "PN_1",             "PN 1.0",                               0,      false,      true,       1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_25,                   "PN_25",            "PN 2.5",                               0,      false,      true,       1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_5,                    "PN_5",             "PN 5.0",                               0,      false,      true,       1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_10,                   "PN_10",            "PN 10.0",                              0,      false,      true,       1,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_03,                   "PN_03",            "PN 0.3",                               165,    false,      true,       1,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_05,                   "PN_05",            "PN 0.5",                               166,    false,      true,       1,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_1,                    "PN_1",             "PN 1.0",                               167,    false,      true,       1,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_25,                   "PN_25",            "PN 2.5",                               168,    false,      true,       1,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_5,                    "PN_5",             "PN 5.0",                               169,    false,      true,       1,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_10,                   "PN_10",            "PN 10.0",                              170,    false,      true,       1,  "#/0.1l"    },
 #endif
 
 #ifdef WITH_SPS30
@@ -354,14 +360,16 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_VOCS_RAW,          "SEN5X_VOCS_RAW",   "SEN5X Vocs Raw",                       207,    true,       true,       5,              },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_NOX_RAW,           "SEN5X_NOX_RAW",    "SEN5X NOx Raw",                        208,    true,       true,       5,              },
 #endif
+
 #ifdef WITH_BME68X
-            OneSensor { BOARD_URBAN,      0,      SENSOR_BME68X_TEMPERATURE,      "BME68X_TEMP",      "Temperature BME680",                   0,      true,       false,      1,  "C"         },
-            OneSensor { BOARD_URBAN,      0,      SENSOR_BME68X_HUMIDITY,         "BME68X_HUM",       "Humidity BME680",                      0,      true,       false,      1,  "%"         },
-            OneSensor { BOARD_URBAN,      100,    SENSOR_BME68X_PRESSURE,         "BME68X_PRESS",     "Barometric pressure BME680",           0,      true,       false,      1,  "kPa"       },
-            OneSensor { BOARD_URBAN,      100,    SENSOR_BME68X_VOCS,             "BME68X_VOCS",      "VOC Gas BME680",                       0,      true,       false,      1,  "Ohms"      },
+            OneSensor { BOARD_URBAN,    0,      SENSOR_BME68X_TEMPERATURE,      "BME68X_TEMP",      "Temperature BME680",                   0,      true,       false,      1,  "C"         },
+            OneSensor { BOARD_URBAN,    0,      SENSOR_BME68X_HUMIDITY,         "BME68X_HUM",       "Humidity BME680",                      0,      true,       false,      1,  "%"         },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_BME68X_PRESSURE,         "BME68X_PRESS",     "Barometric pressure BME680",           0,      true,       false,      1,  "kPa"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_BME68X_VOCS,             "BME68X_VOCS",      "VOC Gas BME680",                       0,      true,       false,      1,  "Ohms"      },
 #endif
 
 #endif
+
             // I2C Auxiliary Sensors
 #ifdef WITH_GASES_BOARD
             // SCK Gases Board for Alphasense (3 Gas sensor Slots, + SHT31 Temp-Humidity)
@@ -391,6 +399,7 @@ class AllSensors
 #ifdef WITH_DS18B20
             OneSensor { BOARD_AUX,      100,    SENSOR_WATER_TEMP_DS18B20,      "DS_WAT_TEMP",      "DS18B20 Water temperature",            42,     true,       false,      1,  "C"         },
 #endif
+
 #ifdef WITH_ATLAS
             OneSensor { BOARD_AUX,      100,    SENSOR_ATLAS_TEMPERATURE,       "AS_TEMP",          "Atlas Temperature",                    51,     true,       true,       1,  "C"         },
             OneSensor { BOARD_AUX,      100,    SENSOR_ATLAS_PH,                "AS_PH",            "Atlas PH",                             43,     true,       true,       1,  "pH"        },
@@ -442,15 +451,14 @@ class AllSensors
 #ifdef WITH_URBAN
             OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_TEMP,              "EXT_TEMP",         "Ext Temperature",                      79,     true,       false,      1,  "C"         },
             OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_HUM,               "EXT_HUM",          "Ext Humidity",                         80,     true,       false,      1,  "%"         },
-            OneSensor { BOARD_AUX,      0,      SENSOR_SHT35_TEMP,              "EXT_TEMP_SHT35",   "Ext SHT35 Temperature",                0,      true,       false,      1,  "C"         },
-            OneSensor { BOARD_AUX,      0,      SENSOR_SHT35_HUM,               "EXT_HUM_SHT35",    "Ext SHT35 Humidity",                   0,      true,       false,      1,  "%"         },
+            OneSensor { BOARD_AUX,      0,      SENSOR_SHT35_TEMP,              "EXT_TEMP_SHT35",   "Ext SHT35 Temperature",                224,    true,       false,      1,  "C"         },
+            OneSensor { BOARD_AUX,      0,      SENSOR_SHT35_HUM,               "EXT_HUM_SHT35",    "Ext SHT35 Humidity",                   225,    true,       false,      1,  "%"         },
 #endif
 
 #ifdef WTIH_RANGE
             OneSensor { BOARD_AUX,      100,    SENSOR_RANGE_LIGHT,             "EXT_RANGE_LIGHT",  "Ext Range Light",                      0,      true,       false,      1,  "Lux"       },
             OneSensor { BOARD_AUX,      100,    SENSOR_RANGE_DISTANCE,          "EXT_RANGE_DIST",   "Ext Range Distance",                   98,     true,       false,      1,  "mm"        },
 #endif
-
 
 #ifdef WITH_GPS
             OneSensor { BOARD_AUX,      100,    SENSOR_GPS_FIX_QUALITY,         "GPS_FIX",          "GPS Fix Quality",                      128,    true,       false,      1,              },
@@ -501,7 +509,6 @@ class AllSensors
             OneSensor { BOARD_BASE,     0,      SENSOR_COUNT,                   "NOT_FOUND",        "Not found",                            0,      false,      false,      1,              }
 
             // Add New Sensor Here!!!
-
         };
 
         OneSensor & operator[](SensorType type) {

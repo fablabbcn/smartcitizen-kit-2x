@@ -478,7 +478,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
         default: break;
     }
 
-    base->sckOut("Sensor not recognized!!");
+    base->sckOut("Sensor not recognized, or no control interface available for this sensor");
     return false;
 }
 

@@ -201,7 +201,7 @@ class SckBase
 		// **** Sensors
 		AllSensors sensors;
 		bool getReading(OneSensor *wichSensor);
-		bool controlSensor(SensorType wichSensorType, String wichCommand);
+		void controlSensor(SensorType wichSensorType, String wichCommand);
 		bool enableSensor(SensorType wichSensor);
 		bool disableSensor(SensorType wichSensor);
 		bool writeHeader = false;

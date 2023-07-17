@@ -2020,9 +2020,8 @@ bool SckBase::getReading(OneSensor *wichSensor)
 
     return true;
 }
-bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
+void SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 {
-    if (sensors[wichSensorType].controllable)  {
         sprintf(outBuff, "%s: %s", sensors[wichSensorType].title, wichCommand.c_str());
         sckOut();
         switch (sensors[wichSensorType].location) {
@@ -2035,13 +2034,6 @@ bool SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
             }
             default: break;
         }
-
-    } else {
-        sprintf(outBuff, "No configured command found for %s sensor!!!", sensors[wichSensorType].title);
-        sckOut();
-        return false;
-    }
-    return true;
 }
 bool SckBase::netPublish()
 {

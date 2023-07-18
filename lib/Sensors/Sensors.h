@@ -335,7 +335,7 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_SPS30_PN_25,             "SPS30_PN_25",      "SPS30 PN 2.5",                         188,    true,       5,  "#/0.1l"    },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SPS30_PN_4,              "SPS30_PN_4",       "SPS30 PN 4.0",                         189,    true,       5,  "#/0.1l"    },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SPS30_PN_10,             "SPS30_PN_10",      "SPS30 PN 10.0",                        190,    true,       5,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_SPS30_TPSIZE,            "SPS30_TPSIZE",     "SPS30 Typical Partical Size",          191,    true,       5,  "um"        },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_SPS30_TPSIZE,            "SPS30_TPSIZE",     "SPS30 Typical Particle Size",          191,    true,       5,  "um"        },
 #endif
 
 #ifdef WITH_SEN5X
@@ -348,7 +348,7 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_PN_25,             "SEN5X_PN_25",      "SEN5X PN 2.5",                         199,    true,       5,  "#/0.1l"    },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_PN_4,              "SEN5X_PN_4",       "SEN5X PN 4.0",                         200,    true,       5,  "#/0.1l"    },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_PN_10,             "SEN5X_PN_10",      "SEN5X PN 10.0",                        201,    true,       5,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_TPSIZE,            "SEN5X_TPSIZE",     "SEN5X Typical Partical Size",          202,    true,       5,  "um"        },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_TPSIZE,            "SEN5X_TPSIZE",     "SEN5X Typical Particle Size",          202,    true,       5,  "um"        },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_HUMIDITY,          "SEN5X_HUM",        "SEN5X Humidity",                       203,    true,       5,  "%"         },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_TEMPERATURE,       "SEN5X_TEMP",       "SEN5X Temperature",                    204,    true,       5,  "C"         },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_VOCS_IDX,          "SEN5X_VOCS_IDX",   "SEN5X Vocs Index",                     205,    true,       5,              },
@@ -514,11 +514,11 @@ class AllSensors
         }
 
         OneSensor ordered(uint8_t place);
-        SensorType getTypeFromString(String strIn);
-        String removeSensorName(String strIn);
+        SensorType getTypeFromText(const char* input);
+        uint8_t sensorNameEndsIn(const char* input);
         SensorType sensorsPriorized(uint8_t index);
     private:
-        uint8_t countMatchedWords(String baseString, String input);
+        uint8_t countMatchedWords(SensorType whichSensor, const char* input);
         SensorType prioSortedList[SENSOR_COUNT+1];
         bool sorted = false;
 };

@@ -171,7 +171,7 @@ void sensorConfig_com(SckBase* base, String parameters)
     } else {
 
         int16_t sensorEndIndex = parameters.indexOf("-") - 1;
-        SensorType sensorToChange = base->sensors.getTypeFromString(parameters.substring(0, sensorEndIndex));
+        SensorType sensorToChange = base->sensors.getTypeFromText(parameters.substring(0, sensorEndIndex).c_str());
         bool saveNeeded = false;
 
 #ifdef WITH_URBAN
@@ -320,7 +320,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 }
 void readSensor_com(SckBase* base, String parameters)
 {
-    SensorType wichType = base->sensors.getTypeFromString(parameters);
+    SensorType wichType = base->sensors.getTypeFromText(parameters.c_str());
     OneSensor sensorToRead = base->sensors[wichType];
 
     if (!sensorToRead.enabled) {
@@ -336,7 +336,7 @@ void readSensor_com(SckBase* base, String parameters)
 }
 void controlSensor_com(SckBase* base, String parameters)
 {
-    SensorType wichSensor = base->sensors.getTypeFromString(parameters);
+    SensorType wichSensor = base->sensors.getTypeFromText(parameters.c_str());
 
     if (parameters.length() < 1) {
         base->sckOut("ERROR No command received!! please try again...");
@@ -345,7 +345,8 @@ void controlSensor_com(SckBase* base, String parameters)
         base->sckOut("ERROR Sensor not found!!!");
         return;
     } else {
-        base->controlSensor(wichSensor, base->sensors.removeSensorName(parameters));
+        uint8_t paramIndexStart = base->sensors.sensorNameEndsIn(parameters.c_str());
+        base->controlSensor(wichSensor, parameters.substring(paramIndexStart));
     }
 }
 void monitorSensor_com(SckBase* base, String parameters)
@@ -397,7 +398,7 @@ void monitorSensor_com(SckBase* base, String parameters)
                 parameters.trim();
             }
 
-            SensorType thisSensorType = base->sensors.getTypeFromString(thisSensor);
+            SensorType thisSensorType = base->sensors.getTypeFromText(thisSensor.c_str());
 
             if (base->sensors[thisSensorType].enabled) {
                 sensorsToMonitor[index] = thisSensorType;

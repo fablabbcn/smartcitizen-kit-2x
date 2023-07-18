@@ -1,88 +1,89 @@
 #include "Sensors.h"
 
-SensorType AllSensors::getTypeFromString(String strIn)
+SensorType AllSensors::getTypeFromText(const char* input)
 {
+    SensorType whichSensor = SENSOR_COUNT;
+    uint8_t maxWordsFound = 0;
 
-	SensorType wichSensor = SENSOR_COUNT;
-	uint8_t maxWordsFound = 0;
+    // Iterate over all posible sensor types
+    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
-	// Get sensor type
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        // Get the title
+        SensorType thisSensor = static_cast<SensorType>(i);
 
-		SensorType thisSensor = static_cast<SensorType>(i);
+        // How many words match in Sensor title
+        uint8_t matchedWords = countMatchedWords(thisSensor, input);
 
-		// Makes comparison lower case and not strict
-		String titleCompare = list[thisSensor].title;
-		titleCompare.toLowerCase();
-		strIn.toLowerCase();
+        // Keep the one that matched more words
+        if (matchedWords > maxWordsFound) {
+            maxWordsFound = matchedWords;
+            whichSensor = thisSensor;
+        }
+    }
 
-		// How many words match in Sensor title
-		uint8_t matchedWords = countMatchedWords(titleCompare, strIn);
-
-		if (matchedWords > maxWordsFound) {
-			maxWordsFound = matchedWords;
-			wichSensor = thisSensor;
-		}
-
-	}
-	return wichSensor;
+    return whichSensor;
 }
-uint8_t AllSensors::countMatchedWords(String baseString, String input)
+uint8_t AllSensors::countMatchedWords(SensorType whichSensor, const char* input)
 {
-	
-	uint8_t foundedCount = 0;
-	String word;
-	
-	while (input.length() > 0) {
+    uint8_t matched = 0;
 
-		// Get next word
-		if (input.indexOf(" ") > -1) word = input.substring(0, input.indexOf(" "));
-		// Or there is only one left
-		else word = input;
+    // Make a copy of sensor title in lowercase
+    size_t titleLen = strlen(list[whichSensor].title) + 1;
+    char titleCompare[titleLen];
+    for (uint8_t i=0; i<titleLen; i++) titleCompare[i] = tolower(list[whichSensor].title[i]);
 
-		// If we found one
-		if (baseString.indexOf(word) > -1) foundedCount += 1;
-		// If next word is not part of the title we asume the rest of the input is a command or something else
-		else break;
+    // Make input lowercase
+    size_t inputLen = strlen(input) + 1;
+    char inputLow[inputLen];
+    for (uint8_t i=0; i<inputLen; i++) inputLow[i] = tolower(input[i]);
 
-		// remove what we tested
-		input.replace(word, "");
-		input.trim();
-	}
+    // Split the input in words, and check if they exist on the sensor title
+    char* pch;
+    char* rest = NULL;
+    pch = strtok_r(inputLow," ", &rest);
+    while (pch != NULL) {
+        if (strstr(titleCompare, pch) != NULL) matched++;
+        pch = strtok_r(NULL, " ", &rest);
+    }
 
-	return foundedCount;
+    return matched;
 }
-String AllSensors::removeSensorName(String strIn)
+uint8_t AllSensors::sensorNameEndsIn(const char* input)
 {
-	SensorType wichSensor = getTypeFromString(strIn);
+    // Get sensor type
+    SensorType whichSensor = getTypeFromText(input);
 
-	// Makes comparison lower case and not strict
-	String titleCompare = list[wichSensor].title;
-	titleCompare.toLowerCase();
-	strIn.toLowerCase();
+    // Count how many words to remove
+    uint8_t wordsToRemove = countMatchedWords(whichSensor, input);
 
-	uint8_t wordsToRemove = countMatchedWords(titleCompare, strIn);
-	for (uint8_t i=0; i<wordsToRemove; i++) {
-		if (strIn.indexOf(" ") > 0) strIn.remove(0, strIn.indexOf(" ")+1);
-		else strIn.remove(0, strIn.length());
-	}
+    // Find the index where sensor name ends
+    char *ptr = strchr(input, ' ');
+    uint8_t index = ptr - input;
+    uint8_t removed = 0;
+    while (removed < wordsToRemove) {
+        ptr = strchr(ptr, ' ');
+        index = (ptr - input);
+        ptr++;
+        removed++;
+    }
+    index++;
 
-	return strIn;
+    return index;
 }
 SensorType AllSensors::sensorsPriorized(uint8_t index)
 {
-	if (!sorted) {
-		uint8_t sensorCount = 0;
-		for (uint8_t i=0; i<251; i++) {
-			for (uint8_t ii=0; ii<SENSOR_COUNT; ii++) {
-				SensorType thisSensorType = static_cast<SensorType>(ii);
-				if (list[thisSensorType].priority == i) {
-					prioSortedList[sensorCount] = thisSensorType;
-					sensorCount++;
-				}
-			}
-		}
-		sorted = true;
-	}
-	return prioSortedList[index];
+    if (!sorted) {
+        uint8_t sensorCount = 0;
+        for (uint8_t i=0; i<251; i++) {
+            for (uint8_t ii=0; ii<SENSOR_COUNT; ii++) {
+                SensorType thisSensorType = static_cast<SensorType>(ii);
+                if (list[thisSensorType].priority == i) {
+                    prioSortedList[sensorCount] = thisSensorType;
+                    sensorCount++;
+                }
+            }
+        }
+        sorted = true;
+    }
+    return prioSortedList[index];
 }

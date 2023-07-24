@@ -34,6 +34,9 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_ALTITUDE:
         case SENSOR_PRESSURE:
         case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.start();
+        case SENSOR_LPS33_PRESS:
+        case SENSOR_LPS33_TEMP:         return sck_lps33.start();
+
         case SENSOR_CCS811_VOCS:        return sck_ccs811.start();
         case SENSOR_CCS811_ECO2:        return sck_ccs811.start();
 #ifdef WITH_PM
@@ -105,6 +108,8 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_ALTITUDE:
         case SENSOR_PRESSURE:
         case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.stop();
+        case SENSOR_LPS33_PRESS:
+        case SENSOR_LPS33_TEMP:         return sck_lps33.stop();
         case SENSOR_CCS811_VOCS:
         case SENSOR_CCS811_ECO2:        return sck_ccs811.stop();
 #ifdef WITH_PM
@@ -185,6 +190,8 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_ALTITUDE:               if (sck_mpl3115A2.getAltitude())            { wichSensor->reading = String(sck_mpl3115A2.altitude);                         return; } break;
         case SENSOR_PRESSURE:               if (sck_mpl3115A2.getPressure())            { wichSensor->reading = String(sck_mpl3115A2.pressure);                         return; } break;
         case SENSOR_PRESSURE_TEMP:          if (sck_mpl3115A2.getTemperature())         { wichSensor->reading = String(sck_mpl3115A2.temperature);                      return; } break;
+        case SENSOR_LPS33_PRESS:            if (sck_lps33.getPressure())                { wichSensor->reading = String(sck_lps33.pressure);                             return; } break;
+        case SENSOR_LPS33_TEMP:             if (sck_lps33.getTemperature())             { wichSensor->reading = String(sck_lps33.temperature);                          return; } break;
 #ifdef WITH_PM
         case SENSOR_PM_1:                   if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm1);                                     return; } break;
         case SENSOR_PM_25:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm25);                                    return; } break;
@@ -1170,6 +1177,44 @@ bool Sck_MPL3115A2::getTemperature()
     // TODO timeout to prevent hangs on external lib
     altitude = Adafruit_mpl3115A2.getAltitude();
     temperature =  Adafruit_mpl3115A2.getTemperature(); // Only works after a getAltitude! don't call this allone
+
+    return true;
+}
+
+// Barometric pressure and Altitude
+bool Sck_LPS33::start()
+{
+
+    if (!I2Cdetect(&Wire, address)) return false;
+    if (Adafruit_lps35hw.begin_I2C()) {
+        Adafruit_lps35hw.setDataRate(LPS35HW_RATE_ONE_SHOT);
+        return true;
+    }
+    return false;
+}
+bool Sck_LPS33::stop()
+{
+
+    return true;
+}
+
+bool Sck_LPS33::getPressure()
+{
+
+    Adafruit_lps35hw.takeMeasurement();
+    // TODO add calibration of zeroPressure via lps35hw.zeroPressure();
+    // TODO timeout to prevent hangs on external lib
+    pressure = Adafruit_lps35hw.readPressure() / 10; // convert from hPa to kPa
+
+    return true;
+}
+bool Sck_LPS33::getTemperature()
+{
+
+    Adafruit_lps35hw.takeMeasurement();
+
+    // TODO timeout to prevent hangs on external lib
+    temperature =  Adafruit_lps35hw.readTemperature();
 
     return true;
 }

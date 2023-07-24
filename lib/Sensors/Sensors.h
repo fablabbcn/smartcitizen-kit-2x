@@ -53,6 +53,8 @@ enum SensorType
     SENSOR_ALTITUDE,
     SENSOR_PRESSURE,
     SENSOR_PRESSURE_TEMP,
+    SENSOR_LPS33_PRESS,
+    SENSOR_LPS33_TEMP,
     SENSOR_CCS811_VOCS,
     SENSOR_CCS811_ECO2,
 
@@ -311,6 +313,8 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_PRESSURE_TEMP,           "PRESS_TEMP",       "Pressure internal temperature",        0,      false,      1,  "C"         },
             OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_VOCS,             "CCS811_VOCS",      "VOC Gas CCS811",                       113,    true,       1,  "ppb"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_ECO2,             "CCS811_ECO2",      "eCO2 Gas CCS811",                      112,    true,       1,  "ppm"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_PRESS,             "PRESS_LPS",        "Barometric pressure LPS",              227,    true,       1,  "kPa"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_TEMP,              "PRESS_TEMP_LPS",   "Pressure internal temperature LPS",    0,      false,      1,  "C"         },
 
 #ifdef WITH_PM
         // TODO cambiar los nombres a este pm para que no se confunda con los demas

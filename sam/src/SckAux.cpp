@@ -2569,6 +2569,7 @@ bool Sck_SCD30::start(SckBase *base, SensorType wichSensor)
     if (!sparkfun_scd30.begin(auxWire, false, false)) return false;
 
 #ifdef WITH_URBAN
+    // TODO Add here LPS pressure sensor
     // Ambient pressure compensation
     OneSensor *pressureSensor = &base->sensors[SENSOR_PRESSURE];
 

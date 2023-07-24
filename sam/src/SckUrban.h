@@ -8,6 +8,7 @@
 #include "Pins.h"
 #ifdef WITH_URBAN
 #include <Adafruit_MPL3115A2.h>
+#include <Adafruit_LPS35HW.h>
 #include "SckSoundTables.h"
 #include <I2S.h>
 #include <SparkFunCCS811.h>
@@ -158,6 +159,25 @@ class Sck_MPL3115A2
         bool start();
         bool stop();
         bool getAltitude();
+        bool getPressure();
+        bool getTemperature();
+    };
+
+// Barometric pressure and Altitude LPS33K
+class Sck_LPS33
+    {
+        // Datasheet
+        // https://cache.freescale.com/files/sensors/doc/data_sheet/MPL3115A2.pdf
+
+    private:
+        Adafruit_LPS35HW Adafruit_lps35hw = Adafruit_LPS35HW();
+
+    public:
+        const uint8_t address = 0x5d;
+        float pressure;
+        float temperature;
+        bool start();
+        bool stop();
         bool getPressure();
         bool getTemperature();
     };
@@ -512,6 +532,8 @@ class SckUrban
         // Barometric pressure and Altitude
         Sck_MPL3115A2 sck_mpl3115A2;
 
+        // Barometric pressure LPS
+        Sck_LPS33 sck_lps33;
         // VOC and ECO2
         Sck_CCS811 sck_ccs811 = Sck_CCS811(rtc);
 

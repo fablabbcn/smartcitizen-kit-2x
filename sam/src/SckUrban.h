@@ -34,6 +34,7 @@
 // 2.2 DEPRECATED (MOVE TO AUX) -> * Barometric pressure - MPL3115 -> (0x60)
 // 2.2 DEPRECATED (MOVE TO AUX) -> * VOC and ECO2 - CCS811 -> (0x5a)
 // * Barometric Pressure, Temperature, Humidity and Gas - BME688 -> (0x0x76 or 0x77)
+// * UVA A,B and C - AS7331 -> (0x14)
 
 class SckBase;
 
@@ -501,6 +502,75 @@ class Sck_BME68X
         bool alreadyStarted = false;
     };
 #endif
+#ifdef WITH_AS7331
+// UVA
+class Sck_AS7331
+    {
+     public:
+        const byte address = 0x74;
+
+        bool start(SensorType wichSensor);
+        bool stop(SensorType wichSensor);
+        bool getReading(OneSensor* wichSensor);
+
+        float uva;
+        float uvb;
+        float uvc;
+
+        bool debug = true;
+
+     private:
+        // Datasheet: https://ams.com/documents/20143/9106314/AS7331_DS001047_4-00.pdf
+
+        #define AS7331_OSR      0x00
+        // OSR (0x00):  Page 49 of datasheet
+        //      DOS     0:2 -> 00X: NOP (no change of DOS), 010: Operational state CONFIGURATION, 011: Operational state MEASUREMENT, 1XX: NOP (no change of DOS). 
+        //      SW_RES  3 -> 1: Software reset 
+        //      PD      6 -> 0: Power Down state switched OFF, 1: Power Down state switched ON.
+        //      SS      7 -> 0: stop measurement, 1: Start of measurement ((only if DOS = MEASUREMENT)
+
+        // This are the posible (useful) configurations for the OSR register
+        #define AS7331_CONFIG               0b00000010
+        #define AS7331_MEASUREMENT          0b00000011
+        #define AS7331_START_MEASUREMENT    0b10000011
+        #define AS7331_RESET                0b00001010
+        #define AS7331_OFF                  0b01000010
+
+        #define AS7331_AGEN     0x02 // ChipIP info (it shoiuld be 0x21)
+
+        #define AS7331_CREG1    0x06
+        // CREG1 (0x07) page 52 of datasheet.
+        //      TIME    3:0 -> Integration time from 0000: 2^10 (1024) to 1110 2^24 (16,384). The unit is number of clocks periods
+        //      GAIN    7:4 -> 0000: 2048x, 0001: 1024x, ... 1011: 1x 
+
+        #define AS7331_CREG2    0x07
+        // CREG2 (0x07) page 53 
+        //      DIV     2:0 -> Value of the divider, 000: 2^1, ... 111: 2^8 
+        //      EN_DIV  3   -> 0: Digital divider of the measurement result registers is disabled. 1: enabled
+        //      EN_TM   6   -> 0: In combination with SYND mode, the internal measurement of the conversion time is disabled and no temperature measurement takes place.
+
+        #define AS7331_CREG3    0x08
+        // CREG3 (0x08) page 55
+        //      CCLK    1:0 -> Internal clock frequency. 00:1024 Mhz, ... 11:8192 MHz
+        //      RDYOD   3   -> 0: Pin READY operates as Push Pull output, 1:operates as Open Drain output
+        //      SB      4   -> 0: Standby is switched OFF, 1: Standby is switched ON
+        //      MMODE   7:6 -> 00 CONT mode (continuous measurement), 01 CMD mode (measurement per command). 10 SYNS mode (externally synchronized start of measurement), 11 SYND mode (start and end of measurement are externally synchronized).
+
+        // TODO define optimal config values
+        #define AS7331_CREG1_DEFAULT 0b00000000
+        #define AS7331_CREG2_DEFAULT 0b00000000
+        #define AS7331_CREG3_DEFAULT 0b00000000
+
+
+
+        byte getByte(byte wichByte);
+        byte writeByte(byte wichByte, byte wichValue);
+        bool started = false;
+        static const uint8_t totalMetrics = 3;
+        uint8_t enabled[totalMetrics][2] = { {SENSOR_AS7331_UVA, 0}, {SENSOR_AS7331_UVB, 0}, {SENSOR_AS7331_UVC, 0} };
+
+    };
+#endif
 #endif
 
 class SckUrban
@@ -554,6 +624,10 @@ class SckUrban
 #ifdef WITH_BME68X
         // BME68X, Temperature, Humidity, Barometric Pressure, Gases
         Sck_BME68X sck_bme68x = Sck_BME68X();
+#endif
+#ifdef WITH_AS7331
+        // AMS7331 UVA, UVB, and UVC sensor
+        Sck_AS7331 sck_as7331;
 #endif
 #endif
     };

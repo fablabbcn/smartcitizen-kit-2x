@@ -5,6 +5,7 @@
 // #define WITH_SPS30              // Saves 576 bytes
 #define WITH_PM                 // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
 #define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
+#define WITH_AS7331             // Saves xxx bytes
 
 // Auxiliary Sensors (ALl this sensors use around 8kb)
 // #define WITH_SENSOR_GROVE_OLED  // Saves 2496 bytes
@@ -111,7 +112,13 @@ enum SensorType
     SENSOR_BME68X_VOCS,
 #endif
 
+#ifdef WITH_AS7331
+    SENSOR_AS7331_UVA,
+    SENSOR_AS7331_UVB,
+    SENSOR_AS7331_UVC, 
 #endif
+#endif
+
 #ifdef WITH_GASES_BOARD
     // I2C Auxiliary Sensors
     SENSOR_GASESBOARD_SLOT_1A,
@@ -370,7 +377,12 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_BME68X_VOCS,             "BME68X_VOCS",      "VOC Gas BME680",                       0,      true,       1,  "Ohms"      },
 #endif
 
+#ifdef WITH_AS7331
+            OneSensor { BOARD_URBAN,    100,    SENSOR_AS7331_UVA,              "AS7331_UVA",       "AS7331 UVA",                           214,    true,       1,  "uW/cm2"    },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_AS7331_UVB,              "AS7331_UVB",       "AS7331 UVB",                           215,    true,       1,  "uW/cm2"    },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_AS7331_UVC,              "AS7331_UVA",       "AS7331 UVC",                           216,    true,       1,  "uW/cm2"    },
 #endif
+#endif // WITH_URBAN
 
             // I2C Auxiliary Sensors
 #ifdef WITH_GASES_BOARD

@@ -88,6 +88,11 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_BME68X_PRESSURE:
         case SENSOR_BME68X_VOCS:        return sck_bme68x.start();
 #endif
+#ifdef WITH_AS7331
+        case SENSOR_AS7331_UVA:
+        case SENSOR_AS7331_UVB:
+        case SENSOR_AS7331_UVC:         return sck_as7331.start(wichSensor);
+#endif
 #endif
         default: break;
     }
@@ -160,6 +165,11 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_BME68X_HUMIDITY:
         case SENSOR_BME68X_PRESSURE:
         case SENSOR_BME68X_VOCS:        return sck_bme68x.stop();
+#endif
+#ifdef WITH_AS7331
+        case SENSOR_AS7331_UVA:
+        case SENSOR_AS7331_UVB:
+        case SENSOR_AS7331_UVC:         return sck_as7331.stop(wichSensor);
 #endif
 #endif
         default: break;
@@ -240,6 +250,11 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_BME68X_HUMIDITY:        if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.humidity);                            return; } break;
         case SENSOR_BME68X_PRESSURE:        if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.pressure);                            return; } break;
         case SENSOR_BME68X_VOCS:            if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.VOCgas);                              return; } break;
+#endif
+#ifdef WITH_AS7331
+        case SENSOR_AS7331_UVA:             if (sck_as7331.getReading(wichSensor))      { wichSensor->reading = String(sck_as7331.uva);                                 return; } break;
+        case SENSOR_AS7331_UVB:             if (sck_as7331.getReading(wichSensor))      { wichSensor->reading = String(sck_as7331.uvb);                                 return; } break;
+        case SENSOR_AS7331_UVC:             if (sck_as7331.getReading(wichSensor))      { wichSensor->reading = String(sck_as7331.uvc);                                 return; } break;
 #endif
 #endif
         default: break;
@@ -2588,6 +2603,79 @@ bool Sck_BME68X::getReading()
     VOCgas = _bme.gas_resistance;
 
     return true;
+}
+#endif
+#ifdef WITH_AS7331
+bool Sck_AS7331::start(SensorType wichSensor)
+{
+    if (!I2Cdetect(&Wire, address)) return false;
+
+    // Mark this specific metric as enabled
+    for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+
+    if (started) return true;
+
+    // PowerUp and set configuration mode
+    writeByte(AS7331_OSR, AS7331_CONFIG);
+
+    // Software reset
+    writeByte(AS7331_OSR, AS7331_RESET);
+
+    uint8_t chipID = getByte(AS7331_AGEN);
+
+    if (chipID != 0x21) {
+        if (debug) {
+            Serial.print("AS7331 ERROR: Wrong chip ID: ");
+            Serial.println(chipID);
+        }
+        return false;
+    }
+
+    // TODO set default configuration ESTOS son los valores que usan en el codigo de ejemplo que estoy viendo
+    // Specify sensor parameters
+    // MMODE   mmode = AS7331_CONT_MODE;  // choices are modes are CONT, CMD, SYNS, SYND
+    // CCLK    cclk  = AS7331_1024;      // choices are 1.024, 2.048, 4.096, or 8.192 MHz
+    // uint8_t sb    = 0x01;             // standby enabled 0x01 (to save power), standby disabled 0x00                    
+    // uint8_t breakTime = 40;           // sample time == 8 us x breakTime (0 - 255, or 0 - 2040 us range), CONT or SYNX modes
+    // uint8_t gain = 8; // ADCGain = 2^(11-gain), by 2s, 1 - 2048 range,  0 < gain = 11 max, default 10
+    // uint8_t time = 9; // 2^time in ms, so 0x07 is 2^6 = 64 ms, 0 < time = 15 max, default  6
+    // AS7331.init(mmode, cclk, sb, breakTime, gain, time);
+
+    return true;
+}
+bool Sck_AS7331::stop(SensorType wichSensor)
+{
+    // Mark this specific metric as disabled
+    for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 0;
+
+    // Turn sensor off only if all metrics are disabled
+    for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][1] == 1) return false;
+
+    // Power off
+    writeByte(AS7331_OSR, AS7331_OFF);
+
+    return true;
+}
+bool Sck_AS7331::getReading(OneSensor* wichSensor)
+{
+
+    return true;
+}
+byte Sck_AS7331::getByte(byte wichReg)
+{
+    Wire.beginTransmission(address);
+    Wire.write(wichReg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(address, 1);
+    return Wire.read();
+}
+byte Sck_AS7331::writeByte(byte wichReg, byte wichValue)
+{
+    Wire.beginTransmission(address);
+    Wire.write(wichReg);
+    Wire.write(wichValue);
+    Wire.endTransmission();
+
 }
 #endif
 #endif

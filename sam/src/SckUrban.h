@@ -374,8 +374,6 @@ class Sck_SPS30
 #ifdef WITH_SEN5X
 class Sck_SEN5X
     {
-        //TODO
-        // Implement average option and test if it makes a difference
 
     public:
         Sck_SEN5X(RTCZero* myrtc) {
@@ -565,8 +563,6 @@ class Sck_AS7331
         #define AS7331_CREG1_DEFAULT 0b00000000
         #define AS7331_CREG2_DEFAULT 0b00000000
         #define AS7331_CREG3_DEFAULT 0b00000000
-
-
 
         byte getByte(byte wichByte);
         byte writeByte(byte wichByte, byte wichValue);

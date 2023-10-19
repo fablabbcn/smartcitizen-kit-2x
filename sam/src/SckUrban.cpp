@@ -2001,8 +2001,11 @@ bool Sck_SEN5X::start(SensorType wichSensor)
     // Check if it is time to do a cleaning
     lastCleaning when = eepromSEN5xLastCleaning.read();
     if (when.valid) {
-        uint32_t passed = rtc->getEpoch() - when.time;
-        if (passed > ONE_WEEK_IN_SECONDS) {
+
+        uint32_t now = rtc->getEpoch();
+        uint32_t passed = now - when.time;
+
+        if (passed > ONE_WEEK_IN_SECONDS && (now > 1514764800)) {       // If current date greater than 01/01/2018 (validity check)
             if (debug) Serial.println("SEN5X: More than a week since las cleaning, doing it...");
             startCleaning();
         } else {
@@ -2188,7 +2191,7 @@ bool Sck_SEN5X::startCleaning()
         Serial.print(".");
         delay(500);
     }
-    if (debug) Serial.println(" done!!");
+    Serial.println(" done!!");
 
     // Save timestamp in flash so we know when a week has passed
     lastCleaning when;

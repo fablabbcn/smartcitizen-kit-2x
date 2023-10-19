@@ -11,7 +11,10 @@
 #include <Adafruit_LPS35HW.h>
 #include "SckSoundTables.h"
 #include <I2S.h>
+
+#ifdef WITH_CCS811
 #include <SparkFunCCS811.h>
+#endif
 
 #ifdef WITH_SPS30
 // Sensirion Library for SPS30
@@ -276,6 +279,7 @@ class Sck_PM
     };
 #endif
 
+#ifdef WITH_CCS811
 // VOC ans ECO2 - CCS811
 class Sck_CCS811
     {
@@ -315,6 +319,7 @@ class Sck_CCS811
         CCS811 ccs = CCS811(address);
         RTCZero* rtc;
     };
+#endif
 
 #ifdef WITH_SPS30
 class Sck_SPS30
@@ -604,8 +609,11 @@ class SckUrban
 
         // Barometric pressure LPS
         Sck_LPS33 sck_lps33;
+
+#ifdef WITH_CCS811
         // VOC and ECO2
         Sck_CCS811 sck_ccs811 = Sck_CCS811(rtc);
+#endif
 
 #ifdef WITH_PM
         // PM sensor

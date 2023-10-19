@@ -36,9 +36,10 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.start();
         case SENSOR_LPS33_PRESS:
         case SENSOR_LPS33_TEMP:         return sck_lps33.start();
-
+#ifdef WITH_CCS811
         case SENSOR_CCS811_VOCS:        return sck_ccs811.start();
         case SENSOR_CCS811_ECO2:        return sck_ccs811.start();
+#endif
 #ifdef WITH_PM
         case SENSOR_PM_1:
         case SENSOR_PM_25:
@@ -115,8 +116,10 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.stop();
         case SENSOR_LPS33_PRESS:
         case SENSOR_LPS33_TEMP:         return sck_lps33.stop();
+#ifdef WITH_CCS811
         case SENSOR_CCS811_VOCS:
         case SENSOR_CCS811_ECO2:        return sck_ccs811.stop();
+#endif
 #ifdef WITH_PM
         case SENSOR_PM_1:
         case SENSOR_PM_25:
@@ -195,8 +198,10 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
             for (uint16_t i=1; i<sck_noise.FFT_NUM; i++) SerialUSB.println(sck_noise.readingFFT[i]);
             return;
         }
+#ifdef WITH_CCS811
         case SENSOR_CCS811_VOCS:            if (sck_ccs811.getReading(base))            { wichSensor->reading = String(sck_ccs811.VOCgas);                              return; } break;
         case SENSOR_CCS811_ECO2:            if (sck_ccs811.getReading(base))            { wichSensor->reading = String(sck_ccs811.ECO2gas);                             return; } break;
+#endif
         case SENSOR_ALTITUDE:               if (sck_mpl3115A2.getAltitude())            { wichSensor->reading = String(sck_mpl3115A2.altitude);                         return; } break;
         case SENSOR_PRESSURE:               if (sck_mpl3115A2.getPressure())            { wichSensor->reading = String(sck_mpl3115A2.pressure);                         return; } break;
         case SENSOR_PRESSURE_TEMP:          if (sck_mpl3115A2.getTemperature())         { wichSensor->reading = String(sck_mpl3115A2.temperature);                      return; } break;
@@ -276,7 +281,9 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                     base->sckOut();
                     return true;
                 }
-            } case SENSOR_CCS811_VOCS:
+            } 
+#ifdef WITH_CCS811
+        case SENSOR_CCS811_VOCS:
         case SENSOR_CCS811_ECO2:
             {
                 if (command.startsWith("compensate")) {
@@ -314,6 +321,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                 }
 
             }
+#endif
 #ifdef WITH_PM
         case SENSOR_PM_1:
         case SENSOR_PM_25:
@@ -1531,6 +1539,7 @@ bool Sck_PM::wake()
 }
 #endif
 
+#ifdef WITH_CCS811
 // VOC and ECO2
 bool Sck_CCS811::start()
 {
@@ -1642,6 +1651,7 @@ bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
     if (ccs.setDriveMode(driveMode) != CCS811Core::CCS811_Stat_SUCCESS) return false;
     return true;
 }
+#endif
 
 #ifdef WITH_SPS30
 // Sensirion SPS30 PM sensor option

@@ -6,6 +6,7 @@
 #define WITH_PM                 // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
 #define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
 #define WITH_AS7331             // Saves xxx bytes
+// #define WITH_CCS811             // 
 
 // Auxiliary Sensors (ALl this sensors use around 8kb)
 // #define WITH_SENSOR_GROVE_OLED  // Saves 2496 bytes
@@ -56,8 +57,11 @@ enum SensorType
     SENSOR_PRESSURE_TEMP,
     SENSOR_LPS33_PRESS,
     SENSOR_LPS33_TEMP,
+
+#ifdef WITH_CCS811
     SENSOR_CCS811_VOCS,
     SENSOR_CCS811_ECO2,
+#endif
 
 #ifdef WITH_PM
     SENSOR_PM_1,
@@ -318,8 +322,12 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_ALTITUDE,                "ALT",              "Altitude",                             219,    false,      1,  "M"         },
             OneSensor { BOARD_URBAN,    100,    SENSOR_PRESSURE,                "PRESS",            "Barometric pressure",                  58,     true,       1,  "kPa"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_PRESSURE_TEMP,           "PRESS_TEMP",       "Pressure internal temperature",        0,      false,      1,  "C"         },
+
+#ifdef WITH_CCS811
             OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_VOCS,             "CCS811_VOCS",      "VOC Gas CCS811",                       113,    true,       1,  "ppb"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_ECO2,             "CCS811_ECO2",      "eCO2 Gas CCS811",                      112,    true,       1,  "ppm"       },
+#endif
+
             OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_PRESS,             "PRESS_LPS",        "Barometric pressure LPS",              227,    true,       1,  "kPa"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_TEMP,              "PRESS_TEMP_LPS",   "Pressure internal temperature LPS",    0,      false,      1,  "C"         },
 

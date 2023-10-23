@@ -2274,10 +2274,8 @@ bool Sck_SEN5X::findModel()
             break;
     }
 
-    if (debug) {
-        Serial.print("SEN5X: found sensor model SEN5");
-        Serial.println((char)name[4]);
-    }
+    Serial.print("SEN5X: found sensor model SEN5");
+    Serial.println((char)name[4]);
 
     return true;
 }

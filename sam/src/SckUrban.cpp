@@ -2023,7 +2023,7 @@ bool Sck_SEN5X::start(SensorType wichSensor)
         if (debug) Serial.println("SEN5X: No valid last cleaning date found, saving it now");
     }
 
-    // Get VOCstate from eeprom memory to restore it on next start measure
+    // Get VOCstate from eeprom memory to use it on next start measure
     vocStateFromEeprom();
 
     // Call start again to just enable the corresponding metric
@@ -2070,9 +2070,6 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
                 return true;
             }
 
-            // Restore latest VOC state 
-            vocStateToSensor();
-
             if (!sen_sendCommand(SEN5X_START_MEASUREMENT)) {
                 if (debug) Serial.println("SEN5X: Error starting measurement");
                 return false;
@@ -2115,6 +2112,9 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
                 return true;
             }
 
+            // Get VOC state before going to idle mode
+            vocStateFromSensor();
+
             // Save power
             idle();
 
@@ -2136,6 +2136,9 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 
             if (update(wichSensor->type) != 0) return false;
 
+            // Get VOC state before going to idle mode
+            vocStateFromSensor();
+
             // Save power
             idle();
 
@@ -2151,9 +2154,6 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 }
 bool Sck_SEN5X::idle()
 {
-    // Get VOC state before going to idle mode
-    vocStateFromSensor();
-
     if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
         if (debug) Serial.println("SEN5X: Error stoping measurement");
         return false;
@@ -2513,8 +2513,11 @@ uint8_t Sck_SEN5X::sen_CRC(uint8_t* buffer)
 }
 bool Sck_SEN5X::vocStateToEeprom()
 {
+    // This function should only be called from sck_reset
+
     VOCstateStruct temp;
     for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) temp.state[i] = VOCstate[i];
+    temp.time = rtc->getEpoch();
     eepromSEN5xVOCstate.write(temp);
 
     if (debug) {
@@ -2533,17 +2536,35 @@ bool Sck_SEN5X::vocStateFromEeprom()
         Serial.println("SEN5X No valid VOC's state found on eeprom");
         return false;
     } else {
-        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) VOCstate[i] = temp.state[i];
-        if (debug) {
-            Serial.println("SEN5X Loaded VOC's state from eeprom");
-            for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(VOCstate[i]);
-            Serial.println();
+        uint32_t now = rtc->getEpoch();
+        uint32_t passed = now - temp.time;
+
+        // Check if state is recent, less than 10 minutes (600 seconds)
+        if (passed < 600 && (now > 1514764800)) {       // If current date greater than 01/01/2018 (validity check)
+            for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) VOCstate[i] = temp.state[i];
+
+            if (debug) {
+                Serial.println("SEN5X Loaded VOC's state from eeprom");
+                for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(VOCstate[i]);
+                Serial.println();
+            }
+
+            // Send it to the sensor
+            vocStateToSensor();
+
+        } else {
+            Serial.println("SEN5X VOC's state is to old or date is invalid");
+            return false;
         }
+
     }
     return true;
 }
 bool Sck_SEN5X::vocStateToSensor()
 {
+    // We need to be on idle mode
+    idle();
+
     if (!sen_sendCommand(SEN5X_RW_VOCS_STATE, VOCstate, SEN5X_VOC_STATE_BUFFER_SIZE)){
         if (debug) Serial.println("SEN5X: Error sending VOC's state command'");
         return false;

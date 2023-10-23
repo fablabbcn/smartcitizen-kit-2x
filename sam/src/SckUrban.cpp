@@ -2085,7 +2085,10 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
             // MONITOR MODE
             // On monitor mode we don't wait for warmUP'
             if (monitor) {
-                if (update(wichSensor->type) != 0) return false;
+                if (update(wichSensor->type) != 0) {
+                    if (now - lastReading < 500) return true;   // if not enough time has passed we don't need a new update'
+                    return false;
+                }
                 else {
                     lastReading = now;
                     wichSensor->state = 0;

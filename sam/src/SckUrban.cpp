@@ -2648,7 +2648,7 @@ bool Sck_AS7331::start(SensorType wichSensor)
     if (!I2Cdetect(&Wire, address)) return false;
 
     // Mark this specific metric as enabled
-    for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+    for (uint8_t i=0; i<totalMetrics; i++) if (sensorStatus[i].type == wichSensor) sensorStatus[i].enabled = true;
 
     if (started) return true;
 
@@ -2668,25 +2668,29 @@ bool Sck_AS7331::start(SensorType wichSensor)
         return false;
     }
 
-    // TODO set default configuration ESTOS son los valores que usan en el codigo de ejemplo que estoy viendo
-    // Specify sensor parameters
-    // MMODE   mmode = AS7331_CONT_MODE;  // choices are modes are CONT, CMD, SYNS, SYND
-    // CCLK    cclk  = AS7331_1024;      // choices are 1.024, 2.048, 4.096, or 8.192 MHz
-    // uint8_t sb    = 0x01;             // standby enabled 0x01 (to save power), standby disabled 0x00                    
-    // uint8_t breakTime = 40;           // sample time == 8 us x breakTime (0 - 255, or 0 - 2040 us range), CONT or SYNX modes
-    // uint8_t gain = 8; // ADCGain = 2^(11-gain), by 2s, 1 - 2048 range,  0 < gain = 11 max, default 10
-    // uint8_t time = 9; // 2^time in ms, so 0x07 is 2^6 = 64 ms, 0 < time = 15 max, default  6
-    // AS7331.init(mmode, cclk, sb, breakTime, gain, time);
+    // Go to configuration mode
+    writeByte(AS7331_OSR, AS7331_CONFIG);
+
+    // Set configuration to default values
+    // CREG3: mmode, standby, clock
+    writeByte(AS7331_CREG3, AS7331_CMD_MODE << 6 | 0x01 << 4 | AS7331_1024);
+    // BREAK: breakTime
+    writeByte(AS7331_BREAK, breakTime);
+    // CREG1: gain  and time
+    writeByte(AS7331_CREG1, gain << 4 | time);
+    
+    // Enter measurement mode (on standby)
+    writeByte(AS7331_OSR, AS7331_MEASUREMENT);
 
     return true;
 }
 bool Sck_AS7331::stop(SensorType wichSensor)
 {
     // Mark this specific metric as disabled
-    for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 0;
+    for (uint8_t i=0; i<totalMetrics; i++) if (sensorStatus[i].type == wichSensor) sensorStatus[i].enabled = false;
 
     // Turn sensor off only if all metrics are disabled
-    for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][1] == 1) return false;
+    for (uint8_t i=0; i<totalMetrics; i++) if (sensorStatus[i].enabled) return false;
 
     // Power off
     writeByte(AS7331_OSR, AS7331_OFF);
@@ -2695,6 +2699,65 @@ bool Sck_AS7331::stop(SensorType wichSensor)
 }
 bool Sck_AS7331::getReading(OneSensor* wichSensor)
 {
+    // If this specific metric hasn't been readed there is no need to update data
+    for (uint8_t i=0; i<totalMetrics; i++) if (sensorStatus[i].type == wichSensor->type && !sensorStatus[i].readed) {
+        sensorStatus[i].readed = true;
+        return true;
+    }
+
+    // Start measurement mode (it returns to standby by himself when measuring is finished)
+    writeByte(AS7331_OSR, AS7331_START_MEASUREMENT);
+
+    uint8_t rawData[2] {0,0};
+
+    // Get status
+    readBytes(AS7331_STATUS, 2, &rawData[0]);
+
+    // Wait for the NOTREADY flag to become 0
+    uint32_t started = millis();
+    while (rawData[1] & 0b100) {
+
+        // Get status
+        readBytes(AS7331_STATUS, 2, &rawData[0]);
+
+        // Error reporting
+        if (debug) {
+            if (rawData[1] & 0b100)         Serial.println("AS7331: Results not yet ready");
+            if (rawData[1] & 0b10000)       Serial.println("AS7331: Results Overwritten");
+            if (rawData[1] & 0b100000)      Serial.println("AS7331: Overflow of conversion channels");
+            if (rawData[1] & 0b1000000)     Serial.println("AS7331: Overflow on result registers");
+            if (rawData[1] & 0b10000000)    Serial.println("AS7331: Overflow of time reference");
+        }
+        delay(1);
+
+        // Toimeout after one second
+        if (millis() - started > 1000) return false;
+    }
+
+    // Data is ready
+    uint8_t rawAllData[8];
+    readBytes(AS7331_TEMP, 8, &rawAllData[0]);
+    uint16_t tempData =  (uint16_t)(((uint16_t)rawAllData[1]) << 8 | rawAllData[0]);
+    uint16_t UVAData  =  (uint16_t)(((uint16_t)rawAllData[3]) << 8 | rawAllData[2]);
+    uint16_t UVBData  =  (uint16_t)(((uint16_t)rawAllData[5]) << 8 | rawAllData[4]);
+    uint16_t UVCData  =  (uint16_t)(((uint16_t)rawAllData[7]) << 8 | rawAllData[6]);
+
+    // Scale data
+    // Page 39 of Datasheet
+    // Sensitivities at 1.024 MHz clock
+    float lsbA = 304.69f / ((float)(1 << (11 - gain))) / ((float)(1 << time)/1024.0f) / 1000.0f;  // uW/cm^2
+    float lsbB = 398.44f / ((float)(1 << (11 - gain))) / ((float)(1 << time)/1024.0f) / 1000.0f;
+    float lsbC = 191.41f / ((float)(1 << (11 - gain))) / ((float)(1 << time)/1024.0f) / 1000.0f;
+
+    uva = (float)(UVAData)*lsbA;
+    uvb = (float)(UVBData)*lsbB;
+    uvc = (float)(UVCData)*lsbC;
+
+    // Mark all metrics as not readed except the one we are returning
+    for (uint8_t i=0; i<totalMetrics; i++) {
+        if (sensorStatus[i].type == wichSensor->type) sensorStatus[i].readed = true;
+        else sensorStatus[i].readed = false;
+    }
 
     return true;
 }
@@ -2713,6 +2776,20 @@ byte Sck_AS7331::writeByte(byte wichReg, byte wichValue)
     Wire.write(wichValue);
     Wire.endTransmission();
 
+}
+uint8_t Sck_AS7331::readBytes(uint8_t wichReg, uint8_t howMany, uint8_t * buff)
+{  
+    Wire.beginTransmission(address);
+    Wire.write(wichReg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(address, howMany);
+
+    uint8_t i = 0;
+    while (Wire.available()) {
+        buff[i] = Wire.read();
+        i++;
+    }
+    return i;
 }
 #endif
 #endif

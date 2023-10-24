@@ -520,7 +520,7 @@ class Sck_AS7331
         float uvb;
         float uvc;
 
-        bool debug = true;
+        bool debug = false;
 
      private:
         // Datasheet: https://ams.com/documents/20143/9106314/AS7331_DS001047_4-00.pdf
@@ -538,6 +538,18 @@ class Sck_AS7331
         #define AS7331_START_MEASUREMENT    0b10000011
         #define AS7331_RESET                0b00001010
         #define AS7331_OFF                  0b01000010
+
+        // Measurement Modes
+        #define AS7331_CONT_MODE 0x00   // Continuous Measurement Mode – CONT
+        #define AS7331_CMD_MODE  0x01   // Command Measurement Mode – CMD
+        #define AS7331_SYNS_MODE 0x02   // Synchronous Measurement Mode – SYNS
+        #define AS7331_SYND_MODE 0x03   // Synchronous Measurement Start and End Mode – SYND
+
+        // Internal clock frequency
+        #define AS7331_1024 0x00
+        #define AS7331_2048 0x01
+        #define AS7331_4096 0x02
+        #define AS7331_8192 0x03
 
         #define AS7331_AGEN     0x02 // ChipIP info (it shoiuld be 0x21)
 
@@ -559,17 +571,53 @@ class Sck_AS7331
         //      SB      4   -> 0: Standby is switched OFF, 1: Standby is switched ON
         //      MMODE   7:6 -> 00 CONT mode (continuous measurement), 01 CMD mode (measurement per command). 10 SYNS mode (externally synchronized start of measurement), 11 SYND mode (start and end of measurement are externally synchronized).
 
-        // TODO define optimal config values
-        #define AS7331_CREG1_DEFAULT 0b00000000
-        #define AS7331_CREG2_DEFAULT 0b00000000
-        #define AS7331_CREG3_DEFAULT 0b00000000
+        #define AS7331_BREAK    0x09
+        // BREAK (0x09) page 56 of datasheet
+        //      BREAK   7:0 -> reak time TBREAK between two measurements (except CMD mode): from 0 to 2040 μs, step size 8 μs. The value 0h results in a minimum time of 3 clocks of fCLK.
+
+        #define AS7331_STATUS   0x00
+        // STATUS (0x00) page 59 of datasheet
+        //      POWERSTATE  0 -> Power Down state. 0: OFF, 1: ON
+        //      STANDBYSTATE 1 -> 0: OFF, 1: ON
+        //      NOTREADY    2 -> Corresponds to the inverted signal at the output pin READY. 0: Measurement progress is finished or not started yet
+        //      NDATA       3 -> New measurement results were transferred from the temporary storage to the output result registers.
+        //      LDATA       4 -> Measurement results in the buffer registers were overwritten before they were transferred to the output result registers. A transfer takes place as part of an I²C read process of at least one register of the output register bank.
+        //      ADCOF       5 -> Overflow of at least one of the internal conversion channels during the measurement (e.g.caused by pulsed light) – analog evaluation is made
+        //      MRESOF      6 -> Overflow of at least one of the measurement result registers MRES1 … MRES3.
+        //      OUTCONVOF   7 -> Digital overflow of the internal 24 bit time reference OUTCONV.
+
+        #define AS7331_TEMP      0x01
+        #define AS7331_MRES1     0x02
+        #define AS7331_MRES2     0x03
+        #define AS7331_MRES3     0x04
+        #define AS7331_OUTCONVL  0x05
+        #define AS7331_OUTCONVH  0x06
+        // Output Register Bank Page 58 of datasheet
+        //      TEMP    1 -> Temperature Measurement Result (0h +12 bits for the value).
+        //      MRES1   2 -> Measurement Result A-Channel.
+        //      MRES2   3 -> Measurement Result B-Channel.
+        //      MRES3   4 -> Measurement Result C-Channel
+        //      OUTCONVL 5 -> Time reference, result of conversion time measurement (least significant byte and middle byte).
+        //      OUTCONVH 6 -> Time reference, result of conversion time measurement (most significant byte and one empty byte with 00h).
+
 
         byte getByte(byte wichByte);
         byte writeByte(byte wichByte, byte wichValue);
+        uint8_t readBytes(uint8_t wichReg, uint8_t howMany, uint8_t * buff);
         bool started = false;
-        static const uint8_t totalMetrics = 3;
-        uint8_t enabled[totalMetrics][2] = { {SENSOR_AS7331_UVA, 0}, {SENSOR_AS7331_UVB, 0}, {SENSOR_AS7331_UVC, 0} };
+        uint32_t lastReading = 0;
 
+        struct SensorStatus { SensorType type; bool enabled; bool readed; };
+        static const uint8_t totalMetrics = 3;
+        SensorStatus sensorStatus[totalMetrics] = { {SENSOR_AS7331_UVA, false, true}, {SENSOR_AS7331_UVB, false, true}, {SENSOR_AS7331_UVC, false, true} };
+
+        // Config values
+        uint8_t mmode       = AS7331_CONT_MODE; // choices are modes are CONT, CMD, SYNS, SYND
+        uint8_t sb          = 0x01;             // standby enabled 0x01 (to save power), standby disabled 0x00                    
+        uint8_t cclk        = AS7331_1024;      // choices are 1.024, 2.048, 4.096, or 8.192 MHz
+        uint8_t breakTime   = 40;               // sample time == 8 us x breakTime (0 - 255, or 0 - 2040 us range), CONT or SYNX modes
+        uint8_t gain        = 8;                // ADCGain = 2^(11-gain), by 2s, 1 - 2048 range,  0 < gain = 11 max, default 10
+        uint8_t time        = 9;                // 2^time in ms, so 0x07 is 2^6 = 64 ms, 0 < time = 15 max, default  6
     };
 #endif
 #endif

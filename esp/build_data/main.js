@@ -121,7 +121,7 @@ var app = new Vue({
     },
 
     xmlWrapper: function(theUrl, callback) {
-      //console.log('theurl: ' + theUrl);
+      // console.log('theurl: ' + theUrl);
       var xmlHttp = new XMLHttpRequest();
       var that = this;
 

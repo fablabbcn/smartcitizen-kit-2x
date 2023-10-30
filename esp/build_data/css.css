@@ -27,6 +27,7 @@ body {
   margin: 0 auto;
   max-width: 900px;
 }
+
 form .field-group {
   box-sizing: border-box;
   clear: both;
@@ -89,6 +90,10 @@ a{
   cursor:pointer;
 }
 
+.side-by-side {
+  display: flex;
+}
+
 .btn{
   border-radius: 30px;
   border: 0px;
@@ -100,12 +105,27 @@ a{
   font-weight: 400;
   height: 2.5em;
   margin: 30px auto;
-  padding: 4px 40px;
+  padding: 2px 40px;
   text-decoration: none;
+}
+
+.content-wrap{
+  margin: 10px;
+}
+
+.btn-big{
+  height: 8.5em;
+  width: 45%;
+  font-weight: bold;
+  padding: 5px 15px !important;
+  margin: 20px auto;
 }
 
 .bg-black{
   background-color: #262626 !important;
+}
+.bg-blue{
+  background-color: #0019FF !important;
 }
 .bg-yellow{
   background-color: #FFBA00 !important;

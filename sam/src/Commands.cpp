@@ -1156,7 +1156,7 @@ void mqttConfig_com(SckBase* base, String parameters)
 		base->pendingSyncConfig = true;
 		base->saveConfig();
 	}
-	
+
 	// Get
 	Configuration currentConfig = base->getConfig();
 
@@ -1164,7 +1164,7 @@ void mqttConfig_com(SckBase* base, String parameters)
 	base->sckOut();
 	sprintf(base->outBuff, "Mqtt Port: %u", currentConfig.mqtt.port);
 	base->sckOut();
-	
+
 }
 void ntpConfig_com(SckBase* base, String parameters)
 {
@@ -1195,7 +1195,7 @@ void ntpConfig_com(SckBase* base, String parameters)
 		base->pendingSyncConfig = true;
 		base->saveConfig();
 	}
-	
+
 	// Get
 	Configuration currentConfig = base->getConfig();
 

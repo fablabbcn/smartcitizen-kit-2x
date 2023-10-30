@@ -145,7 +145,7 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 #ifdef WITH_URBAN
         case SENSOR_SHT31_TEMP:
         case SENSOR_SHT31_HUM:
-#ifdef WITH_GASES_BOARD 
+#ifdef WITH_GASES_BOARD
             if (sht31.start() && !gasBoard.start()) return true;
 #else
             if (sht31.start()) return true;
@@ -600,7 +600,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
             }
             break;
 
-        } 
+        }
 #endif
 #ifdef WITH_CHIRP
         case SENSOR_CHIRP_MOISTURE_RAW:
@@ -1701,7 +1701,7 @@ bool Atlas::tempCompensation()
 #ifdef WITH_DS18B20
         if (waterTemp_DS18B20.detected) temperature = waterTemp_DS18B20.getReading();
         else if (atlasTEMP.detected) {
-#else 
+#else
         if (atlasTEMP.detected) {
 #endif
 

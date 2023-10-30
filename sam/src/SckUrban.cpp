@@ -293,7 +293,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                     base->sckOut();
                     return true;
                 }
-            } 
+            }
 #ifdef WITH_CCS811
         case SENSOR_CCS811_VOCS:
         case SENSOR_CCS811_ECO2:
@@ -429,7 +429,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                 } else if (command.startsWith("lastclean")) {
 
                     Sck_SPS30::lastCleaning when = eepromSPS30LastCleaning.read();
- 
+
                     if (!when.valid) {
                         base->sckOut("No valid date for last cleaning");
 
@@ -486,7 +486,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                 } else if (command.startsWith("lastclean")) {
 
                     Sck_SEN5X::lastCleaning when = eepromSEN5xLastCleaning.read();
- 
+
                     if (!when.valid) {
                         base->sckOut("No valid date for last cleaning");
 
@@ -2141,7 +2141,7 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
             wichSensor->state = 0;
             return true;
 
-        } 
+        }
         case SEN5X_MEASUREMENT_2: {
 
             uint32_t passed = now - measureStarted;
@@ -2194,7 +2194,7 @@ bool Sck_SEN5X::startCleaning()
         return false;
     }
     delay(50); // From Sensirion Arduino library
- 
+
     if (!sen_sendCommand(SEN5X_START_FAN_CLEANING)) {
         if (debug) Serial.println("SEN5X: Error starting fan cleaning");
         return false;
@@ -2203,7 +2203,7 @@ bool Sck_SEN5X::startCleaning()
 
     // This message will be always printed so the user knows the SCK it's not hanged
     Serial.println("SEN5X: Started fan cleaning it will take 10 seconds...");
- 
+
     uint16_t started = millis();
     while (millis() - started < 10500) {
         Serial.print(".");
@@ -2351,12 +2351,12 @@ bool Sck_SEN5X::sen_readValues()
 
     // TODO we should check if values are NAN before converting them
     // convert them based on Sensirion Arduino lib
-    pM1p0          = uint_pM1p0      / 10.0f; 
-    pM2p5          = uint_pM2p5      / 10.0f; 
-    pM4p0          = uint_pM4p0      / 10.0f; 
-    pM10p0         = uint_pM10p0     / 10.0f; 
+    pM1p0          = uint_pM1p0      / 10.0f;
+    pM2p5          = uint_pM2p5      / 10.0f;
+    pM4p0          = uint_pM4p0      / 10.0f;
+    pM10p0         = uint_pM10p0     / 10.0f;
     humidity       = int_humidity    / 100.0f;
-    temperature    = int_temperature / 200.0f; 
+    temperature    = int_temperature / 200.0f;
     vocIndex       = int_vocIndex    / 10.0f;
     noxIndex       = int_noxIndex    / 10.0f;
 
@@ -2369,7 +2369,7 @@ bool Sck_SEN5X::sen_readPmValues()
         return false;
     }
     delay(20); // From Sensirion Arduino library
- 
+
     uint8_t dataBuffer[30];
     size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 30);
     if (receivedNumber == 0) {
@@ -2388,7 +2388,7 @@ bool Sck_SEN5X::sen_readPmValues()
     uint16_t uint_pN4p0   = static_cast<uint16_t>((dataBuffer[14]  << 8) | dataBuffer[15]);
     uint16_t uint_pN10p0  = static_cast<uint16_t>((dataBuffer[16]  << 8) | dataBuffer[17]);
     uint16_t uint_tSize   = static_cast<uint16_t>((dataBuffer[18]  << 8) | dataBuffer[19]);
- 
+
     // convert them based on Sensirion Arduino lib
     // pM1p0   = uint_pM1p0  / 10.0f;
     // pM2p5   = uint_pM2p5  / 10.0f;
@@ -2408,7 +2408,7 @@ bool Sck_SEN5X::sen_readPmValues()
     pN4p0  *= 100;
     pN10p0 *= 100;
     tSize  *= 100;
- 
+
     return true;
 }
 bool Sck_SEN5X::sen_readRawValues()
@@ -2418,7 +2418,7 @@ bool Sck_SEN5X::sen_readRawValues()
         return false;
     }
     delay(20); // From Sensirion Arduino library
- 
+
     uint8_t dataBuffer[12];
     size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 12);
     if (receivedNumber == 0) {
@@ -2693,7 +2693,7 @@ bool Sck_AS7331::start(SensorType wichSensor)
     writeByte(AS7331_BREAK, breakTime);
     // CREG1: gain  and time
     writeByte(AS7331_CREG1, gain << 4 | time);
-    
+
     // Enter measurement mode (on standby)
     writeByte(AS7331_OSR, AS7331_MEASUREMENT);
 
@@ -2793,7 +2793,7 @@ byte Sck_AS7331::writeByte(byte wichReg, byte wichValue)
 
 }
 uint8_t Sck_AS7331::readBytes(uint8_t wichReg, uint8_t howMany, uint8_t * buff)
-{  
+{
     Wire.beginTransmission(address);
     Wire.write(wichReg);
     Wire.endTransmission(false);

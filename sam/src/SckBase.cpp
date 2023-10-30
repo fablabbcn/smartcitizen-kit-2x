@@ -941,7 +941,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 						sckOut("ESP not starting!!!", PRIO_HIGH);
 						st.error = ERROR_ESP;
 						break;
-					}		
+					}
 					ESPbusUpdate();
 				}
 				sckOut("ESP on", PRIO_LOW);
@@ -1190,7 +1190,7 @@ bool SckBase::sdInit()
 
     // Change SPI speed to SD_SCK_MHZ(4) in case of innestability.
     if (sd.begin(pinCS_SDCARD, SD_SCK_MHZ(50))) {
- 
+
         // Print some info about the card
         uint32_t size = sd.card()->sectorCount();
         if (size == 0) {
@@ -1278,7 +1278,7 @@ void SckBase::fileManager(fileCom command, const char* name)
                 sckOut();
                 break;
             }
- 
+
             // Print file name
             sprintf(outBuff, "\r\n%s\r\n==============", name);
             sckOut();
@@ -1298,7 +1298,7 @@ void SckBase::fileManager(fileCom command, const char* name)
         case FILECOM_ALLCSV:
             sckOut("Showing all CSV files");
             FsFile dir;
- 
+
             // Open root dir
             if (!dir.open("/")) {
                 sckOut("ERROR opening directory");
@@ -1309,7 +1309,7 @@ void SckBase::fileManager(fileCom command, const char* name)
             uint16_t prevHeadChkSum = 0;
 
             while (sckFile.openNext(&dir, O_RDONLY)) {
- 
+
                 // Check if the file is a CSV
                 char fbuff[FBUFF_SIZE];
                 sckFile.getName(fbuff, FBUFF_SIZE);
@@ -1330,13 +1330,13 @@ void SckBase::fileManager(fileCom command, const char* name)
                         Serial.println("\n\n<<<<<----------- NEW FILE ------------>>>>>");
                         prevHeadChkSum = newHeadChkSum;
                     }
- 
+
                     // Get chunks (a lot faster!)
                     while (sckFile.available() > FBUFF_SIZE) {
                         sckFile.read(fbuff, FBUFF_SIZE);
                         Serial.write(fbuff, FBUFF_SIZE);
                     }
- 
+
                     // Get remaining chars
                     while (sckFile.available()) Serial.write(sckFile.read());
 
@@ -1372,7 +1372,7 @@ uint16_t SckBase::RAMheaderChkSum()
             buffIdx += sprintf(&outBuff[buffIdx], ",%s", sensors[wichSensor].shortTitle);
         }
     }
- 
+
     // Calc checkSum
     uint16_t csCalc = 0;
     for (uint16_t i=0; i<buffIdx; i++){
@@ -2096,10 +2096,10 @@ bool SckBase::sdPublish()
         sprintf(outBuff, "Sensor config changed, renaming old csv file to %s", newName);
         sckOut();
         sd.rename(postfileName, newName);
-  
+
         // We need to write header since we are going to start a new file
         exist = false;
-    } 
+    }
 
     // Try to open file
     if (!sckFile.open(postfileName, FILE_WRITE)) {
@@ -2130,7 +2130,7 @@ bool SckBase::getRSSI(OneSensor* wichSensor)
     // We recommend the following:
     // > shell -on
     // > esp -on
-    // and when WiFi is connected: 
+    // and when WiFi is connected:
     // > monitor rssi
 
     // Check that the reading interval is the same as the publish interval (we don't want to turn on theESP just for this)
@@ -2166,15 +2166,15 @@ bool SckBase::getRSSI(OneSensor* wichSensor)
             return false;
         }
     }
- 
+
     // Check if it is our answer
     if (serESP.msg != SAMMES_RSSI) return false;
- 
+
     // Wifi.RSSI() seems to return 31 on error
     if (strcmp("31", serESP.buff) == 0) {
         wichSensor->reading = "null";
         return false;
-    } 
+    }
 
     // All seems OK
     wichSensor->reading = serESP.buff;

@@ -144,7 +144,7 @@ class AuxBoards
         // 0x20,           // SENSOR_CHIRP_MOISTURE,
         // 0x20,           // SENSOR_CHIRP_TEMPERATURE,
         // 0x20,           // SENSOR_CHIRP_LIGHT,
- 
+
         // 0x02,           // SENSOR_EXT_PM_1,
         // 0x02,           // SENSOR_EXT_PM_25,
         // 0x02,           // SENSOR_EXT_PM_10,
@@ -194,8 +194,8 @@ class AuxBoards
         // 0x4a,           // SENSOR_ADS1X15_XX_X
         // 0x4b,           // SENSOR_ADS1X15_XX_X
         //
-        // 0x5d,           // SENSOR_SFA30_TEMPERATURE, 
-        // 0x5d,           // SENSOR_SFA30_HUMIDITY,    
+        // 0x5d,           // SENSOR_SFA30_TEMPERATURE,
+        // 0x5d,           // SENSOR_SFA30_HUMIDITY,
         // 0x5d,           // SENSOR_SFA30_FORMALDEHYDE,
 
         bool start(SckBase *base, SensorType wichSensor);

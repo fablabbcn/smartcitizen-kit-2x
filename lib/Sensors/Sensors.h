@@ -122,7 +122,7 @@ enum SensorType
 #ifdef WITH_AS7331
     SENSOR_AS7331_UVA,
     SENSOR_AS7331_UVB,
-    SENSOR_AS7331_UVC, 
+    SENSOR_AS7331_UVC,
 #endif
 #endif
 
@@ -301,7 +301,6 @@ class AllSensors
 {
     public:
 
-
         OneSensor list[SENSOR_COUNT+1] {
 
             //  SensorLocation          prio    SensorType                      shortTitle          title                                   id      enabled     everyNintervals     unit
@@ -315,7 +314,7 @@ class AllSensors
 
 #ifdef WITH_URBAN
             // Urban Sensors
-            OneSensor { BOARD_URBAN,    100,    SENSOR_LIGHT,                   "LIGHT",            "Light",                                14,     true,       1,  "Lux"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_LIGHT,                   "LIGHT",            "Light",                                14,     true,       1,  "lux"       },
             OneSensor { BOARD_URBAN,    0,      SENSOR_TEMPERATURE,             "TEMP",             "Temperature",                          55,     true,       1,  "C"         },
             OneSensor { BOARD_URBAN,    0,      SENSOR_HUMIDITY,                "HUM",              "Humidity",                             56,     true,       1,  "%"         },
             OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_DBA,               "NOISE_A",          "Noise dBA",                            53,     true,       1,  "dBA"       },
@@ -330,8 +329,8 @@ class AllSensors
 #endif
 
 #ifdef WITH_CCS811
-            OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_VOCS,             "CCS811_VOCS",      "VOC Gas CCS811",                       113,    true,       1,  "ppb"       },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_ECO2,             "CCS811_ECO2",      "eCO2 Gas CCS811",                      112,    true,       1,  "ppm"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_VOCS,             "CCS811_VOCS",      "CCS811 VOC Gas",                       113,    true,       1,  "ppb"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_ECO2,             "CCS811_ECO2",      "CCS811 eCO2 Gas",                      112,    true,       1,  "ppm"       },
 #endif
 
 #ifdef WITH_LPS33
@@ -486,7 +485,7 @@ class AllSensors
 #endif
 
 #ifdef WTIH_RANGE
-            OneSensor { BOARD_AUX,      100,    SENSOR_RANGE_LIGHT,             "EXT_RANGE_LIGHT",  "Ext Range Light",                      0,      true,       1,  "Lux"       },
+            OneSensor { BOARD_AUX,      100,    SENSOR_RANGE_LIGHT,             "EXT_RANGE_LIGHT",  "Ext Range Light",                      0,      true,       1,  "lux"       },
             OneSensor { BOARD_AUX,      100,    SENSOR_RANGE_DISTANCE,          "EXT_RANGE_DIST",   "Ext Range Distance",                   98,     true,       1,  "mm"        },
 #endif
 

@@ -186,9 +186,9 @@ class Sck_LPS33
         bool getTemperature();
     };
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
 //PM sensors
-class Sck_PM
+class Sck_PMS
     {
     private:
         uint32_t lastReading = 0;
@@ -248,7 +248,7 @@ class Sck_PM
         bool wake();
 
     public:
-        Sck_PM(RTCZero* myrtc) {
+        Sck_PMS(RTCZero* myrtc) {
             rtc = myrtc;
         }
 
@@ -659,9 +659,9 @@ class SckUrban
         Sck_CCS811 sck_ccs811 = Sck_CCS811(rtc);
 #endif
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
         // PM sensor
-        Sck_PM sck_pm = Sck_PM(rtc);
+        Sck_PMS sck_pms = Sck_PMS(rtc);
 #endif
 
 #ifdef WITH_SPS30

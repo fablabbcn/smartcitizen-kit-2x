@@ -1,9 +1,6 @@
 #pragma once
 
-// Urban PM Sensors
-#define WITH_SEN5X              // Saves 1088 bytes
-// #define WITH_SPS30              // Saves 576 bytes
-#define WITH_PM                 // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
+#define WITH_PMS                // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
 #define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
 #define WITH_AS7331             // Saves xxx bytes
 // #define WITH_CCS811             // 
@@ -63,16 +60,16 @@ enum SensorType
     SENSOR_CCS811_ECO2,
 #endif
 
-#ifdef WITH_PM
-    SENSOR_PM_1,
-    SENSOR_PM_25,
-    SENSOR_PM_10,
-    SENSOR_PN_03,
-    SENSOR_PN_05,
-    SENSOR_PN_1,
-    SENSOR_PN_25,
-    SENSOR_PN_5,
-    SENSOR_PN_10,
+#ifdef WITH_PMS
+    SENSOR_PMS_PM_1,
+    SENSOR_PMS_PM_25,
+    SENSOR_PMS_PM_10,
+    SENSOR_PMS_PN_03,
+    SENSOR_PMS_PN_05,
+    SENSOR_PMS_PN_1,
+    SENSOR_PMS_PN_25,
+    SENSOR_PMS_PN_5,
+    SENSOR_PMS_PN_10,
 #endif
 
 #ifdef WITH_SPS30
@@ -169,7 +166,7 @@ enum SensorType
     SENSOR_CHIRP_LIGHT,
 #endif
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
     SENSOR_EXT_A_PM_1,
     SENSOR_EXT_A_PM_25,
     SENSOR_EXT_A_PM_10,
@@ -331,17 +328,17 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_PRESS,             "PRESS_LPS",        "Barometric pressure LPS",              227,    true,       1,  "kPa"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_TEMP,              "PRESS_TEMP_LPS",   "Pressure internal temperature LPS",    0,      false,      1,  "C"         },
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
         // TODO cambiar los nombres a este pm para que no se confunda con los demas
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PM_1,                    "PM_1",             "PM 1.0",                               89,     true,       5,  "ug/m3"     },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PM_25,                   "PM_25",            "PM 2.5",                               87,     true,       5,  "ug/m3"     },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PM_10,                   "PM_10",            "PM 10.0",                              88,     true,       5,  "ug/m3"     },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_03,                   "PN_03",            "PN 0.3",                               165,    false,      1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_05,                   "PN_05",            "PN 0.5",                               166,    false,      1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_1,                    "PN_1",             "PN 1.0",                               167,    false,      1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_25,                   "PN_25",            "PN 2.5",                               168,    false,      1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_5,                    "PN_5",             "PN 5.0",                               169,    false,      1,  "#/0.1l"    },
-            OneSensor { BOARD_URBAN,    240,    SENSOR_PN_10,                   "PN_10",            "PN 10.0",                              170,    false,      1,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PMS_PM_1,                "PMS_PM_1",         "PMS PM 1.0",                           89,     true,       5,  "ug/m3"     },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PMS_PM_25,               "PMS_PM_25",        "PMS PM 2.5",                           87,     true,       5,  "ug/m3"     },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PMS_PM_10,               "PMS_PM_10",        "PMS PM 10.0",                          88,     true,       5,  "ug/m3"     },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PMS_PN_03,               "PMS_PN_03",        "PMS PN 0.3",                           165,    true,       5,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PMS_PN_05,               "PMS_PN_05",        "PMS PN 0.5",                           166,    true,       5,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PMS_PN_1,                "PMS_PN_1",         "PMS PN 1.0",                           167,    true,       5,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PMS_PN_25,               "PMS_PN_25",        "PMS PN 2.5",                           168,    true,       5,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PMS_PN_5,                "PMS_PN_5",         "PMS PN 5.0",                           169,    true,       5,  "#/0.1l"    },
+            OneSensor { BOARD_URBAN,    240,    SENSOR_PMS_PN_10,               "PMS_PN_10",        "PMS PN 10.0",                          170,    true,       5,  "#/0.1l"    },
 #endif
 
 #ifdef WITH_SPS30
@@ -443,7 +440,7 @@ class AllSensors
             OneSensor { BOARD_AUX,      100,    SENSOR_CHIRP_LIGHT,             "CHRP_LIGHT",       "Soil Light",                           0,      true,       1,              },
 #endif
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
             OneSensor { BOARD_AUX,      200,    SENSOR_EXT_A_PM_1,              "EXT_PM_A_1",       "Ext PM_A 1.0",                         71,     true,       1,  "ug/m3"     },
             OneSensor { BOARD_AUX,      200,    SENSOR_EXT_A_PM_25,             "EXT_PM_A_25",      "Ext PM_A 2.5",                         72,     true,       1,  "ug/m3"     },
             OneSensor { BOARD_AUX,      200,    SENSOR_EXT_A_PM_10,             "EXT_PM_A_10",      "Ext PM_A 10.0",                        73,     true,       1,  "ug/m3"     },

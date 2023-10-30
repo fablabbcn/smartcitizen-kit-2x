@@ -40,16 +40,16 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_CCS811_VOCS:        return sck_ccs811.start();
         case SENSOR_CCS811_ECO2:        return sck_ccs811.start();
 #endif
-#ifdef WITH_PM
-        case SENSOR_PM_1:
-        case SENSOR_PM_25:
-        case SENSOR_PM_10:
-        case SENSOR_PN_03:
-        case SENSOR_PN_05:
-        case SENSOR_PN_1:
-        case SENSOR_PN_25:
-        case SENSOR_PN_5:
-        case SENSOR_PN_10:              return sck_pm.start();
+#ifdef WITH_PMS
+        case SENSOR_PMS_PM_1:
+        case SENSOR_PMS_PM_25:
+        case SENSOR_PMS_PM_10:
+        case SENSOR_PMS_PN_03:
+        case SENSOR_PMS_PN_05:
+        case SENSOR_PMS_PN_1:
+        case SENSOR_PMS_PN_25:
+        case SENSOR_PMS_PN_5:
+        case SENSOR_PMS_PN_10:              return sck_pms.start();
 #endif
 #ifdef WITH_SPS30
         case SENSOR_SPS30_PM_1:
@@ -120,16 +120,16 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_CCS811_VOCS:
         case SENSOR_CCS811_ECO2:        return sck_ccs811.stop();
 #endif
-#ifdef WITH_PM
-        case SENSOR_PM_1:
-        case SENSOR_PM_25:
-        case SENSOR_PM_10:
-        case SENSOR_PN_03:
-        case SENSOR_PN_05:
-        case SENSOR_PN_1:
-        case SENSOR_PN_25:
-        case SENSOR_PN_5:
-        case SENSOR_PN_10:              return sck_pm.stop();
+#ifdef WITH_PMS
+        case SENSOR_PMS_PM_1:
+        case SENSOR_PMS_PM_25:
+        case SENSOR_PMS_PM_10:
+        case SENSOR_PMS_PN_03:
+        case SENSOR_PMS_PN_05:
+        case SENSOR_PMS_PN_1:
+        case SENSOR_PMS_PN_25:
+        case SENSOR_PMS_PN_5:
+        case SENSOR_PMS_PN_10:          return sck_pms.stop();
 #endif
 #ifdef WITH_SPS30
         case SENSOR_SPS30_PM_1:
@@ -207,16 +207,16 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_PRESSURE_TEMP:          if (sck_mpl3115A2.getTemperature())         { wichSensor->reading = String(sck_mpl3115A2.temperature);                      return; } break;
         case SENSOR_LPS33_PRESS:            if (sck_lps33.getPressure())                { wichSensor->reading = String(sck_lps33.pressure);                             return; } break;
         case SENSOR_LPS33_TEMP:             if (sck_lps33.getTemperature())             { wichSensor->reading = String(sck_lps33.temperature);                          return; } break;
-#ifdef WITH_PM
-        case SENSOR_PM_1:                   if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm1);                                     return; } break;
-        case SENSOR_PM_25:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm25);                                    return; } break;
-        case SENSOR_PM_10:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pm10);                                    return; } break;
-        case SENSOR_PN_03:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn03);                                    return; } break;
-        case SENSOR_PN_05:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn05);                                    return; } break;
-        case SENSOR_PN_1:                   if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn1);                                     return; } break;
-        case SENSOR_PN_25:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn25);                                    return; } break;
-        case SENSOR_PN_5:                   if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn5);                                     return; } break;
-        case SENSOR_PN_10:                  if (sck_pm.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pm.pn10);                                    return; } break;
+#ifdef WITH_PMS
+        case SENSOR_PMS_PM_1:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm1);                                     return; } break;
+        case SENSOR_PMS_PM_25:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm25);                                    return; } break;
+        case SENSOR_PMS_PM_10:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm10);                                    return; } break;
+        case SENSOR_PMS_PN_03:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn03);                                    return; } break;
+        case SENSOR_PMS_PN_05:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn05);                                    return; } break;
+        case SENSOR_PMS_PN_1:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn1);                                     return; } break;
+        case SENSOR_PMS_PN_25:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn25);                                    return; } break;
+        case SENSOR_PMS_PN_5:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn5);                                     return; } break;
+        case SENSOR_PMS_PN_10:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn10);                                    return; } break;
 #endif
 #ifdef WITH_SPS30
         case SENSOR_SPS30_PM_1:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_1p0);                   return; } break;
@@ -322,56 +322,56 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 
             }
 #endif
-#ifdef WITH_PM
-        case SENSOR_PM_1:
-        case SENSOR_PM_25:
-        case SENSOR_PM_10:
+#ifdef WITH_PMS
+        case SENSOR_PMS_PM_1:
+        case SENSOR_PMS_PM_25:
+        case SENSOR_PMS_PM_10:
             {
                 if (command.startsWith("debug")) {
 
                     command.replace("debug", "");
                     command.trim();
-                    if (command.startsWith("1")) sck_pm.debug = true;
-                    else if (command.startsWith("0")) sck_pm.debug = false;
+                    if (command.startsWith("1")) sck_pms.debug = true;
+                    else if (command.startsWith("0")) sck_pms.debug = false;
 
-                    sprintf(base->outBuff, "%s", sck_pm.debug  ? "true" : "false");
+                    sprintf(base->outBuff, "%s", sck_pms.debug  ? "true" : "false");
                     base->sckOut();
                     return true;
 
                 } else if (command.startsWith("powersave")) {
 
-                    bool oldValue = sck_pm.powerSave;
+                    bool oldValue = sck_pms.powerSave;
                     command.replace("powersave", "");
                     command.trim();
-                    if (command.startsWith("1")) sck_pm.powerSave = true;
-                    else if (command.startsWith("0")) sck_pm.powerSave = false;
+                    if (command.startsWith("1")) sck_pms.powerSave = true;
+                    else if (command.startsWith("0")) sck_pms.powerSave = false;
 
-                    sprintf(base->outBuff, "%s", sck_pm.powerSave  ? "true" : "false");
+                    sprintf(base->outBuff, "%s", sck_pms.powerSave  ? "true" : "false");
                     base->sckOut();
 
-                    if (oldValue != sck_pm.powerSave) {
-                        base->config.extra.pmPowerSave = sck_pm.powerSave;
+                    if (oldValue != sck_pms.powerSave) {
+                        base->config.extra.pmPowerSave = sck_pms.powerSave;
                         base->saveConfig();
                     }
                     return true;
 
                 } else if (command.startsWith("warmup")) {
 
-                    uint32_t oldValue = sck_pm.warmUpPeriod;
+                    uint32_t oldValue = sck_pms.warmUpPeriod;
                     command.replace("warmup", "");
                     command.trim();
 
                     // If user provide a value set new period
                     if (command.length() > 0) {
                         int newPeriod = command.toInt();
-                        sck_pm.warmUpPeriod = newPeriod;
+                        sck_pms.warmUpPeriod = newPeriod;
                     }
 
-                    sprintf(base->outBuff, "%u seconds", sck_pm.warmUpPeriod);
+                    sprintf(base->outBuff, "%u seconds", sck_pms.warmUpPeriod);
                     base->sckOut();
 
-                    if (oldValue != sck_pm.warmUpPeriod) {
-                        base->config.extra.pmWarmUpPeriod = sck_pm.warmUpPeriod;
+                    if (oldValue != sck_pms.warmUpPeriod) {
+                        base->config.extra.pmWarmUpPeriod = sck_pms.warmUpPeriod;
                         base->saveConfig();
                     }
                     return true;
@@ -1242,9 +1242,9 @@ bool Sck_LPS33::getTemperature()
     return true;
 }
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
 // PM sensor
-bool Sck_PM::start()
+bool Sck_PMS::start()
 {
     if (started) return true;
     else if (alreadyFailed) return false;
@@ -1275,7 +1275,7 @@ bool Sck_PM::start()
     alreadyFailed = true;
     return false;
 }
-bool Sck_PM::stop()
+bool Sck_PMS::stop()
 {
     if (debug) Serial.println("PM: Stoping sensor");
     digitalWrite(pinPM_ENABLE, LOW);
@@ -1284,7 +1284,7 @@ bool Sck_PM::stop()
     wakeUpTime = 0;
     return true;
 }
-bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
+bool Sck_PMS::getReading(OneSensor *wichSensor, SckBase *base)
 {
     uint32_t now = rtc->getEpoch();
 
@@ -1344,7 +1344,7 @@ bool Sck_PM::getReading(OneSensor *wichSensor, SckBase *base)
     wichSensor->state = 0;
     return true;
 }
-bool Sck_PM::fillBuffer()
+bool Sck_PMS::fillBuffer()
 {
     // Wait for start char 1 (0x42)
     if (!SerialPM.find(PM_START_BYTE_1)) {
@@ -1363,7 +1363,7 @@ bool Sck_PM::fillBuffer()
     if (debug) Serial.println("PM: Buffer filled OK");
     return true;
 }
-bool Sck_PM::processBuffer()
+bool Sck_PMS::processBuffer()
 {
     if (buffer[0] != PM_START_BYTE_2) {
         if (debug) Serial.println("PM: Error on received data");
@@ -1405,7 +1405,7 @@ bool Sck_PM::processBuffer()
     lastReading = rtc->getEpoch();
     return true;
 }
-bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
+bool Sck_PMS::sendCmd(byte cmd, byte data, bool checkResponse)
 {
     // Based on datasheet: Appendix B：Transport Protocol Passive Mode
 
@@ -1503,7 +1503,7 @@ bool Sck_PM::sendCmd(byte cmd, byte data, bool checkResponse)
 
     return true;
 }
-bool Sck_PM::sleep()
+bool Sck_PMS::sleep()
 {
     if (debug) Serial.println("PM: Sending sensor to sleep");
 
@@ -1520,7 +1520,7 @@ bool Sck_PM::sleep()
     wakeUpTime = 0;
     return true;
 }
-bool Sck_PM::wake()
+bool Sck_PMS::wake()
 {
     if (debug) Serial.println("PM: Waking up sensor");
 

@@ -677,10 +677,10 @@ void SckBase::loadConfig()
 	}
 #endif
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
 	// PMS sensor warmUpperiod and powerSave config
-	urban.sck_pm.warmUpPeriod = config.extra.pmWarmUpPeriod;
-	urban.sck_pm.powerSave = config.extra.pmPowerSave;
+	urban.sck_pms.warmUpPeriod = config.extra.pmWarmUpPeriod;
+	urban.sck_pms.powerSave = config.extra.pmPowerSave;
 #endif
 #endif
 }

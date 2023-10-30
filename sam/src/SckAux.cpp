@@ -25,7 +25,7 @@ Atlas               atlasORP    = Atlas(SENSOR_ATLAS_ORP);
 #ifdef WITH_CHIRP
 Moisture            moistureChirp;
 #endif
-#ifdef WITH_PM
+#ifdef WITH_PMS
 PMsensor            pmSensorA   = PMsensor(SLOT_A);
 PMsensor            pmSensorB   = PMsensor(SLOT_B);
 #endif
@@ -118,7 +118,7 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
         case SENSOR_CHIRP_TEMPERATURE:
         case SENSOR_CHIRP_LIGHT:                    return moistureChirp.start();
 #endif
-#ifdef WITH_PM
+#ifdef WITH_PMS
         case SENSOR_EXT_A_PM_1:
         case SENSOR_EXT_A_PM_25:
         case SENSOR_EXT_A_PM_10:
@@ -245,7 +245,7 @@ bool AuxBoards::stop(SensorType wichSensor)
         case SENSOR_CHIRP_TEMPERATURE:
         case SENSOR_CHIRP_MOISTURE:                 return moistureChirp.stop();
 #endif
-#ifdef WITH_PM
+#ifdef WITH_PMS
         case SENSOR_EXT_A_PM_1:
         case SENSOR_EXT_A_PM_25:
         case SENSOR_EXT_A_PM_10:
@@ -367,7 +367,7 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_CHIRP_TEMPERATURE:              if (moistureChirp.getReading(SENSOR_CHIRP_TEMPERATURE)) { wichSensor->reading = String(moistureChirp.temperature); return; } break;
         case SENSOR_CHIRP_LIGHT:                    if (moistureChirp.getReading(SENSOR_CHIRP_LIGHT)) { wichSensor->reading = String(moistureChirp.light); return; } break;
 #endif
-#ifdef WITH_PM
+#ifdef WITH_PMS
         case SENSOR_EXT_A_PM_1:                     if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pm1); return; } break;
         case SENSOR_EXT_A_PM_25:                    if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pm25); return; } break;
         case SENSOR_EXT_A_PM_10:                    if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pm10); return; } break;
@@ -1848,7 +1848,7 @@ bool Moisture::resetAddress(int currentAddress)
 }
 #endif
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
 bool PMsensor::start()
 {
     if (started) return true;

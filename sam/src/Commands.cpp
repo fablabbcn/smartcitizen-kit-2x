@@ -175,10 +175,10 @@ void sensorConfig_com(SckBase* base, String parameters)
         bool saveNeeded = false;
 
 #ifdef WITH_URBAN
-#ifdef WITH_PM
+#ifdef WITH_PMS
         // PM and PN sensors are grouped to make changes to the full group
-        SensorType urban_pm[] = { SENSOR_PM_1, SENSOR_PM_25, SENSOR_PM_10 };
-        SensorType urban_pn[] = { SENSOR_PN_03, SENSOR_PN_05, SENSOR_PN_1, SENSOR_PN_25, SENSOR_PN_5, SENSOR_PN_10 };
+        SensorType urban_pm[] = { SENSOR_PMS_PM_1, SENSOR_PMS_PM_25, SENSOR_PMS_PM_10 };
+        SensorType urban_pn[] = { SENSOR_PMS_PN_03, SENSOR_PMS_PN_05, SENSOR_PMS_PN_1, SENSOR_PMS_PN_25, SENSOR_PMS_PN_5, SENSOR_PMS_PN_10 };
         SensorType ext_pm[] = { SENSOR_EXT_A_PM_1, SENSOR_EXT_A_PM_25, SENSOR_EXT_A_PM_10, SENSOR_EXT_B_PM_1, SENSOR_EXT_B_PM_25, SENSOR_EXT_B_PM_10 };
         SensorType ext_pn[] = { SENSOR_EXT_A_PN_03, SENSOR_EXT_A_PN_05, SENSOR_EXT_A_PN_1, SENSOR_EXT_A_PN_25, SENSOR_EXT_A_PN_5, SENSOR_EXT_A_PN_10, SENSOR_EXT_B_PN_03, SENSOR_EXT_B_PN_05, SENSOR_EXT_B_PN_1, SENSOR_EXT_B_PN_25, SENSOR_EXT_B_PN_5, SENSOR_EXT_B_PN_10 };
         SensorType *pm_sensors[] = { urban_pm, urban_pn, ext_pm, ext_pn };
@@ -211,7 +211,7 @@ void sensorConfig_com(SckBase* base, String parameters)
                 base->config.sensors[sensorToChange].enabled = true;
 
 #ifdef WITH_URBAN
-#ifdef WITH_PM
+#ifdef WITH_PMS
                 // Just for PM/PN enable the rest of sensors in the same group
                 for (uint8_t i=1; i<groupToChange_size; i++) {
                     // Enable them in runtime
@@ -229,7 +229,7 @@ void sensorConfig_com(SckBase* base, String parameters)
             } else {
                 sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
 #ifdef WITH_URBAN
-#ifdef WITH_PM
+#ifdef WITH_PMS
                 if (groupToChange > 0) sprintf(base->outBuff, "%s and its sensor group", base->outBuff);
 #endif
 #endif
@@ -244,7 +244,7 @@ void sensorConfig_com(SckBase* base, String parameters)
             base->config.sensors[sensorToChange].enabled = false;
 
 #ifdef WITH_URBAN
-#ifdef WITH_PM
+#ifdef WITH_PMS
             // Just for PM/PN disable the rest of sensors in the same group
             for (uint8_t i=1; i<groupToChange_size; i++) {
                 // Disable them in runtime
@@ -289,7 +289,7 @@ void sensorConfig_com(SckBase* base, String parameters)
             base->sckOut();
             if (newEveryNint < 255) {
 #ifdef WITH_URBAN
-#ifdef WITH_PM
+#ifdef WITH_PMS
                 if (groupToChange_size > 0) {
                     // Just for PM/PN change all the sensors in the same group
                     for (uint8_t i=0; i<groupToChange_size; i++) {
@@ -306,7 +306,7 @@ void sensorConfig_com(SckBase* base, String parameters)
                     sprintf(base->outBuff, "Changing interval of %s to %lu", base->sensors[sensorToChange].title, base->sensors[sensorToChange].everyNint * base->config.readInterval);
                     base->sckOut();
 #ifdef WITH_URBAN
-#ifdef WITH_PM
+#ifdef WITH_PMS
                 }
 #endif
 #endif
@@ -460,9 +460,9 @@ void monitorSensor_com(SckBase* base, String parameters)
             OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 
 #ifdef WITH_URBAN
-#ifdef WITH_PM
+#ifdef WITH_PMS
             // PM sensor needs to be notified that we are in monitor mode
-            if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) base->urban.sck_pm.monitor = true;
+            if (wichSensor.type == SENSOR_PMS_PM_1 || wichSensor.type == SENSOR_PMS_PM_10 || wichSensor.type == SENSOR_PMS_PM_25) base->urban.sck_pms.monitor = true;
 #endif
 #ifdef WITH_SEN5X
             // SEN sensor needs to be notified that we are in monitor mode
@@ -531,9 +531,9 @@ void monitorSensor_com(SckBase* base, String parameters)
         OneSensor wichSensor = base->sensors[sensorsToMonitor[i]];
 
 #ifdef WITH_URBAN
-#ifdef WITH_PM
+#ifdef WITH_PMS
         // PM sensor needs to be notified that we are not in monitor mode anymore
-        if (wichSensor.type == SENSOR_PM_1 || wichSensor.type == SENSOR_PM_10 || wichSensor.type == SENSOR_PM_25) base->urban.sck_pm.monitor = false;
+        if (wichSensor.type == SENSOR_PMS_PM_1 || wichSensor.type == SENSOR_PMS_PM_10 || wichSensor.type == SENSOR_PMS_PM_25) base->urban.sck_pms.monitor = false;
 #endif
 #ifdef WITH_SEN5X
             // SEN sensor needs to be notified that we are in monitor mode

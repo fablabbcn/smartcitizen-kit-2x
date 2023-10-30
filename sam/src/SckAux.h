@@ -462,12 +462,12 @@ class Moisture
     };
 #endif
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
 enum PMslot {SLOT_A, SLOT_B, SLOT_AVG};
 #endif
 enum PMcommands
 {
-#ifdef WITH_PM
+#ifdef WITH_PMS
     START_PMA,      // Start PM in slot A
     START_PMB,          // Start PM in slot B
     GET_PMA,        // Get values for PM in slot A
@@ -487,7 +487,7 @@ enum PMcommands
 #endif
 };
 
-#ifdef WITH_PM
+#ifdef WITH_PMS
 class PMsensor
     {
     public:

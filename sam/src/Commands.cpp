@@ -1118,7 +1118,7 @@ void offline_com(SckBase* base, String parameters)
     }
 
     // Print parameters
-    sprintf(base->outBuff, "WiFi retry period: %lu", base->config.offline.retry);
+    sprintf(base->outBuff, "WiFi retry period (s): %lu", base->config.offline.retry);
     base->sckOut();
 
     if (base->config.offline.start < 0 || base->config.offline.end < 0) sprintf(base->outBuff, "No offline period configured");

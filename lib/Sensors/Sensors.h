@@ -1,7 +1,13 @@
 #pragma once
 
+// Urban and PM Sensors
+// TODO Refine for particular configurations
+//#define WITH_SEN5X              // Saves 1088 bytes
+//#define WITH_SPS30              // Saves 576 bytes
 #define WITH_PMS                // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
 #define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
+//#define WITH_AS7331             // Saves xxx bytes
+#define WITH_CCS811             //
 //#define WITH_LPS33              //
 #define WITH_MPL
 
@@ -17,9 +23,9 @@
 // #define WITH_GPS                // Saves 1508 bytes
 // #define WITH_RANGE              // Saves 292 bytes
 // #define WITH_BME68X             // Saves 644 bytes
-// #define WITH_ADS1X15            // Saves 1172 bytes
-// #define WITH_SCD30              // Saves 500 bytes
-// #define WITH_SFA30              // Saves 468 bytes
+#define WITH_ADS1X15            // Saves 1172 bytes
+#define WITH_SCD30              // Saves 500 bytes
+#define WITH_SFA30              // Saves 468 bytes
 
 #include <Arduino.h>
 

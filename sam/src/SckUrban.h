@@ -32,15 +32,15 @@
 #endif
 #endif
 
-// Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.0
+// Firmware for SmartCitizen Kit - Urban Sensor Board SCK 2.2
 // It includes drivers for this sensors:
 //
 // * Light - BH1730FVC -> (0x29)
 // * Temperature and Humidity - SHT31 -> (0x44)
-// * Noise  - Invensense ICS43432 I2S microphone;microphone:
+// * Noise - Invensense ICS43432 I2S microphone -> (I2S)
 // 2.2 DEPRECATED (MOVE TO AUX) -> * Barometric pressure - MPL3115 -> (0x60)
 // 2.2 DEPRECATED (MOVE TO AUX) -> * VOC and ECO2 - CCS811 -> (0x5a)
-// * Barometric Pressure, Temperature, Humidity and Gas - BME688 -> (0x0x76 or 0x77)
+// * Pressure - ST LPS33 -> (0x5d)
 // * UVA A,B and C - AS7331 -> (0x14)
 
 class SckBase;
@@ -139,8 +139,8 @@ class Sck_Noise
         const uint8_t FULL_SCALE_DBSPL = 120;
         const uint8_t BIT_LENGTH = 24;
         const double FULL_SCALE_DBFS = 20*log10(pow(2,(BIT_LENGTH)));
-        int32_t source[SAMPLE_NUM]; // 2k 
-        int16_t scaledSource[SAMPLE_NUM]; // 1k 
+        int32_t source[SAMPLE_NUM]; // 2k
+        int16_t scaledSource[SAMPLE_NUM]; // 1k
         bool FFT(int32_t *source);
         void arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab);
         void arm_radix2_butterfly( int16_t * pSrc, int16_t fftLen, int16_t * pCoef);
@@ -178,7 +178,7 @@ class Sck_MPL3115A2
 class Sck_LPS33
     {
         // Datasheet
-        // https://cache.freescale.com/files/sensors/doc/data_sheet/MPL3115A2.pdf
+        // https://www.st.com/resource/en/datasheet/lps33k.pdf
 
     private:
         Adafruit_LPS35HW Adafruit_lps35hw = Adafruit_LPS35HW();
@@ -401,7 +401,7 @@ class Sck_SEN5X
         bool getVer();
         float firmwareVer = -1;
         float hardwareVer = -1;
-        float protocolVer = -1; 
+        float protocolVer = -1;
 
         // PM metrics
         float pM1p0;
@@ -448,7 +448,7 @@ class Sck_SEN5X
         #define SEN5X_READ_VALUES                  0x03C4
         #define SEN5X_READ_RAW_VALUES              0x03D2
         #define SEN5X_READ_PM_VALUES               0x0413
- 
+
 
         enum SEN5Xmodel { SEN5X_UNKNOWN = 0, SEN50 = 0b001, SEN54 = 0b010, SEN55 = 0b100 };
         SEN5Xmodel model = SEN5X_UNKNOWN;
@@ -456,7 +456,7 @@ class Sck_SEN5X
         static const uint8_t totalMetrics = 18;
         // Each metric has { SENSOR_TYPE, enabled/disabled, SUPPORTED_MODELS }
         // SUPPORTED_MODELS: b001:SEN50, b010:SEN54, b100:SEN55 and any combination
-        uint8_t enabled[totalMetrics][3] = { 
+        uint8_t enabled[totalMetrics][3] = {
             {SENSOR_SEN5X_PM_1, 0, 0b111}, {SENSOR_SEN5X_PM_25, 0, 0b111}, {SENSOR_SEN5X_PM_4, 0, 0b111}, {SENSOR_SEN5X_PM_10, 0, 0b111},
             {SENSOR_SEN5X_PN_05, 0, 0b111}, {SENSOR_SEN5X_PN_1, 0, 0b111}, {SENSOR_SEN5X_PN_25, 0, 0b111}, {SENSOR_SEN5X_PN_4, 0, 0b111}, {SENSOR_SEN5X_PN_10, 0, 0b111}, {SENSOR_SEN5X_TPSIZE, 0, 0b111},
             {SENSOR_SEN5X_HUMIDITY, 0, 0b110}, {SENSOR_SEN5X_TEMPERATURE, 0, 0b110}, {SENSOR_SEN5X_VOCS_IDX, 0, 0b110}, {SENSOR_SEN5X_NOX_IDX, 0, 0b100},
@@ -470,7 +470,7 @@ class Sck_SEN5X
 
         // Sensirion recommends taking a reading after 16 seconds, if the Perticle number reading is over 100#/cm3 the reading is OK, but if it is lower wait until 30 seconds and take it again.
         // https://sensirion.com/resource/application_note/low_power_mode/sen5x
-        uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period 
+        uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period
         uint16_t concentrationThreshold = 100;
 
         RTCZero* rtc;
@@ -537,8 +537,8 @@ class Sck_AS7331
 
         #define AS7331_OSR      0x00
         // OSR (0x00):  Page 49 of datasheet
-        //      DOS     0:2 -> 00X: NOP (no change of DOS), 010: Operational state CONFIGURATION, 011: Operational state MEASUREMENT, 1XX: NOP (no change of DOS). 
-        //      SW_RES  3 -> 1: Software reset 
+        //      DOS     0:2 -> 00X: NOP (no change of DOS), 010: Operational state CONFIGURATION, 011: Operational state MEASUREMENT, 1XX: NOP (no change of DOS).
+        //      SW_RES  3 -> 1: Software reset
         //      PD      6 -> 0: Power Down state switched OFF, 1: Power Down state switched ON.
         //      SS      7 -> 0: stop measurement, 1: Start of measurement ((only if DOS = MEASUREMENT)
 
@@ -566,11 +566,11 @@ class Sck_AS7331
         #define AS7331_CREG1    0x06
         // CREG1 (0x07) page 52 of datasheet.
         //      TIME    3:0 -> Integration time from 0000: 2^10 (1024) to 1110 2^24 (16,384). The unit is number of clocks periods
-        //      GAIN    7:4 -> 0000: 2048x, 0001: 1024x, ... 1011: 1x 
+        //      GAIN    7:4 -> 0000: 2048x, 0001: 1024x, ... 1011: 1x
 
         #define AS7331_CREG2    0x07
-        // CREG2 (0x07) page 53 
-        //      DIV     2:0 -> Value of the divider, 000: 2^1, ... 111: 2^8 
+        // CREG2 (0x07) page 53
+        //      DIV     2:0 -> Value of the divider, 000: 2^1, ... 111: 2^8
         //      EN_DIV  3   -> 0: Digital divider of the measurement result registers is disabled. 1: enabled
         //      EN_TM   6   -> 0: In combination with SYND mode, the internal measurement of the conversion time is disabled and no temperature measurement takes place.
 
@@ -623,7 +623,7 @@ class Sck_AS7331
 
         // Config values
         uint8_t mmode       = AS7331_CONT_MODE; // choices are modes are CONT, CMD, SYNS, SYND
-        uint8_t sb          = 0x01;             // standby enabled 0x01 (to save power), standby disabled 0x00                    
+        uint8_t sb          = 0x01;             // standby enabled 0x01 (to save power), standby disabled 0x00
         uint8_t cclk        = AS7331_1024;      // choices are 1.024, 2.048, 4.096, or 8.192 MHz
         uint8_t breakTime   = 40;               // sample time == 8 us x breakTime (0 - 255, or 0 - 2040 us range), CONT or SYNX modes
         uint8_t gain        = 8;                // ADCGain = 2^(11-gain), by 2s, 1 - 2048 range,  0 < gain = 11 max, default 10

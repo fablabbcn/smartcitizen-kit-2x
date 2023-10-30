@@ -31,11 +31,15 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_NOISE_DBC:
         case SENSOR_NOISE_DBZ:
         case SENSOR_NOISE_FFT:          return sck_noise.start();
-        case SENSOR_ALTITUDE:
-        case SENSOR_PRESSURE:
-        case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.start();
+#ifdef WITH_MPL
+        case SENSOR_MPL_ALTITUDE:
+        case SENSOR_MPL_PRESSURE:
+        case SENSOR_MPL_TEMP:           return sck_mpl3115A2.start();
+#endif
+#ifdef WITH_LPS33
         case SENSOR_LPS33_PRESS:
         case SENSOR_LPS33_TEMP:         return sck_lps33.start();
+#endif
 #ifdef WITH_CCS811
         case SENSOR_CCS811_VOCS:        return sck_ccs811.start();
         case SENSOR_CCS811_ECO2:        return sck_ccs811.start();
@@ -111,11 +115,15 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_NOISE_DBC:
         case SENSOR_NOISE_DBZ:
         case SENSOR_NOISE_FFT:          return sck_noise.stop();
-        case SENSOR_ALTITUDE:
-        case SENSOR_PRESSURE:
-        case SENSOR_PRESSURE_TEMP:      return sck_mpl3115A2.stop();
+#ifdef WITH_MPL
+        case SENSOR_MPL_ALTITUDE:
+        case SENSOR_MPL_PRESSURE:
+        case SENSOR_MPL_TEMP:           return sck_mpl3115A2.stop();
+#endif
+#ifdef WITH_LPS33
         case SENSOR_LPS33_PRESS:
         case SENSOR_LPS33_TEMP:         return sck_lps33.stop();
+#endif
 #ifdef WITH_CCS811
         case SENSOR_CCS811_VOCS:
         case SENSOR_CCS811_ECO2:        return sck_ccs811.stop();
@@ -202,11 +210,15 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_CCS811_VOCS:            if (sck_ccs811.getReading(base))            { wichSensor->reading = String(sck_ccs811.VOCgas);                              return; } break;
         case SENSOR_CCS811_ECO2:            if (sck_ccs811.getReading(base))            { wichSensor->reading = String(sck_ccs811.ECO2gas);                             return; } break;
 #endif
-        case SENSOR_ALTITUDE:               if (sck_mpl3115A2.getAltitude())            { wichSensor->reading = String(sck_mpl3115A2.altitude);                         return; } break;
-        case SENSOR_PRESSURE:               if (sck_mpl3115A2.getPressure())            { wichSensor->reading = String(sck_mpl3115A2.pressure);                         return; } break;
-        case SENSOR_PRESSURE_TEMP:          if (sck_mpl3115A2.getTemperature())         { wichSensor->reading = String(sck_mpl3115A2.temperature);                      return; } break;
+#ifdef WITH_MPL
+        case SENSOR_MPL_ALTITUDE:           if (sck_mpl3115A2.getAltitude())            { wichSensor->reading = String(sck_mpl3115A2.altitude);                         return; } break;
+        case SENSOR_MPL_PRESSURE:           if (sck_mpl3115A2.getPressure())            { wichSensor->reading = String(sck_mpl3115A2.pressure);                         return; } break;
+        case SENSOR_MPL_TEMP:               if (sck_mpl3115A2.getTemperature())         { wichSensor->reading = String(sck_mpl3115A2.temperature);                      return; } break;
+#endif
+#ifdef WITH_LPS33
         case SENSOR_LPS33_PRESS:            if (sck_lps33.getPressure())                { wichSensor->reading = String(sck_lps33.pressure);                             return; } break;
         case SENSOR_LPS33_TEMP:             if (sck_lps33.getTemperature())             { wichSensor->reading = String(sck_lps33.temperature);                          return; } break;
+#endif
 #ifdef WITH_PMS
         case SENSOR_PMS_PM_1:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm1);                                     return; } break;
         case SENSOR_PMS_PM_25:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm25);                                    return; } break;
@@ -1156,6 +1168,7 @@ void Sck_Noise::fft2db()
     }
 }
 
+#ifdef WITH_MPL
 // Barometric pressure and Altitude
 bool Sck_MPL3115A2::start()
 {
@@ -1203,7 +1216,8 @@ bool Sck_MPL3115A2::getTemperature()
 
     return true;
 }
-
+#endif
+#ifdef WITH_LPS33
 // Barometric pressure and Altitude
 bool Sck_LPS33::start()
 {
@@ -1241,6 +1255,7 @@ bool Sck_LPS33::getTemperature()
 
     return true;
 }
+#endif
 
 #ifdef WITH_PMS
 // PM sensor

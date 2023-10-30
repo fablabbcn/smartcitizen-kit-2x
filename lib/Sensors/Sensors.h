@@ -2,8 +2,8 @@
 
 #define WITH_PMS                // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
 #define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
-#define WITH_AS7331             // Saves xxx bytes
-// #define WITH_CCS811             // 
+//#define WITH_LPS33              //
+#define WITH_MPL
 
 // Auxiliary Sensors (ALl this sensors use around 8kb)
 // #define WITH_SENSOR_GROVE_OLED  // Saves 2496 bytes
@@ -49,11 +49,17 @@ enum SensorType
     SENSOR_NOISE_DBC,
     SENSOR_NOISE_DBZ,
     SENSOR_NOISE_FFT,
-    SENSOR_ALTITUDE,
-    SENSOR_PRESSURE,
-    SENSOR_PRESSURE_TEMP,
+
+#ifdef WITH_MPL
+    SENSOR_MPL_ALTITUDE,
+    SENSOR_MPL_PRESSURE,
+    SENSOR_MPL_TEMP,
+#endif
+
+#ifdef WITH_LPS33
     SENSOR_LPS33_PRESS,
     SENSOR_LPS33_TEMP,
+#endif
 
 #ifdef WITH_CCS811
     SENSOR_CCS811_VOCS,
@@ -316,17 +322,22 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_DBC,               "NOISE_B",          "Noise dBC",                            217,    false,      1,  "dBC"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_DBZ,               "NOISE_Z",          "Noise dBZ",                            218,    false,      1,  "dB"        },
             OneSensor { BOARD_URBAN,    100,    SENSOR_NOISE_FFT,               "NOISE_FFT",        "Noise FFT",                            0,      false,      1,              },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_ALTITUDE,                "ALT",              "Altitude",                             219,    false,      1,  "M"         },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_PRESSURE,                "PRESS",            "Barometric pressure",                  58,     true,       1,  "kPa"       },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_PRESSURE_TEMP,           "PRESS_TEMP",       "Pressure internal temperature",        0,      false,      1,  "C"         },
+
+#ifdef WITH_MPL
+            OneSensor { BOARD_URBAN,    100,    SENSOR_MPL_ALTITUDE,            "MPL_ALT",          "MPL Altitude",                         219,    false,      1,  "m"         },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_MPL_PRESSURE,            "MPL_PRESS",        "MPL Barometric pressure",              58,     true,       1,  "kPa"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_MPL_TEMP,                "MPL_TEMP",         "MPL internal temperature",             0,      false,      1,  "C"         },
+#endif
 
 #ifdef WITH_CCS811
             OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_VOCS,             "CCS811_VOCS",      "VOC Gas CCS811",                       113,    true,       1,  "ppb"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_CCS811_ECO2,             "CCS811_ECO2",      "eCO2 Gas CCS811",                      112,    true,       1,  "ppm"       },
 #endif
 
-            OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_PRESS,             "PRESS_LPS",        "Barometric pressure LPS",              227,    true,       1,  "kPa"       },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_TEMP,              "PRESS_TEMP_LPS",   "Pressure internal temperature LPS",    0,      false,      1,  "C"         },
+#ifdef WITH_LPS33
+            OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_PRESS,             "LPS33_PRESS",      "LPS33 Barometric pressure",            227,    true,       1,  "kPa"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_TEMP,              "LPS33_TEMP",       "LPS33 internal temperature",           0,      false,      1,  "C"         },
+#endif
 
 #ifdef WITH_PMS
         // TODO cambiar los nombres a este pm para que no se confunda con los demas

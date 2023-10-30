@@ -2571,7 +2571,7 @@ bool Sck_SCD30::start(SckBase *base, SensorType wichSensor)
 #ifdef WITH_URBAN
     // TODO Add here LPS pressure sensor
     // Ambient pressure compensation
-    OneSensor *pressureSensor = &base->sensors[SENSOR_PRESSURE];
+    OneSensor *pressureSensor = &base->sensors[SENSOR_MPL_PRESSURE];
 
     if (pressureSensor->enabled && base->getReading(pressureSensor)) {
         float pressureReading = pressureSensor->reading.toFloat();

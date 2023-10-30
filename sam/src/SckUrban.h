@@ -7,8 +7,12 @@
 #include <Sensors.h>
 #include "Pins.h"
 #ifdef WITH_URBAN
+#ifdef WITH_MPL
 #include <Adafruit_MPL3115A2.h>
+#endif
+#ifdef WITH_LPS33
 #include <Adafruit_LPS35HW.h>
+#endif
 #include "SckSoundTables.h"
 #include <I2S.h>
 
@@ -146,6 +150,7 @@ class Sck_Noise
 
     };
 
+#ifdef WITH_MPL
 // Barometric pressure and Altitude
 class Sck_MPL3115A2
     {
@@ -166,7 +171,9 @@ class Sck_MPL3115A2
         bool getPressure();
         bool getTemperature();
     };
+#endif
 
+#ifdef WITH_LPS33
 // Barometric pressure and Altitude LPS33K
 class Sck_LPS33
     {
@@ -185,6 +192,7 @@ class Sck_LPS33
         bool getPressure();
         bool getTemperature();
     };
+#endif
 
 #ifdef WITH_PMS
 //PM sensors
@@ -482,6 +490,7 @@ class Sck_SEN5X
         bool vocStateFromSensor();
     };
 #endif
+
 #ifdef WITH_BME68X
 class Sck_BME68X
     {
@@ -505,6 +514,7 @@ class Sck_BME68X
         bool alreadyStarted = false;
     };
 #endif
+
 #ifdef WITH_AS7331
 // UVA
 class Sck_AS7331
@@ -648,11 +658,15 @@ class SckUrban
         // Noise
         Sck_Noise sck_noise;
 
+#ifdef WITH_MPL
         // Barometric pressure and Altitude
         Sck_MPL3115A2 sck_mpl3115A2;
+#endif
 
+#ifdef WITH_LPS33
         // Barometric pressure LPS
         Sck_LPS33 sck_lps33;
+#endif
 
 #ifdef WITH_CCS811
         // VOC and ECO2

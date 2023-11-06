@@ -27,6 +27,8 @@ jobs:
 
     - name: Check out the commit
       uses: actions/checkout@v3
+      with:
+        submodules: 'true'
 
     - name: Cache pip
       uses: actions/cache@v3

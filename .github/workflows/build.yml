@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+    - master
+    paths-ignore:
+    - hardware/**
+  push:
+    branches:
+    - master
+    paths-ignore:
+    - hardware/**
+
+jobs:
+  build:
+    name: Run Tests
+    # runs-on: "${{ matrix.os }}"
+    runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: true
+      # matrix:
+        # os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        # python-version: ["3.7", "3.8", "3.9"]
+
+    steps:
+
+    - name: Check out the commit
+      uses: actions/checkout@v3
+
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Cache PlatformIO
+      uses: actions/cache@v3
+      with:
+        path: ~/.platformio
+        key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+
+    - name: Select Python 3.7
+      uses: actions/setup-python@v3
+      with:
+        # python-version: ${{ matrix.python-version }}
+        python-version: "3.8"
+
+    - name: Install PlatformIO
+      run: |
+        pip install -U -r tools/requirements.txt
+        pio upgrade --dev
+        pio pkg update --global
+
+    - name: Run Builds
+      run: |
+        python make.py build sam esp -v
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/') && job.status == 'success' && github.ref == 'refs/heads/master'
+      with:
+        files: |
+          bin/*
+
+
+
+

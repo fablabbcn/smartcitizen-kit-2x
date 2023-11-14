@@ -63,7 +63,7 @@ enum SensorType
 #endif
 
 #ifdef WITH_LPS33
-    SENSOR_LPS33_PRESS,
+    SENSOR_LPS33_PRESSURE,
     SENSOR_LPS33_TEMP,
 #endif
 
@@ -340,7 +340,7 @@ class AllSensors
 #endif
 
 #ifdef WITH_LPS33
-            OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_PRESS,             "LPS33_PRESS",      "LPS33 Barometric pressure",            227,    true,       1,  "kPa"       },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_PRESSURE,             "LPS33_PRESS",      "LPS33 Barometric pressure",            227,    true,       1,  "kPa"       },
             OneSensor { BOARD_URBAN,    100,    SENSOR_LPS33_TEMP,              "LPS33_TEMP",       "LPS33 internal temperature",           0,      false,      1,  "C"         },
 #endif
 

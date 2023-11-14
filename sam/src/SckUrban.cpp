@@ -37,7 +37,7 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_MPL_TEMP:           return sck_mpl3115A2.start();
 #endif
 #ifdef WITH_LPS33
-        case SENSOR_LPS33_PRESS:
+        case SENSOR_LPS33_PRESSURE:
         case SENSOR_LPS33_TEMP:         return sck_lps33.start();
 #endif
 #ifdef WITH_CCS811
@@ -121,7 +121,7 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_MPL_TEMP:           return sck_mpl3115A2.stop();
 #endif
 #ifdef WITH_LPS33
-        case SENSOR_LPS33_PRESS:
+        case SENSOR_LPS33_PRESSURE:
         case SENSOR_LPS33_TEMP:         return sck_lps33.stop();
 #endif
 #ifdef WITH_CCS811
@@ -216,7 +216,7 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_MPL_TEMP:               if (sck_mpl3115A2.getTemperature())         { wichSensor->reading = String(sck_mpl3115A2.temperature);                      return; } break;
 #endif
 #ifdef WITH_LPS33
-        case SENSOR_LPS33_PRESS:            if (sck_lps33.getPressure())                { wichSensor->reading = String(sck_lps33.pressure);                             return; } break;
+        case SENSOR_LPS33_PRESSURE:            if (sck_lps33.getPressure())                { wichSensor->reading = String(sck_lps33.pressure);                             return; } break;
         case SENSOR_LPS33_TEMP:             if (sck_lps33.getTemperature())             { wichSensor->reading = String(sck_lps33.temperature);                          return; } break;
 #endif
 #ifdef WITH_PMS

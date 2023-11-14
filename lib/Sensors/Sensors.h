@@ -2,14 +2,14 @@
 
 // Urban and PM Sensors
 // TODO Refine for particular configurations
-//#define WITH_SEN5X              // Saves 1088 bytes
+#define WITH_SEN5X              // Saves 1088 bytes
 //#define WITH_SPS30              // Saves 576 bytes
-#define WITH_PMS                // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
+// #define WITH_PMS                // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
 #define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
-//#define WITH_AS7331             // Saves xxx bytes
-#define WITH_CCS811             //
-//#define WITH_LPS33              //
-#define WITH_MPL
+#define WITH_AS7331             // Saves xxx bytes
+// #define WITH_CCS811             //
+#define WITH_LPS33              //
+// #define WITH_MPL
 
 // Auxiliary Sensors (ALl this sensors use around 8kb)
 // #define WITH_SENSOR_GROVE_OLED  // Saves 2496 bytes

@@ -14,7 +14,7 @@ void SckTest::test_full()
     testBase->enableSensor(SENSOR_HUMIDITY);
     testBase->enableSensor(SENSOR_LIGHT);
     testBase->enableSensor(SENSOR_AS7331_UVA);
-    testBase->enableSensor(SENSOR_LPS33_PRESS);
+    testBase->enableSensor(SENSOR_LPS33_PRESSURE);
     testBase->enableSensor(SENSOR_NOISE_DBA);
     testBase->enableSensor(SENSOR_SEN5X_PM_1);
 
@@ -342,7 +342,7 @@ uint8_t SckTest::test_SHT()
     if (title) SerialUSB.println("\r\nTesting SHT31 sensor...");
 
     uint8_t error = 0;
-    
+
     if (!testBase->sensors[SENSOR_TEMPERATURE].enabled || !testBase->getReading(&testBase->sensors[SENSOR_TEMPERATURE])) {
         SerialUSB.println("ERROR reading SHT31 temperature sensor");
         error ++;
@@ -411,12 +411,12 @@ uint8_t SckTest::test_Pressure()
 
     if (title) SerialUSB.println("\r\nTesting Pressure sensor...");
 
-    if (!testBase->getReading(&testBase->sensors[SENSOR_LPS33_PRESS])) {
+    if (!testBase->getReading(&testBase->sensors[SENSOR_LPS33_PRESSURE])) {
         SerialUSB.println("ERROR reading Barometric Pressure sensor");
         error = 1;
     } else {
-        test_report.tests[TEST_PRESS] = testBase->sensors[SENSOR_LPS33_PRESS].reading.toFloat();
-        sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_LPS33_PRESS].title, test_report.tests[TEST_PRESS], testBase->sensors[SENSOR_LPS33_PRESS].unit);
+        test_report.tests[TEST_PRESS] = testBase->sensors[SENSOR_LPS33_PRESSURE].reading.toFloat();
+        sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_LPS33_PRESSURE].title, test_report.tests[TEST_PRESS], testBase->sensors[SENSOR_LPS33_PRESSURE].unit);
         SerialUSB.println(testBase->outBuff);
         SerialUSB.println("Pressure sensor test finished OK");
     }
@@ -448,6 +448,7 @@ uint8_t SckTest::test_Noise()
 uint8_t SckTest::test_SEN5X()
 {
     uint8_t error = 0;
+    testBase->urban.sck_sen5x.monitor = true;
 
     if (title) SerialUSB.println("\r\nTesting SEN5X PM sensor...");
 
@@ -472,17 +473,17 @@ uint8_t SckTest::test_auxWire()
     if (title) SerialUSB.println("\r\nTesting auxiliary I2C bus...");
 
     // Check if a external SHT was detected a get reading
-    if (!testBase->sensors[SENSOR_SHT31_TEMP].enabled) {
+    if (!testBase->sensors[SENSOR_SHT35_TEMP].enabled) {
         SerialUSB.println("ERROR No external SHT31 sensor found on Auxiliary I2C bus!!!");
         error = 1;
 
-    } else if (!testBase->getReading(&testBase->sensors[SENSOR_SHT31_TEMP])) {
+    } else if (!testBase->getReading(&testBase->sensors[SENSOR_SHT35_TEMP])) {
         SerialUSB.println("ERROR reading external SHT31 sensor");
         error = 1;
 
     } else {
         test_report.tests[TEST_AUXWIRE] = 1;
-        sprintf(testBase->outBuff, "%s: %s %s", testBase->sensors[SENSOR_SHT31_TEMP].title, testBase->sensors[SENSOR_SHT31_TEMP].reading.c_str(), testBase->sensors[SENSOR_SHT31_TEMP].unit);
+        sprintf(testBase->outBuff, "%s: %s %s", testBase->sensors[SENSOR_SHT35_TEMP].title, testBase->sensors[SENSOR_SHT35_TEMP].reading.c_str(), testBase->sensors[SENSOR_SHT35_TEMP].unit);
         SerialUSB.println(testBase->outBuff);
         SerialUSB.println("Auxiliary I2C bus test finished OK");
     }
@@ -569,7 +570,7 @@ bool SckTest::publishResult()
     test_report.mac = testBase->config.mac.address;
 
     // build json
-    char *buffer = testBase->serESPBuffPtr; 
+    char *buffer = testBase->serESPBuffPtr;
     String id = String(String(test_report.id[0], HEX) + "-" + String(test_report.id[1], HEX) + "-" + String(test_report.id[2], HEX) + "-" + String(test_report.id[3], HEX));
 	sprintf(buffer, "{\"time\":\"%s\",\"id\":\"%s\",\"mac\":\"%s\",\"errors\":%u,\"tests\":[", test_report.time.c_str(), id.c_str(), test_report.mac.c_str(), errors);
 

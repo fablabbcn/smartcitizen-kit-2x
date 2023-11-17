@@ -32,14 +32,16 @@ def enablePrint():
     sys.stdout = sys.__stdout__
 
 if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv or len(sys.argv) < 2 or (not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv):
-    print('USAGE:\n\n\tpython make.py [options] action[s] target[s]')
-    print('\nOptions:') 
+    print('USAGE:\n\n\tpython make.py [options] action[s] target[s] [target-options]')
+    print('\nOptions:')
     print('\t-v: verbose')
     print('\t-k: keep configuration')
     print('\t-p port: specify a port instead of scanning')
     print('\t-f: force flashing even if no SCK is found, (port must be specified)')
     print('\nActions:\n\tboot: flash SAM bootloader (Extra hardware is needed)\n\tbuild: build firmware\n\tflash: upload compiled code')
     print('\nTargets:\n\tsam: SAMD21 chip\n\tesp: ESP8266 (WiFi) chip')
+    print('\nTarget Options (only SAM):')
+    print('\t--env: Environment to build (all to build all)')
     sys.exit()
 
 verbose = False
@@ -59,7 +61,7 @@ if 'flash' in sys.argv:
         if '-f' in sys.argv: force = True
     elif '-f' in sys.argv: ERROR('Port must be specified to force flashing'); sys.exit()
     if not kit.begin(port=port, force=force): sys.exit()
-    if '-k' in sys.argv: 
+    if '-k' in sys.argv:
         kit.getConfig()
         if kit.mode == 'network':
             print('Current mode: ' + kit.mode + ', Wifi: ' + kit.wifi_ssid + ' - ' + kit.wifi_pass + ', Token: ' + kit.token)
@@ -89,12 +91,15 @@ if 'boot' in sys.argv:
     os.chdir('../..')
 
 if 'build' in sys.argv:
-    if 'sam' in sys.argv or 'all' in sys.argv:
+    if 'sam' in sys.argv:
         oneLine('Building SAM firmware... ')
-        if kit.buildSAM(sys.stdout): OK()
+        env = 'sck2'
+        if '--env' in sys.argv:
+            env = sys.argv[sys.argv.index('--env')+1]
+        if kit.buildSAM(sys.stdout, env): OK()
         else: ERROR()
-            
-    if 'esp' in sys.argv or 'all' in sys.argv:
+
+    if 'esp' in sys.argv:
         oneLine('Building ESP firmware... ')
         if kit.buildESP(sys.stdout): OK()
         else: ERROR()
@@ -105,23 +110,28 @@ if 'flash' in sys.argv:
         print('\nWARNING: No build instruction received, trying to flash previous built firmware...')
         if not verbose: blockPrint()
 
-    if 'sam' in sys.argv or 'all' in sys.argv:
+    if 'sam' in sys.argv:
         time.sleep(1)
         oneLine('Flashing SAM firmware...')
-        if kit.flashSAM(sys.stdout): OK()
+
+        env = 'sck2'
+        if '--env' in sys.argv:
+            env = sys.argv[sys.argv.index('--env')+1]
+
+        if kit.flashSAM(sys.stdout, env): OK()
         else: ERROR()
 
-    if 'esp' in sys.argv or 'all' in sys.argv:
+    if 'esp' in sys.argv:
         time.sleep(0.5)
         oneLine('Flashing ESP firmware')
         for i in range(4):
             mySpeed = 115200 / pow(2, i)
             oneLine(' at ' + str(mySpeed) + '...')
             time.sleep(1)
-            if kit.flashESP(mySpeed, sys.stdout): 
+            if kit.flashESP(mySpeed, sys.stdout):
                 OK()
                 break;
-            else: 
+            else:
                 if i == 3: ERROR()
                 else:
                     time.sleep(3)
@@ -132,9 +142,9 @@ if 'flash' in sys.argv:
         oneLine("Reconfiguring kit...")
         time.sleep(1)
 
-        if 'network' in kit.mode: 
+        if 'network' in kit.mode:
             if kit.netConfig(): OK()
             else: ERROR()
-        elif 'sdcard' in kit.mode: 
+        elif 'sdcard' in kit.mode:
             if kit.sdConfig(): OK()
             else: ERROR()

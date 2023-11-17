@@ -52,7 +52,7 @@ jobs:
 
     - name: Run Builds
       run: |
-        python make.py build sam esp -v
+        python make.py build sam-variants esp -v
 
     - name: Release
       uses: softprops/action-gh-release@v1

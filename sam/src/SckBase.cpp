@@ -1671,17 +1671,17 @@ void SckBase::updateDynamic(uint32_t now)
 
     // Debug speed readings to sdcard
     if (config.debug.speed) {
-        speedFile.file = sd.open(speedFile.name, FILE_WRITE);
-        if (speedFile.file) {
+        sckFile.open(SD_SPEED_NAME, FILE_WRITE);
+        if (sckFile) {
             ISOtime();
-            speedFile.file.print(ISOtimeBuff);
-            speedFile.file.print(",");
-            speedFile.file.print(speedFloat);
-            speedFile.file.print(",");
-            speedFile.file.print(fix);
-            speedFile.file.print(",");
-            speedFile.file.println(hdop);
-            speedFile.file.close();
+            sckFile.print(ISOtimeBuff);
+            sckFile.print(",");
+            sckFile.print(speedFloat);
+            sckFile.print(",");
+            sckFile.print(fix);
+            sckFile.print(",");
+            sckFile.println(hdop);
+            sckFile.close();
         } else st.cardPresent = false;
     }
 #endif

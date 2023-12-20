@@ -534,7 +534,7 @@ class AllSensors
             OneSensor { BOARD_AUX,      100,    SENSOR_GPS_ALTITUDE,            "GPS_ALT",          "GPS Altitude",                         127,    true,       1,  "m"         },
             OneSensor { BOARD_AUX,      100,    SENSOR_GPS_SPEED,               "GPS_SPEED",        "GPS Speed",                            129,    true,       1,  "m/s"       },
             OneSensor { BOARD_AUX,      100,    SENSOR_GPS_HDOP,                "GPS_HDOP",         "GPS Horizontal Dilution of Position",  131,    true,       1,              },
-            OneSensor { BOARD_AUX,      100,    SENSOR_GPS_SATNUM,              "GPS_SATNUM",       "GPS Traked Satellites",                130,    true,       1,              },
+            OneSensor { BOARD_AUX,      100,    SENSOR_GPS_SATNUM,              "GPS_SATNUM",       "GPS Tracked Satellites",                130,    true,       1,              },
 #endif
 
 #ifdef WITH_ADS1X15

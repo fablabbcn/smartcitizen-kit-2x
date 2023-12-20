@@ -9,6 +9,7 @@
 #define WITH_ADS1X15
 #define WITH_SCD30
 #define WITH_SFA30
+#define WITH_GPS
 #endif
 
 #ifdef SCK22_AIR
@@ -16,10 +17,16 @@
 #define WITH_URBAN
 #define WITH_AS7331
 #define WITH_LPS33
+#define WITH_SCD30
+#define WITH_ADS1X15
+#define WITH_SCD30
+#define WITH_SFA30
+#define WITH_GPS
 #endif
 
 #ifdef SCK_WATER
 #define WITH_ATLAS
+#define WITH_GPS
 #endif
 
 // Overwrites
@@ -28,11 +35,12 @@
 // #define WITH_SEN5X              // Saves 1088 bytes
 // #define WITH_SPS30              // Saves 576 bytes
 // #define WITH_PMS                // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
-#define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
+// #define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
 // #define WITH_AS7331             // Saves xxx bytes
 // #define WITH_CCS811             // Saves xxx bytes
 // #define WITH_LPS33              // Saves xxx bytes
 // #define WITH_MPL                // Saves xxx bytes
+// #define WITH_PMS
 
 // Auxiliary Sensors (ALl this sensors use around 8kb)
 // #define WITH_SENSOR_GROVE_OLED  // Saves 2496 bytes

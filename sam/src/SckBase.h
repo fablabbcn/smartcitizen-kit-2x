@@ -171,7 +171,14 @@ class SckBase
 		void updateDynamic(uint32_t now);
 
 	public:
+#if defined(SCK21_AIR)
 		const String hardwareVer = "2.1";
+#elif defined(SCK22_AIR)
+		const String hardwareVer = "2.2";
+#else
+		// TODO At some point this will need to change.
+		const String hardwareVer = "2.1";
+#endif
 		const String SAMversion	= SAMverNum + "-" + String(__GIT_HASH__) + "-" + String(__GIT_BRANCH__); 		// mayor.minor.build-gitcommit-branch
 		const String SAMbuildDate = String(__ISO_DATE__);
 		String ESPversion = "not synced";

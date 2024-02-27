@@ -380,6 +380,21 @@ void sensorConfig_com(SckBase* base, String parameters)
                     }
                     alreadyPrinted = true;
                 }
+ 
+                // If smallest interval is less than warmUp period we will force continous mode on SEN5X
+                // Still one Issue exists: if the general readInterval is changed (via the config command) and the new calculatedInterval results small, we don't notice it because this code is not executed. For now the workaround is to change first the general readInt and then the individual sensor interval. Makes more sense to do it this way.
+                int totalWarmUpPeriod = base->urban.sck_sen5x.warmUpPeriod[0] + base->urban.sck_sen5x.warmUpPeriod[1];
+                bool smallIntervalExists = false;
+
+                // Check all the sensors for a small interval
+                for (uint8_t i=0; i<5; i++) {
+                    for(uint8_t ii=0; ii<senGroup_size[i]; ii++) {
+                        int calculatedInterval = base->sensors[sen5x_sensors[i][ii]].everyNint * base->config.readInterval;
+                        if (calculatedInterval < totalWarmUpPeriod) smallIntervalExists = base->urban.sck_sen5x.forcedContinousMode = true;
+                    }
+                }
+                if (!smallIntervalExists) base->urban.sck_sen5x.forcedContinousMode = false;
+
 
 #endif
 #endif

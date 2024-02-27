@@ -398,6 +398,7 @@ class Sck_SEN5X
         bool debug = false;
         bool monitor = false;
         bool continousMode = false;
+        bool forcedContinousMode = false;
 
         bool getVer();
         float firmwareVer = -1;

@@ -502,7 +502,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                 } else if (command.startsWith("info")) {
 
                     if (sck_sen5x.getVer()) {
-                        sprintf(base->outBuff, "SEN5X Firmware: %f\r\nSEN5X Hardware: %f\r\nSEN5X Protocol: %f\r\nContinous mode: %s", sck_sen5x.firmwareVer, sck_sen5x.hardwareVer, sck_sen5x.protocolVer, sck_sen5x.continousMode ? "true" : "false");
+                        sprintf(base->outBuff, "SEN5X Firmware: %f\r\nSEN5X Hardware: %f\r\nSEN5X Protocol: %f\r\nContinous mode: %s\r\nContinous mode (by interval): %s", sck_sen5x.firmwareVer, sck_sen5x.hardwareVer, sck_sen5x.protocolVer, sck_sen5x.continousMode ? "true" : "false", sck_sen5x.forcedContinousMode ? "true" : "false");
                         base->sckOut();
 					return "\r\n";
                     }
@@ -2187,7 +2187,7 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 bool Sck_SEN5X::idle()
 {
     // In continous mode we don't sleep
-    if (continousMode) {
+    if (continousMode || forcedContinousMode) {
         if (debug) Serial.println("SEN5X: Not going to idle mode, we need continous mode!!");
         return false;
     }

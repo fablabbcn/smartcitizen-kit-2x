@@ -433,6 +433,11 @@ class Sck_SEN5X
         struct VOCstateStruct { uint8_t state[SEN5X_VOC_STATE_BUFFER_SIZE]; uint32_t time; bool valid=true; };
         bool vocStateToEeprom();
 
+        // Sensirion recommends taking a reading after 16 seconds, if the Perticle number reading is over 100#/cm3 the reading is OK, but if it is lower wait until 30 seconds and take it again.
+        // https://sensirion.com/resource/application_note/low_power_mode/sen5x
+        uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period
+        uint16_t concentrationThreshold = 100;
+
     private:
 
         // Commands
@@ -476,11 +481,6 @@ class Sck_SEN5X
 
         uint32_t lastReading = 0;
         uint32_t measureStarted = 0;
-
-        // Sensirion recommends taking a reading after 16 seconds, if the Perticle number reading is over 100#/cm3 the reading is OK, but if it is lower wait until 30 seconds and take it again.
-        // https://sensirion.com/resource/application_note/low_power_mode/sen5x
-        uint16_t warmUpPeriod[2] = { 16, 30 }; // Warm up period
-        uint16_t concentrationThreshold = 100;
 
         RTCZero* rtc;
         uint8_t update(SensorType wichSensor); // returns: 0: ok, 1: data is not yet ready, 2: error

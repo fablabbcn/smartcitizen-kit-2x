@@ -196,6 +196,28 @@ void sensorConfig_com(SckBase* base, String parameters)
             }
         }
 #endif
+#ifdef WITH_SEN5X
+        // SEN5X sensors are grouped in sen5x_pm, sen5x_pn, sen5x_th, sen5x_voc and sen5x_nox
+        SensorType sen5x_pm[] = { SENSOR_SEN5X_PM_1, SENSOR_SEN5X_PM_25, SENSOR_SEN5X_PM_4, SENSOR_SEN5X_PM_10}; 
+        SensorType sen5x_pn[] = { SENSOR_SEN5X_PN_05, SENSOR_SEN5X_PN_1, SENSOR_SEN5X_PN_25, SENSOR_SEN5X_PN_4, SENSOR_SEN5X_PN_10, SENSOR_SEN5X_TPSIZE };
+        SensorType sen5x_th[] = { SENSOR_SEN5X_TEMPERATURE, SENSOR_SEN5X_HUMIDITY, SENSOR_SEN5X_TEMPERATURE_RAW, SENSOR_SEN5X_HUMIDITY_RAW }; 
+        SensorType sen5x_voc[] = { SENSOR_SEN5X_VOCS_IDX, SENSOR_SEN5X_VOCS_RAW }; 
+        SensorType sen5x_nox[] = { SENSOR_SEN5X_NOX_IDX, SENSOR_SEN5X_NOX_RAW }; 
+        SensorType *sen5x_sensors[] = { sen5x_pm, sen5x_pn, sen5x_th, sen5x_voc, sen5x_nox };
+        uint8_t senGroup_size[] = { 4, 6, 4, 2, 2 };
+
+        // Find out if sensor belongs to a SEN5X group
+        SensorType *senGroupToChange = NULL;
+        uint8_t senGroupToChange_size = 0;
+        for (uint8_t i=0; i<5; i++) {
+            for(uint8_t ii=0; ii<senGroup_size[i]; ii++) {
+                if(sen5x_sensors[i][ii] == sensorToChange) {
+                    senGroupToChange = sen5x_sensors[i];
+                    senGroupToChange_size = senGroup_size[i];
+                }
+            }
+        }
+#endif
 #endif
 
         if (sensorToChange == SENSOR_COUNT) {
@@ -213,7 +235,11 @@ void sensorConfig_com(SckBase* base, String parameters)
 #ifdef WITH_URBAN
 #ifdef WITH_PMS
                 // Just for PM/PN enable the rest of sensors in the same group
-                for (uint8_t i=1; i<groupToChange_size; i++) {
+                for (uint8_t i=0; i<groupToChange_size; i++) {
+                    
+                    // Avoid enabling same sensor twice
+                    if (sensorToChange == groupToChange[i]) continue;
+
                     // Enable them in runtime
                     base->sensors[groupToChange[i]].enabled = true;
 
@@ -224,13 +250,32 @@ void sensorConfig_com(SckBase* base, String parameters)
                     base->sckOut();
                 }
 #endif
+#ifdef WITH_SEN5X
+                // SEN5X enable the rest of sensors in corresponding group
+                for (uint8_t i=0; i<senGroupToChange_size; i++) {
+
+                    // Avoid enabling same sensor twice
+                    if (sensorToChange == senGroupToChange[i]) continue;
+
+                    // Enable them in runtime
+                    base->sensors[senGroupToChange[i]].enabled = true;
+
+                    // Enable them also in config to make changes persistent
+                    base->config.sensors[senGroupToChange[i]].enabled = true;
+
+                    sprintf(base->outBuff, "Enabling %s", base->sensors[senGroupToChange[i]].title);
+                    base->sckOut();
+                }
+#endif
 #endif
                 saveNeeded = true;
             } else {
                 sprintf(base->outBuff, "Failed enabling %s", base->sensors[sensorToChange].title);
 #ifdef WITH_URBAN
 #ifdef WITH_PMS
-                if (groupToChange > 0) sprintf(base->outBuff, "%s and its sensor group", base->outBuff);
+#ifdef WITH_SEN5X
+                if (groupToChange > 0 || senGroupToChange > 0) sprintf(base->outBuff, "%s and its sensor group", base->outBuff);
+#endif
 #endif
 #endif
                 base->sckOut();
@@ -247,6 +292,10 @@ void sensorConfig_com(SckBase* base, String parameters)
 #ifdef WITH_PMS
             // Just for PM/PN disable the rest of sensors in the same group
             for (uint8_t i=1; i<groupToChange_size; i++) {
+
+                // Avoid enabling same sensor twice
+                if (sensorToChange == groupToChange[i]) continue;
+                
                 // Disable them in runtime
                 base->sensors[groupToChange[i]].enabled = false;
 
@@ -254,6 +303,23 @@ void sensorConfig_com(SckBase* base, String parameters)
                 base->config.sensors[groupToChange[i]].enabled = false;
 
                 sprintf(base->outBuff, "Disabling %s", base->sensors[groupToChange[i]].title);
+                base->sckOut();
+            }
+#endif
+#ifdef WITH_SEN5X
+            // SEN5X enable the rest of sensors in corresponding group
+            for (uint8_t i=1; i<senGroupToChange_size; i++) {
+
+                // Avoid enabling same sensor twice
+                if (sensorToChange == senGroupToChange[i]) continue;
+            
+                // Enable them in runtime
+                base->sensors[senGroupToChange[i]].enabled = false;
+
+                // Enable them also in config to make changes persistent
+                base->config.sensors[senGroupToChange[i]].enabled = false;
+
+                sprintf(base->outBuff, "Disabling %s", base->sensors[senGroupToChange[i]].title);
                 base->sckOut();
             }
 #endif
@@ -288,6 +354,8 @@ void sensorConfig_com(SckBase* base, String parameters)
             snprintf(base->outBuff, sizeof(base->outBuff), "The sensor read interval is calculated as a multiple of general read interval (%u)", base->config.readInterval);
             base->sckOut();
             if (newEveryNint < 255) {
+
+                bool alreadyPrinted = false;
 #ifdef WITH_URBAN
 #ifdef WITH_PMS
                 if (groupToChange_size > 0) {
@@ -298,18 +366,30 @@ void sensorConfig_com(SckBase* base, String parameters)
                         sprintf(base->outBuff, "Changing interval of %s to %lu", base->sensors[groupToChange[i]].title, base->sensors[groupToChange[i]].everyNint * base->config.readInterval);
                         base->sckOut();
                     }
-                } else {
+                    alreadyPrinted = true;
+                }
+#endif
+#ifdef WITH_SEN5X // In the future this (and enable/disable groups) should be managed inside the sensor object
+                if (senGroupToChange_size > 0 && !alreadyPrinted) {
+                    // Just for SEN5X change all the sensors in the same group
+                    for (uint8_t i=0; i<senGroupToChange_size; i++) {
+                        base->sensors[senGroupToChange[i]].everyNint = newEveryNint;
+                        base->config.sensors[senGroupToChange[i]].everyNint = newEveryNint;
+                        sprintf(base->outBuff, "Changing interval of %s to %lu", base->sensors[senGroupToChange[i]].title, base->sensors[senGroupToChange[i]].everyNint * base->config.readInterval);
+                        base->sckOut();
+                    }
+                    alreadyPrinted = true;
+                }
+
 #endif
 #endif
+                if (!alreadyPrinted) {
                     base->sensors[sensorToChange].everyNint = newEveryNint;
                     base->config.sensors[sensorToChange].everyNint = newEveryNint;
                     sprintf(base->outBuff, "Changing interval of %s to %lu", base->sensors[sensorToChange].title, base->sensors[sensorToChange].everyNint * base->config.readInterval);
                     base->sckOut();
-#ifdef WITH_URBAN
-#ifdef WITH_PMS
                 }
-#endif
-#endif
+
                 saveNeeded = true;
             } else {
                 base->sckOut("Wrong new interval!!!");

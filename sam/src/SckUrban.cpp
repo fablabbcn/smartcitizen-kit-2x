@@ -499,16 +499,16 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 
                 } else if (command.startsWith("doclean")) {
 
-                } else if (command.startsWith("version")) {
+                } else if (command.startsWith("info")) {
 
                     if (sck_sen5x.getVer()) {
-                        sprintf(base->outBuff, "SEN5X Firmware: %f\r\nSEN5X Hardware: %f\r\nSEN5X Protocol: %f", sck_sen5x.firmwareVer, sck_sen5x.hardwareVer, sck_sen5x.protocolVer);
+                        sprintf(base->outBuff, "SEN5X Firmware: %f\r\nSEN5X Hardware: %f\r\nSEN5X Protocol: %f\r\nContinous mode: %s", sck_sen5x.firmwareVer, sck_sen5x.hardwareVer, sck_sen5x.protocolVer, sck_sen5x.continousMode ? "true" : "false");
                         base->sckOut();
 					return "\r\n";
                     }
 
                 }  else if (command.startsWith("help") || command.length() == 0) {
-					sprintf(base->outBuff, "Available commands:\r\n* debug: [0-1] Sets debug messages\r\n* doclean: Starts a cleaning\r\n* lastClean\r\n* version");
+					sprintf(base->outBuff, "Available commands:\r\n* debug: [0-1] Sets debug messages\r\n* doclean: Starts a cleaning\r\n* lastClean\r\n* info");
 					base->sckOut();
 					return "\r\n";
                 }
@@ -1971,6 +1971,10 @@ bool Sck_SEN5X::start(SensorType wichSensor)
         for (uint8_t i=0; i<totalMetrics; i++) {
             if (enabled[i][0] == wichSensor && (enabled[i][2] & model) > 0) {
                 enabled[i][1] = 1;
+                if (sensorNeedsContinousMode(wichSensor)) {
+                    if (debug && !continousMode) Serial.println("SEN5X: Going to continous mode.");
+                    continousMode = true;
+                }
                 return true;
             }
         }
@@ -2046,6 +2050,7 @@ bool Sck_SEN5X::start(SensorType wichSensor)
 }
 bool Sck_SEN5X::stop(SensorType wichSensor)
 {
+    if (debug) Serial.println("SEN5X: Stoping sensor");
     bool changed = false;
 
     // Mark this specific metric as disabled
@@ -2056,10 +2061,25 @@ bool Sck_SEN5X::stop(SensorType wichSensor)
         }
     }
 
+    bool stillSomeEnabled = false;
+    bool continousStillNeeded = false;
+
     // Check if any metric is still enabled
     for (uint8_t i=0; i<totalMetrics; i++) {
-        if (enabled[i][1]) return changed;
+        if (enabled[i][1]) {
+            stillSomeEnabled = true;
+            // Check if continous mode should still be enabled
+            if (sensorNeedsContinousMode(static_cast<SensorType>(enabled[i][0]))) continousStillNeeded = true;
+        }
     }
+
+    if (!continousStillNeeded && continousMode) {
+        if (debug) Serial.println("SEN5X: Turning continous mode Off");
+        continousMode = false;
+    }
+    
+    // We can't stop the hardware yet
+    if (stillSomeEnabled) return changed;
 
     // If no metric is enabled turn off power
     if (debug) Serial.println("SEN5X: Stoping sensor");
@@ -2130,9 +2150,6 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
                 return true;
             }
 
-            // Get VOC state before going to idle mode
-            vocStateFromSensor();
-
             // Save power
             idle();
 
@@ -2154,9 +2171,6 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 
             if (update(wichSensor->type) != 0) return false;
 
-            // Get VOC state before going to idle mode
-            vocStateFromSensor();
-
             // Save power
             idle();
 
@@ -2172,6 +2186,14 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 }
 bool Sck_SEN5X::idle()
 {
+    // In continous mode we don't sleep
+    if (continousMode) {
+        if (debug) Serial.println("SEN5X: Not going to idle mode, we need continous mode!!");
+        return false;
+    }
+    // Get VOC state before going to idle mode
+    vocStateFromSensor();
+
     if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
         if (debug) Serial.println("SEN5X: Error stoping measurement");
         return false;

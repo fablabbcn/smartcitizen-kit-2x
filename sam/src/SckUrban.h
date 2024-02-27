@@ -397,6 +397,7 @@ class Sck_SEN5X
         bool startCleaning();
         bool debug = false;
         bool monitor = false;
+        bool continousMode = false;
 
         bool getVer();
         float firmwareVer = -1;
@@ -461,6 +462,14 @@ class Sck_SEN5X
             {SENSOR_SEN5X_PN_05, 0, 0b111}, {SENSOR_SEN5X_PN_1, 0, 0b111}, {SENSOR_SEN5X_PN_25, 0, 0b111}, {SENSOR_SEN5X_PN_4, 0, 0b111}, {SENSOR_SEN5X_PN_10, 0, 0b111}, {SENSOR_SEN5X_TPSIZE, 0, 0b111},
             {SENSOR_SEN5X_HUMIDITY, 0, 0b110}, {SENSOR_SEN5X_TEMPERATURE, 0, 0b110}, {SENSOR_SEN5X_VOCS_IDX, 0, 0b110}, {SENSOR_SEN5X_NOX_IDX, 0, 0b100},
             {SENSOR_SEN5X_HUMIDITY_RAW, 0, 0b110}, {SENSOR_SEN5X_TEMPERATURE_RAW, 0, 0b110}, {SENSOR_SEN5X_VOCS_RAW, 0, 0b110}, {SENSOR_SEN5X_NOX_RAW, 0, 0b100} };
+
+        bool sensorNeedsContinousMode(SensorType wichSensor) {
+            if (wichSensor == SENSOR_SEN5X_VOCS_RAW ||
+                wichSensor == SENSOR_SEN5X_VOCS_IDX ||
+                wichSensor == SENSOR_SEN5X_NOX_RAW  ||
+                wichSensor == SENSOR_SEN5X_NOX_IDX) return true;
+            return false;
+        }
 
         enum SEN5XState { SEN5X_OFF, SEN5X_IDLE, SEN5X_MEASUREMENT, SEN5X_MEASUREMENT_2, SEN5X_CLEANING, SEN5X_NOT_DETECTED };
         SEN5XState state = SEN5X_OFF;

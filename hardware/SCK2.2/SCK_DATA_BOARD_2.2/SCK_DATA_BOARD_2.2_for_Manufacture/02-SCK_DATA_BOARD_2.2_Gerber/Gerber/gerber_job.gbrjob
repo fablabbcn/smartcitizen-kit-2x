@@ -1,0 +1,24 @@
+{
+    "Header": {
+        "Comment": "All values are metric (mm)",
+        "CreationDate": "2023-10-24T16:33:16Z",
+        "GenerationSoftware": {
+            "Application": "EAGLE",
+            "Vendor": "Autodesk",
+            "Version": "9.6.2"
+        },
+        "Part": "Single"
+    },
+    "Overall": {
+        "BoardThickness": 0.74,
+        "LayerNumber": 4,
+        "Name": {
+            "ProjectId": "SCK_DATA_BOARD_2.2"
+        },
+        "Owner": "Miguel Angel <miguel@hangar.org>",
+        "Size": {
+            "X": 58.198253,
+            "Y": 56.356203
+        }
+    }
+}

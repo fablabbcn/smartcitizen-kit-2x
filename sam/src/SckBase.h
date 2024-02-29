@@ -300,7 +300,7 @@ class SckBase
 			"sleep"				// modeTitles[MODE_SLEEP]
 		};
 
-#ifdef testing
+#ifdef TESTING
         const bool inTest = true;
         friend class SckTest;
 #else

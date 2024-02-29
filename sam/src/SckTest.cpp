@@ -474,11 +474,11 @@ uint8_t SckTest::test_auxWire()
 
     // Check if a external SHT was detected a get reading
     if (!testBase->sensors[SENSOR_SHT35_TEMP].enabled) {
-        SerialUSB.println("ERROR No external SHT31 sensor found on Auxiliary I2C bus!!!");
+        SerialUSB.println("ERROR No external SHT35 sensor found on Auxiliary I2C bus!!!");
         error = 1;
 
     } else if (!testBase->getReading(&testBase->sensors[SENSOR_SHT35_TEMP])) {
-        SerialUSB.println("ERROR reading external SHT31 sensor");
+        SerialUSB.println("ERROR reading external SHT35 sensor");
         error = 1;
 
     } else {

@@ -77,11 +77,21 @@ if 'erase' in sys.argv:
     kit.eraseESP()
 
 if 'boot' in sys.argv:
-    oneLine('Flashing SAM bootloader...')
+    print('Making SAM bootloader...')
+    print('Remember to change Makefile.user in the bootloader folder!')
     os.chdir('bootloader/uf2-samdx1')
     make_bootloader = subprocess.call(['make'], stdout=sys.stdout, stderr=subprocess.STDOUT)
+    # Default board version
+    board_ver = 'sck21'
+    # Check if there is an user Makefile
+    user_makefile = 'Makefile.user'
+    if os.path.exists(user_makefile):
+        with open(user_makefile, 'r') as file:
+            boards=file.readlines()[0]
+        board_ver = boards.split('=')[1].replace('.', '')
     if make_bootloader == 0:
-        openocd = subprocess.call(['openocd', '-f', 'openocd_sck2_SAMICE.cfg'], stdout=sys.stdout, stderr=subprocess.STDOUT)
+        oneLine('Flashing SAM bootloader...')
+        openocd = subprocess.call(['openocd', '-f', f'openocd_{board_ver}_SAMICE.cfg'], stdout=sys.stdout, stderr=subprocess.STDOUT)
         if openocd != 0:
             ERROR("Failed flashing SCK bootloader!!!\nDo you have openocd executable in your path???");
         else:

@@ -238,7 +238,12 @@ void SckBase::reviewState()
     /* buttonEvent(); */
 
 	// update ESP serial communication error status
-	if (serESP.error) st.error = ERROR_ESP;
+	if (serESP.error) {
+        st.error = ERROR_ESP;
+        if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_ERROR);
+        else if (st.onSetup) led.update(led.RED, led.PULSE_ERROR);
+        else led.update(led.BLUE, led.PULSE_ERROR);
+    }
 
 	if (st.onShell) {
 

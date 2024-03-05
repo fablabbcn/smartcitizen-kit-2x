@@ -737,6 +737,7 @@ void flash_com(SckBase* base, String parameters)
 
             // Exit shell mode
             if (!alreadyOnShell) base->st.onShell = false;
+            base->sckOut("Please reset your SCK to return to normal behaviour");
         }
 
         // Sector dump: flash -dump sector-num
@@ -1153,13 +1154,10 @@ void shell_com(SckBase* base, String parameters)
             base->st.onShell = true;
             base->st.onSetup = false;
             base->led.update(base->led.YELLOW, base->led.PULSE_STATIC);
+            base->sckOut("You entered shell mode, please reset the SCK to get out");
         } else if (parameters.equals("-off")) {
-            base->st.onShell = false;
-            if (base->st.onSetup || base->st.mode == MODE_NOT_CONFIGURED) base->led.update(base->led.RED, base->led.PULSE_SOFT);
-            else {
-                if (base->st.mode == MODE_NET) base->led.update(base->led.BLUE, base->led.PULSE_SOFT);
-                else base->led.update(base->led.PINK, base->led.PULSE_SOFT);
-            }
+            base->sckOut("Reseting the SCK...");
+            base->sck_reset();
         }
     }
     sprintf(base->outBuff, "Shell mode: %s", base->st.onShell ? "on" : "off");

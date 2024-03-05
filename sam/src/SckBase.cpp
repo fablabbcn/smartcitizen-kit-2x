@@ -242,6 +242,8 @@ void SckBase::reviewState()
 
 	if (st.onShell) {
 
+        led.update(led.YELLOW, led.PULSE_STATIC);
+
     } else if (st.onSetup) {
 
     } else if (sckOFF) {

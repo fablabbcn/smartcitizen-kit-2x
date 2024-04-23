@@ -24,7 +24,7 @@ This folder contains the Eagle design files for the Smart Citizen Kit 2.X, as we
     + [SCK 2.2 Urban Board design files](SCK2.2/SCK_URBAN_BOARD_2.2)
 - [Silkscreen](SCK2.2/SCK2.2_SILKSCREEN.pdf)
 - [Test plan](SCK2.2/Test/SCK2.2_TESTPLAN.pdf)
-/Test/SCK2.2_TEST_PLAN.pdf
+
 ## License
 
 All the software is released under [GNU GPL v3.0](https://github.com/fablabbcn/smartcitizen-kit-20/blob/master/LICENSE) and the hardware design files under [CERN OHL v1.2](https://github.com/fablabbcn/smartcitizen-kit-20/blob/master/hardware/LICENSE)

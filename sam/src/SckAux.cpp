@@ -1694,7 +1694,7 @@ bool Atlas::sendCommand(char* command)
 }
 bool Atlas::tempCompensation()
 {
-    // Temperature comepnsation for PH, EC, and DO
+    // Temperature compensation for PH, EC, and DO
     float temperature;
 
     if (!ORP) {
@@ -1711,11 +1711,12 @@ bool Atlas::tempCompensation()
 
             temperature = atlasTEMP.newReading[0];
         }
-    }
 
-    char data[10];
-    sprintf(data,"T,%.2f",temperature);
-    if (!sendCommand(data)) return false;
+        char data[10];
+        sprintf(data,"T,%.2f",temperature);
+        if (!sendCommand(data)) return false;
+
+    }
 
     // Salinity compensation only for DO
     if (DO && atlasEC.detected) {

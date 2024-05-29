@@ -2036,10 +2036,10 @@ bool SckBase::getReading(OneSensor *wichSensor)
 #endif
 
 #ifdef SCK22_AIR
-        net_usb_t_offset =  - 1.4; // DONE
-        sd_usb_t_offset = -1.6; // TODO NEVER DONE
-        net_batt_t_offset = -1.35; // DONE
-        sd_batt_t_offset = -1.3; // TODO NEVER DONE
+        net_usb_t_offset =  - 1.25; // DONE
+        sd_usb_t_offset = -1.3; // DONE
+        net_batt_t_offset = -1.05; // DONE
+        sd_batt_t_offset = -1.0; // DONE
 #endif
 
         // Correct depending on battery/USB and network/sd card status
@@ -2068,10 +2068,10 @@ bool SckBase::getReading(OneSensor *wichSensor)
 #endif
 
 #ifdef SCK22_AIR
-        net_usb_h_offset = 4.06; // DONE
-        sd_usb_h_offset = 10; // TODO NEVER DONE
-        net_batt_h_offset = 4.5; // DONE
-        sd_batt_h_offset = 10; // TODO NEVER DONE
+        net_usb_h_offset = 3.8; // DONE
+        sd_usb_h_offset = 4; // DONE
+        net_batt_h_offset = 3.6; // DONE
+        sd_batt_h_offset = 3.4; // DONE
 #endif
 
         // Correct depending on battery/USB and network/sd card status

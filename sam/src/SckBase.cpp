@@ -2021,22 +2021,73 @@ bool SckBase::getReading(OneSensor *wichSensor)
     if (wichSensor->type == SENSOR_TEMPERATURE) {
         float aux_temp = wichSensor->reading.toFloat();
 
+        // TODO This needs major refactoring...
+        // Corrections are linear, with no slope correction, only offset
+        float net_usb_t_offset = 0;
+        float net_batt_t_offset = 0;
+        float sd_usb_t_offset = 0;
+        float sd_batt_t_offset = 0;
+
+#ifdef SCK21_AIR
+        net_usb_t_offset =  - 2.6; // TODO CHECK
+        sd_usb_t_offset = -1.6;  // TODO CHECK
+        net_batt_t_offset = -1.3;  // TODO CHECK
+        sd_batt_t_offset = -1.3; // TODO CHECK
+#endif
+
+#ifdef SCK22_AIR
+        net_usb_t_offset =  - 1.25; // DONE
+        sd_usb_t_offset = -1.3; // DONE
+        net_batt_t_offset = -1.05; // DONE
+        sd_batt_t_offset = -1.0; // DONE
+#endif
+
         // Correct depending on battery/USB and network/sd card status
         if (charger.onUSB) {
-            if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp - 2.6);
-            else wichSensor->reading = String(aux_temp - 1.6);
+            if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp + net_usb_t_offset);
+            else wichSensor->reading = String(aux_temp + sd_usb_t_offset);
         } else {
-            wichSensor->reading = String(aux_temp - 1.3);
+            if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp + net_batt_t_offset);
+            else wichSensor->reading = String(aux_temp + sd_batt_t_offset);
         }
 
     } else if(wichSensor->type == SENSOR_HUMIDITY) {
+
         float aux_hum = wichSensor->reading.toFloat();
-        wichSensor->reading = String(aux_hum + 10);
+        // Corrections are linear, with no slope correction, only offset
+        float net_usb_h_offset = 0;
+        float net_batt_h_offset = 0;
+        float sd_usb_h_offset = 0;
+        float sd_batt_h_offset = 0;
+
+#ifdef SCK21_AIR
+        net_usb_h_offset = 10; // TODO
+        sd_usb_h_offset = 10; // TODO
+        net_batt_h_offset = 10; // TODO
+        sd_batt_h_offset = 10; // TODO
+#endif
+
+#ifdef SCK22_AIR
+        net_usb_h_offset = 3.8; // DONE
+        sd_usb_h_offset = 4; // DONE
+        net_batt_h_offset = 3.6; // DONE
+        sd_batt_h_offset = 3.4; // DONE
+#endif
+
+        // Correct depending on battery/USB and network/sd card status
+        if (charger.onUSB) {
+            if (st.mode == MODE_NET) wichSensor->reading = String(aux_hum  + net_usb_h_offset);
+            else wichSensor->reading = String(aux_hum + sd_usb_h_offset);
+        } else {
+            if (st.mode == MODE_NET) wichSensor->reading = String(aux_hum + net_batt_h_offset);
+            else wichSensor->reading = String(aux_hum + sd_batt_h_offset);
+        }
     }
 #endif
 
     return true;
 }
+
 void SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
 {
         sprintf(outBuff, "%s: %s", sensors[wichSensorType].title, wichCommand.c_str());

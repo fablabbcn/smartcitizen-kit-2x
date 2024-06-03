@@ -2029,9 +2029,9 @@ bool SckBase::getReading(OneSensor *wichSensor)
         float sd_batt_t_offset = 0;
 
 #ifdef SCK21_AIR
-        net_usb_t_offset =  - 2.6; // TODO CHECK
+        net_usb_t_offset =  - 1.45; // DONE
         sd_usb_t_offset = -1.6;  // TODO CHECK
-        net_batt_t_offset = -1.3;  // TODO CHECK
+        net_batt_t_offset = -1.3;  // DONE
         sd_batt_t_offset = -1.3; // TODO CHECK
 #endif
 
@@ -2061,10 +2061,10 @@ bool SckBase::getReading(OneSensor *wichSensor)
         float sd_batt_h_offset = 0;
 
 #ifdef SCK21_AIR
-        net_usb_h_offset = 10; // TODO
-        sd_usb_h_offset = 10; // TODO
-        net_batt_h_offset = 10; // TODO
-        sd_batt_h_offset = 10; // TODO
+        net_usb_h_offset = 5; // DONE
+        sd_usb_h_offset = 5; // TODO CHECK
+        net_batt_h_offset = 5; // DONE
+        sd_batt_h_offset = 5; // TODO CHECK
 #endif
 
 #ifdef SCK22_AIR

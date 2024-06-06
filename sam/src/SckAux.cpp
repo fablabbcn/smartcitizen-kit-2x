@@ -1694,28 +1694,28 @@ bool Atlas::sendCommand(char* command)
 }
 bool Atlas::tempCompensation()
 {
-    // Temperature compensation for PH, EC, and DO
-    float temperature;
-
     if (!ORP) {
+        // Temperature compensation for PH, EC, and DO
+        float temperature = -1000;
 #ifdef WITH_DS18B20
-        if (waterTemp_DS18B20.detected) temperature = waterTemp_DS18B20.getReading();
-        else if (atlasTEMP.detected) {
+        if (waterTemp_DS18B20.detected) {
+            temperature = waterTemp_DS18B20.getReading();
+        } else if (atlasTEMP.detected) {
 #else
         if (atlasTEMP.detected) {
 #endif
-
             if (millis() - atlasTEMP.lastUpdate > 10000) {
                 while (atlasTEMP.getBusyState()) delay(2);
             }
-
             temperature = atlasTEMP.newReading[0];
         }
 
-        char data[10];
-        sprintf(data,"T,%.2f",temperature);
-        if (!sendCommand(data)) return false;
-
+        // Only compensate if temperature is actually there
+        if (temperature > -1000) {
+            char data[10];
+            sprintf(data,"T,%.2f",temperature);
+            if (!sendCommand(data)) return false;
+        }
     }
 
     // Salinity compensation only for DO
@@ -1734,6 +1734,7 @@ bool Atlas::tempCompensation()
 
     return true;
 }
+
 uint8_t Atlas::getResponse()
 {
 

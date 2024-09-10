@@ -14,7 +14,7 @@ void SckTest::test_full()
     testBase->enableSensor(SENSOR_HUMIDITY);
     testBase->enableSensor(SENSOR_LIGHT);
     testBase->enableSensor(SENSOR_AS7331_UVA);
-    testBase->enableSensor(SENSOR_LPS33_PRESSURE);
+    testBase->enableSensor(SENSOR_MPL_PRESSURE);
     testBase->enableSensor(SENSOR_NOISE_DBA);
     testBase->enableSensor(SENSOR_SEN5X_PM_1);
 
@@ -411,12 +411,12 @@ uint8_t SckTest::test_Pressure()
 
     if (title) SerialUSB.println("\r\nTesting Pressure sensor...");
 
-    if (!testBase->getReading(&testBase->sensors[SENSOR_LPS33_PRESSURE])) {
+    if (!testBase->getReading(&testBase->sensors[SENSOR_MPL_PRESSURE])) {
         SerialUSB.println("ERROR reading Barometric Pressure sensor");
         error = 1;
     } else {
-        test_report.tests[TEST_PRESS] = testBase->sensors[SENSOR_LPS33_PRESSURE].reading.toFloat();
-        sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_LPS33_PRESSURE].title, test_report.tests[TEST_PRESS], testBase->sensors[SENSOR_LPS33_PRESSURE].unit);
+        test_report.tests[TEST_PRESS] = testBase->sensors[SENSOR_MPL_PRESSURE].reading.toFloat();
+        sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_MPL_PRESSURE].title, test_report.tests[TEST_PRESS], testBase->sensors[SENSOR_MPL_PRESSURE].unit);
         SerialUSB.println(testBase->outBuff);
         SerialUSB.println("Pressure sensor test finished OK");
     }

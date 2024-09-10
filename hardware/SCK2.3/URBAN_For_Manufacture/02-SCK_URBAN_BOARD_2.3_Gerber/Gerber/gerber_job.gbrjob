@@ -1,0 +1,24 @@
+{
+    "Header": {
+        "Comment": "All values are metric (mm)",
+        "CreationDate": "2024-07-22T17:35:08Z",
+        "GenerationSoftware": {
+            "Application": "EAGLE",
+            "Vendor": "Autodesk",
+            "Version": "9.6.2"
+        },
+        "Part": "Single"
+    },
+    "Overall": {
+        "BoardThickness": 1.57,
+        "LayerNumber": 2,
+        "Name": {
+            "ProjectId": "SCK_URBAN_BOARD_2.3"
+        },
+        "Owner": "Miguel Angel <miguel@hangar.org>",
+        "Size": {
+            "X": 36.7778,
+            "Y": 56.4198
+        }
+    }
+}

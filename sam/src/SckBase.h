@@ -175,6 +175,8 @@ class SckBase
 		const String hardwareVer = "2.1";
 #elif defined(SCK22_AIR)
 		const String hardwareVer = "2.2";
+#elif defined(SCK23_AIR)
+		const String hardwareVer = "2.3";
 #else
 		// TODO At some point this will need to change.
 		const String hardwareVer = "2.1";

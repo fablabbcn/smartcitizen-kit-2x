@@ -2042,6 +2042,13 @@ bool SckBase::getReading(OneSensor *wichSensor)
         sd_batt_t_offset = -1.0; // DONE
 #endif
 
+#ifdef SCK23_AIR // We assume offsets are the same between SCK22 and SCK23
+        net_usb_t_offset =  - 1.25; // DONE
+        sd_usb_t_offset = -1.3; // DONE
+        net_batt_t_offset = -1.05; // DONE
+        sd_batt_t_offset = -1.0; // DONE
+#endif
+
         // Correct depending on battery/USB and network/sd card status
         if (charger.onUSB) {
             if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp + net_usb_t_offset);
@@ -2068,6 +2075,13 @@ bool SckBase::getReading(OneSensor *wichSensor)
 #endif
 
 #ifdef SCK22_AIR
+        net_usb_h_offset = 3.8; // DONE
+        sd_usb_h_offset = 4; // DONE
+        net_batt_h_offset = 3.6; // DONE
+        sd_batt_h_offset = 3.4; // DONE
+#endif
+
+#ifdef SCK23_AIR // We assume offsets are the same between SCK22 and SCK23
         net_usb_h_offset = 3.8; // DONE
         sd_usb_h_offset = 4; // DONE
         net_batt_h_offset = 3.6; // DONE

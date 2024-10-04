@@ -1577,7 +1577,13 @@ bool Atlas::getBusyState()
     if (millis() - lastUpdate < 2) return true;
     switch (state) {
 
-        case REST: {
+        case SLEEP: {
+
+            if (millis() - lastCommandSent >= shortWait) {
+                if (sendCommand((char*)"r")) state = REST;
+            }
+
+        } case REST: {
 
             // ORP doesn't need temp compensation so we jump directly to ask reading
             if (ORP) {
@@ -1668,7 +1674,9 @@ void Atlas::goToSleep()
     auxWire.beginTransmission(deviceAddress);
     auxWire.write("Sleep");
     auxWire.endTransmission();
+    state = SLEEP;
 }
+
 bool Atlas::sendCommand(char* command)
 {
 

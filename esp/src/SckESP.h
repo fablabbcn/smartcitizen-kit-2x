@@ -78,7 +78,8 @@ class SckESP
 
         // Wifi related
         char hostname[20];
-        String macAddr;
+        String macAddr; // SoftAP MAC Address
+        String staMacAddr; // STA-MAC Address
         String ipAddr;
         int currentWIFIStatus;
         void tryConnection();

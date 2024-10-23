@@ -597,6 +597,15 @@ String AuxBoards::control(SensorType wichSensor, String command)
                 if (responseCode == 1) return thisAtlas->atlasResponse;
                 else return String(responseCode);
 
+            } else if (command.startsWith("tcomp")) {
+
+                command.replace("tcomp", "");
+                command.trim();
+
+                if (command.startsWith("on")) thisAtlas->tComp(1);
+                else if (command.startsWith("off")) thisAtlas.tComp(0);
+
+                return String F("Atlas temperature compensation: ") + String(thisAtlas.tComp() ? "on" : "off");
             }
             break;
 
@@ -1602,7 +1611,7 @@ bool Atlas::getBusyState()
 
         } case TEMP_COMP_SENT: {
 
-            if (millis() - lastCommandSent >= shortWait) {
+            if (millis() - lastCommandSent >= longWait) {
                 if (sendCommand((char*)"r")) state = ASKED_READING;
             }
             break;
@@ -1668,6 +1677,17 @@ bool Atlas::getBusyState()
     lastUpdate = millis();
     return true;
 }
+
+bool Atlas::tComp(int8_t value)
+{
+    // Value: 0 -> disable, 1 -> enable, any other -> get current setting
+
+    if (value == 1) sparkfun_scd30.setAutoSelfCalibration(true);
+    else if (value == 0) sparkfun_scd30.setAutoSelfCalibration(false);
+
+    return sparkfun_scd30.getAutoSelfCalibration();
+}
+
 void Atlas::goToSleep()
 {
 

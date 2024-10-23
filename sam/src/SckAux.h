@@ -354,6 +354,7 @@ class Atlas
         bool DO = false;
         bool TEMP = false;
         bool ORP = false;
+        bool enableTComp = true;
         float newReading[4];
         String atlasResponse;
         uint32_t lastCommandSent = 0;
@@ -415,6 +416,7 @@ class Atlas
         bool stop();
         bool getReading();
         bool getBusyState();
+        bool tComp(int8_t value=-1);
 
         void goToSleep();
         bool sendCommand(char* command);

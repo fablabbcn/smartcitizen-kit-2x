@@ -95,9 +95,16 @@ struct Calibration {
     int32_t wetPoint;
 };
 
+struct Config {
+    bool  pHEnableTComp = true;
+    bool  DOEnableTComp = true;
+    bool  ECEnableTComp = true;
+};
+
 struct EepromAuxData {
     bool valid = false;
     Calibration calibration;
+    Config config;
 };
 
 bool I2Cdetect(byte address);
@@ -416,7 +423,6 @@ class Atlas
         bool stop();
         bool getReading();
         bool getBusyState();
-        bool tComp(int8_t value=-1);
 
         void goToSleep();
         bool sendCommand(char* command);

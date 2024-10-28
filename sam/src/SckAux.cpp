@@ -1690,14 +1690,13 @@ bool Atlas::sendCommand(char* command)
         auxWire.requestFrom(deviceAddress, 1, true);
         uint8_t confirmed = auxWire.read();
         auxWire.endTransmission();
-        delay(shortWait);
 
         if (confirmed == 1) {
             lastCommandSent = millis();
             return true;
         }
 
-        // delay(300);
+        delay(shortWait);
     }
     return false;
 }

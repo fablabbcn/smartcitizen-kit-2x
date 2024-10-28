@@ -32,6 +32,7 @@ void SckESP::setup()
 
     // Create hostname
     macAddr = WiFi.softAPmacAddress();
+    staMacAddr = WiFi.macAddress();
     String tailMacAddr = macAddr.substring(macAddr.length() - 5);
     tailMacAddr.replace(":", "");
     strncpy(hostname, "Smartcitizen", 20);
@@ -444,7 +445,8 @@ bool SckESP::sendStartInfo()
 {
 	StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
 	JsonObject jsonSend = jsonBuffer.to<JsonObject>();
-	jsonSend["mac"] = macAddr;
+	jsonSend["mac"] = macAddr; // SoftAP MAC Address
+	jsonSend["stamac"] = staMacAddr; // STA-MAC Address
 	jsonSend["ver"] = ESPversion;
 	jsonSend["bd"] = ESPbuildDate;
 
@@ -731,9 +733,13 @@ void SckESP::webStatus(AsyncWebServerRequest *request)
     // Hostname
     json += "{\"hostname\":\"" + String(hostname) + "\",";
 
-    // MAC address
+    // MAC address (softAP)
     String tmac = WiFi.softAPmacAddress();
     json += "\"mac\":\"" + tmac + "\",";
+
+    // MAC address (STA)
+    String tmacsta = WiFi.macAddress();
+    json += "\"mac_sta\":\"" + tmacsta + "\",";
 
     // ESP firmware version
     json += "\"ESPversion\":\"" + ESPversion.substring(0, ESPversion.indexOf("-")) + "\",";

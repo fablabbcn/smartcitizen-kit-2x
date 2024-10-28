@@ -51,7 +51,7 @@ void getVersion_com(SckBase* base, String parameters)
     base->getUniqueID();
     sprintf(base->outBuff, "Hardware Version: %s\r\nSAM Hardware ID: %s\r\nSAM version: %s\r\nSAM build date: %s", base->hardwareVer.c_str(), base->uniqueID_str, base->SAMversion.c_str(), base->SAMbuildDate.c_str());
     base->sckOut();
-    sprintf(base->outBuff, "ESP MAC address: %s\r\nESP version: %s\r\nESP build date: %s", base->config.mac.address, base->ESPversion.c_str(), base->ESPbuildDate.c_str());
+    sprintf(base->outBuff, "ESP version: %s\r\nESP build date: %s", base->ESPversion.c_str(), base->ESPbuildDate.c_str());
     base->sckOut();
 }
 void resetCause_com(SckBase* base, String parameters)
@@ -1026,8 +1026,8 @@ void config_com(SckBase* base, String parameters)
     else sprintf(base->outBuff, "Token: not configured");
     base->sckOut();
 
-    sprintf(base->outBuff, "Mac address:  %s", base->config.mac.address);
-    base->sckOut();
+    // sprintf(base->outBuff, "Mac address:  %s", base->config.mac.address);
+    // base->sckOut();
 
     sprintf(base->outBuff, "Sanity reset (every 24 hours) is: %s", base->config.sanityResetFlag ? "on" : "off");
     base->sckOut();

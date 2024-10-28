@@ -1048,7 +1048,7 @@ void SckBase::ESPbusUpdate()
 
 				ipAddress = json["ip"].as<String>();
 
-				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nMAC address: %s", hostname, ipAddress.c_str(), config.mac.address);
+				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nAP MAC address: %s\r\nSTA MAC address: %s", hostname, ipAddress.c_str(), config.mac.address, config.mac.staaddress);
 				sckOut();
 				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
 				sckOut();
@@ -1151,13 +1151,17 @@ void SckBase::ESPbusUpdate()
 			JsonObject json = jsonBuffer.as<JsonObject>();
 
 			String macAddress = json["mac"].as<String>();
+			String staMacAddress = json["stamac"].as<String>();
 			ESPversion = json["ver"].as<String>();
 			ESPbuildDate = json["bd"].as<String>();
 
 			// Udate mac address and hostname if we haven't yet
 			if (!config.mac.valid) {
 				sckOut("Updated MAC address");
+				sckOut("AP MAC address");
 				sprintf(config.mac.address, "%s", macAddress.c_str());
+				sckOut("STA MAC address");
+				sprintf(config.mac.staaddress, "%s", staMacAddress.c_str());
 				config.mac.valid = true;
 				saveConfig();
 				snprintf(hostname, sizeof(hostname), "%s", "Smartcitizen");

@@ -360,6 +360,7 @@ class Atlas
         uint32_t lastUpdate = 0;
         enum State {
             REST,
+            SLEEP,
             TEMP_COMP_SENT,
             ASKED_READING,
         };

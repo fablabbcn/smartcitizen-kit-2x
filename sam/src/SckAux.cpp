@@ -75,12 +75,6 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
             moistureChirp.calibrated = true;
         }
 #endif
-
-#ifdef WITH_ATLAS
-        atlasPH.enableTComp = data.config.pHEnableTComp;
-        atlasEC.enableTComp = data.config.ECEnableTComp;
-        atlasDO.enableTComp = data.config.DOEnableTComp;
-#endif
     }
 
     switch (wichSensor) {
@@ -603,35 +597,6 @@ String AuxBoards::control(SensorType wichSensor, String command)
                 if (responseCode == 1) return thisAtlas->atlasResponse;
                 else return String(responseCode);
 
-            } else if (command.startsWith("tcomp")) {
-                // Enable or disable temperature compensation on sensors
-                if (wichSensor == SENSOR_ATLAS_TEMPERATURE || wichSensor == SENSOR_ATLAS_ORP) {
-                    return String("Sensor does not support temperature compensation. Ignoring");
-                }
-
-                command.replace("tcomp", "");
-                command.trim();
-
-                // Value: 0 -> disable, 1 -> enable, any other -> get current setting
-                if (command.startsWith("on")){
-                    thisAtlas->enableTComp = true;
-                } else if (command.startsWith("off")) {
-                    thisAtlas->enableTComp = false;
-                }
-
-                if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG || wichSensor == SENSOR_ATLAS_EC_TDS || wichSensor == SENSOR_ATLAS_EC_SAL) {
-                    data.config.ECEnableTComp = thisAtlas->enableTComp;
-                } else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) {
-                    data.config.DOEnableTComp = thisAtlas->enableTComp;
-                } else if (wichSensor == SENSOR_ATLAS_PH) {
-                    data.config.pHEnableTComp = thisAtlas->enableTComp;
-                }
-
-                eepromAuxData.write(data);
-
-                return String F("Atlas temperature compensation: ") + String(thisAtlas->enableTComp ? "on" : "off");
-            } else {
-                return F("Wrong command!!\r\nOptions:\r\ntcomp [on/off] # Enables temperature compensation\r\ncom [atlas commands]");
             }
             break;
 
@@ -1540,6 +1505,7 @@ bool Atlas::start()
 
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
+
     // Protocol lock
     if (!sendCommand((char*)"Plock,1")) return false;
     delay(shortWait);
@@ -1611,13 +1577,7 @@ bool Atlas::getBusyState()
     if (millis() - lastUpdate < 2) return true;
     switch (state) {
 
-        case SLEEP: {
-
-            if (millis() - lastCommandSent >= shortWait) {
-                if (sendCommand((char*)"r")) state = REST;
-            }
-
-        } case REST: {
+        case REST: {
 
             // ORP doesn't need temp compensation so we jump directly to ask reading
             if (ORP) {
@@ -1636,7 +1596,7 @@ bool Atlas::getBusyState()
 
         } case TEMP_COMP_SENT: {
 
-            if (millis() - lastCommandSent >= longWait) {
+            if (millis() - lastCommandSent >= shortWait) {
                 if (sendCommand((char*)"r")) state = ASKED_READING;
             }
             break;
@@ -1702,16 +1662,13 @@ bool Atlas::getBusyState()
     lastUpdate = millis();
     return true;
 }
-
 void Atlas::goToSleep()
 {
 
     auxWire.beginTransmission(deviceAddress);
     auxWire.write("Sleep");
     auxWire.endTransmission();
-    state = SLEEP;
 }
-
 bool Atlas::sendCommand(char* command)
 {
 
@@ -1731,15 +1688,12 @@ bool Atlas::sendCommand(char* command)
             return true;
         }
 
-        delay(shortWait);
+        delay(300);
     }
     return false;
 }
 bool Atlas::tempCompensation()
 {
-    // If we don't enable Temperature compensation, we directly return
-    if (!enableTComp) return true;
-
     if (!ORP) {
         // Temperature compensation for PH, EC, and DO
         float temperature = -1000;

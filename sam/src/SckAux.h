@@ -95,16 +95,9 @@ struct Calibration {
     int32_t wetPoint;
 };
 
-struct Config {
-    bool  pHEnableTComp = true;
-    bool  DOEnableTComp = true;
-    bool  ECEnableTComp = true;
-};
-
 struct EepromAuxData {
     bool valid = false;
     Calibration calibration;
-    Config config;
 };
 
 bool I2Cdetect(byte address);
@@ -361,14 +354,12 @@ class Atlas
         bool DO = false;
         bool TEMP = false;
         bool ORP = false;
-        bool enableTComp = true;
         float newReading[4];
         String atlasResponse;
         uint32_t lastCommandSent = 0;
         uint32_t lastUpdate = 0;
         enum State {
             REST,
-            SLEEP,
             TEMP_COMP_SENT,
             ASKED_READING,
         };

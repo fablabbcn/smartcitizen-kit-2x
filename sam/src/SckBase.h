@@ -181,7 +181,7 @@ class SckBase
 		// TODO At some point this will need to change.
 		const String hardwareVer = "2.1";
 #endif
-		const String SAMversion	= SAMverNum + "-" + String(__GIT_HASH__) + "-" + String(__GIT_BRANCH__) + "-" + String(__PIO_ENV__); 		   // mayor.minor.build-gitcommit-branch-platformioenv
+		const String SAMversion	= SAMverNum + "-" + String(__GIT_HASH__) + "-" + String(__GIT_BRANCH__); 		// mayor.minor.build-gitcommit-branch
 		const String SAMbuildDate = String(__ISO_DATE__);
 		String ESPversion = "not synced";
 		String ESPbuildDate = "not synced";

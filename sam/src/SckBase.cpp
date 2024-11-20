@@ -1489,6 +1489,27 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
         // Stop CCS811 VOCS sensor
         urban.stop(SENSOR_CCS811_VOCS);
 #endif
+#ifdef WITH_SEN5X
+        // Stop SEN5X sensor
+        urban.stop(SENSOR_SEN5X_PM_1);
+        urban.stop(SENSOR_SEN5X_PM_25);
+        urban.stop(SENSOR_SEN5X_PM_4);
+        urban.stop(SENSOR_SEN5X_PM_10);
+        urban.stop(SENSOR_SEN5X_PN_05);
+        urban.stop(SENSOR_SEN5X_PN_1);
+        urban.stop(SENSOR_SEN5X_PN_25);
+        urban.stop(SENSOR_SEN5X_PN_4);
+        urban.stop(SENSOR_SEN5X_PN_10);
+        urban.stop(SENSOR_SEN5X_TPSIZE);
+        urban.stop(SENSOR_SEN5X_HUMIDITY);
+        urban.stop(SENSOR_SEN5X_TEMPERATURE);
+        urban.stop(SENSOR_SEN5X_VOCS_IDX);
+        urban.stop(SENSOR_SEN5X_NOX_IDX);
+        urban.stop(SENSOR_SEN5X_HUMIDITY_RAW);
+        urban.stop(SENSOR_SEN5X_TEMPERATURE_RAW);
+        urban.stop(SENSOR_SEN5X_VOCS_RAW);
+        urban.stop(SENSOR_SEN5X_NOX_RAW);
+#endif
 #endif
 
         // Detach sdcard interrupt to avoid spurious wakeup

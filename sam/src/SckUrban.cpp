@@ -2050,7 +2050,7 @@ bool Sck_SEN5X::start(SensorType wichSensor)
 }
 bool Sck_SEN5X::stop(SensorType wichSensor)
 {
-    if (debug) Serial.println("SEN5X: Stoping sensor");
+    if (debug) Serial.println("SEN5X: Stopping sensor");
     bool changed = false;
 
     // Mark this specific metric as disabled
@@ -2077,12 +2077,12 @@ bool Sck_SEN5X::stop(SensorType wichSensor)
         if (debug) Serial.println("SEN5X: Turning continous mode Off");
         continousMode = false;
     }
-    
+
     // We can't stop the hardware yet
     if (stillSomeEnabled) return changed;
 
     // If no metric is enabled turn off power
-    if (debug) Serial.println("SEN5X: Stoping sensor");
+    if (debug) Serial.println("SEN5X: Stopping node");
     digitalWrite(pinPM_ENABLE, LOW);
 
     state = SEN5X_OFF;

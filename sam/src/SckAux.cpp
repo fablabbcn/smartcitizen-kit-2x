@@ -631,7 +631,12 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
                 return String F("Atlas temperature compensation: ") + String(thisAtlas->enableTComp ? "on" : "off");
             } else {
-                return F("Wrong command!!\r\nOptions:\r\ntcomp [on/off] # Enables temperature compensation\r\ncom [atlas commands]");
+
+                if (wichSensor == SENSOR_ATLAS_TEMPERATURE || wichSensor == SENSOR_ATLAS_ORP) {
+                    return F("No command received.\r\nOptions:\r\ncom [atlas commands]");
+                } else {
+                    return F("No command received.\r\nOptions:\r\ntcomp [on/off] # Enables temperature compensation\r\ncom [atlas commands]");
+                }
             }
             break;
 

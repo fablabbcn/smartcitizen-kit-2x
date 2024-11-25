@@ -10,6 +10,7 @@
 #define WITH_SCD30
 #define WITH_SFA30
 #define WITH_GPS
+#define WITH_EXT_TEMP
 #endif
 
 #ifdef SCK22_AIR
@@ -21,6 +22,7 @@
 #define WITH_ADS1X15
 #define WITH_SFA30
 #define WITH_GPS
+#define WITH_EXT_TEMP
 #endif
 
 #ifdef SCK23_AIR
@@ -32,6 +34,7 @@
 #define WITH_ADS1X15
 #define WITH_SFA30
 #define WITH_GPS
+#define WITH_EXT_TEMP
 #endif
 
 #ifdef SCK_WATER
@@ -59,6 +62,7 @@
 // #define WITH_ATLAS              // Saves 884 bytes
 // #define WITH_CHIRP              // Saves 404 bytes
 // #define WITH_DALLAS_TEMP        // Saves 292 bytes
+// #define #define WITH_EXT_TEMP
 // #define WITH_GPS                // Saves 1508 bytes
 // #define WITH_RANGE              // Saves 292 bytes
 // #define WITH_BME68X             // Saves 644 bytes
@@ -244,7 +248,7 @@ enum SensorType
     SENSOR_DALLAS_TEMP,
 #endif
 
-#ifdef WITH_URBAN
+#ifdef WITH_EXT_TEMP
     SENSOR_SHT31_TEMP,
     SENSOR_SHT31_HUM,
     SENSOR_SHT35_TEMP,
@@ -523,7 +527,7 @@ class AllSensors
             OneSensor { BOARD_AUX,      0,      SENSOR_DALLAS_TEMP,             "DALLAS_TEMP",      "Direct Dallas Temperature",            96,     true,       1,  "C"         },
 #endif
 
-#ifdef WITH_URBAN
+#ifdef WITH_EXT_TEMP
             OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_TEMP,              "EXT_TEMP",         "Ext Temperature",                      79,     true,       1,  "C"         },
             OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_HUM,               "EXT_HUM",          "Ext Humidity",                         80,     true,       1,  "%"         },
             OneSensor { BOARD_AUX,      0,      SENSOR_SHT35_TEMP,              "EXT_TEMP_SHT35",   "Ext SHT35 Temperature",                224,    true,       1,  "C"         },

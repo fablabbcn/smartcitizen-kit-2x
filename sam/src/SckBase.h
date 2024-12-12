@@ -1,7 +1,5 @@
 #pragma once
 
-// #define testing // Uncomment this line for running test protocol
-
 #include <Arduino.h>
 #include <RTCZero.h>
 #include <time.h>

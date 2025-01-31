@@ -106,13 +106,25 @@ if 'build' in sys.argv:
         env = 'sck2'
         if '--env' in sys.argv:
             env = sys.argv[sys.argv.index('--env')+1]
-        if kit.buildSAM(sys.stdout, env): OK()
-        else: ERROR()
+        if kit.buildSAM(sys.stdout, env):
+            buildSAMOK = True
+            OK()
+        else:
+            buildSAMOK = False
+            ERROR()
 
     if 'esp' in sys.argv:
         oneLine('Building ESP firmware... ')
-        if kit.buildESP(sys.stdout): OK()
-        else: ERROR()
+        if kit.buildESP(sys.stdout):
+            buildESPOK = True
+            OK()
+        else:
+            buildESPOK = False
+            ERROR()
+else:
+    # We do this to avoid preventing flashing with previously built fw
+    buildSAMOK = True
+    buildESPOK = True
 
 if 'flash' in sys.argv:
     if not 'build' in sys.argv:
@@ -128,10 +140,12 @@ if 'flash' in sys.argv:
         if '--env' in sys.argv:
             env = sys.argv[sys.argv.index('--env')+1]
 
-        if kit.flashSAM(sys.stdout, env): OK()
+        if buildSAMOK:
+            if kit.flashSAM(sys.stdout, env): OK()
         else: ERROR()
 
     if 'esp' in sys.argv:
+        if not buildESPOK: ERROR()
         time.sleep(0.5)
         oneLine('Flashing ESP firmware')
         for i in range(4):

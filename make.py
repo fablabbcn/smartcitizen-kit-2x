@@ -154,7 +154,7 @@ if 'flash' in sys.argv:
             time.sleep(1)
             if kit.flashESP(mySpeed, sys.stdout):
                 OK()
-                break;
+                break
             else:
                 if i == 3: ERROR()
                 else:

@@ -3,8 +3,11 @@
 Welcome to the Daphi Sensor main repository. Here you will find the firmware for the sensor.
 
 ## Documentation
-
-WIP
+Documentation of the SCK repo, from which it was forked
+- Main website: https://smartcitizen.me/
+- Documentation: https://docs.smartcitizen.me/guides/firmware/edit-the-firmware/#getting-the-firmware
+- Firmware Support Email: support@smartcitizen.me
+- Data API: https://developer.smartcitizen.me/#summary
 
 ## Development
 

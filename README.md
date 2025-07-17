@@ -8,10 +8,7 @@ WIP
 
 ## Development
 
-In this repository you can find:
-* The [bootloader](bootloader) and [main firmware](./sam) (C++) for the SAMD21 microcontroller.
-* The [main firmware](./esp) for the ESP8266 microcontroller.
-* A [mobile web UI](./mock-api) for setting up the kit.
+WIP
 
 ## Related repositories
 

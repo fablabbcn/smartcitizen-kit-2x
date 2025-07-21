@@ -2463,7 +2463,7 @@ bool Sck_ADS1X15::start(uint8_t address)
 
     if (started) return true;
 
-    ads.begin(address);
+    ads.begin(address, &auxWire);
     started = true;
     return true;
 }

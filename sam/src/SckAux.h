@@ -62,7 +62,7 @@
 
 #ifdef WITH_ADS1X15
 // Adafruit library for ADS1x15 12/16 bits ADC
-#include <Adafruit_ADS1015.h>
+#include <Adafruit_ADS1X15.h>
 #endif
 
 // ADS Tester (Only supported in version 2.0 and greater)
@@ -737,7 +737,7 @@ class Sck_ADS1X15
     private:
         const float VOLTAGE = 3.3;
         bool started = false;
-        Adafruit_ADS1115 ads = Adafruit_ADS1115(&auxWire);
+        Adafruit_ADS1115 ads = Adafruit_ADS1115();
 
         // TODO
         // Test ADS1015

@@ -2041,9 +2041,10 @@ bool Sck_SEN5X::start(SensorType wichSensor)
         eepromSEN5xLastCleaning.write(when);
         if (debug) Serial.println("SEN5X: No valid last cleaning date found, saving it now");
     }
-
-    // Get VOCstate from eeprom memory to use it on next start measure
-    vocStateFromEeprom();
+    if (model == SEN55) {
+        // Get VOCstate from eeprom memory to use it on next start measure
+        vocStateFromEeprom();
+    }
 
     // Call start again to just enable the corresponding metric
     return start(wichSensor);
@@ -2104,6 +2105,11 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
                 if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
                 return true;
             }
+
+            // TODO - is this a solution to continous mode? See datasheet
+            // if (model == SEN55) {
+            //     vocStateToSensor();
+            // }
 
             if (!sen_sendCommand(SEN5X_START_MEASUREMENT)) {
                 if (debug) Serial.println("SEN5X: Error starting measurement");
@@ -2191,6 +2197,7 @@ bool Sck_SEN5X::idle()
         if (debug) Serial.println("SEN5X: Not going to idle mode, we need continous mode!!");
         return false;
     }
+
     // Get VOC state before going to idle mode
     vocStateFromSensor();
 
@@ -2497,7 +2504,7 @@ bool Sck_SEN5X::sen_sendCommand(uint16_t wichCommand, uint8_t* buffer, uint8_t b
 
     if (i2c_error != 0) {
         if (debug) {
-            Serial.print("SEN5X: Error on I2c communication: ");
+            Serial.print("SEN5X: Error on I2C communication: ");
             Serial.println(i2c_error);
         }
         return false;
@@ -2552,7 +2559,9 @@ uint8_t Sck_SEN5X::sen_CRC(uint8_t* buffer)
 bool Sck_SEN5X::vocStateToEeprom()
 {
     // This function should only be called from sck_reset
-
+    if (model != SEN55) {
+        return true;
+    }
     VOCstateStruct temp;
     for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) temp.state[i] = VOCstate[i];
     temp.time = rtc->getEpoch();
@@ -2600,8 +2609,12 @@ bool Sck_SEN5X::vocStateFromEeprom()
 }
 bool Sck_SEN5X::vocStateToSensor()
 {
-    // We need to be on idle mode
-    idle();
+    // We need to be on idle mode - but only stopping measurement
+    if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
+        if (debug) Serial.println("SEN5X: Error stoping measurement");
+        return false;
+    }
+    delay(200); // From Sensirion Arduino library
 
     if (!sen_sendCommand(SEN5X_RW_VOCS_STATE, VOCstate, SEN5X_VOC_STATE_BUFFER_SIZE)){
         if (debug) Serial.println("SEN5X: Error sending VOC's state command'");
@@ -2618,6 +2631,10 @@ bool Sck_SEN5X::vocStateToSensor()
 }
 bool Sck_SEN5X::vocStateFromSensor()
 {
+    if (model != SEN55) {
+        return true;
+    }
+
     //  Ask VOCs state from the sensor
     if (!sen_sendCommand(SEN5X_RW_VOCS_STATE)){
         if (debug) Serial.println("SEN5X: Error sending VOC's state command'");
@@ -2625,12 +2642,23 @@ bool Sck_SEN5X::vocStateFromSensor()
     }
 
     // Retrieve the data
-    size_t receivedNumber = sen_readBuffer(&VOCstate[0], SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2));
+    uint8_t vocBuffer[SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2)];
+    size_t receivedNumber = sen_readBuffer(&vocBuffer[0], SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2));
     delay(20);
     if (receivedNumber == 0) {
         if (debug) Serial.println("SEN5X: Error getting VOC's state'");
         return false;
     }
+
+    // Bugfix - CRC was used here
+    VOCstate[0] = vocBuffer[0];
+    VOCstate[1] = vocBuffer[1];
+    VOCstate[2] = vocBuffer[3];
+    VOCstate[3] = vocBuffer[4];
+    VOCstate[4] = vocBuffer[6];
+    VOCstate[5] = vocBuffer[7];
+    VOCstate[6] = vocBuffer[9];
+    VOCstate[7] = vocBuffer[10];
 
     // Print the state (if debug is on)
     if (debug) {

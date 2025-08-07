@@ -429,7 +429,7 @@ class Sck_SEN5X
 
         struct lastCleaning { uint32_t time; bool valid=true; };
 
-        # define SEN5X_VOC_STATE_BUFFER_SIZE 12
+        #define SEN5X_VOC_STATE_BUFFER_SIZE 8
         uint8_t VOCstate[SEN5X_VOC_STATE_BUFFER_SIZE];
         struct VOCstateStruct { uint8_t state[SEN5X_VOC_STATE_BUFFER_SIZE]; uint32_t time; bool valid=true; };
         bool vocStateToEeprom();

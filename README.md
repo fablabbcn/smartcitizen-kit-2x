@@ -11,9 +11,9 @@ Documentation of the SCK repo, from which it was forked
 
 ## Development
 
-For new contributors, please read the [contribution guidelines](https://github.com/Daphi-Prevent-FLW/Daphi-Sensor/blob/master/guides%20and%20manuals/How%20to%20contribute.md).
+For new contributors, please read the [contribution guidelines](https://github.com/Daphi-Prevent-FLW/Daphi-Sensor/wiki/Contributing).
 
-Hardware used is under [Hardware Overview](https://github.com/Daphi-Prevent-FLW/Daphi-Sensor/blob/master/guides%20and%20manuals/Hardware%20Overview.md).
+Hardware used is under [Hardware Overview](https://github.com/Daphi-Prevent-FLW/Daphi-Sensor/wiki/Hardware-Specifications).
 
 ## Related repositories
 

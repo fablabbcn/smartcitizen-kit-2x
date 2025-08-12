@@ -78,6 +78,7 @@ jobs:
       - name: Get changed files
         id: changed
         run: |
+          git fetch --unshallow || true
           git fetch origin ${{ github.base_ref }}
           git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^esp/src/.*\.(cpp|h|ino)$' > changed-files.txt || true
 

@@ -2,7 +2,7 @@
 set -e
 
 if [ "$#" -eq 0 ]; then
-  FILES=$(find esp/src -type f \( -name '*.cpp' -o -name '*.h' \))
+  FILES=$(find esp/src -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.ino' \))
 else
   FILES="$@"
 fi

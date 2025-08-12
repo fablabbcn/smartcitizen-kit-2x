@@ -78,7 +78,7 @@ jobs:
       - name: Run clang-format (auto-format files)
         run: |
           docker run --rm -v "$PWD":/workspace -w /workspace daphi-clang-checks \
-            sh -c 'clang-format -i $(find esp/src -type f \( -name "*.cpp" -o -name "*.h" \))'
+            sh -c 'clang-format -i $(find esp/src -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.ino" \))'
 
       - name: Run clang-tidy checks
         run: |

@@ -70,7 +70,7 @@ jobs:
       - name: Check out the commit
         uses: actions/checkout@v3
         with:
-          submodules: 'true'
+          submodules: 'false'
 
       - name: Build clang checks Docker image
         run: docker build -t daphi-clang-checks guidelines_checks

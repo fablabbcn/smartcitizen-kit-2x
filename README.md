@@ -30,7 +30,7 @@ To ensure code quality and consistency, we provide a Docker-based environment fo
 2. **Run checks for a specific file** (replace `esp/src/SckESP.cpp` with your file):
 
     ```sh
-    docker run --rm -v "$PWD":/workspace -w /workspace daphi-clang-checks sh /workspace/run-clang-checks.sh esp/src/SckESP.cpp
+    docker run --rm -v "$PWD":/workspace -w /workspace daphi-clang-checks sh /workspace/guidelines_checks/run-clang-checks.sh esp/src/SckESP.cpp
     ```
 
    You can specify multiple files separated by spaces.

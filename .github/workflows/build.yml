@@ -60,3 +60,27 @@ jobs:
       with:
         files: |
           bin/*
+
+
+  clang_checks:
+    name: Clang Format & Tidy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+
+      - name: Build clang checks Docker image
+        run: docker build -t daphi-clang-checks guidelines_checks
+
+      - name: Run clang-format (auto-format files)
+        run: |
+          docker run --rm -v "$PWD":/workspace -w /workspace daphi-clang-checks \
+            sh -c 'clang-format -i $(find esp/src -type f \( -name "*.cpp" -o -name "*.h" \))'
+
+      - name: Run clang-tidy checks
+        run: |
+          docker run --rm -v "$PWD":/workspace -w /workspace daphi-clang-checks \
+            sh /workspace/run-clang-checks.sh       

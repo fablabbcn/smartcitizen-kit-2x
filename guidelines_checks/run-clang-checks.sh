@@ -12,5 +12,5 @@ clang-format --dry-run --Werror $FILES
 
 echo "Running clang-tidy..."
 for file in $FILES; do
-  clang-tidy $file -- -Iesp/src
+   clang-tidy -warnings-as-errors=* $file -- -Iesp/src
 done

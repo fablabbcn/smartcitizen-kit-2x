@@ -44,7 +44,7 @@ To ensure code quality and consistency, we provide a Docker-based environment fo
 ### Notes
 
 - The configuration files and scripts are in the `guidelines_checks/` directory.
-- These checks enforce naming, style, and magic number rules as described in the [contribution guidelines](guides%20and%20manuals/How%20to%20contribute.md).
+- These checks enforce naming, style, and magic number rules as described in the  [contribution guidelines](https://github.com/Daphi-Prevent-FLW/Daphi-Sensor/wiki/Contributing).
 - Please run these checks before submitting a pull request.
 
 

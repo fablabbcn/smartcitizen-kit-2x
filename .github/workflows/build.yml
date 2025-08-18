@@ -60,3 +60,42 @@ jobs:
       with:
         files: |
           bin/*
+
+
+  clang_checks:
+    name: Clang Format & Tidy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@v3
+        with:
+          submodules: 'false'
+
+      - name: Build clang checks Docker image
+        run: docker build -t daphi-clang-checks guidelines_checks
+
+      - name: Get changed files
+        id: changed
+        run: |
+          git fetch --unshallow || true
+          git fetch origin ${{ github.base_ref }}
+          git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^esp/src/.*\.(cpp|h|ino)$' > changed-files.txt || true
+
+      - name: Run clang-format (auto-format changed files)
+        run: |
+          if [ -s changed-files.txt ]; then
+            docker run --rm -v "$PWD":/workspace -w /workspace daphi-clang-checks \
+              sh -c 'clang-format -i $(cat changed-files.txt)'
+          else
+            echo "No changed source files to format."
+          fi
+              
+      - name: Run clang-tidy checks on changed files
+        run: |
+          if [ -s changed-files.txt ]; then
+            docker run --rm -v "$PWD":/workspace -w /workspace daphi-clang-checks \
+              sh /workspace/guidelines_checks/run-clang-checks.sh $(cat changed-files.txt)
+          else
+            echo "No changed source files to check."
+          fi

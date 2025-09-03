@@ -2140,7 +2140,11 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
             }
 
             // Lets get the readings
-            if (update(wichSensor->type) != 0) return false;
+            uint8_t updateResult = update(wichSensor->type);
+
+            if (continousMode && updateResult < 2) return true; // in continous mode results are valid even if not just read
+
+            if (updateResult != 0) return false;
 
             // If the reading is low (the tyhreshold is in #/cm3) and second warmUp hasn't passed we keep waiting
             if ((pN4p0 / 100) < concentrationThreshold && passed < warmUpPeriod[1]) {
@@ -2169,7 +2173,11 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
                 return true;
             }
 
-            if (update(wichSensor->type) != 0) return false;
+            uint8_t updateResult = update(wichSensor->type);
+
+            if (continousMode && updateResult < 2) return true; // in continous mode results are valid even if not just read
+
+            if (updateResult != 0) return false;
 
             // Save power
             idle();

@@ -2,6 +2,7 @@
 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![DOI](https://zenodo.org/badge/109865611.svg)](https://zenodo.org/badge/latestdoi/109865611)
+[![CI](https://github.com/fablabbcn/smartcitizen-kit-2x/actions/workflows/build.yml/badge.svg)](https://github.com/fablabbcn/smartcitizen-kit-2x/actions/workflows/build.yml)
 
 Welcome to the Smart Citizen Kit main repository. Here you will find the hardware design files and the firmware for the SCK 2.1, SCK 2.2 and SCK 2.3 versions. [Click here for version 2.0](https://github.com/fablabbcn/smartcitizen-kit-20)
 

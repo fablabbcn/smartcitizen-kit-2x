@@ -2142,7 +2142,7 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
             // Lets get the readings
             uint8_t updateResult = update(wichSensor->type);
 
-            if (continousMode && updateResult < 2) return true; // in continous mode results are valid even if not just read
+            if ((continousMode || forcedContinousMode) && updateResult < 2) return true; // in continous mode results are valid even if not just read
 
             if (updateResult != 0) return false;
 
@@ -2175,7 +2175,7 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 
             uint8_t updateResult = update(wichSensor->type);
 
-            if (continousMode && updateResult < 2) return true; // in continous mode results are valid even if not just read
+            if ((continousMode || forcedContinousMode) && updateResult < 2) return true; // in continous mode results are valid even if not just read
 
             if (updateResult != 0) return false;
 

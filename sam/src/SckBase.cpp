@@ -1459,6 +1459,7 @@ void SckBase::sck_reset()
 #endif
 #ifdef WITH_SEN5X
     if (I2Cdetect(&Wire, urban.sck_sen5x.address)) {
+        urban.sck_sen5x.vocStateFromSensor();
         urban.sck_sen5x.vocStateToEeprom();
     }
 #endif

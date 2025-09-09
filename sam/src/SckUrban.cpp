@@ -2106,11 +2106,6 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
                 return true;
             }
 
-            // TODO - is this a solution to continous mode? See datasheet
-            // if (model == SEN55) {
-            //     vocStateToSensor();
-            // }
-
             if (!sen_sendCommand(SEN5X_START_MEASUREMENT)) {
                 if (debug) Serial.println("SEN5X: Error starting measurement");
                 return false;
@@ -2124,7 +2119,7 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
         case SEN5X_MEASUREMENT: {
 
             // MONITOR MODE
-            // On monitor mode we don't wait for warmUP'
+            // On monitor mode we don't wait for warm-up
             if (monitor) {
                 if (update(wichSensor->type) != 0) {
                     if (now - lastReading < 500) return true;   // if not enough time has passed we don't need a new update'
@@ -2624,7 +2619,7 @@ bool Sck_SEN5X::vocStateToSensor()
     delay(200); // From Sensirion Arduino library
 
     if (!sen_sendCommand(SEN5X_RW_VOCS_STATE, VOCstate, SEN5X_VOC_STATE_BUFFER_SIZE)){
-        if (debug) Serial.println("SEN5X: Error sending VOC's state command'");
+        if (debug) Serial.println("SEN5X: Error sending VOC's state command");
         return false;
     }
 
@@ -2644,16 +2639,19 @@ bool Sck_SEN5X::vocStateFromSensor()
 
     //  Ask VOCs state from the sensor
     if (!sen_sendCommand(SEN5X_RW_VOCS_STATE)){
-        if (debug) Serial.println("SEN5X: Error sending VOC's state command'");
+        if (debug) Serial.println("SEN5X: Error sending VOC's state command");
         return false;
     }
 
     // Retrieve the data
-    uint8_t vocBuffer[SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2)];
-    size_t receivedNumber = sen_readBuffer(&vocBuffer[0], SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2));
+    uint8_t vocBufferSize;
+    vocBufferSize = SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2);
+    uint8_t vocBuffer[vocBufferSize];
+    size_t receivedNumber = sen_readBuffer(&vocBuffer[0], vocBufferSize);
     delay(20);
+
     if (receivedNumber == 0) {
-        if (debug) Serial.println("SEN5X: Error getting VOC's state'");
+        if (debug) Serial.println("SEN5X: Error getting VOC's state");
         return false;
     }
 

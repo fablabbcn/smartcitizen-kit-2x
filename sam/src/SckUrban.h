@@ -433,6 +433,7 @@ class Sck_SEN5X
         uint8_t VOCstate[SEN5X_VOC_STATE_BUFFER_SIZE];
         struct VOCstateStruct { uint8_t state[SEN5X_VOC_STATE_BUFFER_SIZE]; uint32_t time; bool valid=true; };
         bool vocStateToEeprom();
+        bool vocStateFromSensor();
 
         // Sensirion recommends taking a reading after 16 seconds, if the Perticle number reading is over 100#/cm3 the reading is OK, but if it is lower wait until 30 seconds and take it again.
         // https://sensirion.com/resource/application_note/low_power_mode/sen5x
@@ -497,7 +498,6 @@ class Sck_SEN5X
 
         bool vocStateFromEeprom();
         bool vocStateToSensor();
-        bool vocStateFromSensor();
     };
 #endif
 

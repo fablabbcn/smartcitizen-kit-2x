@@ -51,7 +51,7 @@ if '-v' in sys.argv:
     enablePrint()
 
 import sck
-kit = sck.sck(check_pio=True)
+kit = sck.sck(check_pio_sam='sam' in sys.argv, check_pio_esp='esp' in sys.argv)
 
 if 'flash' in sys.argv:
     force = False

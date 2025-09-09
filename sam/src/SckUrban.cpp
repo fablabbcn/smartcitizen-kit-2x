@@ -2436,7 +2436,6 @@ bool Sck_SEN5X::sen_readPmValues()
     pN2p5  *= 100;
     pN4p0  *= 100;
     pN10p0 *= 100;
-    tSize  *= 100;
 
     return true;
 }

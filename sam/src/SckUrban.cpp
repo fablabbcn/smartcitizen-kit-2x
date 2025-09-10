@@ -2196,13 +2196,11 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 bool Sck_SEN5X::idle()
 {
     // In continous mode we don't sleep
+    // TODO - This should go to a mode without PM
     if (continousMode || forcedContinousMode) {
         if (debug) Serial.println("SEN5X: Not going to idle mode, we need continous mode!!");
         return false;
     }
-
-    // Get VOC state before going to idle mode
-    vocStateFromSensor();
 
     if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
         if (debug) Serial.println("SEN5X: Error stoping measurement");
@@ -2288,6 +2286,8 @@ uint8_t Sck_SEN5X::update(SensorType wichSensor)
         if (debug) Serial.println("SEN5X: Error getting Raw readings");
         return 2;
     }
+
+    vocStateFromSensor();
 
     return 0;
 }
@@ -2605,7 +2605,6 @@ bool Sck_SEN5X::vocStateFromEeprom()
             Serial.println("SEN5X VOC's state is to old or date is invalid");
             return false;
         }
-
     }
     return true;
 }
@@ -2639,16 +2638,17 @@ bool Sck_SEN5X::vocStateFromSensor()
 
     //  Ask VOCs state from the sensor
     if (!sen_sendCommand(SEN5X_RW_VOCS_STATE)){
-        if (debug) Serial.println("SEN5X: Error sending VOC's state command");
+        if (debug) Serial.println("SEN5X: Error sending VOC's state command. Can't retrieve VOC state");
         return false;
     }
+    delay(20); // From Sensirion Datasheet
 
     // Retrieve the data
     uint8_t vocBufferSize;
     vocBufferSize = SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2);
     uint8_t vocBuffer[vocBufferSize];
     size_t receivedNumber = sen_readBuffer(&vocBuffer[0], vocBufferSize);
-    delay(20);
+    delay(20); // From Sensirion Datasheet
 
     if (receivedNumber == 0) {
         if (debug) Serial.println("SEN5X: Error getting VOC's state");
@@ -2668,8 +2668,12 @@ bool Sck_SEN5X::vocStateFromSensor()
     // Print the state (if debug is on)
     if (debug) {
         Serial.println("SEN5X: VOC state retrieved from sensor");
-        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(VOCstate[i]);
-        Serial.println();
+        Serial.print("[");
+        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) {
+            Serial.print(VOCstate[i]);
+            if (i<SEN5X_VOC_STATE_BUFFER_SIZE-1) Serial.print(", ");
+        }
+        Serial.println("]");
     }
 
     return true;

@@ -2571,8 +2571,12 @@ bool Sck_SEN5X::vocStateToEeprom()
 
     if (debug) {
         Serial.println("SEN5X: VOC state saved to eeprom");
-        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(temp.state[i]);
-        Serial.println();
+        Serial.print("[");
+        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) {
+            Serial.print(temp.state[i]);
+            if (i<SEN5X_VOC_STATE_BUFFER_SIZE-1) Serial.print(", ");
+        }
+        Serial.println("]");
     }
 
     return true;
@@ -2594,8 +2598,12 @@ bool Sck_SEN5X::vocStateFromEeprom()
 
             if (debug) {
                 Serial.println("SEN5X Loaded VOC's state from eeprom");
-                for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(VOCstate[i]);
-                Serial.println();
+                Serial.print("[");
+                for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) {
+                    Serial.print(VOCstate[i]);
+                    if (i<SEN5X_VOC_STATE_BUFFER_SIZE-1) Serial.print(", ");
+                }
+                Serial.println("]");
             }
 
             // Send it to the sensor
@@ -2624,8 +2632,12 @@ bool Sck_SEN5X::vocStateToSensor()
 
     if (debug) {
         Serial.println("SEN5X: VOC state sent to sensor");
-        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(VOCstate[i]);
-        Serial.println();
+        Serial.print("[");
+        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) {
+            Serial.print(VOCstate[i]);
+            if (i<SEN5X_VOC_STATE_BUFFER_SIZE-1) Serial.print(", ");
+        }
+        Serial.println("]");
     }
 
     return true;

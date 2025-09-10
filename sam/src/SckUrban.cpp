@@ -2558,15 +2558,29 @@ uint8_t Sck_SEN5X::sen_CRC(uint8_t* buffer)
 
     return crc;
 }
+
+bool Sck_SEN5X::vocStateValid() {
+    if (!VOCstate[0] && !VOCstate[1] && !VOCstate[2] && !VOCstate[3] &&
+    !VOCstate[4] && !VOCstate[5] && !VOCstate[6] && !VOCstate[7]) {
+        if (debug) Serial.println("SEN5X: VOC state is all 0, invalid");
+        return false;
+    } else {
+        if (debug) Serial.println("SEN5X: VOC state is valid");
+        return true;
+    }
+}
+
 bool Sck_SEN5X::vocStateToEeprom()
 {
     // This function should only be called from sck_reset
     if (model != SEN55) {
         return true;
     }
+
     VOCstateStruct temp;
     for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) temp.state[i] = VOCstate[i];
-    temp.time = rtc->getEpoch();
+    temp.time = vocStateTime;
+    temp.valid = vocStateValid();
     eepromSEN5xVOCstate.write(temp);
 
     if (debug) {
@@ -2687,6 +2701,8 @@ bool Sck_SEN5X::vocStateFromSensor()
         }
         Serial.println("]");
     }
+
+    vocStateTime = rtc->getEpoch();
 
     return true;
 }

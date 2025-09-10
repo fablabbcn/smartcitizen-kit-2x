@@ -482,6 +482,8 @@ class Sck_SEN5X
 
         uint32_t lastReading = 0;
         uint32_t measureStarted = 0;
+        uint32_t vocStateTime;
+        bool vocStateValid();
 
         RTCZero* rtc;
         uint8_t update(SensorType wichSensor); // returns: 0: ok, 1: data is not yet ready, 2: error

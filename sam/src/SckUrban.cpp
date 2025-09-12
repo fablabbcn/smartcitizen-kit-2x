@@ -2041,10 +2041,12 @@ bool Sck_SEN5X::start(SensorType wichSensor)
         eepromSEN5xLastCleaning.write(when);
         if (debug) Serial.println("SEN5X: No valid last cleaning date found, saving it now");
     }
-    if (model == SEN55) {
+    if (model != SEN50) {
         // Get VOCstate from eeprom memory to use it on next start measure
         vocStateFromEeprom();
+
     }
+    firstReading = true;
 
     // Call start again to just enable the corresponding metric
     return start(wichSensor);
@@ -2265,6 +2267,11 @@ uint8_t Sck_SEN5X::update(SensorType wichSensor)
         return 2;
     }
 
+    if (!firstReading) {
+        Serial.println("SEN5X: VOC reading ok");
+        if (!readVOCState) vocStateFromSensor();
+    }
+
     bool data_ready = dataReadyBuffer[1];
 
     if (!data_ready) {
@@ -2272,22 +2279,27 @@ uint8_t Sck_SEN5X::update(SensorType wichSensor)
         return 1;
     }
 
-    if(!sen_readValues()) {
-        if (debug) Serial.println("SEN5X: Error getting readings");
-        return 2;
-    }
-
+    // Read PM, PN and tsize
     if(!sen_readPmValues()) {
         if (debug) Serial.println("SEN5X: Error getting PM readings");
         return 2;
     }
 
+
+    // Read VOC, NOx, T, RH
+    if(!sen_readValues()) {
+        if (debug) Serial.println("SEN5X: Error getting readings");
+        return 2;
+    }
+
+    // Read Raw values
     if(!sen_readRawValues()) {
         if (debug) Serial.println("SEN5X: Error getting Raw readings");
         return 2;
     }
 
-    vocStateFromSensor();
+    readVOCState = false;
+    firstReading = false;
 
     return 0;
 }
@@ -2372,24 +2384,26 @@ bool Sck_SEN5X::sen_readValues()
     }
 
     // First get the integers
-    uint16_t uint_pM1p0        = static_cast<uint16_t>((dataBuffer[0]  << 8) | dataBuffer[1]);
-    uint16_t uint_pM2p5        = static_cast<uint16_t>((dataBuffer[2]  << 8) | dataBuffer[3]);
-    uint16_t uint_pM4p0        = static_cast<uint16_t>((dataBuffer[4]  << 8) | dataBuffer[5]);
-    uint16_t uint_pM10p0       = static_cast<uint16_t>((dataBuffer[6]  << 8) | dataBuffer[7]);
+    // uint16_t uint_pM1p0        = static_cast<uint16_t>((dataBuffer[0]  << 8) | dataBuffer[1]);
+    // uint16_t uint_pM2p5        = static_cast<uint16_t>((dataBuffer[2]  << 8) | dataBuffer[3]);
+    // uint16_t uint_pM4p0        = static_cast<uint16_t>((dataBuffer[4]  << 8) | dataBuffer[5]);
+    // uint16_t uint_pM10p0       = static_cast<uint16_t>((dataBuffer[6]  << 8) | dataBuffer[7]);
     int16_t  int_humidity      = static_cast<int16_t>((dataBuffer[8]   << 8) | dataBuffer[9]);
     int16_t  int_temperature   = static_cast<int16_t>((dataBuffer[10]  << 8) | dataBuffer[11]);
-    int16_t  int_vocIndex      = static_cast<int16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
+    if (!firstReading) {
+        int16_t  int_vocIndex      = static_cast<int16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
+        vocIndex       = int_vocIndex    / 10.0f;
+    }
     int16_t  int_noxIndex      = static_cast<int16_t>((dataBuffer[14]  << 8) | dataBuffer[15]);
 
     // TODO we should check if values are NAN before converting them
     // convert them based on Sensirion Arduino lib
-    pM1p0          = uint_pM1p0      / 10.0f;
-    pM2p5          = uint_pM2p5      / 10.0f;
-    pM4p0          = uint_pM4p0      / 10.0f;
-    pM10p0         = uint_pM10p0     / 10.0f;
+    // pM1p0          = uint_pM1p0      / 10.0f;
+    // pM2p5          = uint_pM2p5      / 10.0f;
+    // pM4p0          = uint_pM4p0      / 10.0f;
+    // pM10p0         = uint_pM10p0     / 10.0f;
     humidity       = int_humidity    / 100.0f;
     temperature    = int_temperature / 200.0f;
-    vocIndex       = int_vocIndex    / 10.0f;
     noxIndex       = int_noxIndex    / 10.0f;
 
     return true;
@@ -2410,10 +2424,10 @@ bool Sck_SEN5X::sen_readPmValues()
     }
 
     // First get the integers
-    // uint16_t uint_pM1p0   = static_cast<uint16_t>((dataBuffer[0]   << 8) | dataBuffer[1]);
-    // uint16_t uint_pM2p5   = static_cast<uint16_t>((dataBuffer[2]   << 8) | dataBuffer[3]);
-    // uint16_t uint_pM4p0   = static_cast<uint16_t>((dataBuffer[4]   << 8) | dataBuffer[5]);
-    // uint16_t uint_pM10p0  = static_cast<uint16_t>((dataBuffer[6]   << 8) | dataBuffer[7]);
+    uint16_t uint_pM1p0   = static_cast<uint16_t>((dataBuffer[0]   << 8) | dataBuffer[1]);
+    uint16_t uint_pM2p5   = static_cast<uint16_t>((dataBuffer[2]   << 8) | dataBuffer[3]);
+    uint16_t uint_pM4p0   = static_cast<uint16_t>((dataBuffer[4]   << 8) | dataBuffer[5]);
+    uint16_t uint_pM10p0  = static_cast<uint16_t>((dataBuffer[6]   << 8) | dataBuffer[7]);
     uint16_t uint_pN0p5   = static_cast<uint16_t>((dataBuffer[8]   << 8) | dataBuffer[9]);
     uint16_t uint_pN1p0   = static_cast<uint16_t>((dataBuffer[10]  << 8) | dataBuffer[11]);
     uint16_t uint_pN2p5   = static_cast<uint16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
@@ -2422,10 +2436,10 @@ bool Sck_SEN5X::sen_readPmValues()
     uint16_t uint_tSize   = static_cast<uint16_t>((dataBuffer[18]  << 8) | dataBuffer[19]);
 
     // convert them based on Sensirion Arduino lib
-    // pM1p0   = uint_pM1p0  / 10.0f;
-    // pM2p5   = uint_pM2p5  / 10.0f;
-    // pM4p0   = uint_pM4p0  / 10.0f;
-    // pM10p0  = uint_pM10p0 / 10.0f;
+    pM1p0   = uint_pM1p0  / 10.0f;
+    pM2p5   = uint_pM2p5  / 10.0f;
+    pM4p0   = uint_pM4p0  / 10.0f;
+    pM10p0  = uint_pM10p0 / 10.0f;
     pN0p5   = uint_pN0p5  / 10.0f;
     pN1p0   = uint_pN1p0  / 10.0f;
     pN2p5   = uint_pN2p5  / 10.0f;
@@ -2573,7 +2587,7 @@ bool Sck_SEN5X::vocStateValid() {
 bool Sck_SEN5X::vocStateToEeprom()
 {
     // This function should only be called from sck_reset
-    if (model != SEN55) {
+    if (model == SEN50) {
         return true;
     }
 
@@ -2658,7 +2672,7 @@ bool Sck_SEN5X::vocStateToSensor()
 }
 bool Sck_SEN5X::vocStateFromSensor()
 {
-    if (model != SEN55) {
+    if (model == SEN50) {
         return true;
     }
 
@@ -2703,6 +2717,7 @@ bool Sck_SEN5X::vocStateFromSensor()
     }
 
     vocStateTime = rtc->getEpoch();
+    readVOCState = true;
 
     return true;
 }

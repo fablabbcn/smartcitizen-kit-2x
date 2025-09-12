@@ -482,6 +482,8 @@ class Sck_SEN5X
 
         uint32_t lastReading = 0;
         uint32_t measureStarted = 0;
+        bool firstReading = true;
+        bool readVOCState = false;
         uint32_t vocStateTime;
         bool vocStateValid();
 

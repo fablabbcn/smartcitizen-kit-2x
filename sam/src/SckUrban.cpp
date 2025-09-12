@@ -2376,7 +2376,8 @@ bool Sck_SEN5X::sen_readValues()
     }
     delay(20); // From Sensirion Arduino library
 
-    uint8_t dataBuffer[24];
+    // Note: data buffer doesn't need to be that big. The CRC will not end there (although it needs to be requested)
+    uint8_t dataBuffer[16];
     size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 24);
     if (receivedNumber == 0) {
         if (debug) Serial.println("SEN5X: Error getting values");
@@ -2390,10 +2391,6 @@ bool Sck_SEN5X::sen_readValues()
     // uint16_t uint_pM10p0       = static_cast<uint16_t>((dataBuffer[6]  << 8) | dataBuffer[7]);
     int16_t  int_humidity      = static_cast<int16_t>((dataBuffer[8]   << 8) | dataBuffer[9]);
     int16_t  int_temperature   = static_cast<int16_t>((dataBuffer[10]  << 8) | dataBuffer[11]);
-    if (!firstReading) {
-        int16_t  int_vocIndex      = static_cast<int16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
-        vocIndex       = int_vocIndex    / 10.0f;
-    }
     int16_t  int_noxIndex      = static_cast<int16_t>((dataBuffer[14]  << 8) | dataBuffer[15]);
 
     // TODO we should check if values are NAN before converting them
@@ -2406,6 +2403,11 @@ bool Sck_SEN5X::sen_readValues()
     temperature    = int_temperature / 200.0f;
     noxIndex       = int_noxIndex    / 10.0f;
 
+    if (!firstReading) {
+        int16_t  int_vocIndex      = static_cast<int16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
+        vocIndex       = int_vocIndex    / 10.0f;
+    }
+
     return true;
 }
 bool Sck_SEN5X::sen_readPmValues()
@@ -2416,7 +2418,7 @@ bool Sck_SEN5X::sen_readPmValues()
     }
     delay(20); // From Sensirion Arduino library
 
-    uint8_t dataBuffer[30];
+    uint8_t dataBuffer[20];
     size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 30);
     if (receivedNumber == 0) {
         if (debug) Serial.println("SEN5X: Error getting PM values");
@@ -2464,7 +2466,7 @@ bool Sck_SEN5X::sen_readRawValues()
     }
     delay(20); // From Sensirion Arduino library
 
-    uint8_t dataBuffer[12];
+    uint8_t dataBuffer[8];
     size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 12);
     if (receivedNumber == 0) {
         if (debug) Serial.println("SEN5X: Error getting Raw values");
@@ -2686,8 +2688,8 @@ bool Sck_SEN5X::vocStateFromSensor()
     // Retrieve the data
     uint8_t vocBufferSize;
     vocBufferSize = SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2);
-    uint8_t vocBuffer[vocBufferSize];
-    size_t receivedNumber = sen_readBuffer(&vocBuffer[0], vocBufferSize);
+    // uint8_t vocBuffer[vocBufferSize];
+    size_t receivedNumber = sen_readBuffer(&VOCstate[0], vocBufferSize);
     delay(20); // From Sensirion Datasheet
 
     if (receivedNumber == 0) {
@@ -2695,15 +2697,15 @@ bool Sck_SEN5X::vocStateFromSensor()
         return false;
     }
 
-    // Bugfix - CRC was used here
-    VOCstate[0] = vocBuffer[0];
-    VOCstate[1] = vocBuffer[1];
-    VOCstate[2] = vocBuffer[3];
-    VOCstate[3] = vocBuffer[4];
-    VOCstate[4] = vocBuffer[6];
-    VOCstate[5] = vocBuffer[7];
-    VOCstate[6] = vocBuffer[9];
-    VOCstate[7] = vocBuffer[10];
+    // // Bugfix - CRC was used here
+    // VOCstate[0] = vocBuffer[0];
+    // VOCstate[1] = vocBuffer[1];
+    // VOCstate[2] = vocBuffer[3];
+    // VOCstate[3] = vocBuffer[4];
+    // VOCstate[4] = vocBuffer[6];
+    // VOCstate[5] = vocBuffer[7];
+    // VOCstate[6] = vocBuffer[9];
+    // VOCstate[7] = vocBuffer[10];
 
     // Print the state (if debug is on)
     if (debug) {

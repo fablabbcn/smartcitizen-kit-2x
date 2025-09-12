@@ -429,7 +429,7 @@ class Sck_SEN5X
 
         struct lastCleaning { uint32_t time; bool valid=true; };
 
-        # define SEN5X_VOC_STATE_BUFFER_SIZE 12
+        #define SEN5X_VOC_STATE_BUFFER_SIZE 8
         uint8_t VOCstate[SEN5X_VOC_STATE_BUFFER_SIZE];
         struct VOCstateStruct { uint8_t state[SEN5X_VOC_STATE_BUFFER_SIZE]; uint32_t time; bool valid=true; };
         bool vocStateToEeprom();
@@ -482,6 +482,10 @@ class Sck_SEN5X
 
         uint32_t lastReading = 0;
         uint32_t measureStarted = 0;
+        bool firstReading = true;
+        bool readVOCState = false;
+        uint32_t vocStateTime;
+        bool vocStateValid();
 
         RTCZero* rtc;
         uint8_t update(SensorType wichSensor); // returns: 0: ok, 1: data is not yet ready, 2: error
@@ -498,6 +502,7 @@ class Sck_SEN5X
         bool vocStateFromEeprom();
         bool vocStateToSensor();
         bool vocStateFromSensor();
+
     };
 #endif
 

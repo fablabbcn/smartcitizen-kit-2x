@@ -117,6 +117,24 @@ class Sck_SHT31
         bool start();
         bool stop();
         bool getReading();
+        bool getReading(SckBase *base);
+        bool setTemperatureOffset(SckBase *base, float calOffset);
+        bool setHumidityOffset(SckBase *base, float calOffset);
+        float temperatureOffset;
+        float humidityOffset;
+
+#ifdef SCK21_AIR
+        float chTemperatureOffset=-0.2;
+        float chHumidityOffset=0;
+#endif
+#ifdef SCK22_AIR
+        float chTemperatureOffset=-0.2;
+        float chHumidityOffset=0.5;
+#endif
+#ifdef SCK23_AIR
+        float chTemperatureOffset=-0.25;
+        float chHumidityOffset=0.5;
+#endif
     };
 
 // Noise

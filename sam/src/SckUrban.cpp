@@ -195,8 +195,8 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
     switch(wichSensor->type) {
 #ifdef WITH_URBAN
         case SENSOR_LIGHT:                  if (sck_bh1730fvc.get())                    { wichSensor->reading = String(sck_bh1730fvc.reading);                          return; } break;
-        case SENSOR_TEMPERATURE:            if (sck_sht31.getReading())                 { wichSensor->reading = String(sck_sht31.temperature);                          return; } break;
-        case SENSOR_HUMIDITY:               if (sck_sht31.getReading())                 { wichSensor->reading = String(sck_sht31.humidity);                             return; } break;
+        case SENSOR_TEMPERATURE:            if (sck_sht31.getReading(base))                 { wichSensor->reading = String(sck_sht31.temperature);                          return; } break;
+        case SENSOR_HUMIDITY:               if (sck_sht31.getReading(base))                 { wichSensor->reading = String(sck_sht31.humidity);                             return; } break;
         case SENSOR_NOISE_DBA:              if (sck_noise.getReading(SENSOR_NOISE_DBA)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
         case SENSOR_NOISE_DBC:              if (sck_noise.getReading(SENSOR_NOISE_DBC)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
         case SENSOR_NOISE_DBZ:              if (sck_noise.getReading(SENSOR_NOISE_DBZ)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
@@ -292,6 +292,54 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                     sprintf(base->outBuff, "Noise debug: %s", sck_noise.debugFlag  ? "true" : "false");
                     base->sckOut();
                     return true;
+                }
+            }
+        case SENSOR_TEMPERATURE:
+            {
+                if (command.startsWith("cal")) {
+
+                    command.replace("cal", "");
+                    command.trim();
+
+                    if (command.length() == 0) {
+                        sprintf(base->outBuff, "Current temperature offset: %.2f (degC)", sck_sht31.temperatureOffset);
+                        base->sckOut();
+                        return "\r\n";
+                    }
+
+                    float newCalOffset = command.toFloat();
+
+                    if (sck_sht31.setTemperatureOffset(base, newCalOffset)) return F("Failed to set new temperature offset");
+                    else return String F("Temperature offset set to ") + String(sck_sht31.temperatureOffset) + F(" degC");
+
+                }  else if (command.startsWith("help") || command.length() == 0) {
+					sprintf(base->outBuff, "Available commands:\r\n* cal: Sets temperature offset with respect to current\r\n");
+					base->sckOut();
+					return "\r\n";
+                }
+            }
+        case SENSOR_HUMIDITY:
+            {
+                if (command.startsWith("cal")) {
+
+                    command.replace("cal", "");
+                    command.trim();
+
+                    if (command.length() == 0) {
+                        sprintf(base->outBuff, "Current humidity offset: %.2f (%rh)", sck_sht31.humidityOffset);
+                        base->sckOut();
+                        return "\r\n";
+                    }
+
+                    uint8_t newCalOffset = command.toFloat();
+
+                    if (sck_sht31.setHumidityOffset(base, newCalOffset)) return F("Failed to set new humidity offset");
+                    else return String F("Humidity offset set to ") + String(sck_sht31.humidityOffset) + F(" rh");
+
+                }  else if (command.startsWith("help") || command.length() == 0) {
+					sprintf(base->outBuff, "Available commands:\r\n* cal: Sets relative humidity offset with respect to current\r\n");
+					base->sckOut();
+					return "\r\n";
                 }
             }
 #ifdef WITH_CCS811
@@ -842,6 +890,7 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 }
 bool Sck_SHT31::getReading()
 {
+
     uint8_t tried = retrys;
     while (tried > 0) {
         if (update()) return true;
@@ -849,6 +898,51 @@ bool Sck_SHT31::getReading()
     }
 
     return false;
+}
+bool Sck_SHT31::getReading(SckBase *base)
+{
+    bool charging;
+    charging = base->charger.onUSB;
+
+    uint8_t tried = retrys;
+    while (tried > 0) {
+        if (update())
+        {
+
+            // Apply temperature correction
+            temperature += temperatureOffset;
+
+            if (charging) temperature+= chTemperatureOffset;
+
+            // Apply humidity correction
+            humidity += humidityOffset;
+            if (charging) humidity += chHumidityOffset;
+
+            return true;
+        }
+        tried--;
+    }
+
+    return false;
+}
+bool Sck_SHT31::setTemperatureOffset(SckBase *base, float calOffset)
+{
+    temperatureOffset+= calOffset;
+
+    if (calOffset) {
+        base->config.extra.urbanTemperatureOffset = temperatureOffset;
+        base->saveConfig();
+    }
+}
+
+bool Sck_SHT31::setHumidityOffset(SckBase *base, float calOffset)
+{
+    humidityOffset+= calOffset;
+
+    if (calOffset) {
+        base->config.extra.urbanHumidityOffset = humidityOffset;
+        base->saveConfig();
+    }
 }
 
 // Noise

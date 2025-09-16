@@ -124,6 +124,7 @@ class Sck_SHT31
         float temperatureOffset;
         float humidityOffset;
 
+        // Default calibration defined in Sensors.h or 0, for non-urban board sensors
         void setDefaultTemperatureOffset(bool urban=true) {temperatureOffset = (urban) ? URBAN_T_OFFSET : 0.0;}
         void setDefaultHumidityOffset(bool urban=true) {humidityOffset = (urban) ? URBAN_RH_OFFSET: 0.0;}
 

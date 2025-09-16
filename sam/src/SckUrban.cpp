@@ -2101,7 +2101,24 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
             return false;
         }
         case SEN5X_IDLE: {
+            // If last reading is recent doesn't make sense to get a new one
+            if (now - lastReading < warmUpPeriod[0] && !monitor) {
+                if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
+                return true;
+            }
 
+            if (!sen_sendCommand(SEN5X_START_MEASUREMENT)) {
+                if (debug) Serial.println("SEN5X: Error starting measurement");
+                return false;
+            }
+            delay(50); // From Sensirion Arduino library
+
+            if (debug) Serial.println("SEN5X: Started measurement (with PMs)");
+            measureStarted = now;
+            state = SEN5X_MEASUREMENT;
+        }
+        case SEN5X_RHTGAS_ONLY: {
+            // Note: this is practically the same as above.
             // If last reading is recent doesn't make sense to get a new one
             if (now - lastReading < warmUpPeriod[0] && !monitor) {
                 if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
@@ -2198,24 +2215,33 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 bool Sck_SEN5X::idle()
 {
     // In continous mode we don't sleep
-    // TODO - This should go to a mode without PM
     if (continousMode || forcedContinousMode) {
         if (debug) Serial.println("SEN5X: Not going to idle mode, we need continous mode!!");
         return false;
     }
 
-    if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
-        if (debug) Serial.println("SEN5X: Error stoping measurement");
-        return false;
+    if (model == SEN50) {
+        if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
+            if (debug) Serial.println("SEN5X: Error stoping measurement");
+            return false;
+        }
+        if (debug) Serial.println("SEN5X: Stopping measurement mode");
+        state = SEN5X_IDLE;
+    } else {
+        if (!sen_sendCommand(SEN5X_START_MEASUREMENT_RHT_GAS)) {
+            if (debug) Serial.println("SEN5X: Error switching to RHT Gas only measurement");
+            return false;
+        }
+        if (debug) Serial.println("SEN5X: Starting RHT/Gas only mode");
+        state = SEN5X_RHTGAS_ONLY;
     }
+
     delay(200); // From Sensirion Arduino library
 
-    if (debug) Serial.println("SEN5X: Stoping measurement mode");
-
     monitor = false;
-    state = SEN5X_IDLE;
     measureStarted = 0;
 }
+
 bool Sck_SEN5X::startCleaning()
 {
     state = SEN5X_CLEANING;
@@ -2269,7 +2295,9 @@ uint8_t Sck_SEN5X::update(SensorType wichSensor)
 
     if (!firstReading) {
         Serial.println("SEN5X: VOC reading ok");
-        if (!readVOCState) vocStateFromSensor();
+        if (!readVOCState) {
+            readVOCState = vocStateFromSensor();
+        }
     }
 
     bool data_ready = dataReadyBuffer[1];
@@ -2284,7 +2312,6 @@ uint8_t Sck_SEN5X::update(SensorType wichSensor)
         if (debug) Serial.println("SEN5X: Error getting PM readings");
         return 2;
     }
-
 
     // Read VOC, NOx, T, RH
     if(!sen_readValues()) {
@@ -2686,26 +2713,13 @@ bool Sck_SEN5X::vocStateFromSensor()
     delay(20); // From Sensirion Datasheet
 
     // Retrieve the data
-    uint8_t vocBufferSize;
-    vocBufferSize = SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2);
-    // uint8_t vocBuffer[vocBufferSize];
-    size_t receivedNumber = sen_readBuffer(&VOCstate[0], vocBufferSize);
+    size_t receivedNumber = sen_readBuffer(&VOCstate[0], SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2));
     delay(20); // From Sensirion Datasheet
 
     if (receivedNumber == 0) {
         if (debug) Serial.println("SEN5X: Error getting VOC's state");
         return false;
     }
-
-    // // Bugfix - CRC was used here
-    // VOCstate[0] = vocBuffer[0];
-    // VOCstate[1] = vocBuffer[1];
-    // VOCstate[2] = vocBuffer[3];
-    // VOCstate[3] = vocBuffer[4];
-    // VOCstate[4] = vocBuffer[6];
-    // VOCstate[5] = vocBuffer[7];
-    // VOCstate[6] = vocBuffer[9];
-    // VOCstate[7] = vocBuffer[10];
 
     // Print the state (if debug is on)
     if (debug) {

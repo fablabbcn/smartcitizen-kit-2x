@@ -89,13 +89,18 @@ extern TwoWire auxWire;
 class SckBase;
 
 
-struct Calibration {
+struct MoistureCalibration {
     bool  moistureCalDataValid = false;
     int32_t dryPoint;
     int32_t wetPoint;
 };
 
-struct Config {
+struct TempCalibration {
+    float  extTemperatureOffset = 0;
+    float  extHumidityOffset = 0;
+};
+
+struct AtlasConfig {
     bool  pHEnableTComp = true;
     bool  DOEnableTComp = true;
     bool  ECEnableTComp = true;
@@ -103,8 +108,9 @@ struct Config {
 
 struct EepromAuxData {
     bool valid = false;
-    Calibration calibration;
-    Config config;
+    MoistureCalibration moistCalibration;
+    TempCalibration rhtCalibration;
+    AtlasConfig atlasConfig;
 };
 
 bool I2Cdetect(byte address);

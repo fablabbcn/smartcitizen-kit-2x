@@ -305,15 +305,29 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                         sprintf(base->outBuff, "Current temperature offset: %.2f (degC)", sck_sht31.temperatureOffset);
                         base->sckOut();
                         return "\r\n";
+                    } else if (command.startsWith("clear")) {
+                        sck_sht31.setDefaultTemperatureOffset();
+                        sprintf(base->outBuff, "Set default offset: %.2f (degC)", sck_sht31.temperatureOffset);
+                        base->sckOut();
+                        base->config.extra.urbanTemperatureOffset = sck_sht31.temperatureOffset;
+                        base->saveConfig();
+                        return "\r\n";
                     }
 
                     float newCalOffset = command.toFloat();
 
-                    if (sck_sht31.setTemperatureOffset(base, newCalOffset)) return F("Failed to set new temperature offset");
-                    else return String F("Temperature offset set to ") + String(sck_sht31.temperatureOffset) + F(" degC");
+                    if (newCalOffset) {
+
+                        if (!sck_sht31.setTemperatureOffset(newCalOffset)) return F("Failed to set new temperature offset");
+                        else {
+                            base->config.extra.urbanTemperatureOffset = sck_sht31.temperatureOffset;
+                            base->saveConfig();
+                            return String F("Temperature offset set to ") + String(sck_sht31.temperatureOffset) + F(" degC");
+                        }
+                    }
 
                 }  else if (command.startsWith("help") || command.length() == 0) {
-					sprintf(base->outBuff, "Available commands:\r\n* cal: Sets temperature offset with respect to current\r\n");
+					sprintf(base->outBuff, "Available commands:\r\n* cal: [float - clear] Sets temperature offset with respect to current offset or clears it\r\n");
 					base->sckOut();
 					return "\r\n";
                 }
@@ -329,15 +343,29 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                         sprintf(base->outBuff, "Current humidity offset: %.2f (%rh)", sck_sht31.humidityOffset);
                         base->sckOut();
                         return "\r\n";
+                    } else if (command.startsWith("clear")) {
+                        sck_sht31.setDefaultHumidityOffset();
+                        sprintf(base->outBuff, "Set default offset: %.2f (%rh)", sck_sht31.humidityOffset);
+                        base->sckOut();
+                        base->config.extra.urbanHumidityOffset = sck_sht31.humidityOffset;
+                        base->saveConfig();
+                        return "\r\n";
                     }
 
                     uint8_t newCalOffset = command.toFloat();
 
-                    if (sck_sht31.setHumidityOffset(base, newCalOffset)) return F("Failed to set new humidity offset");
-                    else return String F("Humidity offset set to ") + String(sck_sht31.humidityOffset) + F(" rh");
+                    if (newCalOffset) {
+
+                        if (!sck_sht31.setHumidityOffset(newCalOffset)) return F("Failed to set new humidity offset");
+                        else {
+                            base->config.extra.urbanHumidityOffset = sck_sht31.humidityOffset;
+                            base->saveConfig();
+                            return String F("Humidity offset set to ") + String(sck_sht31.humidityOffset) + F(" \%rh");
+                        }
+                    }
 
                 }  else if (command.startsWith("help") || command.length() == 0) {
-					sprintf(base->outBuff, "Available commands:\r\n* cal: Sets relative humidity offset with respect to current\r\n");
+					sprintf(base->outBuff, "Available commands:\r\n* cal: [float - clear] Sets relative humidity offset with respect to current offset or clears it\r\n");
 					base->sckOut();
 					return "\r\n";
                 }
@@ -890,10 +918,15 @@ uint8_t Sck_SHT31::crc8(const uint8_t *data, int len)
 }
 bool Sck_SHT31::getReading()
 {
-
+    // This function is used by external sensors
     uint8_t tried = retrys;
     while (tried > 0) {
-        if (update()) return true;
+        if (update())
+        {
+            temperature += temperatureOffset;
+            humidity += humidityOffset;
+            return true;
+        }
         tried--;
     }
 
@@ -925,24 +958,16 @@ bool Sck_SHT31::getReading(SckBase *base)
 
     return false;
 }
-bool Sck_SHT31::setTemperatureOffset(SckBase *base, float calOffset)
+bool Sck_SHT31::setTemperatureOffset(float calOffset)
 {
     temperatureOffset+= calOffset;
-
-    if (calOffset) {
-        base->config.extra.urbanTemperatureOffset = temperatureOffset;
-        base->saveConfig();
-    }
+    return true;
 }
 
-bool Sck_SHT31::setHumidityOffset(SckBase *base, float calOffset)
+bool Sck_SHT31::setHumidityOffset(float calOffset)
 {
     humidityOffset+= calOffset;
-
-    if (calOffset) {
-        base->config.extra.urbanHumidityOffset = humidityOffset;
-        base->saveConfig();
-    }
+    return true;
 }
 
 // Noise

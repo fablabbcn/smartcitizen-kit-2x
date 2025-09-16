@@ -107,6 +107,7 @@ class Sck_SHT31
         bool update();
         bool sendComm(uint16_t comm);
         uint8_t crc8(const uint8_t *data, int len);
+
     public:
         uint8_t address;
         // Conntructor
@@ -118,10 +119,13 @@ class Sck_SHT31
         bool stop();
         bool getReading();
         bool getReading(SckBase *base);
-        bool setTemperatureOffset(SckBase *base, float calOffset);
-        bool setHumidityOffset(SckBase *base, float calOffset);
+        bool setTemperatureOffset(float calOffset);
+        bool setHumidityOffset(float calOffset);
         float temperatureOffset;
         float humidityOffset;
+
+        void setDefaultTemperatureOffset(bool urban=true) {temperatureOffset = (urban) ? URBAN_T_OFFSET : 0.0;}
+        void setDefaultHumidityOffset(bool urban=true) {humidityOffset = (urban) ? URBAN_RH_OFFSET: 0.0;}
 
 #ifdef SCK21_AIR
         float chTemperatureOffset=-0.2;

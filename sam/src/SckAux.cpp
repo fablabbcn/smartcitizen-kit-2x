@@ -37,7 +37,7 @@ Sck_DallasTemp      dallasTemp;
 Sck_SHT31           sht31       = Sck_SHT31(&auxWire);
 Sck_SHT31           sht35       = Sck_SHT31(&auxWire, 0x45);
 #endif
-#ifdef WTIH_RANGE
+#ifdef WITH_RANGE
 Sck_Range           range;
 #endif
 #ifdef WITH_GPS
@@ -69,17 +69,24 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
         dataLoaded = true;
 
 #ifdef WITH_CHIRP
-        if (data.calibration.moistureCalDataValid) {
-            moistureChirp.dryPoint = data.calibration.dryPoint;
-            moistureChirp.wetPoint = data.calibration.wetPoint;
+        if (data.moistCalibration.moistureCalDataValid) {
+            moistureChirp.dryPoint = data.moistCalibration.dryPoint;
+            moistureChirp.wetPoint = data.moistCalibration.wetPoint;
             moistureChirp.calibrated = true;
         }
 #endif
 
 #ifdef WITH_ATLAS
-        atlasPH.enableTComp = data.config.pHEnableTComp;
-        atlasEC.enableTComp = data.config.ECEnableTComp;
-        atlasDO.enableTComp = data.config.DOEnableTComp;
+        atlasPH.enableTComp = data.atlasConfig.pHEnableTComp;
+        atlasEC.enableTComp = data.atlasConfig.ECEnableTComp;
+        atlasDO.enableTComp = data.atlasConfig.DOEnableTComp;
+#endif
+
+#ifdef WITH_EXT_TEMP
+        sht31.temperatureOffset = data.rhtCalibration.extTemperatureOffset;
+        sht35.temperatureOffset = data.rhtCalibration.extTemperatureOffset;
+        sht31.humidityOffset = data.rhtCalibration.extHumidityOffset;
+        sht35.humidityOffset = data.rhtCalibration.extHumidityOffset;
 #endif
     }
 
@@ -161,7 +168,7 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
         case SENSOR_SHT35_TEMP:
         case SENSOR_SHT35_HUM:                      return sht35.start();
 #endif
-#ifdef WTIH_RANGE
+#ifdef WITH_RANGE
         case SENSOR_RANGE_DISTANCE:
         case SENSOR_RANGE_LIGHT:                    return range.start();
 #endif
@@ -281,7 +288,7 @@ bool AuxBoards::stop(SensorType wichSensor)
         case SENSOR_SHT35_TEMP:
         case SENSOR_SHT35_HUM:                      return sht35.stop();
 #endif
-#ifdef WTIH_RANGE
+#ifdef WITH_RANGE
         case SENSOR_RANGE_DISTANCE:
         case SENSOR_RANGE_LIGHT:                    return range.stop();
 #endif
@@ -403,7 +410,7 @@ void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_SHT35_TEMP:                     if (sht35.getReading())                 { wichSensor->reading = String(sht35.temperature); return; } break;
         case SENSOR_SHT35_HUM:                      if (sht35.getReading())                 { wichSensor->reading = String(sht35.humidity); return; } break;
 #endif
-#ifdef WTIH_RANGE
+#ifdef WITH_RANGE
         case SENSOR_RANGE_DISTANCE:                 if (range.getReading(SENSOR_RANGE_DISTANCE))    { wichSensor->reading = String(range.readingDistance); return; } break;
         case SENSOR_RANGE_LIGHT:                    if (range.getReading(SENSOR_RANGE_LIGHT))   { wichSensor->reading = String(range.readingLight); return; } break;
 #endif
@@ -620,11 +627,11 @@ String AuxBoards::control(SensorType wichSensor, String command)
                 }
 
                 if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG || wichSensor == SENSOR_ATLAS_EC_TDS || wichSensor == SENSOR_ATLAS_EC_SAL) {
-                    data.config.ECEnableTComp = thisAtlas->enableTComp;
+                    data.atlasConfig.ECEnableTComp = thisAtlas->enableTComp;
                 } else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) {
-                    data.config.DOEnableTComp = thisAtlas->enableTComp;
+                    data.atlasConfig.DOEnableTComp = thisAtlas->enableTComp;
                 } else if (wichSensor == SENSOR_ATLAS_PH) {
-                    data.config.pHEnableTComp = thisAtlas->enableTComp;
+                    data.atlasConfig.pHEnableTComp = thisAtlas->enableTComp;
                 }
 
                 eepromAuxData.write(data);
@@ -681,9 +688,9 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
                     if ((dryInt == 0 && preDry != "0") || (wetInt == 0 && preWet != "0")) return F("Error reading values, please try again!");
 
-                    moistureChirp.dryPoint = data.calibration.dryPoint = dryInt;
-                    moistureChirp.wetPoint = data.calibration.wetPoint = wetInt;
-                    data.calibration.moistureCalDataValid = true;
+                    moistureChirp.dryPoint = data.moistCalibration.dryPoint = dryInt;
+                    moistureChirp.wetPoint = data.moistCalibration.wetPoint = wetInt;
+                    data.moistCalibration.moistureCalDataValid = true;
                     moistureChirp.calibrated = true;
 
                     data.valid = true;
@@ -703,6 +710,144 @@ String AuxBoards::control(SensorType wichSensor, String command)
             else return F("Unrecognized command!! please try again...");
             break;
 
+        }
+#endif
+#ifdef WITH_EXT_TEMP
+        case SENSOR_SHT31_TEMP:
+        {
+            if (command.startsWith("cal")) {
+
+                command.replace("cal", "");
+                command.trim();
+
+                String response;
+                if (command.length() == 0) {
+                    response += "Current temperature offset: " + String(sht31.temperatureOffset) + " (degC)";
+                    return response;
+                } else if (command.startsWith("clear")) {
+                    sht31.setDefaultTemperatureOffset(false);
+                    response += "Set default offset: " + String(sht31.temperatureOffset) + " (degC)";
+                    data.rhtCalibration.extTemperatureOffset = sht31.temperatureOffset;
+                    eepromAuxData.write(data);
+                    return response;
+                }
+
+                float newCalOffset = command.toFloat();
+
+                if (newCalOffset) {
+                    if (!sht31.setTemperatureOffset(newCalOffset)) return F("Failed to set new temperature offset");
+                    else {
+                        data.rhtCalibration.extTemperatureOffset = sht31.temperatureOffset;
+                        eepromAuxData.write(data);
+                        return String F("Temperature offset set to ") + String(sht31.temperatureOffset) + F(" degC");
+                    }
+                }
+
+            }  else if (command.startsWith("help") || command.length() == 0) {
+                return F("Available commands:\r\n* cal: [float - clear] Sets temperature offset with respect to current offset or clears it\r\n");
+            }
+        }
+        case SENSOR_SHT35_TEMP:
+        {
+            if (command.startsWith("cal")) {
+
+                command.replace("cal", "");
+                command.trim();
+
+                String response;
+                if (command.length() == 0) {
+                    response += "Current temperature offset: " + String(sht35.temperatureOffset) + " (degC)";
+                    return response;
+                } else if (command.startsWith("clear")) {
+                    sht35.setDefaultTemperatureOffset(false);
+                    response += "Set default offset: " + String(sht35.temperatureOffset) + " (degC)";
+                    data.rhtCalibration.extTemperatureOffset = sht35.temperatureOffset;
+                    eepromAuxData.write(data);
+                    return response;
+                }
+
+                float newCalOffset = command.toFloat();
+
+                if (newCalOffset) {
+                    if (!sht35.setTemperatureOffset(newCalOffset)) return F("Failed to set new temperature offset");
+                    else {
+                        data.rhtCalibration.extTemperatureOffset = sht35.temperatureOffset;
+                        eepromAuxData.write(data);
+                        return String F("Temperature offset set to ") + String(sht35.temperatureOffset) + F(" degC");
+                    }
+                }
+
+            }  else if (command.startsWith("help") || command.length() == 0) {
+                return F("Available commands:\r\n* cal: [float - clear] Sets temperature offset with respect to current offset or clears it\r\n");
+            }
+        }
+        case SENSOR_SHT31_HUM:
+        {
+            if (command.startsWith("cal")) {
+
+                command.replace("cal", "");
+                command.trim();
+
+                String response;
+                if (command.length() == 0) {
+                    response += "Current humidity offset: " + String(sht31.humidityOffset) + " (degC)";
+                    return response;
+                } else if (command.startsWith("clear")) {
+                    sht31.setDefaultHumidityOffset(false);
+                    response += "Set default offset: " + String(sht31.humidityOffset) + " (degC)";
+                    data.rhtCalibration.extHumidityOffset = sht31.humidityOffset;
+                    eepromAuxData.write(data);
+                    return response;
+                }
+
+                uint8_t newCalOffset = command.toFloat();
+
+                if (newCalOffset) {
+                    if (!sht31.setHumidityOffset(newCalOffset)) return F("Failed to set new humidity offset");
+                    else {
+                        data.rhtCalibration.extHumidityOffset = sht31.humidityOffset;
+                        eepromAuxData.write(data);
+                        return String F("Humidity offset set to ") + String(sht31.humidityOffset) + F(" \%rh");
+                    }
+                }
+
+            }  else if (command.startsWith("help") || command.length() == 0) {
+                return F("Available commands:\r\n* cal: [float - clear] Sets relative humidity offset with respect to current offset or clears it\r\n");
+            }
+        }
+        case SENSOR_SHT35_HUM:
+        {
+            if (command.startsWith("cal")) {
+
+                command.replace("cal", "");
+                command.trim();
+
+                String response;
+                if (command.length() == 0) {
+                    response += "Current humidity offset: " + String(sht35.humidityOffset) + " (degC)";
+                    return response;
+                } else if (command.startsWith("clear")) {
+                    sht35.setDefaultHumidityOffset(false);
+                    response += "Set default offset: " + String(sht35.humidityOffset) + " (degC)";
+                    data.rhtCalibration.extHumidityOffset = sht35.humidityOffset;
+                    eepromAuxData.write(data);
+                    return response;
+                }
+
+                uint8_t newCalOffset = command.toFloat();
+
+                if (newCalOffset) {
+                    if (!sht35.setHumidityOffset(newCalOffset)) return F("Failed to set new humidity offset");
+                    else {
+                        data.rhtCalibration.extHumidityOffset = sht35.humidityOffset;
+                        eepromAuxData.write(data);
+                        return String F("Humidity offset set to ") + String(sht35.humidityOffset) + F(" \%rh");
+                    }
+                }
+
+            } else if (command.startsWith("help") || command.length() == 0) {
+                return F("Available commands:\r\n* cal: [float - clear] Sets relative humidity offset with respect to current offset or clears it\r\n");
+            }
         }
 #endif
 #ifdef WITH_ADS1X15
@@ -2421,7 +2566,7 @@ bool Sck_DallasTemp::getReading()
 }
 #endif
 
-#ifdef WTIH_RANGE
+#ifdef WITH_RANGE
 bool Sck_Range::start()
 {
     if (alreadyStarted) return true;

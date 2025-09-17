@@ -790,11 +790,11 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
                 String response;
                 if (command.length() == 0) {
-                    response += "Current humidity offset: " + String(sht31.humidityOffset) + " (degC)";
+                    response += "Current humidity offset: " + String(sht31.humidityOffset) + " (rh)";
                     return response;
                 } else if (command.startsWith("clear")) {
                     sht31.setDefaultHumidityOffset(false);
-                    response += "Set default offset: " + String(sht31.humidityOffset) + " (degC)";
+                    response += "Set default offset: " + String(sht31.humidityOffset) + " (rh)";
                     data.rhtCalibration.extHumidityOffset = sht31.humidityOffset;
                     eepromAuxData.write(data);
                     return response;
@@ -824,11 +824,11 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
                 String response;
                 if (command.length() == 0) {
-                    response += "Current humidity offset: " + String(sht35.humidityOffset) + " (degC)";
+                    response += "Current humidity offset: " + String(sht35.humidityOffset) + " (rh)";
                     return response;
                 } else if (command.startsWith("clear")) {
                     sht35.setDefaultHumidityOffset(false);
-                    response += "Set default offset: " + String(sht35.humidityOffset) + " (degC)";
+                    response += "Set default offset: " + String(sht35.humidityOffset) + " (rh)";
                     data.rhtCalibration.extHumidityOffset = sht35.humidityOffset;
                     eepromAuxData.write(data);
                     return response;

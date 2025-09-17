@@ -536,8 +536,8 @@ class AllSensors
 #endif
 
 #ifdef WITH_EXT_TEMP
-            OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_TEMP,              "EXT_TEMP",         "Ext Temperature",                      79,     true,       1,  "C"         },
-            OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_HUM,               "EXT_HUM",          "Ext Humidity",                         80,     true,       1,  "%"         },
+            OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_TEMP,              "EXT_TEMP_SHT31",   "Ext SHT31 Temperature",                79,     true,       1,  "C"         },
+            OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_HUM,               "EXT_HUM_SHT31",    "Ext SHT31 Humidity",                   80,     true,       1,  "%"         },
             OneSensor { BOARD_AUX,      0,      SENSOR_SHT35_TEMP,              "EXT_TEMP_SHT35",   "Ext SHT35 Temperature",                224,    true,       1,  "C"         },
             OneSensor { BOARD_AUX,      0,      SENSOR_SHT35_HUM,               "EXT_HUM_SHT35",    "Ext SHT35 Humidity",                   225,    true,       1,  "%"         },
 #endif

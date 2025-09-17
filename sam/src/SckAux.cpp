@@ -800,7 +800,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
                     return response;
                 }
 
-                uint8_t newCalOffset = command.toFloat();
+                float newCalOffset = command.toFloat();
 
                 if (newCalOffset) {
                     if (!sht31.setHumidityOffset(newCalOffset)) return F("Failed to set new humidity offset");
@@ -834,7 +834,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
                     return response;
                 }
 
-                uint8_t newCalOffset = command.toFloat();
+                float newCalOffset = command.toFloat();
 
                 if (newCalOffset) {
                     if (!sht35.setHumidityOffset(newCalOffset)) return F("Failed to set new humidity offset");

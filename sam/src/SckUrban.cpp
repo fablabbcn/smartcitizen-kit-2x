@@ -352,7 +352,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                         return "\r\n";
                     }
 
-                    uint8_t newCalOffset = command.toFloat();
+                    float newCalOffset = command.toFloat();
 
                     if (newCalOffset) {
 

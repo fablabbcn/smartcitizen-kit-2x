@@ -674,7 +674,9 @@ void SckBase::loadConfig()
 	hostname[16] = '\0';
 
 #ifdef WITH_URBAN
-
+	// PMS sensor warmUpperiod and powerSave config
+	urban.sck_sht31.temperatureOffset = config.extra.urbanTemperatureOffset;
+	urban.sck_sht31.humidityOffset = config.extra.urbanHumidityOffset;
 #ifdef WITH_CCS811
 	// CSS vocs sensor baseline loading
 	if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
@@ -2039,90 +2041,6 @@ bool SckBase::getReading(OneSensor *wichSensor)
 
     // Sensor reading ERROR, save null value
     if (wichSensor->state == -1) wichSensor->reading == "null";
-
-#ifdef WITH_URBAN
-    // Temperature / Humidity temporary Correction
-    // TODO remove this when calibration routine is ready
-    if (wichSensor->type == SENSOR_TEMPERATURE) {
-        float aux_temp = wichSensor->reading.toFloat();
-
-        // TODO This needs major refactoring...
-        // Corrections are linear, with no slope correction, only offset
-        float net_usb_t_offset = 0;
-        float net_batt_t_offset = 0;
-        float sd_usb_t_offset = 0;
-        float sd_batt_t_offset = 0;
-
-#ifdef SCK21_AIR
-        net_usb_t_offset =  - 1.45; // DONE
-        sd_usb_t_offset = -1.6;  // TODO CHECK
-        net_batt_t_offset = -1.3;  // DONE
-        sd_batt_t_offset = -1.3; // TODO CHECK
-#endif
-
-#ifdef SCK22_AIR
-        net_usb_t_offset =  - 1.25; // DONE
-        sd_usb_t_offset = -1.3; // DONE
-        net_batt_t_offset = -1.05; // DONE
-        sd_batt_t_offset = -1.0; // DONE
-#endif
-
-#ifdef SCK23_AIR // We assume offsets are the same between SCK22 and SCK23
-        net_usb_t_offset =  - 1.25; // DONE
-        sd_usb_t_offset = -1.3; // DONE
-        net_batt_t_offset = -1.05; // DONE
-        sd_batt_t_offset = -1.0; // DONE
-#endif
-
-        // Correct depending on battery/USB and network/sd card status
-        if (charger.onUSB) {
-            if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp + net_usb_t_offset);
-            else wichSensor->reading = String(aux_temp + sd_usb_t_offset);
-        } else {
-            if (st.mode == MODE_NET) wichSensor->reading = String(aux_temp + net_batt_t_offset);
-            else wichSensor->reading = String(aux_temp + sd_batt_t_offset);
-        }
-
-    } else if(wichSensor->type == SENSOR_HUMIDITY) {
-
-        float aux_hum = wichSensor->reading.toFloat();
-        // Corrections are linear, with no slope correction, only offset
-        float net_usb_h_offset = 0;
-        float net_batt_h_offset = 0;
-        float sd_usb_h_offset = 0;
-        float sd_batt_h_offset = 0;
-
-#ifdef SCK21_AIR
-        net_usb_h_offset = 5; // DONE
-        sd_usb_h_offset = 5; // TODO CHECK
-        net_batt_h_offset = 5; // DONE
-        sd_batt_h_offset = 5; // TODO CHECK
-#endif
-
-#ifdef SCK22_AIR
-        net_usb_h_offset = 3.8; // DONE
-        sd_usb_h_offset = 4; // DONE
-        net_batt_h_offset = 3.6; // DONE
-        sd_batt_h_offset = 3.4; // DONE
-#endif
-
-#ifdef SCK23_AIR // We assume offsets are the same between SCK22 and SCK23
-        net_usb_h_offset = 3.8; // DONE
-        sd_usb_h_offset = 4; // DONE
-        net_batt_h_offset = 3.6; // DONE
-        sd_batt_h_offset = 3.4; // DONE
-#endif
-
-        // Correct depending on battery/USB and network/sd card status
-        if (charger.onUSB) {
-            if (st.mode == MODE_NET) wichSensor->reading = String(aux_hum  + net_usb_h_offset);
-            else wichSensor->reading = String(aux_hum + sd_usb_h_offset);
-        } else {
-            if (st.mode == MODE_NET) wichSensor->reading = String(aux_hum + net_batt_h_offset);
-            else wichSensor->reading = String(aux_hum + sd_batt_h_offset);
-        }
-    }
-#endif
 
     return true;
 }

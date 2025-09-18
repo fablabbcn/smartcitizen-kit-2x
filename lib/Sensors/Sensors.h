@@ -11,6 +11,8 @@
 #define WITH_SFA30
 #define WITH_GPS
 #define WITH_EXT_TEMP
+#define URBAN_T_OFFSET -1.3
+#define URBAN_RH_OFFSET 5
 #endif
 
 #ifdef SCK22_AIR
@@ -23,6 +25,9 @@
 #define WITH_SFA30
 #define WITH_GPS
 #define WITH_EXT_TEMP
+
+#define URBAN_T_OFFSET -1.0
+#define URBAN_RH_OFFSET 3.5
 #endif
 
 #ifdef SCK23_AIR
@@ -35,6 +40,9 @@
 #define WITH_SFA30
 #define WITH_GPS
 #define WITH_EXT_TEMP
+
+#define URBAN_T_OFFSET -1.0
+#define URBAN_RH_OFFSET 3.5
 #endif
 
 #ifdef SCK_WATER
@@ -255,7 +263,7 @@ enum SensorType
     SENSOR_SHT35_HUM,
 #endif
 
-#ifdef WTIH_RANGE
+#ifdef WITH_RANGE
     SENSOR_RANGE_LIGHT,
     SENSOR_RANGE_DISTANCE,
 #endif
@@ -528,13 +536,13 @@ class AllSensors
 #endif
 
 #ifdef WITH_EXT_TEMP
-            OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_TEMP,              "EXT_TEMP",         "Ext Temperature",                      79,     true,       1,  "C"         },
-            OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_HUM,               "EXT_HUM",          "Ext Humidity",                         80,     true,       1,  "%"         },
+            OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_TEMP,              "EXT_TEMP_SHT31",   "Ext SHT31 Temperature",                79,     true,       1,  "C"         },
+            OneSensor { BOARD_AUX,      0,      SENSOR_SHT31_HUM,               "EXT_HUM_SHT31",    "Ext SHT31 Humidity",                   80,     true,       1,  "%"         },
             OneSensor { BOARD_AUX,      0,      SENSOR_SHT35_TEMP,              "EXT_TEMP_SHT35",   "Ext SHT35 Temperature",                224,    true,       1,  "C"         },
             OneSensor { BOARD_AUX,      0,      SENSOR_SHT35_HUM,               "EXT_HUM_SHT35",    "Ext SHT35 Humidity",                   225,    true,       1,  "%"         },
 #endif
 
-#ifdef WTIH_RANGE
+#ifdef WITH_RANGE
             OneSensor { BOARD_AUX,      100,    SENSOR_RANGE_LIGHT,             "EXT_RANGE_LIGHT",  "Ext Range Light",                      0,      true,       1,  "lux"       },
             OneSensor { BOARD_AUX,      100,    SENSOR_RANGE_DISTANCE,          "EXT_RANGE_DIST",   "Ext Range Distance",                   98,     true,       1,  "mm"        },
 #endif

@@ -1446,7 +1446,6 @@ void SckBase::saveHeader(FsFile* thisFile)
 void SckBase::sck_reset()
 {
 #ifdef WITH_URBAN
-
 #ifdef WITH_CCS811
     // Save updated CCS sensor baseline
     if (I2Cdetect(&Wire, urban.sck_ccs811.address)) {
@@ -1466,10 +1465,10 @@ void SckBase::sck_reset()
     }
 #endif
 #endif
-
     sckOut("Bye!!");
     NVIC_SystemReset();
 }
+
 void SckBase::goToSleep(uint32_t sleepPeriod)
 {
     led.off();

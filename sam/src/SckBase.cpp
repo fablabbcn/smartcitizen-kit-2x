@@ -707,7 +707,7 @@ void SckBase::saveConfig(bool defaults)
 
             config.sensors[wichSensorType].enabled = sensors[wichSensorType].defaultEnabled;
 #ifdef WITH_SENSOR_GROVE_OLED
-            config.sensors[wichSensorType].oled_display = true;
+            config.sensors[wichSensorType].oled_display = sensors[wichSensorType].oled_display;
 #endif
             config.sensors[wichSensorType].everyNint = sensors[wichSensorType].defaultEveryNint;
         }

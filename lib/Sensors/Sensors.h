@@ -1,5 +1,10 @@
 #pragma once
 
+// #ifdef SCK2
+// #define URBAN_T_OFFSET 0
+// #define URBAN_RH_OFFSET 0
+// #endif
+
 // Compile configurations
 #ifdef SCK21_AIR
 #define WITH_PMS
@@ -25,7 +30,6 @@
 #define WITH_SFA30
 #define WITH_GPS
 #define WITH_EXT_TEMP
-
 #define URBAN_T_OFFSET -1.0
 #define URBAN_RH_OFFSET 3.5
 #endif
@@ -40,7 +44,6 @@
 #define WITH_SFA30
 #define WITH_GPS
 #define WITH_EXT_TEMP
-
 #define URBAN_T_OFFSET -1.0
 #define URBAN_RH_OFFSET 3.5
 #endif

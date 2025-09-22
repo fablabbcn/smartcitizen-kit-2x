@@ -2160,9 +2160,12 @@ bool Sck_SEN5X::start(SensorType wichSensor)
         eepromSEN5xLastCleaning.write(when);
         if (debug) Serial.println("SEN5X: No valid last cleaning date found, saving it now");
     }
+    if (model != SEN50) {
+        // Get VOCstate from eeprom memory to use it on next start measure
+        vocStateFromEeprom();
 
-    // Get VOCstate from eeprom memory to use it on next start measure
-    vocStateFromEeprom();
+    }
+    firstReading = true;
 
     // Call start again to just enable the corresponding metric
     return start(wichSensor);
@@ -2217,7 +2220,24 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
             return false;
         }
         case SEN5X_IDLE: {
+            // If last reading is recent doesn't make sense to get a new one
+            if (now - lastReading < warmUpPeriod[0] && !monitor) {
+                if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
+                return true;
+            }
 
+            if (!sen_sendCommand(SEN5X_START_MEASUREMENT)) {
+                if (debug) Serial.println("SEN5X: Error starting measurement");
+                return false;
+            }
+            delay(50); // From Sensirion Arduino library
+
+            if (debug) Serial.println("SEN5X: Started measurement (with PMs)");
+            measureStarted = now;
+            state = SEN5X_MEASUREMENT;
+        }
+        case SEN5X_RHTGAS_ONLY: {
+            // Note: this is practically the same as above.
             // If last reading is recent doesn't make sense to get a new one
             if (now - lastReading < warmUpPeriod[0] && !monitor) {
                 if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
@@ -2237,7 +2257,7 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
         case SEN5X_MEASUREMENT: {
 
             // MONITOR MODE
-            // On monitor mode we don't wait for warmUP'
+            // On monitor mode we don't wait for warm-up
             if (monitor) {
                 if (update(wichSensor->type) != 0) {
                     if (now - lastReading < 500) return true;   // if not enough time has passed we don't need a new update'
@@ -2318,21 +2338,29 @@ bool Sck_SEN5X::idle()
         if (debug) Serial.println("SEN5X: Not going to idle mode, we need continous mode!!");
         return false;
     }
-    // Get VOC state before going to idle mode
-    vocStateFromSensor();
 
-    if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
-        if (debug) Serial.println("SEN5X: Error stoping measurement");
-        return false;
+    if (model == SEN50) {
+        if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
+            if (debug) Serial.println("SEN5X: Error stoping measurement");
+            return false;
+        }
+        if (debug) Serial.println("SEN5X: Stopping measurement mode");
+        state = SEN5X_IDLE;
+    } else {
+        if (!sen_sendCommand(SEN5X_START_MEASUREMENT_RHT_GAS)) {
+            if (debug) Serial.println("SEN5X: Error switching to RHT Gas only measurement");
+            return false;
+        }
+        if (debug) Serial.println("SEN5X: Starting RHT/Gas only mode");
+        state = SEN5X_RHTGAS_ONLY;
     }
+
     delay(200); // From Sensirion Arduino library
 
-    if (debug) Serial.println("SEN5X: Stoping measurement mode");
-
     monitor = false;
-    state = SEN5X_IDLE;
     measureStarted = 0;
 }
+
 bool Sck_SEN5X::startCleaning()
 {
     state = SEN5X_CLEANING;
@@ -2384,6 +2412,13 @@ uint8_t Sck_SEN5X::update(SensorType wichSensor)
         return 2;
     }
 
+    if (!firstReading) {
+        Serial.println("SEN5X: VOC reading ok");
+        if (!readVOCState) {
+            readVOCState = vocStateFromSensor();
+        }
+    }
+
     bool data_ready = dataReadyBuffer[1];
 
     if (!data_ready) {
@@ -2391,20 +2426,26 @@ uint8_t Sck_SEN5X::update(SensorType wichSensor)
         return 1;
     }
 
-    if(!sen_readValues()) {
-        if (debug) Serial.println("SEN5X: Error getting readings");
-        return 2;
-    }
-
+    // Read PM, PN and tsize
     if(!sen_readPmValues()) {
         if (debug) Serial.println("SEN5X: Error getting PM readings");
         return 2;
     }
 
+    // Read VOC, NOx, T, RH
+    if(!sen_readValues()) {
+        if (debug) Serial.println("SEN5X: Error getting readings");
+        return 2;
+    }
+
+    // Read Raw values
     if(!sen_readRawValues()) {
         if (debug) Serial.println("SEN5X: Error getting Raw readings");
         return 2;
     }
+
+    readVOCState = false;
+    firstReading = false;
 
     return 0;
 }
@@ -2481,7 +2522,8 @@ bool Sck_SEN5X::sen_readValues()
     }
     delay(20); // From Sensirion Arduino library
 
-    uint8_t dataBuffer[24];
+    // Note: data buffer doesn't need to be that big. The CRC will not end there (although it needs to be requested)
+    uint8_t dataBuffer[16];
     size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 24);
     if (receivedNumber == 0) {
         if (debug) Serial.println("SEN5X: Error getting values");
@@ -2489,25 +2531,28 @@ bool Sck_SEN5X::sen_readValues()
     }
 
     // First get the integers
-    uint16_t uint_pM1p0        = static_cast<uint16_t>((dataBuffer[0]  << 8) | dataBuffer[1]);
-    uint16_t uint_pM2p5        = static_cast<uint16_t>((dataBuffer[2]  << 8) | dataBuffer[3]);
-    uint16_t uint_pM4p0        = static_cast<uint16_t>((dataBuffer[4]  << 8) | dataBuffer[5]);
-    uint16_t uint_pM10p0       = static_cast<uint16_t>((dataBuffer[6]  << 8) | dataBuffer[7]);
+    // uint16_t uint_pM1p0        = static_cast<uint16_t>((dataBuffer[0]  << 8) | dataBuffer[1]);
+    // uint16_t uint_pM2p5        = static_cast<uint16_t>((dataBuffer[2]  << 8) | dataBuffer[3]);
+    // uint16_t uint_pM4p0        = static_cast<uint16_t>((dataBuffer[4]  << 8) | dataBuffer[5]);
+    // uint16_t uint_pM10p0       = static_cast<uint16_t>((dataBuffer[6]  << 8) | dataBuffer[7]);
     int16_t  int_humidity      = static_cast<int16_t>((dataBuffer[8]   << 8) | dataBuffer[9]);
     int16_t  int_temperature   = static_cast<int16_t>((dataBuffer[10]  << 8) | dataBuffer[11]);
-    int16_t  int_vocIndex      = static_cast<int16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
     int16_t  int_noxIndex      = static_cast<int16_t>((dataBuffer[14]  << 8) | dataBuffer[15]);
 
     // TODO we should check if values are NAN before converting them
     // convert them based on Sensirion Arduino lib
-    pM1p0          = uint_pM1p0      / 10.0f;
-    pM2p5          = uint_pM2p5      / 10.0f;
-    pM4p0          = uint_pM4p0      / 10.0f;
-    pM10p0         = uint_pM10p0     / 10.0f;
+    // pM1p0          = uint_pM1p0      / 10.0f;
+    // pM2p5          = uint_pM2p5      / 10.0f;
+    // pM4p0          = uint_pM4p0      / 10.0f;
+    // pM10p0         = uint_pM10p0     / 10.0f;
     humidity       = int_humidity    / 100.0f;
     temperature    = int_temperature / 200.0f;
-    vocIndex       = int_vocIndex    / 10.0f;
     noxIndex       = int_noxIndex    / 10.0f;
+
+    if (!firstReading) {
+        int16_t  int_vocIndex      = static_cast<int16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
+        vocIndex       = int_vocIndex    / 10.0f;
+    }
 
     return true;
 }
@@ -2519,7 +2564,7 @@ bool Sck_SEN5X::sen_readPmValues()
     }
     delay(20); // From Sensirion Arduino library
 
-    uint8_t dataBuffer[30];
+    uint8_t dataBuffer[20];
     size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 30);
     if (receivedNumber == 0) {
         if (debug) Serial.println("SEN5X: Error getting PM values");
@@ -2527,10 +2572,10 @@ bool Sck_SEN5X::sen_readPmValues()
     }
 
     // First get the integers
-    // uint16_t uint_pM1p0   = static_cast<uint16_t>((dataBuffer[0]   << 8) | dataBuffer[1]);
-    // uint16_t uint_pM2p5   = static_cast<uint16_t>((dataBuffer[2]   << 8) | dataBuffer[3]);
-    // uint16_t uint_pM4p0   = static_cast<uint16_t>((dataBuffer[4]   << 8) | dataBuffer[5]);
-    // uint16_t uint_pM10p0  = static_cast<uint16_t>((dataBuffer[6]   << 8) | dataBuffer[7]);
+    uint16_t uint_pM1p0   = static_cast<uint16_t>((dataBuffer[0]   << 8) | dataBuffer[1]);
+    uint16_t uint_pM2p5   = static_cast<uint16_t>((dataBuffer[2]   << 8) | dataBuffer[3]);
+    uint16_t uint_pM4p0   = static_cast<uint16_t>((dataBuffer[4]   << 8) | dataBuffer[5]);
+    uint16_t uint_pM10p0  = static_cast<uint16_t>((dataBuffer[6]   << 8) | dataBuffer[7]);
     uint16_t uint_pN0p5   = static_cast<uint16_t>((dataBuffer[8]   << 8) | dataBuffer[9]);
     uint16_t uint_pN1p0   = static_cast<uint16_t>((dataBuffer[10]  << 8) | dataBuffer[11]);
     uint16_t uint_pN2p5   = static_cast<uint16_t>((dataBuffer[12]  << 8) | dataBuffer[13]);
@@ -2539,10 +2584,10 @@ bool Sck_SEN5X::sen_readPmValues()
     uint16_t uint_tSize   = static_cast<uint16_t>((dataBuffer[18]  << 8) | dataBuffer[19]);
 
     // convert them based on Sensirion Arduino lib
-    // pM1p0   = uint_pM1p0  / 10.0f;
-    // pM2p5   = uint_pM2p5  / 10.0f;
-    // pM4p0   = uint_pM4p0  / 10.0f;
-    // pM10p0  = uint_pM10p0 / 10.0f;
+    pM1p0   = uint_pM1p0  / 10.0f;
+    pM2p5   = uint_pM2p5  / 10.0f;
+    pM4p0   = uint_pM4p0  / 10.0f;
+    pM10p0  = uint_pM10p0 / 10.0f;
     pN0p5   = uint_pN0p5  / 10.0f;
     pN1p0   = uint_pN1p0  / 10.0f;
     pN2p5   = uint_pN2p5  / 10.0f;
@@ -2567,7 +2612,7 @@ bool Sck_SEN5X::sen_readRawValues()
     }
     delay(20); // From Sensirion Arduino library
 
-    uint8_t dataBuffer[12];
+    uint8_t dataBuffer[8];
     size_t receivedNumber = sen_readBuffer(&dataBuffer[0], 12);
     if (receivedNumber == 0) {
         if (debug) Serial.println("SEN5X: Error getting Raw values");
@@ -2623,7 +2668,7 @@ bool Sck_SEN5X::sen_sendCommand(uint16_t wichCommand, uint8_t* buffer, uint8_t b
 
     if (i2c_error != 0) {
         if (debug) {
-            Serial.print("SEN5X: Error on I2c communication: ");
+            Serial.print("SEN5X: Error on I2C communication: ");
             Serial.println(i2c_error);
         }
         return false;
@@ -2675,19 +2720,39 @@ uint8_t Sck_SEN5X::sen_CRC(uint8_t* buffer)
 
     return crc;
 }
+
+bool Sck_SEN5X::vocStateValid() {
+    if (!VOCstate[0] && !VOCstate[1] && !VOCstate[2] && !VOCstate[3] &&
+    !VOCstate[4] && !VOCstate[5] && !VOCstate[6] && !VOCstate[7]) {
+        if (debug) Serial.println("SEN5X: VOC state is all 0, invalid");
+        return false;
+    } else {
+        if (debug) Serial.println("SEN5X: VOC state is valid");
+        return true;
+    }
+}
+
 bool Sck_SEN5X::vocStateToEeprom()
 {
     // This function should only be called from sck_reset
+    if (model == SEN50) {
+        return true;
+    }
 
     VOCstateStruct temp;
     for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) temp.state[i] = VOCstate[i];
-    temp.time = rtc->getEpoch();
+    temp.time = vocStateTime;
+    temp.valid = vocStateValid();
     eepromSEN5xVOCstate.write(temp);
 
     if (debug) {
         Serial.println("SEN5X: VOC state saved to eeprom");
-        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(temp.state[i]);
-        Serial.println();
+        Serial.print("[");
+        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) {
+            Serial.print(temp.state[i]);
+            if (i<SEN5X_VOC_STATE_BUFFER_SIZE-1) Serial.print(", ");
+        }
+        Serial.println("]");
     }
 
     return true;
@@ -2709,8 +2774,12 @@ bool Sck_SEN5X::vocStateFromEeprom()
 
             if (debug) {
                 Serial.println("SEN5X Loaded VOC's state from eeprom");
-                for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(VOCstate[i]);
-                Serial.println();
+                Serial.print("[");
+                for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) {
+                    Serial.print(VOCstate[i]);
+                    if (i<SEN5X_VOC_STATE_BUFFER_SIZE-1) Serial.print(", ");
+                }
+                Serial.println("]");
             }
 
             // Send it to the sensor
@@ -2720,50 +2789,70 @@ bool Sck_SEN5X::vocStateFromEeprom()
             Serial.println("SEN5X VOC's state is to old or date is invalid");
             return false;
         }
-
     }
     return true;
 }
 bool Sck_SEN5X::vocStateToSensor()
 {
-    // We need to be on idle mode
-    idle();
+    // We need to be on idle mode - but only stopping measurement
+    if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
+        if (debug) Serial.println("SEN5X: Error stoping measurement");
+        return false;
+    }
+    delay(200); // From Sensirion Arduino library
 
     if (!sen_sendCommand(SEN5X_RW_VOCS_STATE, VOCstate, SEN5X_VOC_STATE_BUFFER_SIZE)){
-        if (debug) Serial.println("SEN5X: Error sending VOC's state command'");
+        if (debug) Serial.println("SEN5X: Error sending VOC's state command");
         return false;
     }
 
     if (debug) {
         Serial.println("SEN5X: VOC state sent to sensor");
-        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(VOCstate[i]);
-        Serial.println();
+        Serial.print("[");
+        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) {
+            Serial.print(VOCstate[i]);
+            if (i<SEN5X_VOC_STATE_BUFFER_SIZE-1) Serial.print(", ");
+        }
+        Serial.println("]");
     }
 
     return true;
 }
 bool Sck_SEN5X::vocStateFromSensor()
 {
+    if (model == SEN50) {
+        return true;
+    }
+
     //  Ask VOCs state from the sensor
     if (!sen_sendCommand(SEN5X_RW_VOCS_STATE)){
-        if (debug) Serial.println("SEN5X: Error sending VOC's state command'");
+        if (debug) Serial.println("SEN5X: Error sending VOC's state command. Can't retrieve VOC state");
         return false;
     }
+    delay(20); // From Sensirion Datasheet
 
     // Retrieve the data
     size_t receivedNumber = sen_readBuffer(&VOCstate[0], SEN5X_VOC_STATE_BUFFER_SIZE + (SEN5X_VOC_STATE_BUFFER_SIZE / 2));
-    delay(20);
+    delay(20); // From Sensirion Datasheet
+
     if (receivedNumber == 0) {
-        if (debug) Serial.println("SEN5X: Error getting VOC's state'");
+        if (debug) Serial.println("SEN5X: Error getting VOC's state");
         return false;
     }
 
     // Print the state (if debug is on)
     if (debug) {
         Serial.println("SEN5X: VOC state retrieved from sensor");
-        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) Serial.print(VOCstate[i]);
-        Serial.println();
+        Serial.print("[");
+        for (uint8_t i=0; i<SEN5X_VOC_STATE_BUFFER_SIZE; i++) {
+            Serial.print(VOCstate[i]);
+            if (i<SEN5X_VOC_STATE_BUFFER_SIZE-1) Serial.print(", ");
+        }
+        Serial.println("]");
     }
+
+    vocStateTime = rtc->getEpoch();
+    readVOCState = true;
 
     return true;
 }

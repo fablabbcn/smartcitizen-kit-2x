@@ -452,7 +452,7 @@ class Sck_SEN5X
 
         struct lastCleaning { uint32_t time; bool valid=true; };
 
-        # define SEN5X_VOC_STATE_BUFFER_SIZE 12
+        #define SEN5X_VOC_STATE_BUFFER_SIZE 8
         uint8_t VOCstate[SEN5X_VOC_STATE_BUFFER_SIZE];
         struct VOCstateStruct { uint8_t state[SEN5X_VOC_STATE_BUFFER_SIZE]; uint32_t time; bool valid=true; };
         bool vocStateToEeprom();
@@ -479,7 +479,6 @@ class Sck_SEN5X
         #define SEN5X_READ_RAW_VALUES              0x03D2
         #define SEN5X_READ_PM_VALUES               0x0413
 
-
         enum SEN5Xmodel { SEN5X_UNKNOWN = 0, SEN50 = 0b001, SEN54 = 0b010, SEN55 = 0b100 };
         SEN5Xmodel model = SEN5X_UNKNOWN;
 
@@ -492,19 +491,29 @@ class Sck_SEN5X
             {SENSOR_SEN5X_HUMIDITY, 0, 0b110}, {SENSOR_SEN5X_TEMPERATURE, 0, 0b110}, {SENSOR_SEN5X_VOCS_IDX, 0, 0b110}, {SENSOR_SEN5X_NOX_IDX, 0, 0b100},
             {SENSOR_SEN5X_HUMIDITY_RAW, 0, 0b110}, {SENSOR_SEN5X_TEMPERATURE_RAW, 0, 0b110}, {SENSOR_SEN5X_VOCS_RAW, 0, 0b110}, {SENSOR_SEN5X_NOX_RAW, 0, 0b100} };
 
+        // This flag allows changing to RHT/Gas only mode instead of keeping continuous mode
+        bool allowRHTGasMode = true;
         bool sensorNeedsContinousMode(SensorType wichSensor) {
             if (wichSensor == SENSOR_SEN5X_VOCS_RAW ||
                 wichSensor == SENSOR_SEN5X_VOCS_IDX ||
                 wichSensor == SENSOR_SEN5X_NOX_RAW  ||
-                wichSensor == SENSOR_SEN5X_NOX_IDX) return true;
+                wichSensor == SENSOR_SEN5X_NOX_IDX)
+                {
+                    if (allowRHTGasMode) return false;
+                    else return true;
+                }
             return false;
         }
 
-        enum SEN5XState { SEN5X_OFF, SEN5X_IDLE, SEN5X_MEASUREMENT, SEN5X_MEASUREMENT_2, SEN5X_CLEANING, SEN5X_NOT_DETECTED };
+        enum SEN5XState { SEN5X_OFF, SEN5X_IDLE, SEN5X_RHTGAS_ONLY, SEN5X_MEASUREMENT, SEN5X_MEASUREMENT_2, SEN5X_CLEANING, SEN5X_NOT_DETECTED };
         SEN5XState state = SEN5X_OFF;
 
         uint32_t lastReading = 0;
         uint32_t measureStarted = 0;
+        bool firstReading = true;
+        bool readVOCState = false;
+        uint32_t vocStateTime;
+        bool vocStateValid();
 
         RTCZero* rtc;
         uint8_t update(SensorType wichSensor); // returns: 0: ok, 1: data is not yet ready, 2: error
@@ -521,6 +530,7 @@ class Sck_SEN5X
         bool vocStateFromEeprom();
         bool vocStateToSensor();
         bool vocStateFromSensor();
+
     };
 #endif
 

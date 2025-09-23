@@ -364,7 +364,7 @@ class AllSensors
 
         OneSensor list[SENSOR_COUNT+1] {
 
-            //  SensorLocation          prio    SensorType                      shortTitle          title                                   id      enabled     everyNintervals     unit
+            //  SensorLocation          prio    SensorType                      shortTitle          title                                   id      enabled     everyNintervals     unit     oled display
 
             // Base Sensors
             OneSensor { BOARD_BASE,     100,    SENSOR_BATT_PERCENT,            "BATT",             "Battery",                              10,     true,       1,  "%",        false         },
@@ -438,10 +438,10 @@ class AllSensors
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_TPSIZE,            "SEN5X_TPSIZE",     "SEN5X Typical Particle Size",          202,    true,       5,  "um"    ,    false        },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_HUMIDITY,          "SEN5X_HUM",        "SEN5X Humidity",                       203,    true,       5,  "%"     ,    false        },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_TEMPERATURE,       "SEN5X_TEMP",       "SEN5X Temperature",                    204,    true,       5,  "C"     ,    false        },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_VOCS_IDX,          "SEN5X_VOCS_IDX",   "SEN5X Vocs Index",                     205,    false,      5,                            },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_NOX_IDX,           "SEN5X_NOX_IDX",    "SEN5X NOx Index",                      206,    false,      5,                            },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_HUMIDITY_RAW,      "SEN5X_HUM_RAW",    "SEN5X Humidity Raw",                   0,      true,       5,                            },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_TEMPERATURE_RAW,   "SEN5X_TEMP_RAW",   "SEN5X Temperature Raw",                0,      true,       5,                            },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_VOCS_IDX,          "SEN5X_VOCS_IDX",   "SEN5X Vocs Index",                     205,    true,       5,                            },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_NOX_IDX,           "SEN5X_NOX_IDX",    "SEN5X NOx Index",                      206,    true,       5,                            },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_HUMIDITY_RAW,      "SEN5X_HUM_RAW",    "SEN5X Humidity Raw",                   0,      false,      5,                            },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_TEMPERATURE_RAW,   "SEN5X_TEMP_RAW",   "SEN5X Temperature Raw",                0,      false,      5,                            },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_VOCS_RAW,          "SEN5X_VOCS_RAW",   "SEN5X Vocs Raw",                       207,    false,      5,                            },
             OneSensor { BOARD_URBAN,    100,    SENSOR_SEN5X_NOX_RAW,           "SEN5X_NOX_RAW",    "SEN5X NOx Raw",                        208,    false,      5,                            },
 #endif

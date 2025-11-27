@@ -456,7 +456,7 @@ class AllSensors
 #ifdef WITH_AS7331
             OneSensor { BOARD_URBAN,    100,    SENSOR_AS7331_UVA,              "AS7331_UVA",       "AS7331 UVA",                           214,    true,       1,  "uW/cm2"                  },
             OneSensor { BOARD_URBAN,    100,    SENSOR_AS7331_UVB,              "AS7331_UVB",       "AS7331 UVB",                           215,    true,       1,  "uW/cm2",    false        },
-            OneSensor { BOARD_URBAN,    100,    SENSOR_AS7331_UVC,              "AS7331_UVA",       "AS7331 UVC",                           216,    true,       1,  "uW/cm2",    false        },
+            OneSensor { BOARD_URBAN,    100,    SENSOR_AS7331_UVC,              "AS7331_UVC",       "AS7331 UVC",                           216,    true,       1,  "uW/cm2",    false        },
 #endif
 #endif // WITH_URBAN
 

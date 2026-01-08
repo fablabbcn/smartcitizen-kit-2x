@@ -16,6 +16,9 @@ DNSServer dnsServer;
 
 void SckESP::setup()
 {
+    // turn off softAP if still active by default
+    WiFi.softAPdisconnect(true);
+
     // LED outputs
     pinMode(pinLED, OUTPUT);
     digitalWrite(pinLED, LOW);

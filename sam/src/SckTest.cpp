@@ -10,13 +10,25 @@ void SckTest::test_full()
     testBase->led.update(testBase->led.WHITE, testBase->led.PULSE_STATIC);
 
     // Enable sensors for test
+#if SC_TEST_SHT
     testBase->enableSensor(SENSOR_TEMPERATURE);
     testBase->enableSensor(SENSOR_HUMIDITY);
+#endif
+#if SC_TEST_LIGHT
     testBase->enableSensor(SENSOR_LIGHT);
+#endif
+#if SC_TEST_UVA
     testBase->enableSensor(SENSOR_AS7331_UVA);
+#endif
+#if SC_TEST_PRESSURE
     testBase->enableSensor(SENSOR_MPL_PRESSURE);
+#endif
+#if SC_TEST_NOISE
     testBase->enableSensor(SENSOR_NOISE_DBA);
+#endif
+#if SC_TEST_SEN5X
     testBase->enableSensor(SENSOR_SEN5X_PM_1);
+#endif
 
     // Make sure al results are 0
     for (uint8_t i=0; i<TEST_COUNT; i++) {
@@ -86,6 +98,7 @@ void SckTest::test_full()
         errors += test_flash();
     }
 
+#if SC_TEST_SHT
     // Test SHT temp and hum
     if (test_SHT() > 0) {
         SerialUSB.println("Retrying...");
@@ -93,7 +106,9 @@ void SckTest::test_full()
         title = false;
         errors += test_SHT();
     }
+#endif
 
+#if SC_TEST_LIGHT
     // Test Light
     if (test_Light() > 0) {
         SerialUSB.println("Retrying...");
@@ -101,7 +116,9 @@ void SckTest::test_full()
         title = false;
         errors += test_Light();
     }
+#endif
 
+#if SC_TEST_UVA
     // Test UVA
     if (test_UVA() > 0) {
         SerialUSB.println("Retrying...");
@@ -109,7 +126,9 @@ void SckTest::test_full()
         title = false;
         errors += test_UVA();
     }
+#endif
 
+#if SC_TEST_PRESSURE
     // Test Pressure
     if (test_Pressure() > 0) {
         SerialUSB.println("Retrying...");
@@ -117,7 +136,9 @@ void SckTest::test_full()
         title = false;
         errors += test_Pressure();
     }
+#endif
 
+#if SC_TEST_NOISE
     // Test Noise
     if (test_Noise() > 0) {
         SerialUSB.println("Retrying...");
@@ -125,7 +146,9 @@ void SckTest::test_full()
         title = false;
         errors += test_Noise();
     }
+#endif
 
+#if SC_TEST_SEN5X
     // Test SEN5X PM sensor
     if (test_SEN5X() > 0) {
         SerialUSB.println("Retrying...");
@@ -133,7 +156,9 @@ void SckTest::test_full()
         title = false;
         errors += test_SEN5X();
     }
+#endif
 
+#if SC_TEST_AUXWIRE
     // Test auxiliary I2C bus
     if (test_auxWire() > 0) {
         SerialUSB.println("Retrying...");
@@ -141,6 +166,7 @@ void SckTest::test_full()
         title = false;
         errors += test_auxWire();
     }
+#endif
 
     // Publish result
     if (!publishResult()) {
@@ -337,6 +363,7 @@ uint8_t SckTest::test_flash()
     return error;
 }
 
+#if SC_TEST_SHT
 uint8_t SckTest::test_SHT()
 {
     if (title) SerialUSB.println("\r\nTesting SHT31 sensor...");
@@ -365,7 +392,9 @@ uint8_t SckTest::test_SHT()
     title = true;
     return error;
 }
+#endif
 
+#if SC_TEST_LIGHT
 uint8_t SckTest::test_Light()
 {
     uint8_t error = 0;
@@ -385,7 +414,9 @@ uint8_t SckTest::test_Light()
     title = true;
     return error;
 }
+#endif
 
+#if SC_TEST_UVA
 uint8_t SckTest::test_UVA()
 {
     uint8_t error = 0;
@@ -405,6 +436,9 @@ uint8_t SckTest::test_UVA()
     title = true;
     return error;
 }
+#endif
+
+#if SC_TEST_PRESSURE
 uint8_t SckTest::test_Pressure()
 {
     uint8_t error = 0;
@@ -424,7 +458,9 @@ uint8_t SckTest::test_Pressure()
     title = true;
     return error;
 }
+#endif
 
+#if SC_TEST_NOISE
 uint8_t SckTest::test_Noise()
 {
     uint8_t error = 0;
@@ -444,7 +480,9 @@ uint8_t SckTest::test_Noise()
     title = true;
     return error;
 }
+#endif
 
+#if SC_TEST_SEN5X
 uint8_t SckTest::test_SEN5X()
 {
     uint8_t error = 0;
@@ -465,7 +503,9 @@ uint8_t SckTest::test_SEN5X()
     title = true;
     return error;
 }
+#endif
 
+#if SC_TEST_AUXWIRE
 uint8_t SckTest::test_auxWire()
 {
     uint8_t error = 0;
@@ -491,11 +531,12 @@ uint8_t SckTest::test_auxWire()
     title = true;
     return error;
 }
+#endif
 
 bool SckTest::connect_ESP()
 {
-    strncpy(testBase->config.credentials.ssid, TEST_WIFI_SSID, 64);
-    strncpy(testBase->config.credentials.pass, TEST_WIFI_PASSWD, 64);
+    strncpy(testBase->config.credentials.ssid, SC_TEST_WIFI_SSID, 64);
+    strncpy(testBase->config.credentials.pass, SC_TEST_WIFI_PASSWD, 64);
     testBase->config.credentials.set = true;
     testBase->config.mode = MODE_NET;
     strncpy(testBase->config.token.token, "123456", 7);

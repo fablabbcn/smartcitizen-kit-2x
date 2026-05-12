@@ -13,4 +13,5 @@ TODO.md
 .env
 secret.py
 .seeed
+.internal
 .scripts

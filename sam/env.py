@@ -5,13 +5,10 @@ file_name = env.GetProjectOption("file_name")
 print (f"Checking {file_name} environment")
 
 if not isfile(file_name):
-  print ("File doesnt exist")
-  l={
-    "SC_TEST_WIFI_SSID":"fake",
-    "SC_TEST_WIFI_PASSWD":"fake"
-  }
+  print ("File doesnt exist, adding defaults")
   env.Append(CPPDEFINES=[
-    (l[0], env.StringifyMacro(l[1])),
+    ("SC_TEST_WIFI_SSID", env.StringifyMacro("wifi")),
+    ("SC_TEST_WIFI_PASSWD", env.StringifyMacro("password"))
   ])
 else:
   try:

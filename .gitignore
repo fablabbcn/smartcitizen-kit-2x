@@ -12,3 +12,5 @@ TODO.md
 .DS_Store
 .env
 secret.py
+.seeed
+.scripts

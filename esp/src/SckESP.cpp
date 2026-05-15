@@ -662,7 +662,7 @@ void SckESP::webSet(AsyncWebServerRequest *request)
             sendConfigPending = true;
         } else {
             config.token.set = false;
-            strncpy(config.token.token, "", 64);
+            strncpy(config.token.token, "", sizeof(config.token.token));
         }
     }
 

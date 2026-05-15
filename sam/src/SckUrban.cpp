@@ -340,12 +340,12 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                     command.trim();
 
                     if (command.length() == 0) {
-                        sprintf(base->outBuff, "Current humidity offset: %.2f (%rh)", sck_sht31.humidityOffset);
+                        sprintf(base->outBuff, "Current humidity offset: %.2f (%%rh)", sck_sht31.humidityOffset);
                         base->sckOut();
                         return "\r\n";
                     } else if (command.startsWith("clear")) {
                         sck_sht31.setDefaultHumidityOffset();
-                        sprintf(base->outBuff, "Set default offset: %.2f (%rh)", sck_sht31.humidityOffset);
+                        sprintf(base->outBuff, "Set default offset: %.2f (%%rh)", sck_sht31.humidityOffset);
                         base->sckOut();
                         base->config.extra.urbanHumidityOffset = sck_sht31.humidityOffset;
                         base->saveConfig();

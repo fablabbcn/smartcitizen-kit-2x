@@ -114,6 +114,11 @@ void SckESP::update()
 		}
 	}
 
+    // Keep MQTT connection alive and process incoming messages.
+    // PubSubClient requires loop() every iteration or the broker drops the
+    // connection when the keepalive timer (MQTT_KEEP_ALIVE) expires.
+    if (MQTTclient.connected()) MQTTclient.loop();
+
     SAMbusUpdate();
 
 	if(shouldReboot) ESP.restart();

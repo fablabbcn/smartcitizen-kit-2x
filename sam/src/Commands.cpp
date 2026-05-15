@@ -708,7 +708,7 @@ void flash_com(SckBase* base, String parameters)
             String sectC = parameters.substring(recoI+9);
 
             // Get sector number or all
-            uint16_t sectV;
+            uint16_t sectV = 0;
             bool all = false;
             if (sectC.startsWith("all")) all = true;
             else {

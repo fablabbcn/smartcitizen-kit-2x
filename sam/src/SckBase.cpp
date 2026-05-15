@@ -697,7 +697,7 @@ void SckBase::saveConfig(bool defaults)
 {
 	// Load defaults
 	if (defaults) {
-		Configuration defaultConfig;
+		Configuration defaultConfig = {};
 
         config = defaultConfig;
 

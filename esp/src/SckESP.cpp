@@ -581,19 +581,22 @@ void SckESP::startWebServer()
     // Handle APlist request
     webServer.on("/aplist", HTTP_GET, [&] (AsyncWebServerRequest *request) {
 
-        String json = "{\"nets\":[";
+        // Pre-reserve to avoid repeated heap reallocations per character append.
+        // Each network entry is at most ~70 bytes; reserve for up to 20 networks.
+        String json;
+        json.reserve(10 + netNumber * 70);
+        json = "{\"nets\":[";
 
-        // int netNum = WiFi.scanNetworks();
         for (int i=0; i<netNumber; i++) {
-            json += "{\"ssid\":\"" + String(WiFi.SSID(i));
-            json += "\",\"ch\":" + String(WiFi.channel(i));
-            json += ",\"rssi\":" + String(WiFi.RSSI(i)) + "}";
-            if (i < (netNumber - 1)) json += ",";
+            if (i > 0) json += ",";
+            char entry[72];
+            snprintf(entry, sizeof(entry), "{\"ssid\":\"%s\",\"ch\":%d,\"rssi\":%d}",
+                     WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i));
+            json += entry;
         }
 
         json += "]}";
         request->send(200, "text/json", json);
-        json = String();
     });
 
     webServer.on("/update", HTTP_GET, [&](AsyncWebServerRequest *request){
@@ -745,44 +748,41 @@ String SckESP::toStringIp(IPAddress ip)
 }
 void SckESP::webStatus(AsyncWebServerRequest *request)
 {
-    String json;
+    // Use a static buffer instead of String concatenation to avoid heap
+    // fragmentation. Each String += in a web handler allocates a new heap
+    // block; on an 80 KB heap these accumulate and fragment over hours.
+    // Buffer sized to the worst-case JSON length (all fields at max length).
+    static char json[512];
 
-    // Hostname
-    json += "{\"hostname\":\"" + String(hostname) + "\",";
+    String espVer  = ESPversion.substring(0, ESPversion.indexOf("-"));
+    String espHash = ESPversion.substring(ESPversion.indexOf("-") + 1);
+    String samVer  = SAMversion.substring(0, SAMversion.indexOf("-"));
+    String samHash = SAMversion.substring(SAMversion.indexOf("-") + 1);
 
-    // MAC address (softAP)
-    String tmac = WiFi.softAPmacAddress();
-    json += "\"mac\":\"" + tmac + "\",";
+    snprintf(json, sizeof(json),
+        "{\"hostname\":\"%s\","
+        "\"mac\":\"%s\","
+        "\"mac_sta\":\"%s\","
+        "\"ESPversion\":\"%s\","
+        "\"ESPcommit\":\"%s\","
+        "\"ESPbuilddate\":\"%s\","
+        "\"SAMversion\":\"%s\","
+        "\"SAMcommit\":\"%s\","
+        "\"SAMbuilddate\":\"%s\","
+        "\"updateNeeded\":\"%s\"}",
+        hostname,
+        WiFi.softAPmacAddress().c_str(),
+        WiFi.macAddress().c_str(),
+        espVer.c_str(),
+        espHash.c_str(),
+        ESPbuildDate.c_str(),
+        samVer.c_str(),
+        samHash.c_str(),
+        SAMbuildDate.c_str(),
+        updateNeeded ? "true" : "false"
+    );
 
-    // MAC address (STA)
-    String tmacsta = WiFi.macAddress();
-    json += "\"mac_sta\":\"" + tmacsta + "\",";
-
-    // ESP firmware version
-    json += "\"ESPversion\":\"" + ESPversion.substring(0, ESPversion.indexOf("-")) + "\",";
-
-    // ESP firmware commit
-    json += "\"ESPcommit\":\"" + ESPversion.substring(ESPversion.indexOf("-")+1, ESPversion.length()) + "\",";
-
-    // ESP build date
-    json += "\"ESPbuilddate\":\"" + ESPbuildDate + "\",";
-
-    // SAM firmware version
-    json += "\"SAMversion\":\"" + SAMversion.substring(0, SAMversion.indexOf("-")) + "\",";
-
-    // SAM firmware commit
-    json += "\"SAMcommit\":\"" + SAMversion.substring(SAMversion.indexOf("-")+1, SAMversion.length()) + "\",";
-
-    // SAM build date
-    json += "\"SAMbuilddate\":\"" + SAMbuildDate + "\",";
-
-    // ESP update needed
-    json += "\"updateNeeded\":\"" +  String(updateNeeded ? "true" : "false") + "\"";
-
-    json += "}";
     request->send(200, "text/json", json);
-
-    json = String();
 }
 void SckESP::scanAP()
 {

@@ -351,7 +351,7 @@ void sensorConfig_com(SckBase* base, String parameters)
             uint8_t newEveryNint = intervalInt / base->config.readInterval;
             if (newEveryNint < 1) newEveryNint = 1;
 
-            snprintf(base->outBuff, sizeof(base->outBuff), "The sensor read interval is calculated as a multiple of general read interval (%u)", base->config.readInterval);
+            snprintf(base->outBuff, sizeof(base->outBuff), "The sensor read interval is calculated as a multiple of general read interval (%lu)", (unsigned long)base->config.readInterval);
             base->sckOut();
             if (newEveryNint < 255) {
 

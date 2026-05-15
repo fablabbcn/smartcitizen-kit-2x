@@ -168,13 +168,13 @@ void SckESP::SAMbusUpdate()
             deserializeJson(jsonBuffer, serSAM.buff);
             JsonObject json = jsonBuffer.as<JsonObject>();
             config.credentials.set = json["cs"];
-            strcpy(config.credentials.ssid, json["ss"]);
-            strcpy(config.credentials.pass, json["pa"]);
+            strlcpy(config.credentials.ssid, json["ss"] | "", sizeof(config.credentials.ssid));
+            strlcpy(config.credentials.pass, json["pa"] | "", sizeof(config.credentials.pass));
             config.token.set = json["ts"];
-            strcpy(config.token.token, json["to"]);
-            strcpy(config.mqtt.server, json["ms"]);
+            strlcpy(config.token.token, json["to"] | "", sizeof(config.token.token));
+            strlcpy(config.mqtt.server, json["ms"] | "", sizeof(config.mqtt.server));
             config.mqtt.port = json["mp"];
-            strcpy(config.ntp.server, json["ns"]);
+            strlcpy(config.ntp.server, json["ns"] | "", sizeof(config.ntp.server));
             config.ntp.port = json["np"];
             SAMversion = json["ver"].as<String>();
             SAMbuildDate = json["bd"].as<String>();
@@ -848,15 +848,15 @@ bool SckESP::loadConfig()
 		if (json) {
 			
 			if (json.containsKey("cs")) config.credentials.set = json["cs"];
-			if (json.containsKey("ss")) strcpy(config.credentials.ssid, json["ss"]);
-			if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
+			if (json.containsKey("ss")) strlcpy(config.credentials.ssid, json["ss"] | "", sizeof(config.credentials.ssid));
+			if (json.containsKey("pa")) strlcpy(config.credentials.pass, json["pa"] | "", sizeof(config.credentials.pass));
 
 			if (json.containsKey("ts")) config.token.set = json["ts"];
-			if (json.containsKey("to")) strcpy(config.token.token, json["to"]);
+			if (json.containsKey("to")) strlcpy(config.token.token, json["to"] | "", sizeof(config.token.token));
 
-			if (json.containsKey("ms")) strcpy(config.mqtt.server, json["ms"]);
+			if (json.containsKey("ms")) strlcpy(config.mqtt.server, json["ms"] | "", sizeof(config.mqtt.server));
 			if (json.containsKey("mp")) config.mqtt.port = json["mp"];
-			if (json.containsKey("ns")) strcpy(config.ntp.server, json["ms"]);
+			if (json.containsKey("ns")) strlcpy(config.ntp.server, json["ns"] | "", sizeof(config.ntp.server));
 			if (json.containsKey("np")) config.ntp.port = json["np"];
 
             // led brightness

@@ -856,7 +856,7 @@ bool SckESP::loadConfig()
 
 			if (json.containsKey("ms")) strcpy(config.mqtt.server, json["ms"]);
 			if (json.containsKey("mp")) config.mqtt.port = json["mp"];
-			if (json.containsKey("ns")) strcpy(config.ntp.server, json["ms"]);
+			if (json.containsKey("ns")) strcpy(config.ntp.server, json["ns"]);
 			if (json.containsKey("np")) config.ntp.port = json["np"];
 
             // led brightness

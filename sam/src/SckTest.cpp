@@ -427,8 +427,8 @@ uint8_t SckTest::test_UVA()
         SerialUSB.println("ERROR reading UVA sensor");
         error = 1;
     } else {
-        test_report.tests[SENSOR_AS7331_UVA] = testBase->sensors[SENSOR_AS7331_UVA].reading.toFloat();
-        sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_AS7331_UVA].title, test_report.tests[SENSOR_AS7331_UVA], testBase->sensors[SENSOR_AS7331_UVA].unit);
+        test_report.tests[TEST_UVA] = testBase->sensors[SENSOR_AS7331_UVA].reading.toFloat();
+        sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_AS7331_UVA].title, test_report.tests[TEST_UVA], testBase->sensors[SENSOR_AS7331_UVA].unit);
         SerialUSB.println(testBase->outBuff);
         SerialUSB.println("UVA sensor test finished OK");
     }
@@ -616,10 +616,11 @@ bool SckTest::publishResult()
 	sprintf(buffer, "{\"time\":\"%s\",\"id\":\"%s\",\"mac\":\"%s\",\"errors\":%u,\"tests\":[", test_report.time.c_str(), id.c_str(), test_report.mac.c_str(), errors);
 
     for (uint8_t i=0; i<TEST_COUNT; i++) {
-        if (i > 0) sprintf(buffer, "%s,", buffer);
-        sprintf(buffer, "%s{\"%u\":%0.2f}", buffer, i, test_report.tests[i]);
+        if (i > 0) strncat(buffer, ",", NETBUFF_SIZE - strlen(buffer) - 1);
+        size_t _l = strlen(buffer);
+        snprintf(buffer + _l, NETBUFF_SIZE - _l, "{\"%u\":%0.2f}", i, test_report.tests[i]);
     }
-    sprintf(buffer, "%s]}", buffer);
+    strncat(buffer, "]}", NETBUFF_SIZE - strlen(buffer) - 1);
 
     // Clean any ESP msg
     uint32_t start = millis();

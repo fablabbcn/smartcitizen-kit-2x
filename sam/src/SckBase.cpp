@@ -173,8 +173,14 @@ void SckBase::update()
                     ESPcontrol(ESP_REBOOT);
                     sendConfigCounter = 0;
                 } else if (st.espON) {
-                    if (!st.espBooting) sendConfig();
-                    sendConfigCounter++;
+                    if (!st.espBooting) {
+                        // Only count actual send attempts. Previously the counter
+                        // incremented every second even while espBooting=true,
+                        // reaching 3 before the ESP finished its first boot and
+                        // triggering an immediate reboot loop.
+                        sendConfig();
+                        sendConfigCounter++;
+                    }
                 } else {
                     ESPcontrol(ESP_ON);
                 }

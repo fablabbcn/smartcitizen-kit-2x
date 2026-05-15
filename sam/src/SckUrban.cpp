@@ -2359,6 +2359,7 @@ bool Sck_SEN5X::idle()
 
     monitor = false;
     measureStarted = 0;
+    return true;
 }
 
 bool Sck_SEN5X::startCleaning()
@@ -3026,8 +3027,7 @@ byte Sck_AS7331::writeByte(byte wichReg, byte wichValue)
     Wire.beginTransmission(address);
     Wire.write(wichReg);
     Wire.write(wichValue);
-    Wire.endTransmission();
-
+    return Wire.endTransmission();
 }
 uint8_t Sck_AS7331::readBytes(uint8_t wichReg, uint8_t howMany, uint8_t * buff)
 {

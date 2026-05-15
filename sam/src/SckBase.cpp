@@ -867,6 +867,7 @@ bool SckBase::createInfo(char* buffer, bool pretty)
 
     if (pretty) serializeJsonPretty(json, buffer, NETBUFF_SIZE);
     else serializeJson(json, buffer, NETBUFF_SIZE);
+    return true;
 }
 bool SckBase::publishInfo()
 {
@@ -2099,7 +2100,7 @@ bool SckBase::sdPublish()
     if (exist && headerChkSum(postfileName) != RAMheaderChkSum()) {
 
         // Rename file as YY-MM-DD_NN.CSV, NN will start in 01 and grow if needed
-        char newName[16];
+        char newName[20];
         bool fileExists = true;
         uint8_t fileNumber = 1;
         while (fileExists) {
@@ -2153,7 +2154,7 @@ bool SckBase::getRSSI(OneSensor* wichSensor)
         if (newEveryNint < 1) newEveryNint = 1;
         wichSensor->everyNint = newEveryNint;
         saveConfig();
-        sprintf(outBuff, "RSSI interval must be the same as publish interval!!\r\ncorrecting it to %i", config.readInterval * newEveryNint);
+        sprintf(outBuff, "RSSI interval must be the same as publish interval!!\r\ncorrecting it to %lu", (unsigned long)(config.readInterval * newEveryNint));
         sckOut();
     }
 

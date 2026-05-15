@@ -368,7 +368,7 @@ class Atlas
         bool TEMP = false;
         bool ORP = false;
         bool enableTComp = true;
-        float newReading[4];
+        float newReading[4] = {0.0f, 0.0f, 0.0f, 0.0f};
         String atlasResponse;
         uint32_t lastCommandSent = 0;
         uint32_t lastUpdate = 0;
@@ -625,7 +625,7 @@ class Sck_GPS
     private:
         bool started = false;
         uint8_t fixCounter = 0;
-        GPS_Source *gps_source;
+        GPS_Source *gps_source = nullptr;
     public:
         GpsReadings r;
 

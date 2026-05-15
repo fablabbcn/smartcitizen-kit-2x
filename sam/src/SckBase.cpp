@@ -159,9 +159,11 @@ void SckBase::update()
 
     if (millis() - generalUpdateTimer > 500) {
 
-        // Avoid ESP hangs
+        // Avoid ESP hangs — reboot if SAMMES_BOOTED hasn't arrived within
+        // 10 s of power-on.  Must be larger than the inline 5 s boot wait
+        // in ESPcontrol(ESP_ON) so the fallback watchdog never fires first.
         if (st.espBooting) {
-            if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
+            if (rtc.getEpoch() - espStarted > 10) ESPcontrol(ESP_REBOOT);
         }
 
         if (pendingSyncConfig) {
@@ -944,10 +946,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				st.espBooting = true;
 				espStarted = rtc.getEpoch();
 
-				// Wait for boot...
+				// Wait for boot. 5 s covers slow flash reads and library
+				// inits on the ESP8266; 1 s was too short and caused
+				// ERROR_ESP even on healthy devices, leaving the processors
+				// in mismatched states.
 				uint32_t startPoint = millis();
 				while (st.espBooting) {
-					if (millis() - startPoint > 1000) {
+					if (millis() - startPoint > 5000) {
 						sckOut("ESP not starting!!!", PRIO_HIGH);
 						st.error = ERROR_ESP;
 						break;
@@ -1180,6 +1185,15 @@ void SckBase::ESPbusUpdate()
 
 			pendingSyncConfig = true;
 			break;
+		}
+		case SAMMES_RSSI:
+		{
+				// getRSSI() polls serESP.receive() directly in a tight loop, so
+				// any RSSI response that arrives at the wrong moment would fall
+				// into the default branch and be silently dropped.  Handling it
+				// here ensures it is never misidentified as an unknown message.
+				// The value is discarded; getRSSI() reads it via its own loop.
+				break;
 		}
 		default: break;
 	}

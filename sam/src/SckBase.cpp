@@ -1028,14 +1028,14 @@ void SckBase::ESPbusUpdate()
 
 				if (json.containsKey("ss")) {
 					config.credentials.set = true;
-					strcpy(config.credentials.ssid, json["ss"]);
-					if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
+					strlcpy(config.credentials.ssid, json["ss"] | "", sizeof(config.credentials.ssid));
+					if (json.containsKey("pa")) strlcpy(config.credentials.pass, json["pa"] | "", sizeof(config.credentials.pass));
 				} else config.credentials.set = false;
 
 
 				if (json.containsKey("to")) {
 					config.token.set = true;
-					strcpy(config.token.token, json["to"]);
+					strlcpy(config.token.token, json["to"] | "", sizeof(config.token.token));
 				} else config.token.set = false;
 
 				st.helloPending = true;

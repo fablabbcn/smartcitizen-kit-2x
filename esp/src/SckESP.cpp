@@ -151,6 +151,7 @@ int32_t SckESP::getRSSI()
 
     for (uint8_t i=0; i<readNum; i++) {
         myRSSI += WiFi.RSSI();
+        yield();
     }
 
     return myRSSI / readNum;
@@ -788,13 +789,14 @@ void SckESP::scanAP()
     // For some reason it runs in async mode so we wait for it to finish
     netNumber = WiFi.scanComplete();
     while (netNumber == WIFI_SCAN_RUNNING) {
+        yield();
         netNumber = WiFi.scanComplete();
-        delay(50);
+        delay(10);
     }
 
-    if (netNumber == WIFI_SCAN_FAILED) {
-        debugOUT("Error on WiFi scanning... retrying");
-        scanAP();
+    if (netNumber == WIFI_SCAN_FAILED || netNumber < 0) {
+        debugOUT("Error on WiFi scanning");
+        netNumber = 0;
     } else {
         debugOUT(String(netNumber) + F(" networks found"));
     }
@@ -914,12 +916,13 @@ time_t SckESP::getNtpTime()
 {
     IPAddress ntpServerIP;
 
-    while (Udp.parsePacket() > 0) ; // discard any previously received packets
+    while (Udp.parsePacket() > 0) yield(); // discard stale packets without busy-waiting
     WiFi.hostByName(config.ntp.server, ntpServerIP);
 
     sendNTPpacket(ntpServerIP);
     uint32_t beginWait = millis();
     while (millis() - beginWait < 1500) {
+        yield(); // feed the WiFi stack during the wait
         int size = Udp.parsePacket();
         if (size >= 48) {
             Udp.read(packetBuffer, 48);  // read packet into the buffer

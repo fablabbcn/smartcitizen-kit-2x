@@ -101,8 +101,16 @@ void SckESP::update()
 			}
 			case WL_DISCONNECTED:
 			{
-				if (config.credentials.set && WiFi.getMode() != WIFI_AP) ledBlink(LED_SLOW);
-				else ledBlink(LED_FAST);
+				if (config.credentials.set && WiFi.getMode() != WIFI_AP) {
+					ledBlink(LED_SLOW);
+					// Automatically attempt reconnection whenever the link
+					// drops. Without this the device stays offline until the
+					// SAM explicitly sends ESPMES_CONNECT, which may never
+					// happen if the SAM is mid-cycle.
+					tryConnection();
+				} else {
+					ledBlink(LED_FAST);
+				}
 				break;
 			}
 			default: 

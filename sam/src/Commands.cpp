@@ -963,13 +963,13 @@ void config_com(SckBase* base, String parameters)
             if (pubIntI >= 0) {
                 String pubIntC = parameters.substring(pubIntI+8);
                 uint32_t pubIntV = pubIntC.toInt();
-                if (pubIntV >= minimal_publish_interval && pubIntV <= max_publish_interval) base->config.publishInterval = pubIntV;
+                if (pubIntV >= SC_MIN_PUB_INTERVAL && pubIntV <= SC_MAX_PUB_INTERVAL) base->config.publishInterval = pubIntV;
             }
             int16_t readIntI = parameters.indexOf("-readint");
             if (readIntI >= 0) {
                 String readIntC = parameters.substring(readIntI+9);
                 uint32_t readIntV = readIntC.toInt();
-                if (readIntV >= minimal_reading_interval && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
+                if (readIntV >= SC_MIN_READING_INTERVAL && readIntV <= base->config.publishInterval) base->config.readInterval = readIntV;
             }
             int16_t credI = parameters.indexOf("-wifi");
             if (credI >= 0) {
@@ -1181,7 +1181,7 @@ void offline_com(SckBase* base, String parameters)
         if (retryIntI >= 0) {
             String retryIntC = parameters.substring(retryIntI+10);
             uint32_t retryIntV = retryIntC.toInt();
-            if (retryIntV >= minimal_publish_interval && retryIntV <= max_publish_interval) {
+            if (retryIntV >= SC_MIN_PUB_INTERVAL && retryIntV <= SC_MAX_PUB_INTERVAL) {
                 base->config.offline.retry = retryIntV;
                 saveNeeded = true;
             } else base->sckOut("Wrong retry interval!!!");

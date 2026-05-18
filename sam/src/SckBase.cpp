@@ -233,7 +233,7 @@ void SckBase::reviewState()
 
     /* state can be changed by: */
     /* loadConfig() */
-    /* receiveMessage() */
+    /* ESPbusUpdate() */
     /* sdDetect() */
     /* buttonEvent(); */
 
@@ -354,10 +354,11 @@ void SckBase::reviewState()
                                 led.update(led.BLUE, led.PULSE_WARNING);
                             }
 
-                            // Retry WiFi to be sure that is not working
-                        } else if ( (now - st.lastWiFiError) > config.offline.retry ||      // Enough time has passed to try again
-                                st.wifiErrorCounter < 2 ||              // Try 2 times before assuming WiFi is no present
-                                millis() - lastUserEvent < 1000             // User event in the last second, this shouldn't enter more than once because wifi error declaration takes a lot more than one second
+                        // Retry WiFi to be sure that is not working
+                        } else if ((now - st.lastWiFiError) > config.offline.retry ||
+                                // Enough time has passed to try again
+                                st.wifiErrorCounter <= SC_MAX_WIFI_RETRIES ||              // Try SC_MAX_WIFI_RETRIES times before assuming WiFi is no present
+                                millis() - lastUserEvent < 1000         // User event in the last second, this shouldn't enter more than once because wifi error declaration takes a lot more than one second
                             ) {
 
                             // Reset and try again
@@ -1022,8 +1023,8 @@ void SckBase::ESPbusUpdate()
 				} else config.mode = MODE_NOT_CONFIGURED;
 
 				if (json.containsKey("pi")) {
-					if (json["pi"] > minimal_publish_interval && json["pi"] < max_publish_interval)	config.publishInterval = json["pi"];
-				} else config.publishInterval = default_publish_interval;
+					if (json["pi"] > SC_MIN_PUB_INTERVAL && json["pi"] < SC_MAX_PUB_INTERVAL)	config.publishInterval = json["pi"];
+				} else config.publishInterval = SC_DEFAULT_PUB_INTERVAL;
 
 				if (json.containsKey("ss")) {
 					config.credentials.set = true;
@@ -1679,7 +1680,7 @@ void SckBase::updateDynamic(uint32_t now)
     sckOut(PRIO_LOW);
 
     // If high speed is detected, we have a good GPS fix and a decent hdop we enable dynamic interval
-    if (speedFloat > speed_threshold && fix > 0 && hdop < DYNAMIC_HDOP_THRESHOLD) {
+    if (speedFloat > SC_GPS_SPEED_THD && fix > 0 && hdop < DYNAMIC_HDOP_THRESHOLD) {
 
         // Only trigger dynamic interval after N counts of high speed in a row
         if (dynamicCounter > DYNAMIC_COUNTER_THRESHOLD) {
@@ -1696,7 +1697,7 @@ void SckBase::updateDynamic(uint32_t now)
         dynamicCounter = 0;
 
         // After detecting low speed wait some time before disabling dynamic interval
-        if (st.dynamic && (speedFloat < speed_threshold) && (now - dynamicLast > DYNAMIC_TIMEOUT)) {
+        if (st.dynamic && (speedFloat < SC_GPS_SPEED_THD) && (now - dynamicLast > DYNAMIC_TIMEOUT)) {
             sckOut("Turning dynamic interval off!", PRIO_LOW);
             st.dynamic = false;
         }
@@ -1792,7 +1793,7 @@ void SckBase::updateSensors()
 
     // Main reading loop
     uint32_t timeSinceLastSensorUpdate = now - lastSensorUpdate;
-    if ((st.dynamic && (timeSinceLastSensorUpdate >= dynamicInterval)) || timeSinceLastSensorUpdate >= config.readInterval) {
+    if ((st.dynamic && (timeSinceLastSensorUpdate >= SC_GPS_DYNAMIC_INTERVAL)) || timeSinceLastSensorUpdate >= config.readInterval) {
 
         lastSensorUpdate = now;
 
@@ -1812,7 +1813,7 @@ void SckBase::updateSensors()
             if (wichSensor->enabled && wichSensor->priority != 250) {
 
                 if (    (lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval) ||
-                    (st.dynamic && ((lastSensorUpdate - wichSensor->lastReadingTime) >= dynamicInterval))) {    // Is time to read it?
+                    (st.dynamic && ((lastSensorUpdate - wichSensor->lastReadingTime) >= SC_GPS_DYNAMIC_INTERVAL))) {    // Is time to read it?
 
                     wichSensor->lastReadingTime = lastSensorUpdate;     // Update sensor reading time
 

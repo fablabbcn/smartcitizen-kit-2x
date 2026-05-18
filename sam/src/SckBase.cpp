@@ -57,7 +57,7 @@ void SckBase::setup()
 	else if (rcode == -1) {
         led.update(led.WHITE, led.PULSE_ERROR);
 		while (true) {
-			sckOut("Error starting flash memory!!!");
+			sckOut("Error starting flash memory", PRIO_ERROR);
 			delay(1000);
 		}
 	}
@@ -264,7 +264,7 @@ void SckBase::reviewState()
             // This error needs user intervention
             if (!st.wifiSet) {
                 if (!st.wifiStat.error) {
-                    sckOut("Time not synced and wifi is not configured!!!", PRIO_ERROR);
+                    sckOut("Time not synced and Wi-Fi is not configured", PRIO_ERROR);
                     ESPcontrol(ESP_OFF);
                     if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_ERROR);
                     else led.update(led.BLUE, led.PULSE_ERROR);
@@ -276,15 +276,20 @@ void SckBase::reviewState()
 
             if (!st.wifiStat.ok) {
 
-                if (st.wifiStat.retry()) {          // After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
+                if (st.wifiStat.retry()) {
+                    // After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
 
-                    sckOut("Time not synced, connecting to WiFi...");
-                    if (!st.espON) ESPcontrol(ESP_ON);  // Make sure the ESP is on
+                    sckOut("Time not synced, connecting to Wi-Fi...");
+                    if (!st.espON) {
+                        sckOut("Turning on ESP...");
+                        ESPcontrol(ESP_ON);  // Make sure the ESP is on
+                    }
 
-                } else if (st.wifiStat.error) {         // If error is declared something went wrong
+                } else if (st.wifiStat.error) {
+                    // If error is declared something went wrong
 
                     // This error needs user intervention so feedback should be urgent
-                    if (st.error != ERROR_TIME) sckOut("Without time we can not take readings!!!", PRIO_ERROR);
+                    if (st.error != ERROR_TIME) sckOut("Without time we can not take readings", PRIO_ERROR);
                     if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_ERROR);
                     else led.update(led.BLUE, led.PULSE_ERROR);
                     st.error = ERROR_TIME;
@@ -296,7 +301,7 @@ void SckBase::reviewState()
 
             } else if (st.timeStat.error) {
 
-                if (st.error != ERROR_TIME) sckOut("Getting time from the network!!!", PRIO_ERROR);
+                if (st.error != ERROR_TIME) sckOut("Getting time from the network...", PRIO_ERROR);
 
                 ESPcontrol(ESP_REBOOT);             // This also resets st.wifiStat
                 if (st.mode == MODE_SD) led.update(led.PINK, led.PULSE_ERROR);
@@ -317,7 +322,7 @@ void SckBase::reviewState()
                 if (!st.tokenSet) {
 
                     if (!st.tokenError) {
-                        sckOut("Token is not configured!!!", PRIO_ERROR);
+                        sckOut("Token is not configured", PRIO_ERROR);
                         ESPcontrol(ESP_OFF);
                         led.update(led.BLUE, led.PULSE_WARNING);
                         st.error = ERROR_NO_TOKEN_CONFIG;
@@ -329,11 +334,14 @@ void SckBase::reviewState()
                     // After triggering this we have 60 seconds until error is declared, unless the ESP sends an error msg
                     if (st.wifiStat.retry()) {
 
-                        sckOut("Connecting to Wifi...");
-                        if (!st.espON) ESPcontrol(ESP_ON);  // Make sure the ESP is on
+                        sckOut("Connecting to Wi-Fi...");
+                        if (!st.espON) {
+                            sckOut("Turning on ESP...");
+                            ESPcontrol(ESP_ON);  // Make sure the ESP is on
+                        }
 
-                    } else if (st.wifiStat.error) {         // If error is declared something went wrong
-
+                    } else if (st.wifiStat.error) {
+                        // If error is declared something went wrong
 
                         uint32_t now = rtc.getEpoch();
 
@@ -346,11 +354,11 @@ void SckBase::reviewState()
                             st.wifiErrorCounter++;              // Count errors
 
                             if (st.helloPending) {
-                                sckOut("ERROR: Couldn't send hello to platform! ");
-                                sckOut("No readings will be taken!!");
+                                sckOut("Couldn't send hello to platform", PRIO_ERROR);
+                                sckOut("No readings will be taken", PRIO_ERROR);
                                 led.update(led.BLUE, led.PULSE_ERROR);
                             } else {
-                                sckOut("ERROR Can't publish without wifi!!!");  // User feedback
+                                sckOut("Can't publish without Wi-Fi", PRIO_ERROR);  // User feedback
                                 led.update(led.BLUE, led.PULSE_WARNING);
                             }
 
@@ -379,10 +387,15 @@ void SckBase::reviewState()
                         // Asume Wi-Fi is down or not reachable
                         } else {
 
-                            if (st.espON) ESPcontrol(ESP_OFF);              // Save battery
+                            if (st.espON) {
+                                sckOut("Turning off Wi-Fi to save battery...");
+                                ESPcontrol(ESP_OFF);      // Save battery
+                            }
+
                             timeToPublish = false;
                             lastPublishTime = rtc.getEpoch();       // Wait for another period before retry
                             sleepLoop();
+
                         }
                     }
 
@@ -400,7 +413,7 @@ void SckBase::reviewState()
 
                         } else if (st.helloStat.error) {
 
-                            sckOut("Sending hello!!!", PRIO_ERROR);
+                            sckOut("Sending hello", PRIO_ERROR);
 
                             ESPcontrol(ESP_REBOOT);             // Try reseting ESP
                             led.update(led.BLUE, led.PULSE_ERROR);  // This error is an exception (normally it would be Soft error) because in this case the user is probably doing the onboarding process
@@ -417,7 +430,7 @@ void SckBase::reviewState()
 
                         } else if (st.infoStat.error){
 
-                            sckOut("Sending kit info to platform!!!", PRIO_ERROR);
+                            sckOut("Sending kit info to platform", PRIO_ERROR);
                             infoPublished = true;       // We will try on next reset
                             st.infoStat.reset();
                             st.error = ERROR_MQTT;
@@ -435,7 +448,7 @@ void SckBase::reviewState()
                             uint8_t readingNum = readingsList.setPublished(wichGroupPublishing, readingsList.PUB_NET);
                             wichGroupPublishing.group = -1;
                             timeToPublish = false;
-                            sprintf(outBuff, "Network publish OK!! (%u readings)", readingNum);
+                            sprintf(outBuff, "Network publish OK! (%u readings)", readingNum);
                             sckOut();
 
                             if (readingsList.availableReadings[readingsList.PUB_NET]) {
@@ -453,7 +466,7 @@ void SckBase::reviewState()
 
                         } else if (st.publishStat.error) {
 
-                            sckOut("Publish failed, will retry on next interval!!!", PRIO_ERROR);
+                            sckOut("Publish failed, will retry on next interval", PRIO_ERROR);
 
                             // Forget the index of the group we tried to publish
                             wichGroupPublishing.group = -1;
@@ -491,7 +504,7 @@ void SckBase::reviewState()
 
             if (!st.cardPresentErrorPrinted) {
                 // Saving error on sdcard here does not makes sense, but other error log outputs (mqtt?) would be implemented
-                sckOut("Can't find SD card!!!", PRIO_ERROR);
+                sckOut("Can't find SD card", PRIO_ERROR);
                 led.update(led.PINK, led.PULSE_WARNING);
                 st.error = ERROR_SD;
                 st.cardPresentErrorPrinted = true;
@@ -661,7 +674,7 @@ void SckBase::loadConfig()
 
 	if (savedConf.valid) config = savedConf;
 	else {
-		sckOut("Can't find valid configuration!!! loading defaults...");
+		sckOut("Can't find valid configuration. Loading defaults...");
 		saveConfig(true);
 	}
 
@@ -762,11 +775,12 @@ void SckBase::saveConfig(bool defaults)
 
         } else {
 
-            if (!st.wifiSet) sckOut("Wifi not configured: can't set Network Mode!!!", PRIO_ERROR);
-            if (!st.tokenSet) sckOut("Token not configured: can't set Network Mode!!!", PRIO_ERROR);
+            if (!st.wifiSet) sckOut("Wi-Fi not configured: can't set Network Mode...", PRIO_ERROR);
+            if (!st.tokenSet) sckOut("Token not configured: can't set Network Mode...", PRIO_ERROR);
             ESPcontrol(ESP_OFF);
             led.update(led.BLUE, led.PULSE_ERROR);
             st.error = ERROR_NO_WIFI_CONFIG;
+
         }
 
     } else if (st.mode == MODE_SD) {
@@ -945,7 +959,10 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_ON:
 		{
-				if (st.espBooting || st.espON) return;
+				if (st.espBooting || st.espON) {
+                    sckOut("ESP already ON or booting. Ignoring");
+                    return;
+                }
 				digitalWrite(pinESP_CH_PD, HIGH);
 				digitalWrite(pinESP_GPIO0, HIGH);		// HIGH for normal mode
 				digitalWrite(pinPOWER_ESP, LOW);
@@ -958,7 +975,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				uint32_t startPoint = millis();
 				while (st.espBooting) {
 					if (millis() - startPoint > 1000) {
-						sckOut("ESP not starting!!!", PRIO_HIGH);
+						sckOut("ESP not starting", PRIO_HIGH);
 						st.error = ERROR_ESP;
 						break;
 					}
@@ -1237,7 +1254,7 @@ bool SckBase::sdInit()
         saveInfo();
         return true;
     }
-    sckOut("ERROR on Sd card Init!!!");
+    sckOut("Can't init Sd card", PRIO_ERROR);
     st.cardPresent = false;     // If we cant initialize sdcard, don't use it!
     return false;
 }
@@ -1494,7 +1511,7 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
 
     if (sckOFF) {
 
-        sprintf(outBuff, "Sleeping forever!!! (until a button click)");
+        sprintf(outBuff, "Sleeping forever (until a button click)");
         sckOut();
 
 #ifdef WITH_URBAN
@@ -1789,7 +1806,7 @@ void SckBase::updateSensors()
     uint32_t now = rtc.getEpoch();
 
     if (!rtc.isConfigured() || now < 1514764800) {
-        sckOut("RTC ERROR when updating sensors!!!", PRIO_LOW);
+        sckOut("RTC ERROR when updating sensors", PRIO_LOW);
         epoch2iso(now, ISOtimeBuff);
         st.timeStat.reset();
     }

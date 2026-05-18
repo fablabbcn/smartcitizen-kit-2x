@@ -361,12 +361,22 @@ void SckBase::reviewState()
                                 millis() - lastUserEvent < 1000         // User event in the last second, this shouldn't enter more than once because wifi error declaration takes a lot more than one second
                             ) {
 
+                            // Restart counter for retries
+                            if ((now - st.lastWiFiError) > config.offline.retry) {
+                                if (st.wifiErrorCounter > SC_MAX_WIFI_RETRIES) {
+                                    st.wifiErrorCounter = 0;
+                                }
+                            }
+
                             // Reset and try again
                             st.lastWiFiError = 0;
                             st.wifiStat.reset();
-                            sckOut("Retrying WiFi...");             // User feedback
 
-                            // Asume WiFi is down or not reachable
+                            // User feedback
+                            sprintf(outBuff, "Retrying Wi-Fi (%u/%u) attempts before going offline for %us...", st.wifiErrorCounter, SC_MAX_WIFI_RETRIES, config.offline.retry);
+                            sckOut();
+
+                        // Asume Wi-Fi is down or not reachable
                         } else {
 
                             if (st.espON) ESPcontrol(ESP_OFF);              // Save battery

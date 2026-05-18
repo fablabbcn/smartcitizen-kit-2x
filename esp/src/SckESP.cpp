@@ -42,7 +42,7 @@ void SckESP::setup()
     strncat(hostname, tailMacAddr.c_str(), 4);
 
     WiFi.hostname(hostname);
-    WiFi.persistent(false);             // Only write to flash credentials when changed (for protecting flash from wearing out)
+    WiFi.persistent(false); // Only write to flash credentials when changed (for protecting flash from wearing out)
 
     loadConfig();
     currentWIFIStatus = WiFi.status();
@@ -58,6 +58,7 @@ void SckESP::setup()
     MQTTclient.setKeepAlive(MQTT_KEEP_ALIVE);
     MQTTclient.setBufferSize(MQTT_BUFF_SIZE);
 }
+
 void SckESP::update()
 {
     if (bootedPending) {
@@ -82,7 +83,7 @@ void SckESP::update()
                 // On every connection we check RSSI and send it
                 char charRSSI[8];
                 snprintf(charRSSI, 8, "%i", getRSSI());
-				
+
                 ledSet(1);
                 serSAM.send(SAMMES_WIFI_CONNECTED, charRSSI);
 				break;
@@ -99,7 +100,7 @@ void SckESP::update()
 				serSAM.send(SAMMES_PASS_ERROR, "");
 				break;
 			}
-			case WL_NO_SSID_AVAIL: 
+			case WL_NO_SSID_AVAIL:
 			{
 				ledBlink(LED_FAST);
 				serSAM.send(SAMMES_SSID_ERROR, "");
@@ -107,13 +108,16 @@ void SckESP::update()
 			}
 			case WL_DISCONNECTED:
 			{
-				if (config.credentials.set && WiFi.getMode() != WIFI_AP) ledBlink(LED_SLOW);
+                // Module is not configured in station mode
+				if (config.credentials.set && WiFi.getMode() != WIFI_AP) {
+                    ledBlink(LED_SLOW);
+                }
 				else ledBlink(LED_FAST);
 				break;
 			}
-			default: 
+			default:
 			{
-				ledBlink(LED_FAST); 
+				ledBlink(LED_FAST);
 				serSAM.send(SAMMES_WIFI_UNKNOWN_ERROR, "");
 				break;
 			}
@@ -825,7 +829,7 @@ bool SckESP::saveConfig()
 	json["ns"] = config.ntp.server;
 	json["np"] = config.ntp.port;
     json["lb"] = config.ledBrightness;
-		
+
     File configFile = SPIFFS.open(configFileName, "w");
     if (configFile) {
         serializeJson(json, configFile);
@@ -853,7 +857,7 @@ bool SckESP::loadConfig()
 		JsonObject json = jsonBuffer.as<JsonObject>();
 
 		if (json) {
-			
+
 			if (json.containsKey("cs")) config.credentials.set = json["cs"];
 			if (json.containsKey("ss")) strcpy(config.credentials.ssid, json["ss"]);
 			if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);

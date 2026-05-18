@@ -11,7 +11,7 @@
 #include <LinkedList.h>
 
 #include "SdFat.h"
-#define DISABLE_CHIP_SELECT pinCS_FLASH 
+#define DISABLE_CHIP_SELECT pinCS_FLASH
 
 #include "Pins.h"
 #include "SckLed.h"
@@ -263,7 +263,7 @@ class SckBase
 		AllCommands commands;
 
 		// Sd card Storage
-        FsFile sckFile;   // FAT16/FAT32 and exFAT support. For only FAT16/32 use "File32 sckFile;" (saves some flash). Also remember to change SdFs 
+        FsFile sckFile;   // FAT16/FAT32 and exFAT support. For only FAT16/32 use "File32 sckFile;" (saves some flash). Also remember to change SdFs
         #define SD_CONFIG_NAME  "CONFIG.TXT"
         #define SD_DEBUG_NAME   "DEBUG.TXT"
         #define SD_SPEED_NAME   "SPEED.TXT"
@@ -295,9 +295,9 @@ class SckBase
 
 		const char *modeTitles[MODE_COUNT] PROGMEM = {
 			"not configured",		// modeTitles[MODE_NOT_CONFIGURED]
-			"network",			// modeTitles[MODE_NET]
-			"sdcard",			// modeTitles[MODE_SD]
-			"sleep"				// modeTitles[MODE_SLEEP]
+			"network",				// modeTitles[MODE_NET]
+			"sdcard",				// modeTitles[MODE_SD]
+			"sleep"					// modeTitles[MODE_SLEEP]
 		};
 
 #ifdef TESTING

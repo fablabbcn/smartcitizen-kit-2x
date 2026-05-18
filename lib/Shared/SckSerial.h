@@ -56,11 +56,11 @@ private:
 	void debugPln(char *msg, bool force= false);
 
 public:
-	SckSerial(HardwareSerial& _s): _serial(_s) { 
-		_serial = _s; 
+	SckSerial(HardwareSerial& _s): _serial(_s) {
+		_serial = _s;
 	}
 	void begin(uint32_t bauds=115200);
-	bool send(SCKMessage wichMessage); 
+	bool send(SCKMessage wichMessage);
 	bool send(SCKMessage wichMessage, const char *content);
 	void sendACK();
 	bool receive();

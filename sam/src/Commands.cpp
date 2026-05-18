@@ -198,11 +198,11 @@ void sensorConfig_com(SckBase* base, String parameters)
 #endif
 #ifdef WITH_SEN5X
         // SEN5X sensors are grouped in sen5x_pm, sen5x_pn, sen5x_th, sen5x_voc and sen5x_nox
-        SensorType sen5x_pm[] = { SENSOR_SEN5X_PM_1, SENSOR_SEN5X_PM_25, SENSOR_SEN5X_PM_4, SENSOR_SEN5X_PM_10}; 
+        SensorType sen5x_pm[] = { SENSOR_SEN5X_PM_1, SENSOR_SEN5X_PM_25, SENSOR_SEN5X_PM_4, SENSOR_SEN5X_PM_10};
         SensorType sen5x_pn[] = { SENSOR_SEN5X_PN_05, SENSOR_SEN5X_PN_1, SENSOR_SEN5X_PN_25, SENSOR_SEN5X_PN_4, SENSOR_SEN5X_PN_10, SENSOR_SEN5X_TPSIZE };
-        SensorType sen5x_th[] = { SENSOR_SEN5X_TEMPERATURE, SENSOR_SEN5X_HUMIDITY, SENSOR_SEN5X_TEMPERATURE_RAW, SENSOR_SEN5X_HUMIDITY_RAW }; 
-        SensorType sen5x_voc[] = { SENSOR_SEN5X_VOCS_IDX, SENSOR_SEN5X_VOCS_RAW }; 
-        SensorType sen5x_nox[] = { SENSOR_SEN5X_NOX_IDX, SENSOR_SEN5X_NOX_RAW }; 
+        SensorType sen5x_th[] = { SENSOR_SEN5X_TEMPERATURE, SENSOR_SEN5X_HUMIDITY, SENSOR_SEN5X_TEMPERATURE_RAW, SENSOR_SEN5X_HUMIDITY_RAW };
+        SensorType sen5x_voc[] = { SENSOR_SEN5X_VOCS_IDX, SENSOR_SEN5X_VOCS_RAW };
+        SensorType sen5x_nox[] = { SENSOR_SEN5X_NOX_IDX, SENSOR_SEN5X_NOX_RAW };
         SensorType *sen5x_sensors[] = { sen5x_pm, sen5x_pn, sen5x_th, sen5x_voc, sen5x_nox };
         uint8_t senGroup_size[] = { 4, 6, 4, 2, 2 };
 
@@ -236,7 +236,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 #ifdef WITH_PMS
                 // Just for PM/PN enable the rest of sensors in the same group
                 for (uint8_t i=0; i<groupToChange_size; i++) {
-                    
+
                     // Avoid enabling same sensor twice
                     if (sensorToChange == groupToChange[i]) continue;
 
@@ -295,7 +295,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 
                 // Avoid enabling same sensor twice
                 if (sensorToChange == groupToChange[i]) continue;
-                
+
                 // Disable them in runtime
                 base->sensors[groupToChange[i]].enabled = false;
 
@@ -312,7 +312,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 
                 // Avoid enabling same sensor twice
                 if (sensorToChange == senGroupToChange[i]) continue;
-            
+
                 // Enable them in runtime
                 base->sensors[senGroupToChange[i]].enabled = false;
 
@@ -380,7 +380,7 @@ void sensorConfig_com(SckBase* base, String parameters)
                     }
                     alreadyPrinted = true;
                 }
- 
+
                 // If smallest interval is less than warmUp period we will force continous mode on SEN5X
                 // Still one Issue exists: if the general readInterval is changed (via the config command) and the new calculatedInterval results small, we don't notice it because this code is not executed. For now the workaround is to change first the general readInt and then the individual sensor interval. Makes more sense to do it this way.
                 int totalWarmUpPeriod = base->urban.sck_sen5x.warmUpPeriod[0] + base->urban.sck_sen5x.warmUpPeriod[1];

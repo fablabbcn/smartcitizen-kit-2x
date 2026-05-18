@@ -1038,55 +1038,54 @@ void SckBase::ESPbusUpdate()
 	switch(serESP.msg) {
 		case SAMMES_SET_CONFIG:
 		{
-				sckOut("Received new config from ESP");
-				StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
-				deserializeJson(jsonBuffer, serESP.buff);
-				JsonObject json = jsonBuffer.as<JsonObject>();
+            sckOut("Received new config from ESP");
+            StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+            deserializeJson(jsonBuffer, serESP.buff);
+            JsonObject json = jsonBuffer.as<JsonObject>();
 
-				if (json.containsKey("mo")) {
-					String stringMode = json["mo"];
-					if (stringMode.startsWith("net")) config.mode = MODE_NET;
-					else if (stringMode.startsWith("sd")) config.mode = MODE_SD;
-				} else config.mode = MODE_NOT_CONFIGURED;
+            if (json.containsKey("mo")) {
+                String stringMode = json["mo"];
+                if (stringMode.startsWith("net")) config.mode = MODE_NET;
+                else if (stringMode.startsWith("sd")) config.mode = MODE_SD;
+            } else config.mode = MODE_NOT_CONFIGURED;
 
-				if (json.containsKey("pi")) {
-					if (json["pi"] > SC_MIN_PUB_INTERVAL && json["pi"] < SC_MAX_PUB_INTERVAL)	config.publishInterval = json["pi"];
-				} else config.publishInterval = SC_DEFAULT_PUB_INTERVAL;
+            if (json.containsKey("pi")) {
+                if (json["pi"] > SC_MIN_PUB_INTERVAL && json["pi"] < SC_MAX_PUB_INTERVAL)	config.publishInterval = json["pi"];
+            } else config.publishInterval = SC_DEFAULT_PUB_INTERVAL;
 
-				if (json.containsKey("ss")) {
-					config.credentials.set = true;
-					strcpy(config.credentials.ssid, json["ss"]);
-					if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
-				} else config.credentials.set = false;
+            if (json.containsKey("ss")) {
+                config.credentials.set = true;
+                strcpy(config.credentials.ssid, json["ss"]);
+                if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
+            } else config.credentials.set = false;
 
 
-				if (json.containsKey("to")) {
-					config.token.set = true;
-					strcpy(config.token.token, json["to"]);
-				} else config.token.set = false;
+            if (json.containsKey("to")) {
+                config.token.set = true;
+                strcpy(config.token.token, json["to"]);
+            } else config.token.set = false;
 
-				st.helloPending = true;
-				saveConfig();
-				break;
-
+            st.helloPending = true;
+            saveConfig();
+            break;
 		}
 		case SAMMES_NETINFO:
 		{
-				StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
-				deserializeJson(jsonBuffer, serESP.buff);
-				JsonObject json = jsonBuffer.as<JsonObject>();
+            StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
+            deserializeJson(jsonBuffer, serESP.buff);
+            JsonObject json = jsonBuffer.as<JsonObject>();
 
-				ipAddress = json["ip"].as<String>();
+            ipAddress = json["ip"].as<String>();
 
-				sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nAP MAC address: %s\r\nSTA MAC address: %s", hostname, ipAddress.c_str(), config.mac.address, config.mac.staaddress);
-				sckOut();
-				sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
-				sckOut();
+            sprintf(outBuff, "\r\nHostname: %s\r\nIP address: %s\r\nAP MAC address: %s\r\nSTA MAC address: %s", hostname, ipAddress.c_str(), config.mac.address, config.mac.staaddress);
+            sckOut();
+            sprintf(outBuff, "ESP version: %s\r\nESP build date: %s", ESPversion.c_str(), ESPbuildDate.c_str());
+            sckOut();
 
-				break;
+            break;
 		}
 		case SAMMES_WIFI_CONNECTED:
-
+		{
 			st.wifiStat.setOk();
             sensors[SENSOR_RSSI].reading = serESP.buff;
             lastRSSIUpdate = rtc.getEpoch();
@@ -1097,79 +1096,79 @@ void SckBase::ESPbusUpdate()
 				if (ESPsend(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
 			}
 			break;
-
+		}
 		case SAMMES_SSID_ERROR:
-
+		{
 			sckOut("Access point not found", PRIO_ERROR);
 			st.wifiStat.error = true;
 			st.error = ERROR_AP;
 			break;
-
+		}
 		case SAMMES_PASS_ERROR:
-
+		{
 			sckOut("Wrong wifi password", PRIO_ERROR);
 			st.wifiStat.error = true;
 			st.error = ERROR_PASS;
 			break;
-
+		}
 		case SAMMES_WIFI_UNKNOWN_ERROR:
-
+		{
 			sckOut("Unknown wifi error", PRIO_ERROR);
 			st.wifiStat.error = true;
 			st.error = ERROR_WIFI_UNKNOWN;
 			break;
-
+		}
 		case SAMMES_TIME:
 		{
-				String strTime = String(serESP.buff);
-				setTime(strTime);
-				saveInfo();
-				break;
+            String strTime = String(serESP.buff);
+            setTime(strTime);
+            saveInfo();
+            break;
 		}
 		case SAMMES_MQTT_HELLO_OK:
 		{
-				st.helloPending = false;
-				st.helloStat.setOk();
-				sckOut("Hello OK!!");
-				break;
+            st.helloPending = false;
+            st.helloStat.setOk();
+            sckOut("Hello OK!!");
+            break;
 		}
 		case SAMMES_MQTT_PUBLISH_OK:
-
+		{
 			st.publishStat.setOk();
 			break;
-
+		}
 		case SAMMES_MQTT_PUBLISH_ERROR:
-
+		{
 			sckOut("MQTT publish failed", PRIO_ERROR);
 			st.publishStat.error = true;
 			st.error = ERROR_MQTT;
 			break;
-
+		}
 		case SAMMES_MQTT_INFO_OK:
-
+		{
 			st.infoStat.setOk();
 			infoPublished = true;
 			sckOut("Info publish OK!!");
 			break;
-
+		}
 		case SAMMES_MQTT_INFO_ERROR:
-
+		{
 			st.infoStat.error = true;
 			sckOut("Info publish failed", PRIO_ERROR);
 			st.error = ERROR_MQTT;
 			break;
-
+		}
 		case SAMMES_MQTT_CUSTOM_OK:
-
+		{
 			sckOut("Custom MQTT publish OK!!");
 			break;
-
+		}
 		case SAMMES_MQTT_CUSTOM_ERROR:
-
+		{
 			sckOut("Custom MQTT publish failed", PRIO_ERROR);
 			st.error = ERROR_MQTT;
 			break;
-
+		}
 		case SAMMES_BOOTED:
 		{
 			sckOut("ESP finished booting");

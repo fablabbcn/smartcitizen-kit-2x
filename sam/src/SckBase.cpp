@@ -1158,6 +1158,7 @@ void SckBase::ESPbusUpdate()
 			sckOut("ESP finished booting");
 
 			st.espBooting = false;
+            st.espON = true;
 
 			StaticJsonDocument<NETBUFF_SIZE> jsonBuffer;
 			deserializeJson(jsonBuffer, serESP.buff);

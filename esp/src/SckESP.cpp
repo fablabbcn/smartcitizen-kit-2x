@@ -217,7 +217,7 @@ void SckESP::SAMbusUpdate()
 
         case ESPMES_MQTT_HELLO:
 
-			if (mqttHellow()) serSAM.send(SAMMES_MQTT_HELLO_OK, "");
+			if (mqttHello()) serSAM.send(SAMMES_MQTT_HELLO_OK, "");
 			break;
 
 		case ESPMES_MQTT_PUBLISH:
@@ -327,7 +327,7 @@ bool SckESP::mqttConnect()
         return false;
     }
 }
-bool SckESP::mqttHellow()
+bool SckESP::mqttHello()
 {
     debugOUT(F("Trying MQTT Hello..."));
 

@@ -916,12 +916,16 @@ time_t SckESP::getNtpTime()
 {
     IPAddress ntpServerIP;
 
-    while (Udp.parsePacket() > 0) ; // discard any previously received packets
+    // discard any previously received packets
+    while (Udp.parsePacket() > 0) {
+        yield(); // feed the WiFi stack during the wait
+    }
     WiFi.hostByName(config.ntp.server, ntpServerIP);
 
     sendNTPpacket(ntpServerIP);
     uint32_t beginWait = millis();
     while (millis() - beginWait < 1500) {
+        yield(); // feed the WiFi stack during the wait
         int size = Udp.parsePacket();
         if (size >= 48) {
             Udp.read(packetBuffer, 48);  // read packet into the buffer

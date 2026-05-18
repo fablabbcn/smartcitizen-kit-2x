@@ -40,6 +40,8 @@ enum SCKMessage {
     SAMMES_MQTT_CUSTOM_ERROR,   // 28 ESP->SAM, On MQQT custom publish error
     SAMMES_SET_CONFIG,          // 29 ESP->SAM, Sends new config
     SAMMES_RSSI,                // 30 ESP->SAM, Sends RSSI value
+	SAMMES_CONNECT_FAILED,      // 31 ESP->SAM, On wifi disconnect
+
 
     SCKMES_COUNT
 };

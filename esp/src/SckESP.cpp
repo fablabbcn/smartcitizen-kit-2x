@@ -87,12 +87,18 @@ void SckESP::update()
                 serSAM.send(SAMMES_WIFI_CONNECTED, charRSSI);
 				break;
 			}
-			case WL_CONNECT_FAILED: 
+			case WL_WRONG_PASSWORD:
 			{
-				ledBlink(LED_FAST); 
-				serSAM.send(SAMMES_PASS_ERROR, ""); 
+				ledBlink(LED_FAST);
+				serSAM.send(SAMMES_PASS_ERROR, "");
 				break;
-			} 
+			}
+			case WL_CONNECT_FAILED:
+			{
+				ledBlink(LED_FAST);
+				serSAM.send(SAMMES_PASS_ERROR, "");
+				break;
+			}
 			case WL_NO_SSID_AVAIL: 
 			{
 				ledBlink(LED_FAST);

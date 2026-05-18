@@ -427,8 +427,8 @@ uint8_t SckTest::test_UVA()
         SerialUSB.println("ERROR reading UVA sensor");
         error = 1;
     } else {
-        test_report.tests[SENSOR_AS7331_UVA] = testBase->sensors[SENSOR_AS7331_UVA].reading.toFloat();
-        sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_AS7331_UVA].title, test_report.tests[SENSOR_AS7331_UVA], testBase->sensors[SENSOR_AS7331_UVA].unit);
+        test_report.tests[TEST_UVA] = testBase->sensors[SENSOR_AS7331_UVA].reading.toFloat();
+        sprintf(testBase->outBuff, "%s: %.2f %s", testBase->sensors[SENSOR_AS7331_UVA].title, test_report.tests[TEST_UVA], testBase->sensors[SENSOR_AS7331_UVA].unit);
         SerialUSB.println(testBase->outBuff);
         SerialUSB.println("UVA sensor test finished OK");
     }

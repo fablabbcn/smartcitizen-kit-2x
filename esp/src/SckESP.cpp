@@ -136,6 +136,7 @@ void SckESP::tryConnection()
         String tp = String(config.credentials.pass);
         if (tp.length() == 0) WiFi.begin(config.credentials.ssid);
         else WiFi.begin(config.credentials.ssid, config.credentials.pass);
+        WiFi.setAutoReconnect(true);
 
     } else {
         debugOUT(String F("Already connected to wifi: ") + String(WiFi.SSID()));

@@ -1091,7 +1091,7 @@ void SckBase::ESPbusUpdate()
             sensors[SENSOR_RSSI].reading = serESP.buff;
             lastRSSIUpdate = rtc.getEpoch();
 
-			snprintf(outBuff, 240, "Connected to wifi!!- RSSI: %s", serESP.buff);
+			snprintf(outBuff, 240, "Connected to Wi-Fi!!- RSSI: %s", serESP.buff);
             sckOut();
 			if (!timeSyncAfterBoot) {
 				if (ESPsend(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
@@ -1100,21 +1100,21 @@ void SckBase::ESPbusUpdate()
 
 		case SAMMES_SSID_ERROR:
 
-			sckOut("Access point not found!!", PRIO_ERROR);
+			sckOut("Access point not found", PRIO_ERROR);
 			st.wifiStat.error = true;
 			st.error = ERROR_AP;
 			break;
 
 		case SAMMES_PASS_ERROR:
 
-			sckOut("Wrong wifi password!!", PRIO_ERROR);
+			sckOut("Wrong wifi password", PRIO_ERROR);
 			st.wifiStat.error = true;
 			st.error = ERROR_PASS;
 			break;
 
 		case SAMMES_WIFI_UNKNOWN_ERROR:
 
-			sckOut("Unknown wifi error!!", PRIO_ERROR);
+			sckOut("Unknown wifi error", PRIO_ERROR);
 			st.wifiStat.error = true;
 			st.error = ERROR_WIFI_UNKNOWN;
 			break;
@@ -1140,7 +1140,7 @@ void SckBase::ESPbusUpdate()
 
 		case SAMMES_MQTT_PUBLISH_ERROR:
 
-			sckOut("MQTT publish failed!!", PRIO_ERROR);
+			sckOut("MQTT publish failed", PRIO_ERROR);
 			st.publishStat.error = true;
 			st.error = ERROR_MQTT;
 			break;
@@ -1155,7 +1155,7 @@ void SckBase::ESPbusUpdate()
 		case SAMMES_MQTT_INFO_ERROR:
 
 			st.infoStat.error = true;
-			sckOut("Info publish failed!!", PRIO_ERROR);
+			sckOut("Info publish failed", PRIO_ERROR);
 			st.error = ERROR_MQTT;
 			break;
 
@@ -1166,7 +1166,7 @@ void SckBase::ESPbusUpdate()
 
 		case SAMMES_MQTT_CUSTOM_ERROR:
 
-			sckOut("Custom MQTT publish failed!!", PRIO_ERROR);
+			sckOut("Custom MQTT publish failed", PRIO_ERROR);
 			st.error = ERROR_MQTT;
 			break;
 

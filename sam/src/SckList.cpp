@@ -535,7 +535,8 @@ bool SckList::_countSectGroups(uint16_t wichSector, SectorInfo* info)
 
         // Find out groupSize
         uint16_t groupSize = flash.readWord(address);
-        if (groupSize == 0xFFFF) break;     // If GroupSize is not yet written that means no valid group is present
+        if (groupSize == 0xFFFF) break;  // end of written data
+        if (groupSize == 0)      return false;  // corrupt: zero size would spin forever
 
         // Store group state
         // get NET flag
@@ -574,7 +575,8 @@ int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte p
 
         // Find out groupSize
         uint16_t groupSize = flash.readWord(address);
-        if (groupSize == 0xFFFF) break;     // If GroupSize is not yet written that means no valid group is present
+        if (groupSize == 0xFFFF) break;  // end of written data
+        if (groupSize == 0)      return -1;  // corrupt: zero size would spin forever
 
         // Check if group is NOT published
         byte byteFlags = flash.readByte(address + addPositionFlag);
@@ -718,6 +720,17 @@ SckList::GroupIndex SckList::saveGroup()
     byte finit = 0xFF;
     memcpy(&flashBuff[GROUP_NET], &finit, 1);
     memcpy(&flashBuff[GROUP_SD], &finit, 1);
+
+    // Reject groups with no valid timestamp. epoch 0 means the RTC has never been set (SAMD21
+    // RTCZero initialises to 0 on first power-on without a battery-backed RTC). Storing such
+    // groups creates permanently wrong entries on the API (year 2000 timestamps) that cannot
+    // be corrected retroactively. The existing timeSyncAfterBoot flag in SckBase already tracks
+    // whether the clock has been synchronised; this guard enforces the same constraint at the
+    // storage layer so it holds regardless of call site.
+    if (base->lastSensorUpdate == 0) {
+        if (debug) base->sckOut("F: Skipping group save — RTC not yet set (epoch 0)");
+        return {-1,-1,0};
+    }
 
     // Store timeStamp of current group
     memcpy(&flashBuff[GROUP_TIME], &base->lastSensorUpdate, 4);     // Write timeStamp (4 bytes)

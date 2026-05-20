@@ -52,6 +52,31 @@ bool SckList::_flashFormat()
 }
 
 // Read/Write functions
+bool SckList::_write(uint32_t wichAddr, char value)
+{
+    // Validate the target address before writing:
+    // - inside the current sector we must stay at or before _addr
+    // - inside any other sector the sector must not be empty (erased)
+    uint16_t wichSector = wichAddr / SECTOR_SIZE;
+    bool outOfBounds = false;
+    if (wichSector == (uint16_t)_currSector) {
+        if (wichAddr > _addr) outOfBounds = true;
+    } else {
+        if (_getSectState(wichSector) == SECTOR_EMPTY) outOfBounds = true;
+    }
+    if (outOfBounds) {
+        sprintf(base->outBuff, "F: Boundary error writing on flash address %lu (sector %u)", wichAddr, wichSector);
+        base->sckOut();
+        return false;
+    }
+
+    if (!flash.writeByte(wichAddr, value)) {
+        sprintf(base->outBuff, "F: Hardware error writing on flash address %lu", wichAddr);
+        base->sckOut();
+        return false;
+    }
+    return true;
+}
 bool SckList::_append(char value)
 {
     if (!flash.writeByte(_addr, value)) {
@@ -108,7 +133,7 @@ int8_t SckList::_setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
     if (_dataAvailableSect[wichFlag] == _currSector && wichGroup.group == _lastGroup.group) availableReadings[wichFlag] = false;
 
     // And write flags byte back
-    return flash.writeByte(flagsAddr, PUBLISHED);
+    return _write(flagsAddr, PUBLISHED);
 }
 int8_t SckList::_isGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 {
@@ -220,7 +245,7 @@ int8_t SckList::_setSectPublished(uint16_t wichSector, PubFlags wichFlag)
     if (_countSectGroups(wichSector, wichFlag, NOT_PUBLISHED) > 0) return -1;
 
     // And write flags byte
-    if (!flash.writeByte(flagsAddr, PUBLISHED)) return -1;
+    if (!_write(flagsAddr, PUBLISHED)) return -1;
 
 
     if (debug) {
@@ -236,7 +261,7 @@ int8_t SckList::_setSectPublished(uint16_t wichSector, PubFlags wichFlag)
 int8_t SckList::_closeSector(uint16_t wichSector)
 {
     // Mark sector as full
-    flash.writeByte(_getSectAddr(wichSector), SECTOR_USED);
+    _write(_getSectAddr(wichSector), SECTOR_USED);
 
 
     // Erase next sector and start using it

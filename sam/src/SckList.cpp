@@ -247,8 +247,10 @@ int8_t SckList::_closeSector(uint16_t wichSector)
     }
 
     // If no readings left, mark sector as published (_setSectPublished() will check if all readings are published)
-    _setSectPublished(_currSector - 1, PUB_NET);
-    _setSectPublished(_currSector - 1, PUB_SD);
+    // Use the wichSector parameter (the sector we just closed) rather than (_currSector - 1): when _currSector
+    // wraps from SCKLIST_SECTOR_NUM-1 to 0 the subtraction underflows to 0xFFFF as uint16_t.
+    _setSectPublished(wichSector, PUB_NET);
+    _setSectPublished(wichSector, PUB_SD);
 
     return 1;
 }
@@ -727,8 +729,11 @@ SckList::GroupIndex SckList::saveGroup()
                 enabledSensors++;
             }
         }
-        if (enabledSensors == 0) return {-1,-1,0};
     }
+    // Guard placed after iterating ALL sensors. The previous position was inside the for-loop body,
+    // causing an immediate early-return when sensor index 0 happened to be disabled or produce a
+    // null reading, silently discarding every subsequent sensor in the list.
+    if (enabledSensors == 0) return {-1,-1,0};
     if (debug) base->sckOut("<-");
 
     // Save group size at the begining of the group

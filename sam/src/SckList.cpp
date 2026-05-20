@@ -1118,18 +1118,80 @@ uint32_t SckList::getFlashCapacity()
 }
 bool SckList::testFlash()
 {
-    String writeSRT = "testing the flash!";
+    // Use the last sector before the reserved area as a scratch sector so that
+    // the test never touches sector 0 (which may hold the current write cursor)
+    // or any sector that could contain live unpublished readings.
+    const uint16_t TEST_SECTOR = SCKLIST_SECTOR_NUM - 1;
+    const uint32_t BASE = _getSectAddr(TEST_SECTOR);
 
-    // Inside first sector
-    uint32_t fAddress = 1000;
-    flash.writeStr(fAddress, writeSRT);
+    SerialUSB.print("F: testFlash using sector ");
+    SerialUSB.println(TEST_SECTOR);
 
-    String readSTR;
-    flash.readStr(fAddress, readSTR);
+    // ── 1. Erase the scratch sector ────────────────────────────────────────
+    flash.eraseSector(BASE);
 
-    // Erase first sector to leave it clean
-    flash.eraseSector(_getSectAddr(0));
+    // Verify erase leaves 0xFF in the first few bytes
+    for (uint8_t i = 0; i < 8; i++) {
+        if (flash.readByte(BASE + i) != 0xFF) {
+            SerialUSB.println("F: testFlash FAIL — sector not blank after erase");
+            return false;
+        }
+    }
 
-    if (!readSTR.equals(writeSRT)) return false;
+    // ── 2. Byte write / read-back ───────────────────────────────────────────
+    const uint8_t BYTE_PATTERN = 0xA5;
+    flash.writeByte(BASE, BYTE_PATTERN);
+    if (flash.readByte(BASE) != BYTE_PATTERN) {
+        SerialUSB.println("F: testFlash FAIL — byte write/read mismatch");
+        flash.eraseSector(BASE);
+        return false;
+    }
+
+    // ── 3. readWord — the critical primitive used by _getGrpAddr / _getSectFreeSpace ──
+    // Write two known bytes and verify readWord returns them little-endian
+    flash.eraseSector(BASE);
+    flash.writeByte(BASE,     0x34);
+    flash.writeByte(BASE + 1, 0x12);
+    uint16_t word = flash.readWord(BASE);
+    if (word != 0x1234) {
+        SerialUSB.print("F: testFlash FAIL — readWord returned 0x");
+        SerialUSB.println(word, HEX);
+        flash.eraseSector(BASE);
+        return false;
+    }
+
+    // ── 4. readULong — used for timestamp reads ────────────────────────────
+    flash.eraseSector(BASE);
+    flash.writeByte(BASE,     0x78);
+    flash.writeByte(BASE + 1, 0x56);
+    flash.writeByte(BASE + 2, 0x34);
+    flash.writeByte(BASE + 3, 0x12);
+    uint32_t ulong = flash.readULong(BASE);
+    if (ulong != 0x12345678UL) {
+        SerialUSB.print("F: testFlash FAIL — readULong returned 0x");
+        SerialUSB.println(ulong, HEX);
+        flash.eraseSector(BASE);
+        return false;
+    }
+
+    // ── 5. Sequential write across sector boundary ─────────────────────────
+    // Write a 19-byte string near the end of the sector to make sure multi-byte
+    // operations don't silently truncate at the boundary.
+    flash.eraseSector(BASE);
+    const char* MSG = "boundary-test-msg";   // 17 chars + null = 18 bytes
+    uint32_t nearEnd = BASE + SECTOR_SIZE - 20;
+    flash.writeStr(nearEnd, String(MSG));
+    String readBack;
+    flash.readStr(nearEnd, readBack);
+    if (!readBack.equals(MSG)) {
+        SerialUSB.println("F: testFlash FAIL — near-boundary string write/read mismatch");
+        flash.eraseSector(BASE);
+        return false;
+    }
+
+    // ── 6. Clean up ────────────────────────────────────────────────────────
+    flash.eraseSector(BASE);
+
+    SerialUSB.println("F: testFlash PASS");
     return true;
 }

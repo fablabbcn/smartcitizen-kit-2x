@@ -79,6 +79,8 @@ bool SckList::_getGrpAddr(GroupIndex* wichGroup)
             return true;
         }
         uint16_t groupSize = flash.readWord(address);
+        if (groupSize == 0xFFFF) break;  // end of written data
+        if (groupSize == 0)      return false;  // corrupt: zero size would spin forever
 
         address += groupSize;
         groupCount++;
@@ -142,7 +144,9 @@ uint8_t SckList::_countReadings(GroupIndex wichGroup)
     uint8_t readingCounter = 0;
 
     while (readingAddr < finalGrpAddr) {
-        readingAddr += flash.readByte(readingAddr);
+        uint8_t readSize = flash.readByte(readingAddr);
+        if (readSize == 0) break;  // corrupt: zero size would spin forever
+        readingAddr += readSize;
         readingCounter++;
     }
 

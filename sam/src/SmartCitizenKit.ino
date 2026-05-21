@@ -40,6 +40,14 @@ void ISR_sdDetect()
     base.sdInitPending = true;
 }
 
+// Charger / USB interrupt (BQ24259 INT pin, active-low open-drain).
+// Fires on VBUS connect/disconnect and fault condition changes.
+// The body is intentionally empty: the sole purpose of registering this
+// ISR is to allow the EIC to wake the MCU from STANDBY when the charger
+// asserts INT. updatePower() / detectUSB() polls the charger IC via I2C
+// on every wakeup tick and handles the actual state change.
+void ISR_charger() {}
+
 // void ISR_alarm() {
 //  base.wakeUp();
 // };

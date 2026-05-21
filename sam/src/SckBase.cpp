@@ -32,12 +32,32 @@ void SckBase::setup()
 	// Internal I2C bus setup
 	Wire.begin();
 
-	// Button interrupt and wakeup
+	// Button interrupt and wakeup from STANDBY.
+	// configGCLK6() routes OSCULP32K (RUNSTDBY=1) to the EIC so that
+	// external interrupts can fire — and wake the MCU — during STANDBY.
+	// EIC->WAKEUP must be set for each pin that needs to wake from STANDBY.
 	pinMode(pinBUTTON, INPUT_PULLUP);
 	attachInterrupt(pinBUTTON, ISR_button, CHANGE);
 	EExt_Interrupts in = g_APinDescription[pinBUTTON].ulExtInt;
 	configGCLK6();
 	EIC->WAKEUP.reg |= (1 << in);
+
+	// SD card detect: the interrupt is registered in setup() below, but
+	// without the WAKEUP bit the MCU cannot be woken by card insertion or
+	// removal during STANDBY — it would only notice on the next RTC alarm.
+	EExt_Interrupts sdIn = g_APinDescription[pinCARD_DETECT].ulExtInt;
+	EIC->WAKEUP.reg |= (1 << sdIn);
+
+	// Charger / USB detect: the BQ24259 INT pin (active-low, open-drain)
+	// pulses when VBUS status changes, including USB plug-in and removal.
+	// Registering this interrupt allows the MCU to wake from STANDBY on
+	// USB insertion without polling, enabling a longer sleep period.
+	// ISR_charger() is defined in SckBatt.h; it sets a flag that
+	// updatePower() / detectUSB() consumes on the next wakeup tick.
+	pinMode(pinCHARGER_INT, INPUT_PULLUP);
+	attachInterrupt(pinCHARGER_INT, ISR_charger, FALLING);
+	EExt_Interrupts chgIn = g_APinDescription[pinCHARGER_INT].ulExtInt;
+	EIC->WAKEUP.reg |= (1 << chgIn);
 
 	// RTC setup
 	rtc.begin();

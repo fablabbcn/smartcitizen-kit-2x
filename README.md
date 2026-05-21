@@ -6,7 +6,7 @@
 
 Welcome to the Smart Citizen Kit main repository. Here you will find the hardware design files and the firmware for the SCK 2.1, SCK 2.2 and SCK 2.3 versions. [Click here for version 2.0](https://github.com/fablabbcn/smartcitizen-kit-20)
 
-![](https://live.staticflickr.com/65535/47950912168_fcf8fa398c_h.jpg)
+![]([https://live.staticflickr.com/65535/47950912168_fcf8fa398c_h.jpg](https://live.staticflickr.com/65535/54171392592_44797ea2b5_k.jpg))
 
 ## Documentation
 
@@ -15,14 +15,14 @@ Welcome to the Smart Citizen Kit main repository. Here you will find the hardwar
 * If you want to change something and build the firmware, use the [Building and flashing the Smart Citizen Kit firmware](https://docs.smartcitizen.me/guides/firmware/edit-the-firmware/) guide.
 * The SCK provides a comprehensive command shell over USB to manage all the kits functionalities for advanced users: [Using the Smartcitizen Kit shell](https://docs.smartcitizen.me/guides/getting-started/using-the-shell/) guide.
 * A compilation of Smartcitizen hardware work in a single **open publication:** [_Hardware X: Special Issue on Open-Hardware for Environmental Sensing and Instruments_](https://doi.org/10.1016/j.ohx.2019.e00070).
-* You can also follow the [forum](https://forum.smartcitizen.me/) for updates.
+* You can also follow the [forum](https://forum.smartcitizen.me/) for updates and ask questions there for support.
 
 ## Development
 
 In this repository you can find:
 
 * The Smart Citizen Kit hardware [design files](./hardware).
-* The [bootloader](bootloader) and [main firmware](./sam) (C++) for the SAMD21 microcontroller.
+* The [bootloader](./bootloader) and [main firmware](./sam) (C++) for the SAMD21 microcontroller.
 * The [main firmware](./esp) for the ESP8266 microcontroller.
 * A [mobile web UI](./mock-api) for setting up the kit.
 

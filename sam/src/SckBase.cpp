@@ -951,10 +951,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				st.espBooting = true;
 				espStarted = rtc.getEpoch();
 
-				// Wait for boot...
+				// Wait for boot. 1500 ms gives margin for slow boots
+				// (e.g. first boot after a flash write or RF calibration).
+				// The previous 1000 ms limit caused spurious ERROR_ESP on
+				// valid boots under load.
 				uint32_t startPoint = millis();
 				while (st.espBooting) {
-					if (millis() - startPoint > 1000) {
+					if (millis() - startPoint > 1500) {
 						sckOut("ESP not starting!!!", PRIO_HIGH);
 						st.error = ERROR_ESP;
 						break;

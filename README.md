@@ -6,7 +6,7 @@
 
 Welcome to the Smart Citizen Kit main repository. Here you will find the hardware design files and the firmware for the SCK 2.1, SCK 2.2 and SCK 2.3 versions. [Click here for version 2.0](https://github.com/fablabbcn/smartcitizen-kit-20)
 
-![]([https://live.staticflickr.com/65535/47950912168_fcf8fa398c_h.jpg](https://live.staticflickr.com/65535/54171392592_44797ea2b5_k.jpg))
+![](https://live.staticflickr.com/65535/47950912168_fcf8fa398c_h.jpg)
 
 ## Documentation
 

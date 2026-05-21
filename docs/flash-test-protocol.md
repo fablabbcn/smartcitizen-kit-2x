@@ -217,7 +217,9 @@ The Python tool (`flash_test.py`) implements the same algorithm and verifies it 
 
 ## 3. Python Validation Tool
 
-`flash_test.py` lives at the repository root alongside `make.py` and imports from the `tools/` submodule (specifically `sck.py` and `serialtools/serialdevice.py`) for device discovery and serial connection management.
+`flash_test.py` lives in the [`smartcitizen-tools`](https://github.com/fablabbcn/smartcitizen-tools) repository (also available as the `tools/` submodule of this repo). It imports `sck.py` and `serialtools/serialdevice.py` from the same repo for device discovery and serial connection management.
+
+Source: [`flash_test.py` in smartcitizen-tools](https://github.com/fablabbcn/smartcitizen-tools/blob/master/flash_test.py)
 
 ### Requirements
 
@@ -230,10 +232,14 @@ No additional dependencies beyond the Python standard library.
 ### Setup
 
 ```bash
-# ensure the tools submodule is available
+# Option A: use the tools submodule inside smartcitizen-kit-2x
 git submodule update --init tools
+cd tools
+python flash_test.py --help
 
-# connect the kit over USB, then:
+# Option B: clone smartcitizen-tools directly
+git clone https://github.com/fablabbcn/smartcitizen-tools.git
+cd smartcitizen-tools
 python flash_test.py --help
 ```
 
@@ -279,6 +285,7 @@ Run from the repository root with the kit connected over USB.
 ### Prerequisite check
 
 ```bash
+# Run from the smartcitizen-tools directory (or tools/ submodule)
 python flash_test.py read --addr 0x000000 --len 8
 ```
 

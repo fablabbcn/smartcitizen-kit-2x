@@ -1559,6 +1559,15 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
         rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
     }
 
+    // Disable the ADC analog frontend before entering STANDBY.
+    // When ADC->CTRLA.bit.ENABLE = 1 the bias generators and reference
+    // stay powered regardless of APB clock gating, drawing ~280 µA.
+    // Arduino's analogRead() enables the ADC and leaves it enabled.
+    // CTRLA settings are preserved while disabled, so no reconfiguration
+    // is needed on wakeup beyond re-asserting the ENABLE bit.
+    ADC->CTRLA.bit.ENABLE = 0;
+    while (ADC->STATUS.bit.SYNCBUSY);
+
     // Release SD card SPI session before sleeping. sd.end() calls
     // syncDevice() to flush any pending write state, then deactivates
     // the SPI driver.  Without this the SdFat library keeps an internal
@@ -1573,6 +1582,10 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     __DSB();
     __WFI();
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+
+    // Re-enable ADC so analogRead() works normally after wakeup.
+    ADC->CTRLA.bit.ENABLE = 1;
+    while (ADC->STATUS.bit.SYNCBUSY);
 
     // Re-initialise SD card after wakeup. sd.begin() sends CMD0 then the
     // SPI init sequence (~2 ms), transparent against the sleep period.

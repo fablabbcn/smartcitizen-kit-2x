@@ -505,6 +505,7 @@ bool SckList::_countSectGroups(uint16_t wichSector, SectorInfo* info)
         // Find out groupSize
         uint16_t groupSize = flash.readWord(address);
         if (groupSize == 0xFFFF) break;     // If GroupSize is not yet written that means no valid group is present
+        if (groupSize == 0) break;          // Corrupted entry — zero size would cause infinite loop
 
         // Store group state
         // get NET flag
@@ -544,6 +545,7 @@ int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte p
         // Find out groupSize
         uint16_t groupSize = flash.readWord(address);
         if (groupSize == 0xFFFF) break;     // If GroupSize is not yet written that means no valid group is present
+        if (groupSize == 0) return -1;      // Corrupted entry — zero size would cause infinite loop
 
         // Check if group is NOT published
         byte byteFlags = flash.readByte(address + addPositionFlag);

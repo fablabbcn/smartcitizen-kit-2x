@@ -1546,8 +1546,11 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 
 #ifdef WITH_URBAN
-    // Recover Noise sensor timer
-    REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
+    // Restore GCLK4 (feeds I2S for noise sensor, sourced from DFLL48M).
+    // Must include GCLK_GENCTRL_GENEN — writing ID alone clears the enable bit,
+    // which would silently disable GCLK4 and break the noise sensor after the
+    // first sleep cycle.
+    REG_GCLK_GENCTRL = GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_DFLL48M | GCLK_GENCTRL_ID(4);
     while (GCLK->STATUS.bit.SYNCBUSY);
 #endif
 }

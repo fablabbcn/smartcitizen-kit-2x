@@ -109,6 +109,16 @@ void SckBase::setup()
     digitalWrite(pinCS_FLASH, HIGH);
     pinMode(pinCARD_DETECT, INPUT_PULLUP);
 
+    // Board connector pins that are not assigned to any function are left
+    // floating by default. The Arduino SAMD21 core enables input buffers
+    // (PORT_PINCFG_INEN) on all pins during init(); a floating Schmitt
+    // trigger input can draw 5–30 µA per pin depending on the voltage it
+    // settles at. Pull them up so the input sees a defined logic level.
+    // An attached board can still pull any of these lines LOW.
+    pinMode(pinBOARD_CONN_3, INPUT_PULLUP);   // PA09 — unassigned
+    pinMode(pinBOARD_CONN_5, INPUT_PULLUP);   // PA08 — unassigned
+    pinMode(pinBOARD_CONN_7, INPUT_PULLUP);   // PA28 — unassigned
+
     // SD card
     sckOut("Setting up SDcard interrupt");
     attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);

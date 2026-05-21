@@ -97,6 +97,12 @@ class SckList
         uint32_t getFlashCapacity();
         bool testFlash();
 
+        // Raw flash access for testing/validation — requires shell mode active in caller.
+        // Output streams directly to SerialUSB; returns false on bad arguments.
+        bool flashRawRead(uint32_t addr, uint16_t len);
+        bool flashRawWrite(uint32_t addr, const uint8_t* data, uint16_t len);
+        bool flashRawErase(uint16_t sector);
+
     private:
 
 

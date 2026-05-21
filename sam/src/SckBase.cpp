@@ -1217,6 +1217,7 @@ bool SckBase::sdInit()
         if (size == 0) {
             sckOut("Can't determine the card size.");
             st.cardPresent = false;     // If we cant initialize sdcard, don't use it!
+            sd.end();                   // Release SPI session — state would be inconsistent otherwise
             return false;
         }
 
@@ -1235,6 +1236,7 @@ bool SckBase::sdInit()
     }
     sckOut("ERROR on Sd card Init!!!");
     st.cardPresent = false;     // If we cant initialize sdcard, don't use it!
+    sd.end();                   // Release SPI session — state would be inconsistent otherwise
     return false;
 }
 bool SckBase::sdDetect()

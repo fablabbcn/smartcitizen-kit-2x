@@ -1545,6 +1545,13 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
         rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
     }
 
+    // Release SD card SPI session before sleeping. sd.end() calls
+    // syncDevice() to flush any pending write state, then deactivates
+    // the SPI driver.  Without this the SdFat library keeps an internal
+    // "initialized" state that is inconsistent with the clock-gated SPI
+    // bus during STANDBY.  sd.begin() is called on wakeup to re-init.
+    if (st.cardPresent) sd.end();
+
     // Go to Sleep
     USBDevice.standby();
     SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
@@ -1552,6 +1559,15 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     __DSB();
     __WFI();
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+
+    // Re-initialise SD card after wakeup. sd.begin() sends CMD0 then the
+    // SPI init sequence (~2 ms), transparent against the sleep period.
+    if (st.cardPresent) {
+        if (!sd.begin(pinCS_SDCARD, SD_SCK_MHZ(50))) {
+            st.cardPresent = false;
+            st.cardPresentErrorPrinted = false;
+        }
+    }
 
 #ifdef WITH_URBAN
     // Restore GCLK4 (feeds I2S for noise sensor, sourced from DFLL48M).

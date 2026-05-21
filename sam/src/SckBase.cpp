@@ -1856,7 +1856,18 @@ void SckBase::updateDynamic(uint32_t now)
 }
 void SckBase::sleepLoop()
 {
-    uint16_t sleepPeriod = 3;                                           // Only sleep if
+    // Adaptive sleep period. The hardcoded 3 s forced 20 wakeups per
+    // 60 s read interval — each one burning ~25 ms of active current and
+    // triggering a visible LED flash. Now that SD card detect and charger
+    // INT are wired to EIC->WAKEUP, user events (button, card insert,
+    // USB plug) wake the MCU immediately without polling. The only
+    // remaining reason for periodic wakeup is battery voltage monitoring,
+    // which only needs checking every ~30 s.
+    //
+    // Formula: readInterval / 4 gives 4 wakeups per read cycle as a
+    // safety margin; clamped to [5, 30] s so very short or very long
+    // read intervals stay sensible.
+    uint16_t sleepPeriod = (uint16_t)constrain(config.readInterval / 4, 5, 30);
     uint32_t now = rtc.getEpoch();
     while (     (!timeToPublish) &&                                     // No publish pending
         (config.readInterval - (now - lastSensorUpdate) > (uint32_t)(sleepPeriod + 2)) &&       // No readings to take in the near future

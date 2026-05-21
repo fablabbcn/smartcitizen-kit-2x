@@ -1010,6 +1010,129 @@ void SckList::dumpSector(uint16_t wichSector, uint16_t howMany) // listo
     }
     SerialUSB.println("");
 }
+
+// ---------------------------------------------------------------------------
+// CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) — used by raw flash commands
+// ---------------------------------------------------------------------------
+static uint16_t _crc16Update(uint16_t crc, uint8_t byte)
+{
+    crc ^= (uint16_t)byte << 8;
+    for (uint8_t i = 0; i < 8; i++)
+        crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : (crc << 1);
+    return crc;
+}
+
+// flash -read <addr_hex> <len>
+// Streams flash contents to SerialUSB as hex-encoded chunks.
+// Protocol (machine-parseable):
+//   DATA <ADDR_HEX> <HEX_BYTES>   (64 bytes per line)
+//   OK <TOTAL_BYTES> CRC16:0x<CRC_HEX>
+// On error:
+//   ERROR <reason>
+bool SckList::flashRawRead(uint32_t addr, uint16_t len)
+{
+    if (len == 0 || len > 4096) {
+        SerialUSB.println("ERROR len must be 1-4096");
+        return false;
+    }
+    if ((uint32_t)addr + len > SCKLIST_FLASH_SIZE) {
+        SerialUSB.println("ERROR address range out of bounds");
+        return false;
+    }
+
+    const uint8_t CHUNK = 64;
+    uint16_t crc   = 0xFFFF;
+    uint16_t total = 0;
+    char tmp[16];
+
+    while (total < len) {
+        uint8_t chunkLen = (uint8_t)min((uint16_t)CHUNK, (uint16_t)(len - total));
+        uint32_t chunkAddr = addr + total;
+
+        SerialUSB.print("DATA ");
+        sprintf(tmp, "%06lX", chunkAddr);
+        SerialUSB.print(tmp);
+        SerialUSB.print(" ");
+
+        for (uint8_t i = 0; i < chunkLen; i++) {
+            uint8_t b = flash.readByte(chunkAddr + i);
+            crc = _crc16Update(crc, b);
+            sprintf(tmp, "%02X", b);
+            SerialUSB.print(tmp);
+        }
+        SerialUSB.println();
+        total += chunkLen;
+    }
+
+    char ok[28];
+    sprintf(ok, "OK %u CRC16:0x%04X", total, crc);
+    SerialUSB.println(ok);
+    return true;
+}
+
+// flash -write <addr_hex> <hex_payload>
+// Writes raw bytes to flash at the given address.
+// Flash must already be erased (bits can only transition 1→0).
+// Protocol:
+//   OK <BYTES_WRITTEN> CRC16:0x<CRC_HEX>
+// On error:
+//   ERROR <reason>
+bool SckList::flashRawWrite(uint32_t addr, const uint8_t* data, uint16_t len)
+{
+    if (len == 0 || len > 256) {
+        SerialUSB.println("ERROR len must be 1-256");
+        return false;
+    }
+    if ((uint32_t)addr + len > SCKLIST_FLASH_SIZE) {
+        SerialUSB.println("ERROR address range out of bounds");
+        return false;
+    }
+
+    uint16_t crc     = 0xFFFF;
+    uint16_t written = 0;
+
+    for (uint16_t i = 0; i < len; i++) {
+        crc = _crc16Update(crc, data[i]);
+        if (!flash.writeByte(addr + i, data[i])) {
+            char err[40];
+            sprintf(err, "ERROR write failed at 0x%06lX", addr + i);
+            SerialUSB.println(err);
+            return false;
+        }
+        written++;
+    }
+
+    char ok[28];
+    sprintf(ok, "OK %u CRC16:0x%04X", written, crc);
+    SerialUSB.println(ok);
+    return true;
+}
+
+// flash -erase <sector>
+// Erases a single 4 KB sector by sector number.
+// Protocol:
+//   OK sector:<N> addr:0x<ADDR_HEX>
+// On error:
+//   ERROR <reason>
+bool SckList::flashRawErase(uint16_t sector)
+{
+    uint16_t maxSector = (SCKLIST_FLASH_SIZE / SECTOR_SIZE) - 1;   // 2047 incl. reserved
+    if (sector > maxSector) {
+        char err[40];
+        sprintf(err, "ERROR sector out of range (0-%u)", maxSector);
+        SerialUSB.println(err);
+        return false;
+    }
+
+    uint32_t sectorAddr = (uint32_t)sector * SECTOR_SIZE;
+    flash.eraseSector(sectorAddr);
+
+    char ok[40];
+    sprintf(ok, "OK sector:%u addr:0x%06lX", sector, sectorAddr);
+    SerialUSB.println(ok);
+    return true;
+}
+
 void SckList::flashInfo(FlashInfo* info)
 {
     if (debug) base->sckOut("F: Scanning flash memory sectors");

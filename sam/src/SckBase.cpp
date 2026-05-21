@@ -1578,6 +1578,17 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     ADC->CTRLA.bit.ENABLE = 0;
     while (ADC->STATUS.bit.SYNCBUSY);
 
+    // Switch BOD33 from continuous monitoring to sampled mode for STANDBY.
+    // Continuous mode draws ~1-2 µA from the OSCULP32K monitoring circuit.
+    // Sampled mode (RUNSTDBY = 1) takes periodic snapshots using the same
+    // oscillator at negligible extra cost. Battery voltage cannot droop
+    // faster than the sample rate, so protection is fully maintained.
+    // BOD33 must be disabled briefly to change the RUNSTDBY bit.
+    SYSCTRL->BOD33.bit.ENABLE = 0;
+    while (!SYSCTRL->PCLKSR.bit.B33SRDY);
+    SYSCTRL->BOD33.bit.RUNSTDBY = 1;
+    SYSCTRL->BOD33.bit.ENABLE = 1;
+
     // Put the W25Q64FV SPI flash into deep power-down mode.
     // Normal standby (CS deasserted, SPI idle) draws 30–100 µA.
     // Deep power-down draws ~1 µA. flashWake() is called after __WFI()
@@ -1598,6 +1609,12 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     __DSB();
     __WFI();
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+
+    // Restore BOD33 to continuous monitoring for normal operation.
+    SYSCTRL->BOD33.bit.ENABLE = 0;
+    while (!SYSCTRL->PCLKSR.bit.B33SRDY);
+    SYSCTRL->BOD33.bit.RUNSTDBY = 0;
+    SYSCTRL->BOD33.bit.ENABLE = 1;
 
     // Wake the SPI flash from deep power-down before any flash access.
     readingsList.flashWake();

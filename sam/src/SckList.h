@@ -97,6 +97,15 @@ class SckList
         uint32_t getFlashCapacity();
         bool testFlash();
 
+#ifdef SCK_FLASH_TEST
+        // Raw flash access for testing/validation — requires shell mode active in caller.
+        // Compiled in only when -D SCK_FLASH_TEST is set (e.g. sck23_air_test env).
+        // Output streams directly to SerialUSB; returns false on bad arguments.
+        bool flashRawRead(uint32_t addr, uint16_t len);
+        bool flashRawWrite(uint32_t addr, const uint8_t* data, uint16_t len);
+        bool flashRawErase(uint16_t sector);
+#endif
+
     private:
 
 

@@ -752,6 +752,80 @@ void flash_com(SckBase* base, String parameters)
             base->readingsList.dumpSector(dumpV);
         }
 
+#ifdef SCK_FLASH_TEST
+        // Raw read: flash -read <addr_hex> <len>
+        // Streams len bytes starting at addr_hex to SerialUSB as hex chunks.
+        // Requires shell mode. Example: flash -read 0x001000 128
+        int16_t rawReadI = parameters.indexOf("-read");
+        if (rawReadI >= 0) {
+            if (!base->st.onShell) {
+                base->sckOut("ERROR: enter shell mode first (shell -on)");
+                return;
+            }
+            String args = parameters.substring(rawReadI + 5);
+            args.trim();
+            int spaceIdx = args.indexOf(' ');
+            if (spaceIdx < 0) {
+                base->sckOut("Usage: flash -read <addr_hex> <len>");
+                return;
+            }
+            uint32_t addr = strtoul(args.substring(0, spaceIdx).c_str(), nullptr, 16);
+            uint16_t len  = (uint16_t)args.substring(spaceIdx + 1).toInt();
+            base->readingsList.flashRawRead(addr, len);
+            return;
+        }
+
+        // Raw write: flash -write <addr_hex> <hex_payload>
+        // Writes hex-encoded bytes to flash. Area must be erased first.
+        // Requires shell mode. Example: flash -write 0x001003 FFFF00
+        int16_t rawWriteI = parameters.indexOf("-write");
+        if (rawWriteI >= 0) {
+            if (!base->st.onShell) {
+                base->sckOut("ERROR: enter shell mode first (shell -on)");
+                return;
+            }
+            String args = parameters.substring(rawWriteI + 6);
+            args.trim();
+            int spaceIdx = args.indexOf(' ');
+            if (spaceIdx < 0) {
+                base->sckOut("Usage: flash -write <addr_hex> <hex_payload>");
+                return;
+            }
+            uint32_t addr   = strtoul(args.substring(0, spaceIdx).c_str(), nullptr, 16);
+            String   hexPay = args.substring(spaceIdx + 1);
+            hexPay.trim();
+            uint16_t hexLen = hexPay.length();
+            if (hexLen == 0 || hexLen % 2 != 0 || hexLen > 512) {
+                base->sckOut("ERROR: payload must be even-length hex string, max 256 bytes (512 chars)");
+                return;
+            }
+            uint16_t byteLen = hexLen / 2;
+            uint8_t  writeBuf[256];
+            for (uint16_t i = 0; i < byteLen; i++) {
+                char hexByte[3] = { hexPay[i * 2], hexPay[i * 2 + 1], '\0' };
+                writeBuf[i] = (uint8_t)strtoul(hexByte, nullptr, 16);
+            }
+            base->readingsList.flashRawWrite(addr, writeBuf, byteLen);
+            return;
+        }
+
+        // Raw erase: flash -erase <sector>
+        // Erases a single 4 KB sector by number (0-2047, includes reserved).
+        // Requires shell mode. Example: flash -erase 4
+        int16_t rawEraseI = parameters.indexOf("-erase");
+        if (rawEraseI >= 0) {
+            if (!base->st.onShell) {
+                base->sckOut("ERROR: enter shell mode first (shell -on)");
+                return;
+            }
+            String args = parameters.substring(rawEraseI + 6);
+            args.trim();
+            uint16_t sector = (uint16_t)args.toInt();
+            base->readingsList.flashRawErase(sector);
+            return;
+        }
+#endif // SCK_FLASH_TEST
+
         // Sector info: flash -sector sector-num/all
         int16_t sectI = parameters.indexOf("-sector");
         if (sectI >= 0) {

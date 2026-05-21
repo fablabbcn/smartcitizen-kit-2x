@@ -1526,10 +1526,23 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     led.off();
     if (st.espON) ESPcontrol(ESP_OFF);
 
-    // ESP control pins savings
+    // ESP control pins: drive CH_PD and GPIO0 LOW (ESP is already off,
+    // these are defensive in case goToSleep() is called without a prior
+    // ESP_OFF, e.g. from the sckOFF path).
     digitalWrite(pinESP_CH_PD, LOW);
     digitalWrite(pinESP_GPIO0, LOW);
-    digitalWrite(pinESP_RX_WIFI, LOW);
+
+    // Override the SERCOM mux on the ESP UART TX pin (PA04) before sleep.
+    // When SERCOM0 is the active mux, the UART TX line idles HIGH (UART
+    // mark state). With the ESP powered off (MOSFET cut, VCC ≈ 0 V), a
+    // HIGH-driven TX feeds current through the ESP RX pin's ESD clamp
+    // diode to the (now grounded) ESP VCC rail. The magnitude depends on
+    // any PCB series resistor, but is non-negligible and continuous for
+    // the entire sleep period.
+    // digitalWrite() alone has no effect while PMUXEN=1; pinPeripheral()
+    // with PIO_OUTPUT explicitly clears PMUXEN and takes GPIO control.
+    // The pin is restored to SERCOM on wakeup via PIO_SERCOM.
+    pinPeripheral(pinESP_TX_WIFI, PIO_OUTPUT);
     digitalWrite(pinESP_TX_WIFI, LOW);
 
     if (sckOFF) {
@@ -1629,6 +1642,10 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     __DSB();
     __WFI();
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+
+    // Restore SERCOM mux on the ESP UART TX pin so the serial peripheral
+    // drives the line again when the ESP is next powered on.
+    pinPeripheral(pinESP_TX_WIFI, PIO_SERCOM);
 
     // Restore BOD33 to continuous monitoring for normal operation.
     SYSCTRL->BOD33.bit.ENABLE = 0;

@@ -977,6 +977,11 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_WAKEUP:
 		{
+				// DEBUG-ONLY: accessible via shell command "esp -wake".
+				// Not used by the normal state machine — the standard path is
+				// ESP_ON which performs a full boot handshake.  ESP_WAKEUP only
+				// raises CH_PD without waiting for SAMMES_BOOTED, leaving
+				// st.espBooting in an inconsistent state for regular operation.
 				if (st.espBooting || st.espON) return;
 				sckOut("ESP wake up...");
 				digitalWrite(pinESP_CH_PD, HIGH);
@@ -986,6 +991,10 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_SLEEP:
 		{
+				// DEBUG-ONLY: accessible via shell command "esp -sleep".
+				// Not used by the normal state machine — the standard path is
+				// ESP_OFF which also cuts MOSFET power (strictly lower current
+				// than CH_PD-only sleep which leaves the ESP VCC regulator on).
 				sckOut("ESP deep sleep...", PRIO_LOW);
 				ESPsend(ESPMES_LED_OFF, "");
 				st.espON = false;

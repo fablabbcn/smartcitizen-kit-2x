@@ -127,6 +127,14 @@ bool SckSerial::receive()
 		return true;
 	}
 	
+	// Guard against oversized payloads that would overflow the buffer.
+	// A corrupted frame could claim any size up to 65535; NETBUFF_SIZE-1
+	// leaves room for the null terminator written below.
+	if (size > NETBUFF_SIZE - 1) {
+		debugPln("Payload too large, dropping frame");
+		return false;
+	}
+
 	// Get payload
 	uint16_t readed = _serial.readBytes(buff, size);
 	if (readed != size) {

@@ -79,6 +79,8 @@ bool SckList::_getGrpAddr(GroupIndex* wichGroup)
             return true;
         }
         uint16_t groupSize = flash.readWord(address);
+        if (groupSize == 0xFFFF) break;   // end of written data
+        if (groupSize == 0)      return false;  // corrupt entry; avoid infinite loop
 
         address += groupSize;
         groupCount++;
@@ -142,7 +144,9 @@ uint8_t SckList::_countReadings(GroupIndex wichGroup)
     uint8_t readingCounter = 0;
 
     while (readingAddr < finalGrpAddr) {
-        readingAddr += flash.readByte(readingAddr);
+        uint8_t readSize = flash.readByte(readingAddr);
+        if (readSize == 0) break;   // corrupt entry; avoid infinite loop
+        readingAddr += readSize;
         readingCounter++;
     }
 
@@ -247,8 +251,10 @@ int8_t SckList::_closeSector(uint16_t wichSector)
     }
 
     // If no readings left, mark sector as published (_setSectPublished() will check if all readings are published)
-    _setSectPublished(_currSector - 1, PUB_NET);
-    _setSectPublished(_currSector - 1, PUB_SD);
+    // Use wichSector (the sector we just closed) instead of (_currSector - 1) to avoid uint16_t underflow when
+    // _currSector wraps around to 0 after incrementing.
+    _setSectPublished(wichSector, PUB_NET);
+    _setSectPublished(wichSector, PUB_SD);
 
     return 1;
 }
@@ -688,6 +694,9 @@ SckList::GroupIndex SckList::saveGroup()
     memcpy(&flashBuff[GROUP_NET], &finit, 1);
     memcpy(&flashBuff[GROUP_SD], &finit, 1);
 
+    // Reject groups with no valid timestamp — epoch 0 means the RTC has never been set
+    if (base->lastSensorUpdate == 0) return {-1,-1,0};
+
     // Store timeStamp of current group
     memcpy(&flashBuff[GROUP_TIME], &base->lastSensorUpdate, 4);     // Write timeStamp (4 bytes)
 
@@ -727,8 +736,10 @@ SckList::GroupIndex SckList::saveGroup()
                 enabledSensors++;
             }
         }
-        if (enabledSensors == 0) return {-1,-1,0};
     }
+    // Check after iterating ALL sensors — the previous placement inside the loop caused an
+    // early-exit after the very first sensor type regardless of whether it was enabled.
+    if (enabledSensors == 0) return {-1,-1,0};
     if (debug) base->sckOut("<-");
 
     // Save group size at the begining of the group

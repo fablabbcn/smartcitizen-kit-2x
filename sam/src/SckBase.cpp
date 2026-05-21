@@ -179,6 +179,14 @@ void SckBase::update()
             }
         }
 
+        // sdInitPending is set by ISR_sdDetect (insert or remove event).
+        // Clear it first so sdDetect() can re-set it if a card is found,
+        // then call sdInit() only when sdDetect() confirms a card is present.
+        // This keeps all serial output and SPI access out of ISR context.
+        if (sdInitPending) {
+            sdInitPending = false;
+            sdDetect();           // updates st.cardPresent, re-sets sdInitPending if card is in
+        }
         if (sdInitPending) sdInit();
 
         // SD card debug check file size and backup big files.

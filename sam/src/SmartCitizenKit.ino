@@ -30,10 +30,14 @@ void ISR_button()
 #endif
 }
 
-// Card detect interrupt
+// Card detect interrupt.
+// Only set the pending flag here — sdDetect() calls sckOut() and may
+// trigger SPI transactions (SD debug logging), both of which are unsafe
+// to execute from interrupt context. The main loop picks up the flag in
+// reviewState() and calls sdDetect() from normal execution context.
 void ISR_sdDetect()
 {
-    base.sdDetect();
+    base.sdInitPending = true;
 }
 
 // void ISR_alarm() {

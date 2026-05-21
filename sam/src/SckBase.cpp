@@ -32,12 +32,32 @@ void SckBase::setup()
 	// Internal I2C bus setup
 	Wire.begin();
 
-	// Button interrupt and wakeup
+	// Button interrupt and wakeup from STANDBY.
+	// configGCLK6() routes OSCULP32K (RUNSTDBY=1) to the EIC so that
+	// external interrupts can fire — and wake the MCU — during STANDBY.
+	// EIC->WAKEUP must be set for each pin that needs to wake from STANDBY.
 	pinMode(pinBUTTON, INPUT_PULLUP);
 	attachInterrupt(pinBUTTON, ISR_button, CHANGE);
 	EExt_Interrupts in = g_APinDescription[pinBUTTON].ulExtInt;
 	configGCLK6();
 	EIC->WAKEUP.reg |= (1 << in);
+
+	// SD card detect: the interrupt is registered in setup() below, but
+	// without the WAKEUP bit the MCU cannot be woken by card insertion or
+	// removal during STANDBY — it would only notice on the next RTC alarm.
+	EExt_Interrupts sdIn = g_APinDescription[pinCARD_DETECT].ulExtInt;
+	EIC->WAKEUP.reg |= (1 << sdIn);
+
+	// Charger / USB detect: the BQ24259 INT pin (active-low, open-drain)
+	// pulses when VBUS status changes, including USB plug-in and removal.
+	// Registering this interrupt allows the MCU to wake from STANDBY on
+	// USB insertion without polling, enabling a longer sleep period.
+	// ISR_charger() is defined in SckBatt.h; it sets a flag that
+	// updatePower() / detectUSB() consumes on the next wakeup tick.
+	pinMode(pinCHARGER_INT, INPUT_PULLUP);
+	attachInterrupt(pinCHARGER_INT, ISR_charger, FALLING);
+	EExt_Interrupts chgIn = g_APinDescription[pinCHARGER_INT].ulExtInt;
+	EIC->WAKEUP.reg |= (1 << chgIn);
 
 	// RTC setup
 	rtc.begin();
@@ -109,6 +129,16 @@ void SckBase::setup()
     digitalWrite(pinCS_FLASH, HIGH);
     pinMode(pinCARD_DETECT, INPUT_PULLUP);
 
+    // Board connector pins that are not assigned to any function are left
+    // floating by default. The Arduino SAMD21 core enables input buffers
+    // (PORT_PINCFG_INEN) on all pins during init(); a floating Schmitt
+    // trigger input can draw 5–30 µA per pin depending on the voltage it
+    // settles at. Pull them up so the input sees a defined logic level.
+    // An attached board can still pull any of these lines LOW.
+    pinMode(pinBOARD_CONN_3, INPUT_PULLUP);   // PA09 — unassigned
+    pinMode(pinBOARD_CONN_5, INPUT_PULLUP);   // PA08 — unassigned
+    pinMode(pinBOARD_CONN_7, INPUT_PULLUP);   // PA28 — unassigned
+
     // SD card
     sckOut("Setting up SDcard interrupt");
     attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
@@ -179,6 +209,14 @@ void SckBase::update()
             }
         }
 
+        // sdInitPending is set by ISR_sdDetect (insert or remove event).
+        // Clear it first so sdDetect() can re-set it if a card is found,
+        // then call sdInit() only when sdDetect() confirms a card is present.
+        // This keeps all serial output and SPI access out of ISR context.
+        if (sdInitPending) {
+            sdInitPending = false;
+            sdDetect();           // updates st.cardPresent, re-sets sdInitPending if card is in
+        }
         if (sdInitPending) sdInit();
 
         // SD card debug check file size and backup big files.
@@ -943,10 +981,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				st.espBooting = true;
 				espStarted = rtc.getEpoch();
 
-				// Wait for boot...
+				// Wait for boot. 1500 ms gives margin for slow boots
+				// (e.g. first boot after a flash write or RF calibration).
+				// The previous 1000 ms limit caused spurious ERROR_ESP on
+				// valid boots under load.
 				uint32_t startPoint = millis();
 				while (st.espBooting) {
-					if (millis() - startPoint > 1000) {
+					if (millis() - startPoint > 1500) {
 						sckOut("ESP not starting!!!", PRIO_HIGH);
 						st.error = ERROR_ESP;
 						break;
@@ -966,6 +1007,11 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_WAKEUP:
 		{
+				// DEBUG-ONLY: accessible via shell command "esp -wake".
+				// Not used by the normal state machine — the standard path is
+				// ESP_ON which performs a full boot handshake.  ESP_WAKEUP only
+				// raises CH_PD without waiting for SAMMES_BOOTED, leaving
+				// st.espBooting in an inconsistent state for regular operation.
 				if (st.espBooting || st.espON) return;
 				sckOut("ESP wake up...");
 				digitalWrite(pinESP_CH_PD, HIGH);
@@ -975,6 +1021,10 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 		case ESP_SLEEP:
 		{
+				// DEBUG-ONLY: accessible via shell command "esp -sleep".
+				// Not used by the normal state machine — the standard path is
+				// ESP_OFF which also cuts MOSFET power (strictly lower current
+				// than CH_PD-only sleep which leaves the ESP VCC regulator on).
 				sckOut("ESP deep sleep...", PRIO_LOW);
 				ESPsend(ESPMES_LED_OFF, "");
 				st.espON = false;
@@ -1209,6 +1259,7 @@ bool SckBase::sdInit()
         if (size == 0) {
             sckOut("Can't determine the card size.");
             st.cardPresent = false;     // If we cant initialize sdcard, don't use it!
+            sd.end();                   // Release SPI session — state would be inconsistent otherwise
             return false;
         }
 
@@ -1227,6 +1278,7 @@ bool SckBase::sdInit()
     }
     sckOut("ERROR on Sd card Init!!!");
     st.cardPresent = false;     // If we cant initialize sdcard, don't use it!
+    sd.end();                   // Release SPI session — state would be inconsistent otherwise
     return false;
 }
 bool SckBase::sdDetect()
@@ -1474,10 +1526,23 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     led.off();
     if (st.espON) ESPcontrol(ESP_OFF);
 
-    // ESP control pins savings
+    // ESP control pins: drive CH_PD and GPIO0 LOW (ESP is already off,
+    // these are defensive in case goToSleep() is called without a prior
+    // ESP_OFF, e.g. from the sckOFF path).
     digitalWrite(pinESP_CH_PD, LOW);
     digitalWrite(pinESP_GPIO0, LOW);
-    digitalWrite(pinESP_RX_WIFI, LOW);
+
+    // Override the SERCOM mux on the ESP UART TX pin (PA04) before sleep.
+    // When SERCOM0 is the active mux, the UART TX line idles HIGH (UART
+    // mark state). With the ESP powered off (MOSFET cut, VCC ≈ 0 V), a
+    // HIGH-driven TX feeds current through the ESP RX pin's ESD clamp
+    // diode to the (now grounded) ESP VCC rail. The magnitude depends on
+    // any PCB series resistor, but is non-negligible and continuous for
+    // the entire sleep period.
+    // digitalWrite() alone has no effect while PMUXEN=1; pinPeripheral()
+    // with PIO_OUTPUT explicitly clears PMUXEN and takes GPIO control.
+    // The pin is restored to SERCOM on wakeup via PIO_SERCOM.
+    pinPeripheral(pinESP_TX_WIFI, PIO_OUTPUT);
     digitalWrite(pinESP_TX_WIFI, LOW);
 
     if (sckOFF) {
@@ -1537,6 +1602,39 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
         rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
     }
 
+    // Disable the ADC analog frontend before entering STANDBY.
+    // When ADC->CTRLA.bit.ENABLE = 1 the bias generators and reference
+    // stay powered regardless of APB clock gating, drawing ~280 µA.
+    // Arduino's analogRead() enables the ADC and leaves it enabled.
+    // CTRLA settings are preserved while disabled, so no reconfiguration
+    // is needed on wakeup beyond re-asserting the ENABLE bit.
+    ADC->CTRLA.bit.ENABLE = 0;
+    while (ADC->STATUS.bit.SYNCBUSY);
+
+    // Switch BOD33 from continuous monitoring to sampled mode for STANDBY.
+    // Continuous mode draws ~1-2 µA from the OSCULP32K monitoring circuit.
+    // Sampled mode (RUNSTDBY = 1) takes periodic snapshots using the same
+    // oscillator at negligible extra cost. Battery voltage cannot droop
+    // faster than the sample rate, so protection is fully maintained.
+    // BOD33 must be disabled briefly to change the RUNSTDBY bit.
+    SYSCTRL->BOD33.bit.ENABLE = 0;
+    while (!SYSCTRL->PCLKSR.bit.B33SRDY);
+    SYSCTRL->BOD33.bit.RUNSTDBY = 1;
+    SYSCTRL->BOD33.bit.ENABLE = 1;
+
+    // Put the W25Q64FV SPI flash into deep power-down mode.
+    // Normal standby (CS deasserted, SPI idle) draws 30–100 µA.
+    // Deep power-down draws ~1 µA. flashWake() is called after __WFI()
+    // and issues the 0xAB release command with the required 3 µs delay.
+    readingsList.flashSleep();
+
+    // Release SD card SPI session before sleeping. sd.end() calls
+    // syncDevice() to flush any pending write state, then deactivates
+    // the SPI driver.  Without this the SdFat library keeps an internal
+    // "initialized" state that is inconsistent with the clock-gated SPI
+    // bus during STANDBY.  sd.begin() is called on wakeup to re-init.
+    if (st.cardPresent) sd.end();
+
     // Go to Sleep
     USBDevice.standby();
     SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
@@ -1545,9 +1643,38 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     __WFI();
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 
+    // Restore SERCOM mux on the ESP UART TX pin so the serial peripheral
+    // drives the line again when the ESP is next powered on.
+    pinPeripheral(pinESP_TX_WIFI, PIO_SERCOM);
+
+    // Restore BOD33 to continuous monitoring for normal operation.
+    SYSCTRL->BOD33.bit.ENABLE = 0;
+    while (!SYSCTRL->PCLKSR.bit.B33SRDY);
+    SYSCTRL->BOD33.bit.RUNSTDBY = 0;
+    SYSCTRL->BOD33.bit.ENABLE = 1;
+
+    // Wake the SPI flash from deep power-down before any flash access.
+    readingsList.flashWake();
+
+    // Re-enable ADC so analogRead() works normally after wakeup.
+    ADC->CTRLA.bit.ENABLE = 1;
+    while (ADC->STATUS.bit.SYNCBUSY);
+
+    // Re-initialise SD card after wakeup. sd.begin() sends CMD0 then the
+    // SPI init sequence (~2 ms), transparent against the sleep period.
+    if (st.cardPresent) {
+        if (!sd.begin(pinCS_SDCARD, SD_SCK_MHZ(50))) {
+            st.cardPresent = false;
+            st.cardPresentErrorPrinted = false;
+        }
+    }
+
 #ifdef WITH_URBAN
-    // Recover Noise sensor timer
-    REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
+    // Restore GCLK4 (feeds I2S for noise sensor, sourced from DFLL48M).
+    // Must include GCLK_GENCTRL_GENEN — writing ID alone clears the enable bit,
+    // which would silently disable GCLK4 and break the noise sensor after the
+    // first sleep cycle.
+    REG_GCLK_GENCTRL = GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_DFLL48M | GCLK_GENCTRL_ID(4);
     while (GCLK->STATUS.bit.SYNCBUSY);
 #endif
 }
@@ -1655,10 +1782,18 @@ void SckBase::configGCLK6()
     GCLK->GENCTRL.bit.RUNSTDBY = 1;  //GCLK6 run standby
     while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY);
 
-    /* Errata: Make sure that the Flash does not power all the way down
-        * when in sleep mode. */
-
-    NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
+    // NVM power during STANDBY.
+    // SAMD21 silicon rev A/B errata: NVM must not power fully down in sleep
+    // (data corruption risk) — workaround is SLEEPPRM_DISABLED (~100 µA).
+    // This was fixed in silicon rev D (DSU->DID.bit.REVISION >= 3).
+    // On rev D+ use WAKEUPINSTANT: NVM powers down in STANDBY and wakes
+    // in ~15 µs before the first post-sleep read, saving ~100 µA at no
+    // functional cost given typical sleep periods of seconds or more.
+    if (DSU->DID.bit.REVISION >= 3) {
+        NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_WAKEUPINSTANT_Val;
+    } else {
+        NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
+    }
 }
 void SckBase::updateDynamic(uint32_t now)
 {
@@ -1721,7 +1856,18 @@ void SckBase::updateDynamic(uint32_t now)
 }
 void SckBase::sleepLoop()
 {
-    uint16_t sleepPeriod = 3;                                           // Only sleep if
+    // Adaptive sleep period. The hardcoded 3 s forced 20 wakeups per
+    // 60 s read interval — each one burning ~25 ms of active current and
+    // triggering a visible LED flash. Now that SD card detect and charger
+    // INT are wired to EIC->WAKEUP, user events (button, card insert,
+    // USB plug) wake the MCU immediately without polling. The only
+    // remaining reason for periodic wakeup is battery voltage monitoring,
+    // which only needs checking every ~30 s.
+    //
+    // Formula: readInterval / 4 gives 4 wakeups per read cycle as a
+    // safety margin; clamped to [5, 30] s so very short or very long
+    // read intervals stay sensible.
+    uint16_t sleepPeriod = (uint16_t)constrain(config.readInterval / 4, 5, 30);
     uint32_t now = rtc.getEpoch();
     while (     (!timeToPublish) &&                                     // No publish pending
         (config.readInterval - (now - lastSensorUpdate) > (uint32_t)(sleepPeriod + 2)) &&       // No readings to take in the near future

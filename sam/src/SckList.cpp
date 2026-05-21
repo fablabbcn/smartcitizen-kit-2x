@@ -52,6 +52,31 @@ bool SckList::_flashFormat()
 }
 
 // Read/Write functions
+bool SckList::_write(uint32_t wichAddr, char value)
+{
+    // Validate the target address before writing:
+    // - inside the current sector we must stay at or before _addr
+    // - inside any other sector the sector must not be empty (erased)
+    uint16_t wichSector = wichAddr / SECTOR_SIZE;
+    bool outOfBounds = false;
+    if (wichSector == (uint16_t)_currSector) {
+        if (wichAddr > _addr) outOfBounds = true;
+    } else {
+        if (_getSectState(wichSector) == SECTOR_EMPTY) outOfBounds = true;
+    }
+    if (outOfBounds) {
+        sprintf(base->outBuff, "F: Boundary error writing on flash address %lu (sector %u)", wichAddr, wichSector);
+        base->sckOut();
+        return false;
+    }
+
+    if (!flash.writeByte(wichAddr, value)) {
+        sprintf(base->outBuff, "F: Hardware error writing on flash address %lu", wichAddr);
+        base->sckOut();
+        return false;
+    }
+    return true;
+}
 bool SckList::_append(char value)
 {
     if (!flash.writeByte(_addr, value)) {
@@ -79,6 +104,8 @@ bool SckList::_getGrpAddr(GroupIndex* wichGroup)
             return true;
         }
         uint16_t groupSize = flash.readWord(address);
+        if (groupSize == 0xFFFF) break;  // end of written data
+        if (groupSize == 0)      return false;  // corrupt: zero size would spin forever
 
         address += groupSize;
         groupCount++;
@@ -106,7 +133,7 @@ int8_t SckList::_setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
     if (_dataAvailableSect[wichFlag] == _currSector && wichGroup.group == _lastGroup.group) availableReadings[wichFlag] = false;
 
     // And write flags byte back
-    return flash.writeByte(flagsAddr, PUBLISHED);
+    return _write(flagsAddr, PUBLISHED);
 }
 int8_t SckList::_isGrpPublished(GroupIndex wichGroup, PubFlags wichFlag)
 {
@@ -142,7 +169,9 @@ uint8_t SckList::_countReadings(GroupIndex wichGroup)
     uint8_t readingCounter = 0;
 
     while (readingAddr < finalGrpAddr) {
-        readingAddr += flash.readByte(readingAddr);
+        uint8_t readSize = flash.readByte(readingAddr);
+        if (readSize == 0) break;  // corrupt: zero size would spin forever
+        readingAddr += readSize;
         readingCounter++;
     }
 
@@ -216,7 +245,7 @@ int8_t SckList::_setSectPublished(uint16_t wichSector, PubFlags wichFlag)
     if (_countSectGroups(wichSector, wichFlag, NOT_PUBLISHED) > 0) return -1;
 
     // And write flags byte
-    if (!flash.writeByte(flagsAddr, PUBLISHED)) return -1;
+    if (!_write(flagsAddr, PUBLISHED)) return -1;
 
 
     if (debug) {
@@ -232,7 +261,7 @@ int8_t SckList::_setSectPublished(uint16_t wichSector, PubFlags wichFlag)
 int8_t SckList::_closeSector(uint16_t wichSector)
 {
     // Mark sector as full
-    flash.writeByte(_getSectAddr(wichSector), SECTOR_USED);
+    _write(_getSectAddr(wichSector), SECTOR_USED);
 
 
     // Erase next sector and start using it
@@ -247,8 +276,10 @@ int8_t SckList::_closeSector(uint16_t wichSector)
     }
 
     // If no readings left, mark sector as published (_setSectPublished() will check if all readings are published)
-    _setSectPublished(_currSector - 1, PUB_NET);
-    _setSectPublished(_currSector - 1, PUB_SD);
+    // Use the wichSector parameter (the sector we just closed) rather than (_currSector - 1): when _currSector
+    // wraps from SCKLIST_SECTOR_NUM-1 to 0 the subtraction underflows to 0xFFFF as uint16_t.
+    _setSectPublished(wichSector, PUB_NET);
+    _setSectPublished(wichSector, PUB_SD);
 
     return 1;
 }
@@ -504,7 +535,8 @@ bool SckList::_countSectGroups(uint16_t wichSector, SectorInfo* info)
 
         // Find out groupSize
         uint16_t groupSize = flash.readWord(address);
-        if (groupSize == 0xFFFF) break;     // If GroupSize is not yet written that means no valid group is present
+        if (groupSize == 0xFFFF) break;  // end of written data
+        if (groupSize == 0)      return false;  // corrupt: zero size would spin forever
 
         // Store group state
         // get NET flag
@@ -543,7 +575,8 @@ int16_t SckList::_countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte p
 
         // Find out groupSize
         uint16_t groupSize = flash.readWord(address);
-        if (groupSize == 0xFFFF) break;     // If GroupSize is not yet written that means no valid group is present
+        if (groupSize == 0xFFFF) break;  // end of written data
+        if (groupSize == 0)      return -1;  // corrupt: zero size would spin forever
 
         // Check if group is NOT published
         byte byteFlags = flash.readByte(address + addPositionFlag);
@@ -688,6 +721,17 @@ SckList::GroupIndex SckList::saveGroup()
     memcpy(&flashBuff[GROUP_NET], &finit, 1);
     memcpy(&flashBuff[GROUP_SD], &finit, 1);
 
+    // Reject groups with no valid timestamp. epoch 0 means the RTC has never been set (SAMD21
+    // RTCZero initialises to 0 on first power-on without a battery-backed RTC). Storing such
+    // groups creates permanently wrong entries on the API (year 2000 timestamps) that cannot
+    // be corrected retroactively. The existing timeSyncAfterBoot flag in SckBase already tracks
+    // whether the clock has been synchronised; this guard enforces the same constraint at the
+    // storage layer so it holds regardless of call site.
+    if (base->lastSensorUpdate == 0) {
+        if (debug) base->sckOut("F: Skipping group save — RTC not yet set (epoch 0)");
+        return {-1,-1,0};
+    }
+
     // Store timeStamp of current group
     memcpy(&flashBuff[GROUP_TIME], &base->lastSensorUpdate, 4);     // Write timeStamp (4 bytes)
 
@@ -727,8 +771,11 @@ SckList::GroupIndex SckList::saveGroup()
                 enabledSensors++;
             }
         }
-        if (enabledSensors == 0) return {-1,-1,0};
     }
+    // Guard placed after iterating ALL sensors. The previous position was inside the for-loop body,
+    // causing an immediate early-return when sensor index 0 happened to be disabled or produce a
+    // null reading, silently discarding every subsequent sensor in the list.
+    if (enabledSensors == 0) return {-1,-1,0};
     if (debug) base->sckOut("<-");
 
     // Save group size at the begining of the group
@@ -1084,18 +1131,80 @@ uint32_t SckList::getFlashCapacity()
 }
 bool SckList::testFlash()
 {
-    String writeSRT = "testing the flash!";
+    // Use the last sector before the reserved area as a scratch sector so that
+    // the test never touches sector 0 (which may hold the current write cursor)
+    // or any sector that could contain live unpublished readings.
+    const uint16_t TEST_SECTOR = SCKLIST_SECTOR_NUM - 1;
+    const uint32_t BASE = _getSectAddr(TEST_SECTOR);
 
-    // Inside first sector
-    uint32_t fAddress = 1000;
-    flash.writeStr(fAddress, writeSRT);
+    SerialUSB.print("F: testFlash using sector ");
+    SerialUSB.println(TEST_SECTOR);
 
-    String readSTR;
-    flash.readStr(fAddress, readSTR);
+    // ── 1. Erase the scratch sector ────────────────────────────────────────
+    flash.eraseSector(BASE);
 
-    // Erase first sector to leave it clean
-    flash.eraseSector(_getSectAddr(0));
+    // Verify erase leaves 0xFF in the first few bytes
+    for (uint8_t i = 0; i < 8; i++) {
+        if (flash.readByte(BASE + i) != 0xFF) {
+            SerialUSB.println("F: testFlash FAIL — sector not blank after erase");
+            return false;
+        }
+    }
 
-    if (!readSTR.equals(writeSRT)) return false;
+    // ── 2. Byte write / read-back ───────────────────────────────────────────
+    const uint8_t BYTE_PATTERN = 0xA5;
+    flash.writeByte(BASE, BYTE_PATTERN);
+    if (flash.readByte(BASE) != BYTE_PATTERN) {
+        SerialUSB.println("F: testFlash FAIL — byte write/read mismatch");
+        flash.eraseSector(BASE);
+        return false;
+    }
+
+    // ── 3. readWord — the critical primitive used by _getGrpAddr / _getSectFreeSpace ──
+    // Write two known bytes and verify readWord returns them little-endian
+    flash.eraseSector(BASE);
+    flash.writeByte(BASE,     0x34);
+    flash.writeByte(BASE + 1, 0x12);
+    uint16_t word = flash.readWord(BASE);
+    if (word != 0x1234) {
+        SerialUSB.print("F: testFlash FAIL — readWord returned 0x");
+        SerialUSB.println(word, HEX);
+        flash.eraseSector(BASE);
+        return false;
+    }
+
+    // ── 4. readULong — used for timestamp reads ────────────────────────────
+    flash.eraseSector(BASE);
+    flash.writeByte(BASE,     0x78);
+    flash.writeByte(BASE + 1, 0x56);
+    flash.writeByte(BASE + 2, 0x34);
+    flash.writeByte(BASE + 3, 0x12);
+    uint32_t ulong = flash.readULong(BASE);
+    if (ulong != 0x12345678UL) {
+        SerialUSB.print("F: testFlash FAIL — readULong returned 0x");
+        SerialUSB.println(ulong, HEX);
+        flash.eraseSector(BASE);
+        return false;
+    }
+
+    // ── 5. Sequential write across sector boundary ─────────────────────────
+    // Write a 19-byte string near the end of the sector to make sure multi-byte
+    // operations don't silently truncate at the boundary.
+    flash.eraseSector(BASE);
+    const char* MSG = "boundary-test-msg";   // 17 chars + null = 18 bytes
+    uint32_t nearEnd = BASE + SECTOR_SIZE - 20;
+    flash.writeStr(nearEnd, String(MSG));
+    String readBack;
+    flash.readStr(nearEnd, readBack);
+    if (!readBack.equals(MSG)) {
+        SerialUSB.println("F: testFlash FAIL — near-boundary string write/read mismatch");
+        flash.eraseSector(BASE);
+        return false;
+    }
+
+    // ── 6. Clean up ────────────────────────────────────────────────────────
+    flash.eraseSector(BASE);
+
+    SerialUSB.println("F: testFlash PASS");
     return true;
 }

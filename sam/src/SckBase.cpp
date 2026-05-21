@@ -1568,6 +1568,12 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     ADC->CTRLA.bit.ENABLE = 0;
     while (ADC->STATUS.bit.SYNCBUSY);
 
+    // Put the W25Q64FV SPI flash into deep power-down mode.
+    // Normal standby (CS deasserted, SPI idle) draws 30–100 µA.
+    // Deep power-down draws ~1 µA. flashWake() is called after __WFI()
+    // and issues the 0xAB release command with the required 3 µs delay.
+    readingsList.flashSleep();
+
     // Release SD card SPI session before sleeping. sd.end() calls
     // syncDevice() to flush any pending write state, then deactivates
     // the SPI driver.  Without this the SdFat library keeps an internal
@@ -1582,6 +1588,9 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     __DSB();
     __WFI();
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+
+    // Wake the SPI flash from deep power-down before any flash access.
+    readingsList.flashWake();
 
     // Re-enable ADC so analogRead() works normally after wakeup.
     ADC->CTRLA.bit.ENABLE = 1;

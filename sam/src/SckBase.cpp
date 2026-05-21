@@ -1709,10 +1709,18 @@ void SckBase::configGCLK6()
     GCLK->GENCTRL.bit.RUNSTDBY = 1;  //GCLK6 run standby
     while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY);
 
-    /* Errata: Make sure that the Flash does not power all the way down
-        * when in sleep mode. */
-
-    NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
+    // NVM power during STANDBY.
+    // SAMD21 silicon rev A/B errata: NVM must not power fully down in sleep
+    // (data corruption risk) — workaround is SLEEPPRM_DISABLED (~100 µA).
+    // This was fixed in silicon rev D (DSU->DID.bit.REVISION >= 3).
+    // On rev D+ use WAKEUPINSTANT: NVM powers down in STANDBY and wakes
+    // in ~15 µs before the first post-sleep read, saving ~100 µA at no
+    // functional cost given typical sleep periods of seconds or more.
+    if (DSU->DID.bit.REVISION >= 3) {
+        NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_WAKEUPINSTANT_Val;
+    } else {
+        NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
+    }
 }
 void SckBase::updateDynamic(uint32_t now)
 {

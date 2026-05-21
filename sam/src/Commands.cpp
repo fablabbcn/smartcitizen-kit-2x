@@ -752,6 +752,7 @@ void flash_com(SckBase* base, String parameters)
             base->readingsList.dumpSector(dumpV);
         }
 
+#ifdef SCK_FLASH_TEST
         // Raw read: flash -read <addr_hex> <len>
         // Streams len bytes starting at addr_hex to SerialUSB as hex chunks.
         // Requires shell mode. Example: flash -read 0x001000 128
@@ -823,6 +824,7 @@ void flash_com(SckBase* base, String parameters)
             base->readingsList.flashRawErase(sector);
             return;
         }
+#endif // SCK_FLASH_TEST
 
         // Sector info: flash -sector sector-num/all
         int16_t sectI = parameters.indexOf("-sector");

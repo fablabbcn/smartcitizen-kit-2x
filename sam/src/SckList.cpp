@@ -1011,6 +1011,7 @@ void SckList::dumpSector(uint16_t wichSector, uint16_t howMany) // listo
     SerialUSB.println("");
 }
 
+#ifdef SCK_FLASH_TEST
 // ---------------------------------------------------------------------------
 // CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) — used by raw flash commands
 // ---------------------------------------------------------------------------
@@ -1132,6 +1133,7 @@ bool SckList::flashRawErase(uint16_t sector)
     SerialUSB.println(ok);
     return true;
 }
+#endif // SCK_FLASH_TEST
 
 void SckList::flashInfo(FlashInfo* info)
 {

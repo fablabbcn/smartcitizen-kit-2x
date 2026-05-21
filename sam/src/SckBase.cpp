@@ -159,9 +159,11 @@ void SckBase::update()
 
     if (millis() - generalUpdateTimer > 500) {
 
-        // Avoid ESP hangs
+        // Avoid ESP hangs — reboot if SAMMES_BOOTED hasn't arrived within
+        // 10 s of power-on.  Must be larger than the inline 5 s boot wait
+        // in ESPcontrol(ESP_ON) so the fallback watchdog never fires first.
         if (st.espBooting) {
-            if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
+            if (rtc.getEpoch() - espStarted > 10) ESPcontrol(ESP_REBOOT);
         }
 
         if (pendingSyncConfig) {
@@ -171,8 +173,14 @@ void SckBase::update()
                     ESPcontrol(ESP_REBOOT);
                     sendConfigCounter = 0;
                 } else if (st.espON) {
-                    if (!st.espBooting) sendConfig();
-                    sendConfigCounter++;
+                    if (!st.espBooting) {
+                        // Only count actual send attempts. Previously the counter
+                        // incremented every second even while espBooting=true,
+                        // reaching 3 before the ESP finished its first boot and
+                        // triggering an immediate reboot loop.
+                        sendConfig();
+                        sendConfigCounter++;
+                    }
                 } else {
                     ESPcontrol(ESP_ON);
                 }
@@ -697,7 +705,7 @@ void SckBase::saveConfig(bool defaults)
 {
 	// Load defaults
 	if (defaults) {
-		Configuration defaultConfig;
+		Configuration defaultConfig = {};
 
         config = defaultConfig;
 
@@ -867,6 +875,7 @@ bool SckBase::createInfo(char* buffer, bool pretty)
 
     if (pretty) serializeJsonPretty(json, buffer, NETBUFF_SIZE);
     else serializeJson(json, buffer, NETBUFF_SIZE);
+    return true;
 }
 bool SckBase::publishInfo()
 {
@@ -943,10 +952,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				st.espBooting = true;
 				espStarted = rtc.getEpoch();
 
-				// Wait for boot...
+				// Wait for boot. 5 s covers slow flash reads and library
+				// inits on the ESP8266; 1 s was too short and caused
+				// ERROR_ESP even on healthy devices, leaving the processors
+				// in mismatched states.
 				uint32_t startPoint = millis();
 				while (st.espBooting) {
-					if (millis() - startPoint > 1000) {
+					if (millis() - startPoint > 5000) {
 						sckOut("ESP not starting!!!", PRIO_HIGH);
 						st.error = ERROR_ESP;
 						break;
@@ -1179,6 +1191,15 @@ void SckBase::ESPbusUpdate()
 
 			pendingSyncConfig = true;
 			break;
+		}
+		case SAMMES_RSSI:
+		{
+				// getRSSI() polls serESP.receive() directly in a tight loop, so
+				// any RSSI response that arrives at the wrong moment would fall
+				// into the default branch and be silently dropped.  Handling it
+				// here ensures it is never misidentified as an unknown message.
+				// The value is discarded; getRSSI() reads it via its own loop.
+				break;
 		}
 		default: break;
 	}
@@ -2099,7 +2120,7 @@ bool SckBase::sdPublish()
     if (exist && headerChkSum(postfileName) != RAMheaderChkSum()) {
 
         // Rename file as YY-MM-DD_NN.CSV, NN will start in 01 and grow if needed
-        char newName[16];
+        char newName[20];
         bool fileExists = true;
         uint8_t fileNumber = 1;
         while (fileExists) {
@@ -2153,7 +2174,7 @@ bool SckBase::getRSSI(OneSensor* wichSensor)
         if (newEveryNint < 1) newEveryNint = 1;
         wichSensor->everyNint = newEveryNint;
         saveConfig();
-        sprintf(outBuff, "RSSI interval must be the same as publish interval!!\r\ncorrecting it to %i", config.readInterval * newEveryNint);
+        sprintf(outBuff, "RSSI interval must be the same as publish interval!!\r\ncorrecting it to %lu", (unsigned long)(config.readInterval * newEveryNint));
         sckOut();
     }
 

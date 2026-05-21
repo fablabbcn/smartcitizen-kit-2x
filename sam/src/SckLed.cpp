@@ -127,6 +127,7 @@ SckLed::Color SckLed::multiply(Color wichColor, float mult)
     result.r = wichColor.r * mult;
     result.g = wichColor.g * mult;
     result.b = wichColor.b * mult;
+    result.name = wichColor.name;
     return result;
 }
 void SckLed::configureTimer5(uint16_t periodMS)

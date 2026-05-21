@@ -37,6 +37,7 @@ class SckLed
         };
         Color getColor(ColorName wichName) {
             for (uint8_t i=0; i<COLOR_COUNT; i++) if (colors[i].name == wichName) return colors[i];
+            return colors[0];
         }
 
         // Color fade values
@@ -49,6 +50,7 @@ class SckLed
         };
         Color_float getDiff(ColorName wichName) {
             for (uint8_t i=0; i<4; i++) if (diff[i].name == wichName) return diff[i];
+            return diff[0];
         }
 
         enum pulseModes {
@@ -93,10 +95,10 @@ class SckLed
 
         // Manage color an pulseModes
         volatile uint8_t colorIndex = 0;
-        volatile bool blinkON;
+        volatile bool blinkON = false;
         volatile int8_t direction = 1;
 
         volatile pulseModes pulseMode = PULSE_SOFT;
-        Color ledColor;
-        Color_float diffColor;
+        Color ledColor = {};
+        Color_float diffColor = {};
     };

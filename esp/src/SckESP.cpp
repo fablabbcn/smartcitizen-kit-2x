@@ -124,6 +124,8 @@ void SckESP::update()
 		}
 	}
 
+    // if (MQTTclient.connected()) MQTTclient.loop();
+
     SAMbusUpdate();
 
 	if(shouldReboot) ESP.restart();
@@ -140,6 +142,7 @@ void SckESP::tryConnection()
         String tp = String(config.credentials.pass);
         if (tp.length() == 0) WiFi.begin(config.credentials.ssid);
         else WiFi.begin(config.credentials.ssid, config.credentials.pass);
+        // WiFi.setAutoConnect(true);
         WiFi.setAutoReconnect(true);
 
     } else {

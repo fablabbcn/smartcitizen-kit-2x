@@ -40,6 +40,8 @@ enum SCKMessage {
     SAMMES_MQTT_CUSTOM_ERROR,   // 28 ESP->SAM, On MQQT custom publish error
     SAMMES_SET_CONFIG,          // 29 ESP->SAM, Sends new config
     SAMMES_RSSI,                // 30 ESP->SAM, Sends RSSI value
+	SAMMES_CONNECT_FAILED,      // 31 ESP->SAM, On wifi disconnect
+
 
     SCKMES_COUNT
 };
@@ -54,11 +56,11 @@ private:
 	void debugPln(char *msg, bool force= false);
 
 public:
-	SckSerial(HardwareSerial& _s): _serial(_s) { 
-		_serial = _s; 
+	SckSerial(HardwareSerial& _s): _serial(_s) {
+		_serial = _s;
 	}
 	void begin(uint32_t bauds=115200);
-	bool send(SCKMessage wichMessage); 
+	bool send(SCKMessage wichMessage);
 	bool send(SCKMessage wichMessage, const char *content);
 	void sendACK();
 	bool receive();

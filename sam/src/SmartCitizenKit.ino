@@ -1,12 +1,12 @@
 #include "SckBase.h"
 
-#ifdef TESTING
+#ifdef SC_TESTING
 #include "SckTest.h"
 #endif
 
 SckBase base;
 
-#ifdef TESTING
+#ifdef SC_TESTING
 SckTest sckTest(&base);
 #endif
 
@@ -23,7 +23,7 @@ void TC5_Handler (void)
 void ISR_button()
 {
     base.butState = digitalRead(pinBUTTON);
-#ifdef TESTING
+#ifdef SC_TESTING
     sckTest.test_button();
 #else
     base.butFeedback();
@@ -45,7 +45,7 @@ void setup()
 
     base.setup();
 
-#ifdef TESTING
+#ifdef SC_TESTING
     sckTest.test_full();
 #endif
 }

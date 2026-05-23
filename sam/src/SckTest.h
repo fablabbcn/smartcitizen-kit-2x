@@ -1,7 +1,5 @@
 #pragma once
 
-#define SC_TEST_WIFI_SSID "ssid"
-#define SC_TEST_WIFI_PASSWD "password"
 #define SC_TEST_SHT 1
 #define SC_TEST_LIGHT 1
 #define SC_TEST_UVA 1

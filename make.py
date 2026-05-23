@@ -53,6 +53,7 @@ if '-v' in sys.argv:
 import sck
 kit = sck.sck(check_pio_sam='sam' in sys.argv, check_pio_esp='esp' in sys.argv)
 
+# Check if we need to store credentials
 if 'flash' in sys.argv:
     force = False
     port = None
@@ -127,48 +128,68 @@ else:
     buildESPOK = True
 
 if 'flash' in sys.argv:
-    if not 'build' in sys.argv:
-        if not verbose: enablePrint()
+    if 'build' not in sys.argv:
+        if not verbose:
+            enablePrint()
         print('\nWARNING: No build instruction received, trying to flash previous built firmware...')
-        if not verbose: blockPrint()
+        if not verbose:
+            blockPrint()
 
     if 'sam' in sys.argv:
-        time.sleep(1)
-        oneLine('Flashing SAM firmware...')
-
-        env = 'sck2'
-        if '--env' in sys.argv:
-            env = sys.argv[sys.argv.index('--env')+1]
-
         if buildSAMOK:
-            if kit.flashSAM(sys.stdout, env): OK()
-        else: ERROR()
+            time.sleep(1)
+            oneLine('Flashing SAM firmware...')
+
+            env = 'sck2'
+            if '--env' in sys.argv:
+                env = sys.argv[sys.argv.index('--env')+1]
+
+
+            if kit.flashSAM(sys.stdout, env):
+                flashSAMOK = True
+                OK()
+            else:
+                flashSAMOK = False
+                ERROR()
+        else:
+            flashSAMOK = False
+            ERROR()
+    else:
+        # We shouldn't end up here and needing to reconfigure the kit, but just in case
+        flashSAMOK = False
 
     if 'esp' in sys.argv:
-        if not buildESPOK: ERROR()
-        time.sleep(0.5)
-        oneLine('Flashing ESP firmware')
-        for i in range(4):
-            mySpeed = 115200 / pow(2, i)
-            oneLine(' at ' + str(mySpeed) + '...')
-            time.sleep(1)
-            if kit.flashESP(mySpeed, sys.stdout):
-                OK()
-                break
-            else:
-                if i == 3: ERROR()
+        if buildESPOK:
+            time.sleep(0.5)
+            oneLine('Flashing ESP firmware')
+            for i in range(4):
+                mySpeed = 115200 / pow(2, i)
+                oneLine(' at ' + str(mySpeed) + '...')
+                time.sleep(1)
+                if kit.flashESP(mySpeed, sys.stdout):
+                    OK()
+                    break
                 else:
-                    time.sleep(3)
-                    if i == 0: oneLine('   Retry')
-                    oneLine(' ' + str(i+1))
+                    if i == 3: ERROR()
+                    else:
+                        time.sleep(3)
+                        if i == 0: oneLine('   Retry')
+                        oneLine(' ' + str(i+1))
+        else:
+            ERROR()
 
-    if '-k' in sys.argv and len(kit.mode) > 0:
-        oneLine("Reconfiguring kit...")
-        time.sleep(1)
+    if flashSAMOK:
+        if '-k' in sys.argv and len(kit.mode) > 0:
+            oneLine("Reconfiguring kit...")
+            time.sleep(1)
 
-        if 'network' in kit.mode:
-            if kit.netConfig(): OK()
-            else: ERROR()
-        elif 'sdcard' in kit.mode:
-            if kit.sdConfig(): OK()
-            else: ERROR()
+            if 'network' in kit.mode:
+                if kit.netConfig():
+                    OK()
+                else:
+                    ERROR()
+            elif 'sdcard' in kit.mode:
+                if kit.sdConfig():
+                    OK()
+                else:
+                    ERROR()

@@ -58,6 +58,9 @@ Sck_SCD30           scd30;
 #ifdef  WITH_SFA30
 Sck_SFA30           sck_sfa30;
 #endif
+#ifdef  WITH_AS7341
+Sck_AS7341          sck_as7341;
+#endif
 
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
@@ -2957,6 +2960,57 @@ bool Sck_SFA30::isError(uint16_t response)
         Serial.print("SFA30: ");
         Serial.println(errorMessage);
     }
+    return true;
+}
+#endif
+
+#ifdef WITH_AS7331
+bool Sck_AS7341::start(SensorType whichSensor)
+{
+    if (!I2Cdetect(&auxWire, address)) return false;
+
+    if (started) return true;
+
+    as7341.begin(address, &auxWire);
+
+    // Set params
+    as7341.setATIME(SCK_AS7431_ATIME);
+    as7341.setASTEP(SCK_AS7431_ASTEP);
+    as7341.setGain(AS7341_GAIN_256X);
+
+    started = true;
+    return true;
+}
+
+bool Sck_AS7341::stop()
+{
+    started = false;
+    return true;
+}
+
+bool Sck_AS7341::getReading(SensorType whichSensor)
+{
+    if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+    if (!as7341.readAllChannels()){
+        Serial.println("AS7341 Error reading all channels!");
+        return false;
+    }
+
+    channel_f1 = as7341.getChannel(AS7341_CHANNEL_415nm_F1);
+    channel_f2 = as7341.getChannel(AS7341_CHANNEL_445nm_F2);
+    channel_f3 = as7341.getChannel(AS7341_CHANNEL_480nm_F3);
+    channel_f4 = as7341.getChannel(AS7341_CHANNEL_515nm_F4);
+    channel_f5 = as7341.getChannel(AS7341_CHANNEL_555nm_F5);
+    channel_f6 = as7341.getChannel(AS7341_CHANNEL_590nm_F6);
+    channel_f7 = as7341.getChannel(AS7341_CHANNEL_630nm_F7);
+    channel_f8 = as7341.getChannel(AS7341_CHANNEL_680nm_F8);
+
+    channel_clear = as7341.getChannel(AS7341_CHANNEL_CLEAR);
+    channel_nir = as7341.getChannel(AS7341_CHANNEL_NIR);
+
+    flicker_freq = as7341.detectFlickerHz();
+
     return true;
 }
 #endif

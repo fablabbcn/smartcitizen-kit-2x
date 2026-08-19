@@ -83,6 +83,11 @@
 #include <SensirionI2CSfa3x.h>
 #endif
 
+#ifdef WITH_AS7341
+// Adafruit I2C AS7341 library
+#include <Adafruit_AS7341.h>
+#endif
+
 
 extern TwoWire auxWire;
 
@@ -188,15 +193,15 @@ class AuxBoards
 
         // 0x02,           // SENSOR_PM_DALLAS_TEMP,
         // 0x00,           // SENSOR_DALLAS_TEMP,      -- 2 wire (no I2C address)
-        //
+
         // 0x44,           // SENSOR_SHT31_TEMP,
         // 0x44,           // SENSOR_SHT31_HUM,
         // 0x45,           // SENSOR_SHT35_TEMP,
         // 0x45,           // SENSOR_SHT35_HUM,
-        //
+
         // 0x29,           // SENSOR_RANGE_LIGHT,
         // 0x29,           // SENSOR_RANGE_DISTANCE,
-        //
+
         // 0x02,           // SENSOR_GPS_* Grove Gps (on PM board)
         // 0x10,           // SENSOR_GPS_* XA111 Gps
         // 0x42,           // SENSOR_GPS_* NEO-M8U Gps
@@ -206,16 +211,29 @@ class AuxBoards
         // 0x49,           // SENSOR_ADS1X15_XX_X
         // 0x4a,           // SENSOR_ADS1X15_XX_X
         // 0x4b,           // SENSOR_ADS1X15_XX_X
-        //
+
         // 0x5d,           // SENSOR_SFA30_TEMPERATURE,
         // 0x5d,           // SENSOR_SFA30_HUMIDITY,
         // 0x5d,           // SENSOR_SFA30_FORMALDEHYDE,
+
+        // 0x39            // SENSOR_AS7341_415NM_F1
+        // 0x39            // SENSOR_AS7341_445NM_F2
+        // 0x39            // SENSOR_AS7341_480NM_F3
+        // 0x39            // SENSOR_AS7341_515NM_F4
+        // 0x39            // SENSOR_AS7341_555NM_F5
+        // 0x39            // SENSOR_AS7341_590NM_F6
+        // 0x39            // SENSOR_AS7341_630NM_F7
+        // 0x39            // SENSOR_AS7341_680NM_F8
+        // 0x39            // SENSOR_AS7341_CLEAR
+        // 0x39            // SENSOR_AS7341_NIR
+        // 0x39            // SENSOR_AS7341_FLICKER_FREQ
 
         bool start(SckBase *base, SensorType whichSensor);
         bool stop(SensorType whichSensor);
         void getReading(SckBase *base, OneSensor *whichSensor);
         bool getBusyState(SensorType whichSensor);
         String control(SensorType whichSensor, String command);
+
 #ifdef WITH_SENSOR_GROVE_OLED
         void print(char *payload);
         void updateDisplay(SckBase* base, bool force=false);
@@ -799,6 +817,50 @@ class Sck_SFA30
         bool isError(uint16_t response);
 
         SensirionI2CSfa3x sfa30;
+    };
+#endif
+
+#ifdef  WITH_AS7331
+#define SCK_AS7431_ATIME 100
+#define SCK_AS7431_ASTEP 999
+class Sck_AS7341
+    {
+    public:
+        const byte deviceAddress = 0x39;
+        bool start(SensorType whichSensor);
+        bool stop(SensorType whichSensor);
+        bool getReading(SensorType whichSensor);
+        bool debug = false;
+
+        uint16_t channel_f1 = 0;
+        uint16_t channel_f2 = 0;
+        uint16_t channel_f3 = 0;
+        uint16_t channel_f4 = 0;
+        uint16_t channel_f5 = 0;
+        uint16_t channel_f6 = 0;
+        uint16_t channel_f7 = 0;
+        uint16_t channel_f8 = 0;
+        uint16_t channel_clear = 0;
+        uint16_t channel_nir = 0;
+        uint16_t flicker_freq = 0;
+
+    private:
+        static const uint8_t totalMetrics = 11;
+        uint8_t enabled[totalMetrics][11] = {
+            {SENSOR_AS7341_415NM_F1, 0},
+            {SENSOR_AS7341_445NM_F2, 0},
+            {SENSOR_AS7341_480NM_F3, 0}
+            {SENSOR_AS7341_515NM_F4, 0},
+            {SENSOR_AS7341_555NM_F5, 0},
+            {SENSOR_AS7341_590NM_F6, 0}
+            {SENSOR_AS7341_630NM_F7, 0},
+            {SENSOR_AS7341_680NM_F8, 0},
+            {SENSOR_AS7341_CLEAR, 0}
+            {SENSOR_AS7341_NIR, 0},
+            {SENSOR_AS7341_FLICKER_FREQ, 0}
+        };
+
+        Adafruit_AS7341 as7341;
     };
 #endif
 

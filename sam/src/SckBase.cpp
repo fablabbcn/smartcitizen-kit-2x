@@ -51,7 +51,7 @@ void SckBase::setup()
 
 	// Flash storage
 	sckOut("Starting flash memory...");
-	wichGroupPublishing.group = -1;  	// No group is being published yet
+	whichGroupPublishing.group = -1;  	// No group is being published yet
 	int8_t rcode = readingsList.setup();
 	if (rcode == 1) sckOut("Found problems on flash memory, it was formated...");
 	else if (rcode == -1) {
@@ -445,8 +445,8 @@ void SckBase::reviewState()
                             st.publishStat.reset();         // Restart publish error counter
 
                             // Mark reading as published
-                            uint8_t readingNum = readingsList.setPublished(wichGroupPublishing, readingsList.PUB_NET);
-                            wichGroupPublishing.group = -1;
+                            uint8_t readingNum = readingsList.setPublished(whichGroupPublishing, readingsList.PUB_NET);
+                            whichGroupPublishing.group = -1;
                             timeToPublish = false;
                             sprintf(outBuff, "Network publish OK! (%u readings)", readingNum);
                             sckOut();
@@ -469,7 +469,7 @@ void SckBase::reviewState()
                             sckOut("Publish failed, will retry on next interval", PRIO_ERROR);
 
                             // Forget the index of the group we tried to publish
-                            wichGroupPublishing.group = -1;
+                            whichGroupPublishing.group = -1;
 
                             led.update(led.BLUE, led.PULSE_WARNING);
                             st.error = ERROR_MQTT;
@@ -1015,13 +1015,13 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 		}
 	}
 }
-bool SckBase::ESPsend(SCKMessage wichMessage)
+bool SckBase::ESPsend(SCKMessage whichMessage)
 {
 	if (!st.espON) ESPcontrol(ESP_ON);
 
-	return serESP.send(wichMessage);
+	return serESP.send(whichMessage);
 }
-bool SckBase::ESPsend(SCKMessage wichMessage, const char *content)
+bool SckBase::ESPsend(SCKMessage whichMessage, const char *content)
 {
 	// Check if message fits on buffer
 	if (strlen(content) > NETBUFF_SIZE) return false;
@@ -1029,7 +1029,7 @@ bool SckBase::ESPsend(SCKMessage wichMessage, const char *content)
 	// Fills buffer with content
 	sprintf(serESP.buff, "%s", content);
 
-	return ESPsend(wichMessage);
+	return ESPsend(whichMessage);
 }
 void SckBase::ESPbusUpdate()
 {
@@ -2072,14 +2072,14 @@ bool SckBase::getReading(OneSensor *wichSensor)
     return true;
 }
 
-void SckBase::controlSensor(SensorType wichSensorType, String wichCommand)
+void SckBase::controlSensor(SensorType wichSensorType, String wwhichommand)
 {
-        sprintf(outBuff, "%s: %s", sensors[wichSensorType].title, wichCommand.c_str());
+        sprintf(outBuff, "%s: %s", sensors[wichSensorType].title, wwhichommand.c_str());
         sckOut();
         switch (sensors[wichSensorType].location) {
-            case BOARD_URBAN: urban.control(this, wichSensorType, wichCommand); break;
+            case BOARD_URBAN: urban.control(this, wichSensorType, wwhichommand); break;
             case BOARD_AUX: {
-                String result = auxBoards.control(wichSensorType, wichCommand);
+                String result = auxBoards.control(wichSensorType, wwhichommand);
                 result.toCharArray(outBuff, result.length()+1);
                 sckOut();
                 break;
@@ -2095,8 +2095,8 @@ bool SckBase::netPublish()
 	}
 
 	bool result = false;
-	wichGroupPublishing = readingsList.readGroup(readingsList.PUB_NET);
-	if (wichGroupPublishing.group >= 0) {
+	whichGroupPublishing = readingsList.readGroup(readingsList.PUB_NET);
+	if (whichGroupPublishing.group >= 0) {
 		sprintf(outBuff, "(%s) Sent readings to platform.", ISOtimeBuff);
 		sckOut();
 		sckOut(serESP.buff, PRIO_LOW);

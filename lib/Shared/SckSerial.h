@@ -60,8 +60,8 @@ public:
 		_serial = _s;
 	}
 	void begin(uint32_t bauds=115200);
-	bool send(SCKMessage wichMessage);
-	bool send(SCKMessage wichMessage, const char *content);
+	bool send(SCKMessage whichMessage);
+	bool send(SCKMessage whichMessage, const char *content);
 	void sendACK();
 	bool receive();
 

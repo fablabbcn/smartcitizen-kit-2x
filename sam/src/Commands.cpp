@@ -415,8 +415,8 @@ void sensorConfig_com(SckBase* base, String parameters)
 }
 void readSensor_com(SckBase* base, String parameters)
 {
-    SensorType wichType = base->sensors.getTypeFromText(parameters.c_str());
-    OneSensor sensorToRead = base->sensors[wichType];
+    SensorType whichType = base->sensors.getTypeFromText(parameters.c_str());
+    OneSensor sensorToRead = base->sensors[whichType];
 
     if (!sensorToRead.enabled) {
         sprintf(base->outBuff, "%s sensor is disabled!!!", sensorToRead.title);
@@ -804,16 +804,16 @@ void freeRAM_com(SckBase* base, String parameters)
 void i2cDetect_com(SckBase* base, String parameters)
 {
 
-    for (uint8_t wichWire=0; wichWire<2; wichWire++) {
+    for (uint8_t whichWire=0; whichWire<2; whichWire++) {
 
-        if (wichWire == 0) base->sckOut("Searching for devices on internal I2C bus...");
+        if (whichWire == 0) base->sckOut("Searching for devices on internal I2C bus...");
         else base->sckOut("\r\nSearching for devices on auxiliary I2C bus...");
 
         uint8_t nDevices = 0;
         for(uint8_t address = 1; address < 127; address++ ) {
 
             uint8_t error;
-            if (wichWire == 0) {
+            if (whichWire == 0) {
                 Wire.beginTransmission(address);
                 error = Wire.endTransmission();
             } else {

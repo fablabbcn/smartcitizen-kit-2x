@@ -158,7 +158,7 @@ class SckBase
 		bool sdPublish(); 				//  Publishes the provided group of readings to sdcard (if available)
 		LinkedList<SensorType> pendingSensorsLinkedList;
 
-		SckList::GroupIndex wichGroupPublishing; 	// Index of the group beeing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
+		SckList::GroupIndex whichGroupPublishing; 	// Index of the group beeing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
 		uint32_t dynamicLast = 0; 			// Last time that we detected enough speed to trigger dynamic interval
 		uint8_t dynamicCounter = 0;
 		const uint8_t DYNAMIC_COUNTER_THRESHOLD = 3; 	// Number of high speed repetitions that triggers dynamic interval
@@ -208,7 +208,7 @@ class SckBase
 		// **** Sensors
 		AllSensors sensors;
 		bool getReading(OneSensor *wichSensor);
-		void controlSensor(SensorType wichSensorType, String wichCommand);
+		void controlSensor(SensorType wichSensorType, String wwhichommand);
 		bool enableSensor(SensorType wichSensor);
 		bool disableSensor(SensorType wichSensor);
 		bool writeHeader = false;
@@ -236,8 +236,8 @@ class SckBase
 		uint32_t espFlashSpeed = 115200;
 
 		// ESP communication
-		bool ESPsend(SCKMessage wichMessage);
-		bool ESPsend(SCKMessage wichMessage, const char *content);
+		bool ESPsend(SCKMessage whichMessage);
+		bool ESPsend(SCKMessage whichMessage, const char *content);
 		bool pendingSyncConfig = false;
 		String ipAddress;
 		char hostname[17];

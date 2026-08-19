@@ -59,8 +59,8 @@ class SckCharger
         byte WATCHDOG_FAULT = 7;        // 0 – Normal, 1- Watchdog timer expiration
 
         float batLow = 3.0;             // If batt < batLow the charger will start with precharging cycle.
-        byte readREG(byte wichRegister);
-        bool writeREG(byte wichRegister, byte data);
+        byte readREG(byte whichRegister);
+        bool writeREG(byte whichRegister, byte data);
 
     public:
 

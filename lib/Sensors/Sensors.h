@@ -54,34 +54,7 @@
 #define WITH_GPS
 #endif
 
-// Overwrites
-// Urban and PM Sensors
-#ifdef SCK2
-// #define WITH_SEN5X              // Saves 1088 bytes
-// #define WITH_SPS30              // Saves 576 bytes
-// #define WITH_PMS                // Saves 1504 bytes (this also disables auxiliary external PM sensor from pmboard)
-// #define WITH_URBAN              // Saves 6408 bytes (none of the urban board sensor will be available, it also disables external SHT3X)
-// #define WITH_AS7331             // Saves xxx bytes
-// #define WITH_CCS811             // Saves xxx bytes
-// #define WITH_PMS
 
-// Auxiliary Sensors (ALl this sensors use around 8kb)
-// #define WITH_SENSOR_GROVE_OLED  // Saves 2496 bytes
-// #define WITH_GASES_BOARD        // Saves 756 bytes
-// #define WITH_GROVE_I2C_ADC      // Saves 244 bytes
-// #define WITH_INA219             // Saves 388 bytes
-// #define WITH_DS18B20            // Saves 260 bytes
-// #define WITH_ATLAS              // Saves 884 bytes
-// #define WITH_CHIRP              // Saves 404 bytes
-// #define WITH_DALLAS_TEMP        // Saves 292 bytes
-// #define #define WITH_EXT_TEMP
-// #define WITH_GPS                // Saves 1508 bytes
-// #define WITH_RANGE              // Saves 292 bytes
-// #define WITH_BME68X             // Saves 644 bytes
-// #define WITH_ADS1X15            // Saves 1172 bytes
-// #define WITH_SCD30              // Saves 500 bytes
-// #define WITH_SFA30              // Saves 468 bytes
-#endif
 
 #include <Arduino.h>
 

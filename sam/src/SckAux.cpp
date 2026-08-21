@@ -3184,7 +3184,14 @@ bool Sck_AS7341::getFlickerReading()
     int32_t sampleMin = 0;
     sckFFT.minMax(flickerSource, &sampleMin, &sampleMax);
 
-    flickerPeakToPeak = sampleMax - sampleMin;
+    float rawFlickerPeakToPeak;
+    rawFlickerPeakToPeak = sampleMax - sampleMin;
+
+    // Convert peak-to-peak to counts
+    uint16_t fd_time = adafruit_as7341.getFlickerIntegrationTime();
+    as7341_gain_t fd_gain = adafruit_as7341.getFlickerGain();
+    flickerPeakToPeak = adafruit_as7341.toBasicCounts(rawFlickerPeakToPeak, fd_time, fd_gain);
+
 
     if (debug) {
         Serial.println("Flicker spectrum");

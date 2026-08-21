@@ -116,7 +116,7 @@ void SckBase::setup()
 
 
     // Detect and enable auxiliary boards
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
         OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
         if (wichSensor->location == BOARD_AUX) {
             if (config.sensors[wichSensor->type].enabled) {
@@ -679,7 +679,7 @@ void SckBase::loadConfig()
 	}
 
 	// Load saved intervals
-	for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+	for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 		OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
 		wichSensor->everyNint = config.sensors[wichSensor->type].everyNint;
 	}
@@ -725,7 +725,7 @@ void SckBase::saveConfig(bool defaults)
 
         config = defaultConfig;
 
-        for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
             SensorType wichSensorType = static_cast<SensorType>(i);
 
@@ -1407,7 +1407,7 @@ uint16_t SckBase::RAMheaderChkSum()
 {
     // Store header in outBuff
     uint16_t buffIdx = sprintf(outBuff, "TIME");
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
         SensorType wichSensor = sensors.sensorsPriorized(i);
         if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
             buffIdx += sprintf(&outBuff[buffIdx], ",%s", sensors[wichSensor].shortTitle);
@@ -1426,7 +1426,7 @@ void SckBase::saveHeader(FsFile* thisFile)
 {
     // Short title line
     Serial.println(thisFile->print("TIME"));
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
         SensorType wichSensor = sensors.sensorsPriorized(i);
         if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
             thisFile->print(",");
@@ -1437,7 +1437,7 @@ void SckBase::saveHeader(FsFile* thisFile)
     // Unit line
     thisFile->println("");
     thisFile->print("ISO 8601");
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
         SensorType wichSensor = sensors.sensorsPriorized(i);
         if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
             thisFile->print(",");
@@ -1450,7 +1450,7 @@ void SckBase::saveHeader(FsFile* thisFile)
     // Title line
     thisFile->println("");
     thisFile->print("Time");
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
         SensorType wichSensor = sensors.sensorsPriorized(i);
         if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
             thisFile->print(",");
@@ -1460,7 +1460,7 @@ void SckBase::saveHeader(FsFile* thisFile)
 
     // Platform id line
     thisFile->println("");
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
         SensorType wichSensor = sensors.sensorsPriorized(i);
         if (sensors[wichSensor].enabled && sensors[wichSensor].priority != 250) {
             thisFile->print(",");
@@ -1792,7 +1792,7 @@ void SckBase::urbanStart()
     analogReadResolution(12);
 
     // Try to start enabled sensors
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
         OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
         if (wichSensor->location == BOARD_URBAN) {
             if (config.sensors[wichSensor->type].enabled) enableSensor(wichSensor->type);
@@ -1831,7 +1831,7 @@ void SckBase::updateSensors()
         // Clear pending sensor list (no sensor should take more than the reading interval).
         pendingSensorsLinkedList.clear();
 
-        for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
             // Get next sensor based on priority
             OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
@@ -2241,7 +2241,7 @@ bool SckBase::setTime(String epoch)
         lastSensorUpdate = now - (pre - lastSensorUpdate);
         lastPublishTime = now - (pre - lastPublishTime);
         espStarted = now - (pre - espStarted);
-        for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        for (uint16_t i=0; i<SENSOR_COUNT; i++) {
             if (sensors[static_cast<SensorType>(i)].lastReadingTime != 0) {
                 sensors[static_cast<SensorType>(i)].lastReadingTime =  now - (pre - sensors[static_cast<SensorType>(i)].lastReadingTime);
             }

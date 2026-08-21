@@ -320,7 +320,7 @@ class OneSensor
         const char *unit;
         String reading;
         uint32_t lastReadingTime;
-        uint8_t id;
+        uint16_t id;
         uint8_t everyNint;      // Read this sensor every N intervals (default 1)
         uint8_t defaultEveryNint;
         bool enabled;
@@ -328,7 +328,7 @@ class OneSensor
         int16_t state;      // -1:error on reading, 0:reading OK, >0:number of seconds until the reading is OK
         bool oled_display;
 
-        OneSensor(SensorLocation nLocation, uint8_t nPriority, SensorType nType, const char *nShortTitle, const char *nTitle, uint8_t nId=0, bool nEnabled=false, uint8_t nEveryNint=1, const char *nUnit="", bool nOled_display=true) {
+        OneSensor(SensorLocation nLocation, uint8_t nPriority, SensorType nType, const char *nShortTitle, const char *nTitle, uint16_t nId=0, bool nEnabled=false, uint8_t nEveryNint=1, const char *nUnit="", bool nOled_display=true) {
             location = nLocation;
             priority = nPriority;       // 0-250, 0:Max priority -> 250:Min priority
             type = nType;
@@ -586,8 +586,8 @@ class AllSensors
             OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_680NM_F8,         "AS7341_680NM_F8",  "AS7341 680nm",                         251,    true,       1,  "",          false         },
             OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_CLEAR,            "AS7341_CLEAR",     "AS7341 Clear",                         252,    true,       1,  "",          false         },
             OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_NIR,              "AS7341_NIR",       "AS7341 NIR",                           253,    true,       1,  "",          false         },
-            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_FREQ,     "AS7341_FLICKER_FREQ","AS7341 Flicker Freq",                255,      true,       1,  "Hz",        false         },
-            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_P2P,      "AS7341_FLICKER_P2P", "AS7341 Flicker Peak to Peak",        256,      true,       1,  "",         false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_FREQ,     "AS7341_FLICKER_FREQ","AS7341 Flicker Freq",                255,    true,       1,  "Hz",        false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_P2P,      "AS7341_FLICKER_P2P", "AS7341 Flicker Peak to Peak",        256,    true,       1,  "",         false         },
 #endif
 
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
@@ -604,10 +604,10 @@ class AllSensors
             return list[type];
         }
 
-        OneSensor ordered(uint8_t place);
+        OneSensor ordered(uint16_t place);
         SensorType getTypeFromText(const char* input);
         uint8_t sensorNameEndsIn(const char* input);
-        SensorType sensorsPriorized(uint8_t index);
+        SensorType sensorsPriorized(uint16_t index);
     private:
         uint8_t countMatchedWords(SensorType whichSensor, const char* input);
         SensorType prioSortedList[SENSOR_COUNT+1];

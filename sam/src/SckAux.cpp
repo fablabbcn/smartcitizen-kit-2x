@@ -1488,7 +1488,7 @@ void Groove_OLED::displayReading(SckBase* base)
     uint8_t cycles = 0;
 
     // Find next sensor to show
-    for (uint8_t i=lastShown+1; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=lastShown+1; i<SENSOR_COUNT; i++) {
 
         SensorType thisSensor = static_cast<SensorType>(i);
 

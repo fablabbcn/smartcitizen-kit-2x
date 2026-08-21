@@ -141,7 +141,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 
         sprintf(base->outBuff, "\r\nDisabled\r\n----------");
         base->sckOut();
-        for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
             thisType = base->sensors.sensorsPriorized(i);
 
@@ -151,7 +151,7 @@ void sensorConfig_com(SckBase* base, String parameters)
         sprintf(base->outBuff, "\r\nEnabled\r\n----------");
         base->sckOut();
         // Get sensor type
-        for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
             thisType = base->sensors.sensorsPriorized(i);
             if (base->sensors[thisType].enabled) {
@@ -505,7 +505,7 @@ void monitorSensor_com(SckBase* base, String parameters)
             }
         }
     } else {
-        for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+        for (uint16_t i=0; i<SENSOR_COUNT; i++) {
             if (base->sensors[static_cast<SensorType>(i)].enabled) {
                 sensorsToMonitor[index] = static_cast<SensorType>(i);
                 index++;

@@ -1,65 +1,65 @@
 #include "SckAux.h"
 
-#ifdef WITH_GASES_BOARD
+#ifdef SCK_WITH_GASES_BOARD
 GasesBoard          gasBoard;
 #endif
-#ifdef WITH_GROVE_I2C_ADC
+#ifdef SCK_WITH_GROVE_I2C_ADC
 GrooveI2C_ADC       grooveI2C_ADC;
 #endif
-#ifdef WITH_INA219
+#ifdef SCK_WITH_INA219
 INA219              ina219;
 #endif
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 Groove_OLED         groove_OLED;
 #endif
-#ifdef WITH_DS18B20
+#ifdef SCK_WITH_DS18B20
 WaterTemp_DS18B20   waterTemp_DS18B20;
 #endif
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
 Atlas               atlasPH     = Atlas(SENSOR_ATLAS_PH);
 Atlas               atlasEC     = Atlas(SENSOR_ATLAS_EC);
 Atlas               atlasDO     = Atlas(SENSOR_ATLAS_DO);
 Atlas               atlasTEMP   = Atlas(SENSOR_ATLAS_TEMPERATURE);
 Atlas               atlasORP    = Atlas(SENSOR_ATLAS_ORP);
 #endif
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
 Moisture            moistureChirp;
 #endif
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
 PMsensor            pmSensorA   = PMsensor(SLOT_A);
 PMsensor            pmSensorB   = PMsensor(SLOT_B);
 #endif
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
 PM_DallasTemp       pmDallasTemp;
 Sck_DallasTemp      dallasTemp;
 #endif
-#ifdef WITH_EXT_TEMP
+#ifdef SCK_WITH_EXT_TEMP
 Sck_SHT31           sht31       = Sck_SHT31(&auxWire);
 Sck_SHT31           sht35       = Sck_SHT31(&auxWire, 0x45);
 #endif
-#ifdef WITH_RANGE
+#ifdef SCK_WITH_RANGE
 Sck_Range           range;
 #endif
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
 Sck_GPS             gps;
 PM_Grove_GPS        pmGroveGps;
 XA111GPS            xa1110gps;
 NEOM8UGPS           neoM8uGps;
 #endif
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
 Sck_ADS1X15         ads48;
 Sck_ADS1X15         ads49;
 Sck_ADS1X15         ads4A;
 Sck_ADS1X15         ads4B;
 #endif
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
 Sck_SCD30           scd30;
 #endif
-#ifdef  WITH_SFA30
-Sck_SFA30           sck_sfa30;
+#ifdef  SCK_WITH_SFA30
+Sck_SFA30           sfa30;
 #endif
-#ifdef  WITH_AS7341
-Sck_AS7341          sck_as7341;
+#ifdef  SCK_WITH_AS7341
+Sck_AS7341          as7341;
 #endif
 
 // Eeprom flash emulation to store I2C address
@@ -71,7 +71,7 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         data = eepromAuxData.read();
         dataLoaded = true;
 
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
         if (data.moistCalibration.moistureCalDataValid) {
             moistureChirp.dryPoint = data.moistCalibration.dryPoint;
             moistureChirp.wetPoint = data.moistCalibration.wetPoint;
@@ -79,13 +79,13 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         }
 #endif
 
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
         atlasPH.enableTComp = data.atlasConfig.pHEnableTComp;
         atlasEC.enableTComp = data.atlasConfig.ECEnableTComp;
         atlasDO.enableTComp = data.atlasConfig.DOEnableTComp;
 #endif
 
-#ifdef WITH_EXT_TEMP
+#ifdef SCK_WITH_EXT_TEMP
         sht31.temperatureOffset = data.rhtCalibration.extTemperatureOffset;
         sht35.temperatureOffset = data.rhtCalibration.extTemperatureOffset;
         sht31.humidityOffset = data.rhtCalibration.extHumidityOffset;
@@ -95,7 +95,7 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
 
     switch (whichSensor) {
 
-#ifdef WITH_GASES_BOARD
+#ifdef SCK_WITH_GASES_BOARD
         case SENSOR_GASESBOARD_SLOT_1A:
         case SENSOR_GASESBOARD_SLOT_1W:
         case SENSOR_GASESBOARD_SLOT_2A:
@@ -105,19 +105,19 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         case SENSOR_GASESBOARD_HUMIDITY:
         case SENSOR_GASESBOARD_TEMPERATURE:         return gasBoard.start();
 #endif
-#ifdef WITH_GROVE_I2C_ADC
+#ifdef SCK_WITH_GROVE_I2C_ADC
         case SENSOR_GROOVE_I2C_ADC:                 return grooveI2C_ADC.start();
 #endif
-#ifdef WITH_INA219
+#ifdef SCK_WITH_INA219
         case SENSOR_INA219_BUSVOLT:
         case SENSOR_INA219_SHUNT:
         case SENSOR_INA219_CURRENT:
         case SENSOR_INA219_LOADVOLT:                return ina219.start();
 #endif
-#ifdef WITH_DS18B20
+#ifdef SCK_WITH_DS18B20
         case SENSOR_WATER_TEMP_DS18B20:             return waterTemp_DS18B20.start();
 #endif
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
         case SENSOR_ATLAS_TEMPERATURE:              return atlasTEMP.start();
         case SENSOR_ATLAS_PH:                       return atlasPH.start();
         case SENSOR_ATLAS_EC:
@@ -128,13 +128,13 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         case SENSOR_ATLAS_DO_SAT:                   return atlasDO.start();
         case SENSOR_ATLAS_ORP:                      return atlasORP.start();
 #endif
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
         case SENSOR_CHIRP_MOISTURE_RAW:
         case SENSOR_CHIRP_MOISTURE:
         case SENSOR_CHIRP_TEMPERATURE:
         case SENSOR_CHIRP_LIGHT:                    return moistureChirp.start();
 #endif
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
         case SENSOR_EXT_A_PM_1:
         case SENSOR_EXT_A_PM_25:
         case SENSOR_EXT_A_PM_10:
@@ -154,14 +154,14 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         case SENSOR_EXT_B_PN_5:
         case SENSOR_EXT_B_PN_10:                    return pmSensorB.start();
 #endif
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
         case SENSOR_PM_DALLAS_TEMP:                 return pmDallasTemp.start();
         case SENSOR_DALLAS_TEMP:                    return dallasTemp.start();
 #endif
-#ifdef WITH_EXT_TEMP
+#ifdef SCK_WITH_EXT_TEMP
         case SENSOR_SHT31_TEMP:
         case SENSOR_SHT31_HUM:
-#ifdef WITH_GASES_BOARD
+#ifdef SCK_WITH_GASES_BOARD
             if (sht31.start() && !gasBoard.start()) return true;
 #else
             if (sht31.start()) return true;
@@ -171,11 +171,11 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         case SENSOR_SHT35_TEMP:
         case SENSOR_SHT35_HUM:                      return sht35.start();
 #endif
-#ifdef WITH_RANGE
+#ifdef SCK_WITH_RANGE
         case SENSOR_RANGE_DISTANCE:
         case SENSOR_RANGE_LIGHT:                    return range.start();
 #endif
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
         case SENSOR_GPS_FIX_QUALITY:
         case SENSOR_GPS_LATITUDE:
         case SENSOR_GPS_LONGITUDE:
@@ -184,7 +184,7 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         case SENSOR_GPS_HDOP:
         case SENSOR_GPS_SATNUM:                     return gps.start();
 #endif
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
         case SENSOR_ADS1X15_48_0:
         case SENSOR_ADS1X15_48_1:
         case SENSOR_ADS1X15_48_2:
@@ -202,17 +202,17 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         case SENSOR_ADS1X15_4B_2:
         case SENSOR_ADS1X15_4B_3:                   return ads4B.start(0x4B);
 #endif
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
         case SENSOR_SCD30_CO2:
         case SENSOR_SCD30_TEMP:
         case SENSOR_SCD30_HUM:                      return scd30.start(base, whichSensor);
 #endif
-#ifdef  WITH_SFA30
+#ifdef  SCK_WITH_SFA30
         case SENSOR_SFA30_TEMPERATURE:
         case SENSOR_SFA30_HUMIDITY:
         case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(whichSensor);
 #endif
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.start();
 #endif
         default: break;
@@ -224,7 +224,7 @@ bool AuxBoards::stop(SensorType whichSensor)
 {
     switch (whichSensor) {
 
-#ifdef WITH_GASES_BOARD
+#ifdef SCK_WITH_GASES_BOARD
         case SENSOR_GASESBOARD_SLOT_1A:
         case SENSOR_GASESBOARD_SLOT_1W:
         case SENSOR_GASESBOARD_SLOT_2A:
@@ -234,19 +234,19 @@ bool AuxBoards::stop(SensorType whichSensor)
         case SENSOR_GASESBOARD_HUMIDITY:
         case SENSOR_GASESBOARD_TEMPERATURE:         return gasBoard.stop();
 #endif
-#ifdef WITH_GROVE_I2C_ADC
+#ifdef SCK_WITH_GROVE_I2C_ADC
         case SENSOR_GROOVE_I2C_ADC:                 return grooveI2C_ADC.stop();
 #endif
-#ifdef WITH_INA219
+#ifdef SCK_WITH_INA219
         case SENSOR_INA219_BUSVOLT:
         case SENSOR_INA219_SHUNT:
         case SENSOR_INA219_CURRENT:
         case SENSOR_INA219_LOADVOLT:                return ina219.stop();
 #endif
-#ifdef WITH_DS18B20
+#ifdef SCK_WITH_DS18B20
         case SENSOR_WATER_TEMP_DS18B20:             return waterTemp_DS18B20.stop();
 #endif
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
         case SENSOR_ATLAS_TEMPERATURE:              return atlasTEMP.stop();
         case SENSOR_ATLAS_PH:                       return atlasPH.stop();
         case SENSOR_ATLAS_EC:
@@ -257,11 +257,11 @@ bool AuxBoards::stop(SensorType whichSensor)
         case SENSOR_ATLAS_DO_SAT:                   return atlasDO.stop();
         case SENSOR_ATLAS_ORP:                      return atlasORP.stop();
 #endif
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
         case SENSOR_CHIRP_TEMPERATURE:
         case SENSOR_CHIRP_MOISTURE:                 return moistureChirp.stop();
 #endif
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
         case SENSOR_EXT_A_PM_1:
         case SENSOR_EXT_A_PM_25:
         case SENSOR_EXT_A_PM_10:
@@ -281,21 +281,21 @@ bool AuxBoards::stop(SensorType whichSensor)
         case SENSOR_EXT_B_PN_5:
         case SENSOR_EXT_B_PN_10:                    return pmSensorB.stop();
 #endif
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
         case SENSOR_PM_DALLAS_TEMP:                 return pmDallasTemp.stop();
         case SENSOR_DALLAS_TEMP:                    return dallasTemp.stop();
 #endif
-#ifdef WITH_EXT_TEMP
+#ifdef SCK_WITH_EXT_TEMP
         case SENSOR_SHT31_TEMP:
         case SENSOR_SHT31_HUM:                      return sht31.stop();
         case SENSOR_SHT35_TEMP:
         case SENSOR_SHT35_HUM:                      return sht35.stop();
 #endif
-#ifdef WITH_RANGE
+#ifdef SCK_WITH_RANGE
         case SENSOR_RANGE_DISTANCE:
         case SENSOR_RANGE_LIGHT:                    return range.stop();
 #endif
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
         case SENSOR_GPS_FIX_QUALITY:
         case SENSOR_GPS_LATITUDE:
         case SENSOR_GPS_LONGITUDE:
@@ -304,7 +304,7 @@ bool AuxBoards::stop(SensorType whichSensor)
         case SENSOR_GPS_HDOP:
         case SENSOR_GPS_SATNUM:                     return gps.stop();
 #endif
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
         case SENSOR_ADS1X15_48_0:
         case SENSOR_ADS1X15_48_1:
         case SENSOR_ADS1X15_48_2:
@@ -322,17 +322,17 @@ bool AuxBoards::stop(SensorType whichSensor)
         case SENSOR_ADS1X15_4B_2:
         case SENSOR_ADS1X15_4B_3:                   return ads4B.stop();
 #endif
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
         case SENSOR_SCD30_CO2:
         case SENSOR_SCD30_TEMP:
         case SENSOR_SCD30_HUM:                      return scd30.stop(whichSensor);
 #endif
-#ifdef  WITH_SFA30
+#ifdef  SCK_WITH_SFA30
         case SENSOR_SFA30_TEMPERATURE:
         case SENSOR_SFA30_HUMIDITY:
         case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(whichSensor);
 #endif
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.stop();
 #endif
         default: break;
@@ -344,7 +344,7 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
 {
     whichSensor->state = 0;
     switch (whichSensor->type) {
-#ifdef WITH_GASES_BOARD
+#ifdef SCK_WITH_GASES_BOARD
         case SENSOR_GASESBOARD_SLOT_1A:             whichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_A)); return;
         case SENSOR_GASESBOARD_SLOT_1W:             whichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_W)); return;
         case SENSOR_GASESBOARD_SLOT_2A:             whichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot2.electrode_A)); return;
@@ -354,19 +354,19 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_GASESBOARD_HUMIDITY:            whichSensor->reading = String(gasBoard.getHumidity()); return;
         case SENSOR_GASESBOARD_TEMPERATURE:         whichSensor->reading = String(gasBoard.getTemperature()); return;
 #endif
-#ifdef WITH_GROVE_I2C_ADC
+#ifdef SCK_WITH_GROVE_I2C_ADC
         case SENSOR_GROOVE_I2C_ADC:                 whichSensor->reading = String(grooveI2C_ADC.getReading()); return;
 #endif
-#ifdef WITH_INA219
+#ifdef SCK_WITH_INA219
         case SENSOR_INA219_BUSVOLT:                 whichSensor->reading = String(ina219.getReading(ina219.BUS_VOLT)); return;
         case SENSOR_INA219_SHUNT:                   whichSensor->reading = String(ina219.getReading(ina219.SHUNT_VOLT)); return;
         case SENSOR_INA219_CURRENT:                 whichSensor->reading = String(ina219.getReading(ina219.CURRENT)); return;
         case SENSOR_INA219_LOADVOLT:                whichSensor->reading = String(ina219.getReading(ina219.LOAD_VOLT)); return;
 #endif
-#ifdef WITH_DS18B20
+#ifdef SCK_WITH_DS18B20
         case SENSOR_WATER_TEMP_DS18B20:             whichSensor->reading = String(waterTemp_DS18B20.getReading()); return;
 #endif
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
         case SENSOR_ATLAS_TEMPERATURE:              if (atlasTEMP.getReading())     { whichSensor->reading = String(atlasTEMP.newReading[0]); return; } break;
         case SENSOR_ATLAS_PH:                       if (atlasPH.getReading())   { whichSensor->reading = String(atlasPH.newReading[0]); return; } break;
         case SENSOR_ATLAS_EC:                       if (atlasEC.getReading())   { whichSensor->reading = String(atlasEC.newReading[0]); return; } break;
@@ -377,13 +377,13 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_ATLAS_DO_SAT:                   if (atlasDO.getReading())   { whichSensor->reading = String(atlasDO.newReading[1]); return; } break;
         case SENSOR_ATLAS_ORP:                      if (atlasORP.getReading())  { whichSensor->reading = String(atlasORP.newReading[0]); return; } break;
 #endif
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
         case SENSOR_CHIRP_MOISTURE_RAW:             if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE_RAW)) { whichSensor->reading = String(moistureChirp.raw); return; } break;
         case SENSOR_CHIRP_MOISTURE:                 if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE)) { whichSensor->reading = String(moistureChirp.moisture); return; } break;
         case SENSOR_CHIRP_TEMPERATURE:              if (moistureChirp.getReading(SENSOR_CHIRP_TEMPERATURE)) { whichSensor->reading = String(moistureChirp.temperature); return; } break;
         case SENSOR_CHIRP_LIGHT:                    if (moistureChirp.getReading(SENSOR_CHIRP_LIGHT)) { whichSensor->reading = String(moistureChirp.light); return; } break;
 #endif
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
         case SENSOR_EXT_A_PM_1:                     if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pm1); return; } break;
         case SENSOR_EXT_A_PM_25:                    if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pm25); return; } break;
         case SENSOR_EXT_A_PM_10:                    if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pm10); return; } break;
@@ -403,21 +403,21 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_EXT_B_PN_5:                     if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pn5); return; } break;
         case SENSOR_EXT_B_PN_10:                    if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pn10); return; } break;
 #endif
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
         case SENSOR_PM_DALLAS_TEMP:                 whichSensor->reading = String(pmDallasTemp.getReading()); return;
         case SENSOR_DALLAS_TEMP:                    if (dallasTemp.getReading())            { whichSensor->reading = String(dallasTemp.reading); return; } break;
 #endif
-#ifdef WITH_EXT_TEMP
+#ifdef SCK_WITH_EXT_TEMP
         case SENSOR_SHT31_TEMP:                     if (sht31.getReading())                 { whichSensor->reading = String(sht31.temperature); return; } break;
         case SENSOR_SHT31_HUM:                      if (sht31.getReading())                 { whichSensor->reading = String(sht31.humidity); return; } break;
         case SENSOR_SHT35_TEMP:                     if (sht35.getReading())                 { whichSensor->reading = String(sht35.temperature); return; } break;
         case SENSOR_SHT35_HUM:                      if (sht35.getReading())                 { whichSensor->reading = String(sht35.humidity); return; } break;
 #endif
-#ifdef WITH_RANGE
+#ifdef SCK_WITH_RANGE
         case SENSOR_RANGE_DISTANCE:                 if (range.getReading(SENSOR_RANGE_DISTANCE))    { whichSensor->reading = String(range.readingDistance); return; } break;
         case SENSOR_RANGE_LIGHT:                    if (range.getReading(SENSOR_RANGE_LIGHT))   { whichSensor->reading = String(range.readingLight); return; } break;
 #endif
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
         case SENSOR_GPS_FIX_QUALITY:                if (gps.getReading(base, SENSOR_GPS_FIX_QUALITY))   { whichSensor->reading = String(gps.r.fixQuality); return; } break;
         case SENSOR_GPS_LATITUDE:                   if (gps.getReading(base, SENSOR_GPS_LATITUDE))      { whichSensor->reading = String(gps.r.latitude, 6); return; } break;
         case SENSOR_GPS_LONGITUDE:                  if (gps.getReading(base, SENSOR_GPS_LONGITUDE))     { whichSensor->reading = String(gps.r.longitude, 6); return; } break;
@@ -426,7 +426,7 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_GPS_HDOP:                       if (gps.getReading(base, SENSOR_GPS_HDOP))      { whichSensor->reading = String(gps.r.hdop, 2); return; } break;
         case SENSOR_GPS_SATNUM:                     if (gps.getReading(base, SENSOR_GPS_SATNUM))        { whichSensor->reading = String(gps.r.satellites); return; } break;
 #endif
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
         case SENSOR_ADS1X15_48_0:                   if (ads48.getReading(0))                    { whichSensor->reading = String(ads48.reading, 6);       return; } break;
         case SENSOR_ADS1X15_48_1:                   if (ads48.getReading(1))                    { whichSensor->reading = String(ads48.reading, 6);       return; } break;
         case SENSOR_ADS1X15_48_2:                   if (ads48.getReading(2))                    { whichSensor->reading = String(ads48.reading, 6);       return; } break;
@@ -444,15 +444,12 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_ADS1X15_4B_2:                   if (ads4B.getReading(2))                    { whichSensor->reading = String(ads4B.reading, 6);       return; } break;
         case SENSOR_ADS1X15_4B_3:                   if (ads4B.getReading(3))                    { whichSensor->reading = String(ads4B.reading, 6);       return; } break;
 #endif
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
         case SENSOR_SCD30_CO2:                      if (scd30.getReading(whichSensor->type))     { whichSensor->reading = String(scd30.co2);              return; } break;
         case SENSOR_SCD30_TEMP:                     if (scd30.getReading(whichSensor->type))     { whichSensor->reading = String(scd30.temperature);      return; } break;
         case SENSOR_SCD30_HUM:                      if (scd30.getReading(whichSensor->type))     { whichSensor->reading = String(scd30.humidity);         return; } break;
 #endif
-#ifdef  WITH_SFA30
-        case SENSOR_SFA30_TEMPERATURE:              if (sck_sfa30.getReading(whichSensor->type)) { whichSensor->reading = String(sck_sfa30.temperature);  return; } break;
-        case SENSOR_SFA30_HUMIDITY:                 if (sck_sfa30.getReading(whichSensor->type)) { whichSensor->reading = String(sck_sfa30.humidity);     return; } break;
-        case SENSOR_SFA30_FORMALDEHYDE:             if (sck_sfa30.getReading(whichSensor->type)) { whichSensor->reading = String(sck_sfa30.formaldehyde); return; } break;
+#ifdef  SCK_WITH_SFA30
 #endif
         default: break;
     }
@@ -464,7 +461,7 @@ bool AuxBoards::getBusyState(SensorType whichSensor)
 {
 
     switch(whichSensor) {
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
         case SENSOR_ATLAS_TEMPERATURE:  return atlasTEMP.getBusyState(); break;
         case SENSOR_ATLAS_PH:       return atlasPH.getBusyState(); break;
         case SENSOR_ATLAS_EC:
@@ -481,7 +478,7 @@ bool AuxBoards::getBusyState(SensorType whichSensor)
 String AuxBoards::control(SensorType whichSensor, String command)
 {
     switch(whichSensor) {
-#ifdef WITH_GASES_BOARD
+#ifdef SCK_WITH_GASES_BOARD
         case SENSOR_GASESBOARD_SLOT_1A:
         case SENSOR_GASESBOARD_SLOT_1W:
         case SENSOR_GASESBOARD_SLOT_2A:
@@ -556,7 +553,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
 
         }
 #endif
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
         case SENSOR_ATLAS_PH:
         case SENSOR_ATLAS_EC:
         case SENSOR_ATLAS_EC_TDS:
@@ -652,7 +649,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
 
         }
 #endif
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
         case SENSOR_CHIRP_MOISTURE_RAW:
         case SENSOR_CHIRP_MOISTURE:
         case SENSOR_CHIRP_TEMPERATURE:
@@ -715,7 +712,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
 
         }
 #endif
-#ifdef WITH_EXT_TEMP
+#ifdef SCK_WITH_EXT_TEMP
         case SENSOR_SHT31_TEMP:
         {
             if (command.startsWith("cal")) {
@@ -853,7 +850,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
             }
         }
 #endif
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
         case SENSOR_ADS1X15_48_0:
         case SENSOR_ADS1X15_48_1:
         case SENSOR_ADS1X15_48_2:
@@ -1008,7 +1005,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
             break;
         }
 #endif
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
         case SENSOR_SCD30_CO2:
         case SENSOR_SCD30_TEMP:
         case SENSOR_SCD30_HUM: {
@@ -1075,7 +1072,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
     }
     return "Unknown error on control command!!!";
 }
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 void AuxBoards::print(char *payload)
 {
     groove_OLED.print(payload);
@@ -1090,14 +1087,14 @@ void AuxBoards::plot(String value, const char *title, const char *unit)
     else groove_OLED.plot(value);
 }
 #endif
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
 bool AuxBoards::updateGPS()
 {
     return gps.update();
 }
 #endif
 
-#ifdef WITH_GROVE_I2C_ADC
+#ifdef SCK_WITH_GROVE_I2C_ADC
 bool GrooveI2C_ADC::start()
 {
 
@@ -1135,7 +1132,7 @@ float GrooveI2C_ADC::getReading()
 }
 #endif
 
-#ifdef WITH_INA219
+#ifdef SCK_WITH_INA219
 bool INA219::start()
 {
 
@@ -1188,7 +1185,7 @@ float INA219::getReading(typeOfReading whichReading)
 }
 #endif
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 bool Groove_OLED::start()
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -1617,7 +1614,7 @@ void Groove_OLED::remap(float newMaxY)
 }
 #endif
 
-#ifdef WITH_DS18B20
+#ifdef SCK_WITH_DS18B20
 bool WaterTemp_DS18B20::start()
 {
 
@@ -1686,7 +1683,7 @@ float WaterTemp_DS18B20::getReading()
 }
 #endif
 
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
 bool Atlas::start()
 {
     if (beginDone) return true;
@@ -1896,7 +1893,7 @@ bool Atlas::tempCompensation()
     if (!ORP) {
         // Temperature compensation for PH, EC, and DO
         float temperature = -1000;
-#ifdef WITH_DS18B20
+#ifdef SCK_WITH_DS18B20
         if (waterTemp_DS18B20.detected) {
             temperature = waterTemp_DS18B20.getReading();
         } else if (atlasTEMP.detected) {
@@ -1973,7 +1970,7 @@ uint8_t Atlas::getResponse()
 }
 #endif
 
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
 bool Moisture::start()
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -2049,7 +2046,7 @@ bool Moisture::resetAddress(int currentAddress)
 }
 #endif
 
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
 bool PMsensor::start()
 {
     if (started) return true;
@@ -2123,7 +2120,7 @@ bool PMsensor::update()
 }
 #endif
 
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
 bool PM_DallasTemp::start()
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -2165,7 +2162,7 @@ float PM_DallasTemp::getReading()
 }
 #endif
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
 TinyGPSPlus tinyGps;
 TinyGPSCustom fixQuality(tinyGps, "GPGGA", 6);
 TinyGPSCustom nfixQuality(tinyGps, "GNGGA", 6);
@@ -2527,7 +2524,7 @@ bool NEOM8UGPS::update()
 }
 #endif
 
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
 bool Sck_DallasTemp::start()
 {
     pinPeripheral(pinAUX_WIRE_SCL, PIO_DIGITAL);
@@ -2569,7 +2566,7 @@ bool Sck_DallasTemp::getReading()
 }
 #endif
 
-#ifdef WITH_RANGE
+#ifdef SCK_WITH_RANGE
 bool Sck_Range::start()
 {
     if (alreadyStarted) return true;
@@ -2604,7 +2601,7 @@ bool Sck_Range::getReading(SensorType whichSensor)
 }
 #endif
 
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
 bool Sck_ADS1X15::start(uint8_t address)
 {
     if (!I2Cdetect(&auxWire, address)) return false;
@@ -2750,7 +2747,7 @@ void Sck_ADS1X15::runTester(uint8_t whichChannel)
 #endif
 #endif
 
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
 bool Sck_SCD30::start(SckBase *base, SensorType whichSensor)
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
@@ -2769,13 +2766,13 @@ bool Sck_SCD30::start(SckBase *base, SensorType whichSensor)
     // Unset measbegin option to avoid begin() function to set measuring interval to default value of 2 seconds.
     if (!sparkfun_scd30.begin(auxWire, false, false)) return false;
 
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
     // TODO Add here LPS pressure sensor
     // Ambient pressure compensation
-#ifdef WITH_MPL
+#ifdef SCK_WITH_MPL
     OneSensor *pressureSensor = &base->sensors[SENSOR_MPL_PRESSURE];
 #endif
-#ifdef WITH_LPS33
+#ifdef SCK_WITH_LPS33
     OneSensor *pressureSensor = &base->sensors[SENSOR_LPS33_PRESSURE];
 #endif
     if (pressureSensor->enabled && base->getReading(pressureSensor)) {
@@ -2891,7 +2888,7 @@ float Sck_SCD30::tempOffset(float userTemp, bool off)
 }
 #endif
 
-#ifdef  WITH_SFA30
+#ifdef  SCK_WITH_SFA30
 bool Sck_SFA30::start(SensorType whichSensor)
 {
     delay(10); // Without this, Humidity detection fails sometimes

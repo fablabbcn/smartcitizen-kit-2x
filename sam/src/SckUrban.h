@@ -6,27 +6,28 @@
 
 #include <Sensors.h>
 #include "Pins.h"
-#ifdef WITH_URBAN
-#ifdef WITH_MPL
+#ifdef SCK_WITH_URBAN
+#ifdef SCK_WITH_MPL
 #include <Adafruit_MPL3115A2.h>
 #endif
-#ifdef WITH_LPS33
+#ifdef SCK_WITH_LPS33
 #include <Adafruit_LPS35HW.h>
 #endif
-#include "SckSoundTables.h"
+#ifdef SCK_WITH_NOISE
 #include <I2S.h>
+#endif
 
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_CCS811
 #include <SparkFunCCS811.h>
 #endif
 
-#ifdef WITH_SPS30
+#ifdef SCK_WITH_SPS30
 // Sensirion Library for SPS30
 // https://github.com/Sensirion/arduino-sps
 #include <sps30.h>
 #endif
 
-#ifdef WITH_BME68X
+#ifdef SCK_WITH_BME68X
 // Adafruit BME608 library
 #include <Adafruit_BME680.h>
 #endif
@@ -56,7 +57,7 @@ enum SensorState
     SENSOR_ERROR
 };
 
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
 // Light
 class Sck_BH1730FVC
     {
@@ -143,6 +144,7 @@ class Sck_SHT31
     };
 
 // Noise
+#ifdef SCK_WITH_NOISE
 class Sck_Noise
     {
     public:
@@ -172,8 +174,9 @@ class Sck_Noise
         void fft2db();
 
     };
+#endif
 
-#ifdef WITH_MPL
+#ifdef SCK_WITH_MPL
 // Barometric pressure and Altitude
 class Sck_MPL3115A2
     {
@@ -196,7 +199,7 @@ class Sck_MPL3115A2
     };
 #endif
 
-#ifdef WITH_LPS33
+#ifdef SCK_WITH_LPS33
 // Barometric pressure and Altitude LPS33K
 class Sck_LPS33
     {
@@ -217,7 +220,7 @@ class Sck_LPS33
     };
 #endif
 
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
 //PM sensors
 class Sck_PMS
     {
@@ -310,7 +313,7 @@ class Sck_PMS
     };
 #endif
 
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_CCS811
 // VOC ans ECO2 - CCS811
 class Sck_CCS811
     {
@@ -352,7 +355,7 @@ class Sck_CCS811
     };
 #endif
 
-#ifdef WITH_SPS30
+#ifdef SCK_WITH_SPS30
 class Sck_SPS30
     {
         // TODO
@@ -402,7 +405,7 @@ class Sck_SPS30
 #endif
 
 #define ONE_WEEK_IN_SECONDS 604800
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_SEN5X
 class Sck_SEN5X
     {
 
@@ -534,7 +537,7 @@ class Sck_SEN5X
     };
 #endif
 
-#ifdef WITH_BME68X
+#ifdef SCK_WITH_BME68X
 class Sck_BME68X
     {
     public:
@@ -558,7 +561,7 @@ class Sck_BME68X
     };
 #endif
 
-#ifdef WITH_AS7331
+#ifdef SCK_WITH_AS7331
 // UVA
 class Sck_AS7331
     {
@@ -691,50 +694,52 @@ class SckUrban
         void getReading(SckBase *base, OneSensor *wichSensor);
         bool control(SckBase *base, SensorType wichSensor, String command);
 
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
         // Light
         Sck_BH1730FVC sck_bh1730fvc;
 
         // Temperature and Humidity
         Sck_SHT31 sck_sht31 = Sck_SHT31(&Wire);
 
+#ifdef SCK_WITH_NOISE
         // Noise
         Sck_Noise sck_noise;
+#endif
 
-#ifdef WITH_MPL
+#ifdef SCK_WITH_MPL
         // Barometric pressure and Altitude
         Sck_MPL3115A2 sck_mpl3115A2;
 #endif
 
-#ifdef WITH_LPS33
+#ifdef SCK_WITH_LPS33
         // Barometric pressure LPS
         Sck_LPS33 sck_lps33;
 #endif
 
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_CCS811
         // VOC and ECO2
         Sck_CCS811 sck_ccs811 = Sck_CCS811(rtc);
 #endif
 
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
         // PM sensor
         Sck_PMS sck_pms = Sck_PMS(rtc);
 #endif
 
-#ifdef WITH_SPS30
+#ifdef SCK_WITH_SPS30
         // SPS30 PM sensor
         Sck_SPS30 sck_sps30 = Sck_SPS30(rtc);
 #endif
 
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_SEN5X
         // SEN5X PM, [temp, hum, vocs, nox] sensor
         Sck_SEN5X sck_sen5x = Sck_SEN5X(rtc);
 #endif
-#ifdef WITH_BME68X
+#ifdef SCK_WITH_BME68X
         // BME68X, Temperature, Humidity, Barometric Pressure, Gases
         Sck_BME68X sck_bme68x = Sck_BME68X();
 #endif
-#ifdef WITH_AS7331
+#ifdef SCK_WITH_AS7331
         // AMS7331 UVA, UVB, and UVC sensor
         Sck_AS7331 sck_as7331;
 #endif

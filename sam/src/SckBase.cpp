@@ -123,7 +123,7 @@ void SckBase::setup()
                 enableSensor(wichSensor->type);
             } else {
                 wichSensor->enabled = false;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
                 wichSensor->oled_display = false;
 #endif
             }
@@ -202,7 +202,7 @@ void SckBase::update()
             }
         }
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
         // If we have a GPS update it and get time if needed
         if (sensors[SENSOR_GPS_FIX_QUALITY].enabled){
             auxBoards.updateGPS();
@@ -210,7 +210,7 @@ void SckBase::update()
         }
 #endif
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         // If we have a screen update it
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 #endif
@@ -646,7 +646,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
         } else st.cardPresent = false;
     }
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
     // Debug output to oled display
     if (config.debug.oled) {
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.print(outBuff);
@@ -658,7 +658,7 @@ void SckBase::prompt()
     sprintf(outBuff, "%s", "SCK > ");
     sckOut(PRIO_MED, false);
 }
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 void SckBase::plot(String value, const char *title, const char *unit)
 {
     auxBoards.plot(value, title, unit);
@@ -697,11 +697,11 @@ void SckBase::loadConfig()
 	memcpy(&hostname[14], &config.mac.address[15], 2);
 	hostname[16] = '\0';
 
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
 	// PMS sensor warmUpperiod and powerSave config
 	urban.sck_sht31.temperatureOffset = config.extra.urbanTemperatureOffset;
 	urban.sck_sht31.humidityOffset = config.extra.urbanHumidityOffset;
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_CCS811
 	// CSS vocs sensor baseline loading
 	if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
 		sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
@@ -710,7 +710,7 @@ void SckBase::loadConfig()
 	}
 #endif
 
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
 	// PMS sensor warmUpperiod and powerSave config
 	urban.sck_pms.warmUpPeriod = config.extra.pmWarmUpPeriod;
 	urban.sck_pms.powerSave = config.extra.pmPowerSave;
@@ -730,7 +730,7 @@ void SckBase::saveConfig(bool defaults)
             SensorType wichSensorType = static_cast<SensorType>(i);
 
             config.sensors[wichSensorType].enabled = sensors[wichSensorType].defaultEnabled;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
             config.sensors[wichSensorType].oled_display = sensors[wichSensorType].oled_display;
 #endif
             config.sensors[wichSensorType].everyNint = sensors[wichSensorType].defaultEveryNint;
@@ -1473,8 +1473,8 @@ void SckBase::saveHeader(FsFile* thisFile)
 // **** Power
 void SckBase::sck_reset()
 {
-#ifdef WITH_URBAN
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_URBAN
+#ifdef SCK_WITH_CCS811
     // Save updated CCS sensor baseline
     if (I2Cdetect(&Wire, urban.sck_ccs811.address)) {
         uint16_t savedBaseLine = urban.sck_ccs811.getBaseline();
@@ -1487,7 +1487,7 @@ void SckBase::sck_reset()
         }
     }
 #endif
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_SEN5X
     if (I2Cdetect(&Wire, urban.sck_sen5x.address)) {
         urban.sck_sen5x.vocStateToEeprom();
     }
@@ -1513,12 +1513,12 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
         sprintf(outBuff, "Sleeping forever (until a button click)");
         sckOut();
 
-#ifdef WITH_URBAN
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_URBAN
+#ifdef SCK_WITH_CCS811
         // Stop CCS811 VOCS sensor
         urban.stop(SENSOR_CCS811_VOCS);
 #endif
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_SEN5X
         // Stop SEN5X sensor
         urban.stop(SENSOR_SEN5X_PM_1);
         urban.stop(SENSOR_SEN5X_PM_25);
@@ -1573,7 +1573,7 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     __WFI();
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
     // Recover Noise sensor timer
     REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
     while (GCLK->STATUS.bit.SYNCBUSY);
@@ -1632,7 +1632,7 @@ void SckBase::updatePower()
 
                 sckOut("Emergency low battery!!", PRIO_ERROR);
                 st.error = ERROR_BATT;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
                 auxBoards.updateDisplay(this, true);        // Force update of screen before going to sleep
 #endif
                 // Ignore last user event and go to sleep
@@ -1694,7 +1694,7 @@ void SckBase::updateDynamic(uint32_t now)
     if (millis() - lastSpeedMonitoring < 1000) return;
     lastSpeedMonitoring = millis();
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
     if (!getReading(&sensors[SENSOR_GPS_SPEED])) return;
     if (!getReading(&sensors[SENSOR_GPS_FIX_QUALITY])) return;
     if (!getReading(&sensors[SENSOR_GPS_HDOP])) return;
@@ -1777,7 +1777,7 @@ void SckBase::sleepLoop()
         updateSensors();
         updatePower();
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         // If we have a screen update it
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
 #endif
@@ -1812,7 +1812,7 @@ void SckBase::updateSensors()
     if (!st.timeStat.ok) return;
     if (st.onSetup) return;
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
     if (sensors[SENSOR_GPS_SPEED].enabled) updateDynamic(now);
 #endif
 
@@ -1974,7 +1974,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
         sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
         sckOut();
         sensors[wichSensor].enabled = true;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         sensors[wichSensor].oled_display = config.sensors[wichSensor].oled_display;  // Show detected sensors on oled display if config is true (default).
 #endif
         writeHeader = true;
@@ -1982,7 +1982,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
     }
 
     sensors[wichSensor].enabled = false;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
     sensors[wichSensor].oled_display = false;
 #endif
     // Avoid spamming with mesgs for every supported auxiliary sensor

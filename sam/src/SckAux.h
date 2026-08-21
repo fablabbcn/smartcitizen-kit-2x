@@ -7,12 +7,12 @@
 #include <Wire.h>
 #include <FlashStorage.h>
 
-#ifdef WITH_INA219
+#ifdef SCK_WITH_INA219
 // INA219 libs
 #include <Adafruit_INA219.h>
 #endif
 
-#ifdef WITH_GASES_BOARD
+#ifdef SCK_WITH_GASES_BOARD
 // Gases Board libs
 #include <GasesBoard.h>
 #endif
@@ -20,7 +20,7 @@
 // Urban board library
 #include <SckUrban.h>
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 // Groove_OLED libs
 #include <U8g2lib.h>
 // Icons for screen
@@ -30,12 +30,12 @@
 // DS2482 library (I2C-1Wire bridge)
 #include <DS2482.h>
 
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
 // I2C Moisture Sensor (chirp)
 #include <I2CSoilMoistureSensor.h>
 #endif
 
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
 // Libraries for DallasTemp
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -46,7 +46,7 @@
 #include <SparkFun_VL6180X.h>
 #endif
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
 // Library for GPS data parsing
 #include "TinyGPS++.h"
 
@@ -60,7 +60,7 @@
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 #endif
 
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
 // Adafruit library for ADS1x15 12/16 bits ADC
 #include <Adafruit_ADS1X15.h>
 #endif
@@ -73,17 +73,17 @@
 #include "GasesBoardTester.h"
 #endif
 
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
 // Sparkfun library for SCD30 CO2 sensor
 #include <SparkFun_SCD30_Arduino_Library.h>
 #endif
 
-#ifdef  WITH_SFA30
+#ifdef  SCK_WITH_SFA30
 // Sensirion I2C SFA3X library
 #include <SensirionI2CSfa3x.h>
 #endif
 
-#ifdef WITH_AS7341
+#ifdef SCK_WITH_AS7341
 // Adafruit I2C AS7341 library
 #include <Adafruit_AS7341.h>
 #endif
@@ -234,12 +234,12 @@ class AuxBoards
         bool getBusyState(SensorType whichSensor);
         String control(SensorType whichSensor, String command);
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         void print(char *payload);
         void updateDisplay(SckBase* base, bool force=false);
         void plot(String value, const char *title=NULL, const char *unit=NULL);
 #endif
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
         bool updateGPS();
 #endif
 
@@ -248,7 +248,7 @@ class AuxBoards
     private:
     };
 
-#ifdef WITH_GROVE_I2C_ADC
+#ifdef SCK_WITH_GROVE_I2C_ADC
 class GrooveI2C_ADC
     {
     public:
@@ -272,7 +272,7 @@ class GrooveI2C_ADC
     };
 #endif
 
-#ifdef WITH_INA219
+#ifdef SCK_WITH_INA219
 class INA219
     {
     public:
@@ -290,7 +290,7 @@ class INA219
     };
 #endif
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 // This implementation works with a 128x128 pixel Oled screen with SH1107 controler
 class Groove_OLED
     {
@@ -341,7 +341,7 @@ class Groove_OLED
     };
 #endif
 
-#ifdef WITH_DS18B20
+#ifdef SCK_WITH_DS18B20
 /*! @class DS2482_100
  *  @brief class for handling the DS18B20 temperature sensor connected to the I2C port
  *   through the DS2482-100 board. This was based on an example made by
@@ -373,7 +373,7 @@ class WaterTemp_DS18B20
     };
 #endif
 
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
 class Atlas
     {
     public:
@@ -463,7 +463,7 @@ class Atlas
     };
 #endif
 
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
 class Moisture
     {
     private:
@@ -495,12 +495,12 @@ class Moisture
     };
 #endif
 
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
 enum PMslot {SLOT_A, SLOT_B, SLOT_AVG};
 #endif
 enum PMcommands
 {
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
     START_PMA,      // Start PM in slot A
     START_PMB,          // Start PM in slot B
     GET_PMA,        // Get values for PM in slot A
@@ -508,19 +508,19 @@ enum PMcommands
     STOP_PMA,       // Stop PM in slot A
     STOP_PMB,       // Stop PM in slot B
 #endif
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
     DALLASTEMP_START,
     DALLASTEMP_STOP,
     GET_DALLASTEMP,
 #endif
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
     GROVEGPS_START,
     GROVEGPS_STOP,
     GROVEGPS_GET
 #endif
 };
 
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
 class PMsensor
     {
     public:
@@ -566,7 +566,7 @@ class PMsensor
     };
 #endif
 
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
 class PM_DallasTemp
     {
     public:
@@ -584,7 +584,7 @@ class PM_DallasTemp
     };
 #endif
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
 struct GpsReadings
 {
     // Data (40 bytes)
@@ -629,7 +629,7 @@ struct GpsReadings
 };
 #endif
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
 class GPS_Source
     {
     public:
@@ -702,7 +702,7 @@ class NEOM8UGPS: public GPS_Source
     };
 #endif
 
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
 class Sck_DallasTemp
     {
         // This is for a Dallas temperature sensor connected to the plugged in Aux groove connector using pin pinAUX_WIRE_SCL (13 - PA17)
@@ -735,7 +735,7 @@ class Sck_Range
     };
 #endif
 
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
 class Sck_ADS1X15
     {
     public:
@@ -768,7 +768,7 @@ class Sck_ADS1X15
     };
 #endif
 
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
 class Sck_SCD30
     {
     public:
@@ -796,7 +796,7 @@ class Sck_SCD30
     };
 #endif
 
-#ifdef  WITH_SFA30
+#ifdef  SCK_WITH_SFA30
 class Sck_SFA30
     {
     public:

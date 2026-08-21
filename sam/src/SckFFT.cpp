@@ -57,6 +57,7 @@ uint16_t Sck_FFT<SAMPLE_NUM_>::dominantBin(int32_t *magnitude, uint16_t skipBins
 {
     uint16_t peak = skipBins;
     for (uint16_t i=skipBins+1; i<FFT_NUM; i++) if (magnitude[i] > magnitude[peak]) peak = i;
+    if (!magnitude[peak]) return 0;
     return peak;
 }
 template<uint16_t SAMPLE_NUM_>

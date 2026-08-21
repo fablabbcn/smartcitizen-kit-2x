@@ -210,7 +210,21 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
 #ifdef  SCK_WITH_SFA30
         case SENSOR_SFA30_TEMPERATURE:
         case SENSOR_SFA30_HUMIDITY:
-        case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(whichSensor);
+        case SENSOR_SFA30_FORMALDEHYDE:             return sfa30.start(whichSensor);
+#endif
+#ifdef  SCK_WITH_AS7341
+        case SENSOR_AS7341_415NM_F1:
+        case SENSOR_AS7341_445NM_F2:
+        case SENSOR_AS7341_480NM_F3:
+        case SENSOR_AS7341_515NM_F4:
+        case SENSOR_AS7341_555NM_F5:
+        case SENSOR_AS7341_590NM_F6:
+        case SENSOR_AS7341_630NM_F7:
+        case SENSOR_AS7341_680NM_F8:
+        case SENSOR_AS7341_NIR:
+        case SENSOR_AS7341_CLEAR:
+        case SENSOR_AS7341_FLICKER_FREQ:
+        case SENSOR_AS7341_FLICKER_MOD:             return as7341.start(whichSensor);
 #endif
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.start();
@@ -330,7 +344,20 @@ bool AuxBoards::stop(SensorType whichSensor)
 #ifdef  SCK_WITH_SFA30
         case SENSOR_SFA30_TEMPERATURE:
         case SENSOR_SFA30_HUMIDITY:
-        case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(whichSensor);
+#endif
+#ifdef  SCK_WITH_AS7341
+        case SENSOR_AS7341_415NM_F1:
+        case SENSOR_AS7341_445NM_F2:
+        case SENSOR_AS7341_480NM_F3:
+        case SENSOR_AS7341_515NM_F4:
+        case SENSOR_AS7341_555NM_F5:
+        case SENSOR_AS7341_590NM_F6:
+        case SENSOR_AS7341_630NM_F7:
+        case SENSOR_AS7341_680NM_F8:
+        case SENSOR_AS7341_NIR:
+        case SENSOR_AS7341_CLEAR:
+        case SENSOR_AS7341_FLICKER_FREQ:             return as7341.stop(whichSensor);
+        case SENSOR_AS7341_FLICKER_MOD:              return as7341.stop(whichSensor);
 #endif
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.stop();
@@ -450,6 +477,20 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_SCD30_HUM:                      if (scd30.getReading(whichSensor->type))     { whichSensor->reading = String(scd30.humidity);         return; } break;
 #endif
 #ifdef  SCK_WITH_SFA30
+#endif
+#ifdef  SCK_WITH_AS7341
+        case SENSOR_AS7341_415NM_F1:                if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_f1);  return; } break;
+        case SENSOR_AS7341_445NM_F2:                if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_f2);  return; } break;
+        case SENSOR_AS7341_480NM_F3:                if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_f3);  return; } break;
+        case SENSOR_AS7341_515NM_F4:                if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_f4);  return; } break;
+        case SENSOR_AS7341_555NM_F5:                if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_f5);  return; } break;
+        case SENSOR_AS7341_590NM_F6:                if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_f6);  return; } break;
+        case SENSOR_AS7341_630NM_F7:                if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_f7);  return; } break;
+        case SENSOR_AS7341_680NM_F8:                if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_f8);  return; } break;
+        case SENSOR_AS7341_NIR:                     if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_nir); return; } break;
+        case SENSOR_AS7341_CLEAR:                   if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_clear); return; } break;
+        case SENSOR_AS7341_FLICKER_FREQ:            if (as7341.getFlickerReading())  { whichSensor->reading = String(as7341.flickerPeakFreq); return; } break;
+        case SENSOR_AS7341_FLICKER_MOD:             if (as7341.getFlickerReading())  { whichSensor->reading = String(as7341.flickerMod); return; } break;
 #endif
         default: break;
     }
@@ -2961,52 +3002,197 @@ bool Sck_SFA30::isError(uint16_t response)
 }
 #endif
 
-#ifdef WITH_AS7331
+#ifdef SCK_WITH_AS7341
 bool Sck_AS7341::start(SensorType whichSensor)
 {
-    if (!I2Cdetect(&auxWire, address)) return false;
+    if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-    if (started) return true;
+    if (started) {
+        // Mark this specific metric as enabled
+        for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
+        return true;
+    }
 
-    as7341.begin(address, &auxWire);
+    adafruit_as7341.begin(deviceAddress, &auxWire);
 
-    // Set params
-    as7341.setATIME(SCK_AS7431_ATIME);
-    as7341.setASTEP(SCK_AS7431_ASTEP);
-    as7341.setGain(AS7341_GAIN_256X);
+    // Mark this specific metric as enabled
+    for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
 
     started = true;
     return true;
 }
 
-bool Sck_AS7341::stop()
+bool Sck_AS7341::stop(SensorType whichSensor)
 {
     started = false;
+    // Mark this specific metric as disabled
+    for (uint8_t i=0; i<totalMetrics; i++) {
+        if (enabled[i][0] == whichSensor) {
+            enabled[i][1] = 0;
+        }
+    }
     return true;
 }
 
-bool Sck_AS7341::getReading(SensorType whichSensor)
-{
-    if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+int Sck_AS7341::nextLowerGain(as7341_gain_t currentGain) {
+    if (currentGain == AS7341_GAIN_0_5X) return -1;
+    return static_cast<int>(currentGain) - 1;
+}
 
-    if (!as7341.readAllChannels()){
+bool Sck_AS7341::getReadingAtGain(as7341_gain_t gain) {
+
+    uint16_t readings[SCK_AS7341_N_SPECTRAL_READINGS]{};
+    adafruit_as7341.setGain(gain);
+
+    bool readOK = adafruit_as7341.readAllChannels(readings);
+
+    if (!readOK){
         Serial.println("AS7341 Error reading all channels!");
         return false;
     }
 
-    channel_f1 = as7341.getChannel(AS7341_CHANNEL_415nm_F1);
-    channel_f2 = as7341.getChannel(AS7341_CHANNEL_445nm_F2);
-    channel_f3 = as7341.getChannel(AS7341_CHANNEL_480nm_F3);
-    channel_f4 = as7341.getChannel(AS7341_CHANNEL_515nm_F4);
-    channel_f5 = as7341.getChannel(AS7341_CHANNEL_555nm_F5);
-    channel_f6 = as7341.getChannel(AS7341_CHANNEL_590nm_F6);
-    channel_f7 = as7341.getChannel(AS7341_CHANNEL_630nm_F7);
-    channel_f8 = as7341.getChannel(AS7341_CHANNEL_680nm_F8);
+    memcpy(spectralReadings, readings, sizeof(spectralReadings));
+    return true;
+}
 
-    channel_clear = as7341.getChannel(AS7341_CHANNEL_CLEAR);
-    channel_nir = as7341.getChannel(AS7341_CHANNEL_NIR);
+bool Sck_AS7341::getSpectralReading()
+{
+    if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-    flicker_freq = as7341.detectFlickerHz();
+        float counts[SCK_AS7341_N_SPECTRAL_READINGS];
+        bool saturated = false;
+
+        adafruit_as7341.setATIME(SCK_AS7341_ATIME);
+        adafruit_as7341.setASTEP(SCK_AS7341_ASTEP);
+
+        // TODO DAYLIGHT CORR
+
+        // Avoid reading all channels too frequently
+        if ((millis() - lastReadSpectrum > SCK_AS7341_INTERVAL_MS) || (lastReadSpectrum == 0)) {
+
+            as7341_gain_t gain = AS7341_GAIN_512X;
+
+            for (uint8_t retry=0; retry < SCK_AS7341_N_RETRIES; retry++){
+
+                if (gain == -1) break; // We got to the minimum gain
+                saturated = false;
+
+                if (getReadingAtGain(gain)) {
+                    lastReadSpectrum = millis();
+
+                    for(uint8_t i=0; i < SCK_AS7341_N_SPECTRAL_READINGS; i++) {
+                        if(i == 4 || i == 5)
+                            continue;
+                        if (spectralReadings[i] == SCK_AS7341_MAX) {
+                            saturated = true;
+                        }
+                    }
+
+                    if (saturated) {
+                        int g;
+                        g = nextLowerGain(gain);
+                        gain = static_cast<as7341_gain_t>(g);
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Convert to "basic counts" - Normalize gain and integration time
+        for(uint8_t i = 0; i < SCK_AS7341_N_SPECTRAL_READINGS; i++) {
+            if(i == 4 || i == 5) continue;
+            // we skip the first set of duplicate clear/NIR readings
+            // (indices 4 and 5)
+            counts[i] = adafruit_as7341.toBasicCounts(spectralReadings[i]);
+        }
+
+        channel_f1 = counts[0] * dayLightScaleFactor[0] / 100;
+        channel_f2 = counts[1] * dayLightScaleFactor[1] / 100;
+        channel_f3 = counts[2] * dayLightScaleFactor[2] / 100;
+        channel_f4 = counts[3] * dayLightScaleFactor[3] / 100;
+        channel_f5 = counts[6] * dayLightScaleFactor[4] / 100;
+        channel_f6 = counts[7] * dayLightScaleFactor[5] / 100;
+        channel_f7 = counts[8] * dayLightScaleFactor[6] / 100;
+        channel_f8 = counts[9] * dayLightScaleFactor[7] / 100;
+
+        channel_clear = counts[10];
+        channel_nir = counts[11];
+
+        return true;
+}
+
+bool Sck_AS7341::getFlickerReading()
+{
+    if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+    // Avoid reading all channels too frequently
+    if ((millis() - lastReadFlicker > SCK_AS7341_INTERVAL_MS) || (lastReadFlicker == 0)) {
+        bool ok = adafruit_as7341.captureFlickerRaw(fifoSamples, SAMPLE_NUM, SCK_AS7341_FD_TIME, SCK_AS7341_FD_GAIN);
+
+        if (!ok) {
+            Serial.println("Capture failed (timed out or FIFO overflowed)");
+            return false;
+        }
+        lastReadFlicker = millis();
+    }
+
+    float sampleRateHz = adafruit_as7341.getFlickerSampleRateHz();
+
+    if (debug) {
+        Serial.print("Captured ");
+        Serial.print(SAMPLE_NUM);
+        Serial.print(" samples at ");
+        Serial.print(sampleRateHz);
+        Serial.println(" Hz");
+    }
+
+    // The DC offset (mean illumination level) is kept in the spectrum: it is
+    // used below as the reference level for the modulation depth, and it
+    // costs nothing since the AS7341's raw counts are far below the dynamic
+    // range that would need it removed.
+    for (uint16_t i = 0; i < SAMPLE_NUM; i++) {
+        flickerSource[i] = fifoSamples[i];
+        if (debug) {
+            Serial.print(i);
+            Serial.print(",");
+            Serial.print(fifoSamples[i]);
+            Serial.print(",");
+            Serial.println(flickerSource[i]);
+        }
+    }
+
+    // Get the average of recorded samples
+    int32_t sum = 0;
+    for (uint16_t i=0; i<SAMPLE_NUM; i++) sum += flickerSource[i];
+    int32_t avg = sum / SAMPLE_NUM;
+
+    // Center samples in zero
+    for (uint16_t i=0; i<SAMPLE_NUM; i++) flickerSource[i] = flickerSource[i] - avg;
+
+    sckFFT.computeSpectrum(flickerSource, flickerSpectrum);
+
+    uint16_t peakBin = sckFFT.dominantBin(flickerSpectrum);
+
+    flickerPeakFreq = peakBin * (sampleRateHz / SAMPLE_NUM);
+    flickerMod = sckFFT.modulationDepth(flickerSpectrum, peakBin);
+
+    if (debug) {
+        Serial.println("Flicker spectrum");
+        for (uint16_t i=0; i< FFT_NUM; i++){
+            Serial.print(i * (sampleRateHz / SAMPLE_NUM));
+            Serial.print(",");
+            Serial.println(flickerSpectrum[i]);
+        }
+        Serial.println("---");
+
+        Serial.print("Peak bin (Hz): ");
+        Serial.println(peakBin);
+        Serial.print("Flicker frequency (Hz): ");
+        Serial.println(flickerPeakFreq);
+        Serial.print("Flicker modulation (%): ");
+        Serial.println(flickerMod);
+    }
 
     return true;
 }

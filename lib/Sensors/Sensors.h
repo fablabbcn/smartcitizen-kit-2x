@@ -575,6 +575,21 @@ class AllSensors
             OneSensor { BOARD_AUX,      100,    SENSOR_SFA30_FORMALDEHYDE,      "SFA30_HCHO",       "SFA30 Formaldehyde",                   212,    true,       1,  "ppb"                      },
 #endif
 
+#ifdef  SCK_WITH_AS7341
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_415NM_F1,         "AS7341_415NM_F1",  "AS7341 415nm",                         244,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_445NM_F2,         "AS7341_445NM_F2",  "AS7341 445nm",                         245,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_480NM_F3,         "AS7341_480NM_F3",  "AS7341 480nm",                         246,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_515NM_F4,         "AS7341_515NM_F4",  "AS7341 515nm",                         247,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_555NM_F5,         "AS7341_555NM_F5",  "AS7341 555nm",                         248,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_590NM_F6,         "AS7341_590NM_F6",  "AS7341 590nm",                         249,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_630NM_F7,         "AS7341_630NM_F7",  "AS7341 630nm",                         250,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_680NM_F8,         "AS7341_680NM_F8",  "AS7341 680nm",                         251,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_CLEAR,            "AS7341_CLEAR",     "AS7341 Clear",                         252,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_NIR,              "AS7341_NIR",       "AS7341 NIR",                           253,    true,       1,  "",          false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_FREQ,     "AS7341_FLICKER_FREQ","AS7341 Flicker Freq",                0,      true,       1,  "Hz",        false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_MOD,      "AS7341_FLICKER_MOD", "AS7341 Flicker Modulation",          0,      true,       1,  "%",         false         },
+#endif
+
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
             // Later this will be moved to a Actuators.h file
             // Groove I2C Oled Display 96x96

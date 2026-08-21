@@ -820,47 +820,78 @@ class Sck_SFA30
     };
 #endif
 
-#ifdef  WITH_AS7331
-#define SCK_AS7431_ATIME 100
-#define SCK_AS7431_ASTEP 999
+#ifdef  SCK_WITH_AS7341
+#define SCK_AS7341_ATIME 100
+#define SCK_AS7341_ASTEP 999
+#define SCK_AS7341_INTERVAL_MS 5000
+#define SCK_AS7341_NUM_SAMPLES 128
+#define SCK_AS7341_FD_TIME 700
+#define SCK_AS7341_FD_GAIN AS7341_GAIN_16X
+#define SCK_AS7341_MAX UINT16_MAX
+#define SCK_AS7341_N_SPECTRAL_READINGS 12
+#define SCK_AS7341_N_RETRIES 3
 class Sck_AS7341
     {
     public:
         const byte deviceAddress = 0x39;
         bool start(SensorType whichSensor);
         bool stop(SensorType whichSensor);
-        bool getReading(SensorType whichSensor);
+        bool getSpectralReading();
+        bool getFlickerReading();
         bool debug = false;
+        static const uint16_t SAMPLE_NUM = SCK_AS7341_NUM_SAMPLES;
+        static const uint16_t FFT_NUM = SCK_AS7341_NUM_SAMPLES / 2;
 
-        uint16_t channel_f1 = 0;
-        uint16_t channel_f2 = 0;
-        uint16_t channel_f3 = 0;
-        uint16_t channel_f4 = 0;
-        uint16_t channel_f5 = 0;
-        uint16_t channel_f6 = 0;
-        uint16_t channel_f7 = 0;
-        uint16_t channel_f8 = 0;
-        uint16_t channel_clear = 0;
-        uint16_t channel_nir = 0;
-        uint16_t flicker_freq = 0;
+        float channel_f1 = 0;
+        float channel_f2 = 0;
+        float channel_f3 = 0;
+        float channel_f4 = 0;
+        float channel_f5 = 0;
+        float channel_f6 = 0;
+        float channel_f7 = 0;
+        float channel_f8 = 0;
+        float channel_clear = 0;
+        float channel_nir = 0;
+        float flickerPeakFreq = 0;
+        float flickerMod = 0;
 
     private:
-        static const uint8_t totalMetrics = 11;
-        uint8_t enabled[totalMetrics][11] = {
+        static const uint8_t totalMetrics = 12;
+        uint8_t enabled[totalMetrics][2] = {
             {SENSOR_AS7341_415NM_F1, 0},
             {SENSOR_AS7341_445NM_F2, 0},
-            {SENSOR_AS7341_480NM_F3, 0}
+            {SENSOR_AS7341_480NM_F3, 0},
             {SENSOR_AS7341_515NM_F4, 0},
             {SENSOR_AS7341_555NM_F5, 0},
-            {SENSOR_AS7341_590NM_F6, 0}
+            {SENSOR_AS7341_590NM_F6, 0},
             {SENSOR_AS7341_630NM_F7, 0},
             {SENSOR_AS7341_680NM_F8, 0},
-            {SENSOR_AS7341_CLEAR, 0}
+            {SENSOR_AS7341_CLEAR, 0},
             {SENSOR_AS7341_NIR, 0},
-            {SENSOR_AS7341_FLICKER_FREQ, 0}
+            {SENSOR_AS7341_FLICKER_FREQ, 0},
+            {SENSOR_AS7341_FLICKER_MOD, 0}
         };
 
-        Adafruit_AS7341 as7341;
+        int nextLowerGain(as7341_gain_t currentGain);
+        bool getReadingAtGain(as7341_gain_t gain);
+
+        bool started = false;
+        uint32_t lastReadSpectrum = 0;
+        uint32_t lastReadFlicker = 0;
+        Adafruit_AS7341 adafruit_as7341;
+
+        uint16_t spectralReadings[SCK_AS7341_N_SPECTRAL_READINGS]{};
+        uint16_t fifoSamples[SAMPLE_NUM]{};
+
+        Sck_FFT<SAMPLE_NUM> sckFFT;
+        int32_t flickerSource[SAMPLE_NUM]{};
+        int32_t flickerSpectrum[FFT_NUM]{};
+
+        // Day light scale correction factor (as seen in Spectral sensor calibration methods)
+        // Scaled by 100
+        const uint16_t dayLightScaleFactor[8] = {
+            320, 300, 207, 130, 107, 93, 78, 71
+        };
     };
 #endif
 

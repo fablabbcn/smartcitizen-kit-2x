@@ -31,6 +31,7 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_NOISE_DBA:
         case SENSOR_NOISE_DBC:
         case SENSOR_NOISE_DBZ:
+        case SENSOR_NOISE_PEAK_FREQ:
         case SENSOR_NOISE_FFT:          return sck_noise.start();
 #endif
 #ifdef SCK_WITH_MPL
@@ -117,6 +118,7 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_NOISE_DBA:
         case SENSOR_NOISE_DBC:
         case SENSOR_NOISE_DBZ:
+        case SENSOR_NOISE_PEAK_FREQ:
         case SENSOR_NOISE_FFT:          return sck_noise.stop();
 #endif
 #ifdef SCK_WITH_MPL
@@ -205,6 +207,7 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_NOISE_DBA:              if (sck_noise.getReading(SENSOR_NOISE_DBA)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
         case SENSOR_NOISE_DBC:              if (sck_noise.getReading(SENSOR_NOISE_DBC)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
         case SENSOR_NOISE_DBZ:              if (sck_noise.getReading(SENSOR_NOISE_DBZ)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
+        case SENSOR_NOISE_PEAK_FREQ:        if (sck_noise.getReading(SENSOR_NOISE_PEAK_FREQ)) { wichSensor->reading = String(sck_noise.readingPeakFreq);                return; } break;
         case SENSOR_NOISE_FFT:              if (sck_noise.getReading(SENSOR_NOISE_FFT)) {
             // TODO find a way to give access to readingsFFT instead of storing them on a String (too much RAM)
             // For now it just prints the values to console
@@ -291,6 +294,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
         case SENSOR_NOISE_DBA:
         case SENSOR_NOISE_DBC:
         case SENSOR_NOISE_DBZ:
+        case SENSOR_NOISE_PEAK_FREQ:
         case SENSOR_NOISE_FFT:
             {
                 if (command.startsWith("debug")) {
@@ -995,17 +999,23 @@ bool Sck_Noise::stop()
 }
 bool Sck_Noise::getReading(SensorType wichSensor)
 {
-    if (!I2S.begin(I2S_PHILIPS_MODE, sampleRate, 32)) return false;
+    if (millis() - lastReading < SCK_NOISE_SAMPLE_INTERVAL_MS) {
+        return true;
+    }
+    Serial.println("Reading noise");
+
+    if (!I2S.begin(I2S_PHILIPS_MODE, sampleRateHz, 32)) return false;
+    Serial.println("Started I2S");
 
     // Wait 263000 I2s cycles or 85 ms at 441000 hz
     uint32_t startPoint = millis();
-    while (millis() - startPoint < 200) I2S.read();
+    while (millis() - startPoint < SCK_NOISE_DISCARD_I2S_MS) I2S.read();
 
     // Fill buffer with samples from I2S bus
     uint16_t bufferIndex = 0;
 
     startPoint = millis();
-    uint8_t timeOut = 30;   // (ms) Timeout to avoid hangs if the I2S is not responfing
+    uint8_t timeOut = SCK_NOISE_TIMEOUT_I2S_MS;   // (ms) Timeout to avoid hangs if the I2S is not responfing
     while (bufferIndex < SAMPLE_NUM) {
         int32_t buff = I2S.read();
         if (buff) {
@@ -1020,7 +1030,7 @@ bool Sck_Noise::getReading(SensorType wichSensor)
     }
     I2S.end();
 
-    // Get de average of recorded samples
+    // Get the average of recorded samples
     int32_t sum = 0;
     for (uint16_t i=0; i<SAMPLE_NUM; i++) sum += source[i];
     int32_t avg = sum / SAMPLE_NUM;
@@ -1029,7 +1039,7 @@ bool Sck_Noise::getReading(SensorType wichSensor)
     for (uint16_t i=0; i<SAMPLE_NUM; i++) source[i] = source[i] - avg;
 
     // FFT
-    FFT(source);
+    sckFFT.computeSpectrum(source, readingFFT);
 
     switch(wichSensor) {
 
@@ -1045,23 +1055,24 @@ bool Sck_Noise::getReading(SensorType wichSensor)
             // Just Equalization
             for (uint16_t i=0; i<FFT_NUM; i++) readingFFT[i] *= (double)(equalTab[i] / 65536.0);
             break;
+        case SENSOR_NOISE_PEAK_FREQ:
+            break;
         case SENSOR_NOISE_FFT:
             // Convert FFT to dB
             fft2db();
             return true;
             break;
-        default: break;
+        default:
+            break;
     }
 
     // RMS
-    long long rmsSum = 0;
-    double rmsOut = 0;
-    for (uint16_t i=0; i<FFT_NUM; i++) rmsSum += pow(readingFFT[i], 2) / FFT_NUM;
-    rmsOut = sqrt(rmsSum);
-    rmsOut = rmsOut * 1 / RMS_HANN * sqrt(FFT_NUM) / sqrt(2);
+    uint16_t peakBin = sckFFT.dominantBin(readingFFT);
+    double rmsOut = sckFFT.rms(readingFFT);
 
     // Convert to dB
     readingDB = (double) (FULL_SCALE_DBSPL - (FULL_SCALE_DBFS - (20 * log10(rmsOut * sqrt(2)))));
+    readingPeakFreq = peakBin * (sampleRateHz / SAMPLE_NUM);
 
     if (debugFlag) {
         SerialUSB.println("samples, FFT_weighted");
@@ -1073,217 +1084,9 @@ bool Sck_Noise::getReading(SensorType wichSensor)
         }
     }
 
+    lastReading = millis();
+
     return true;
-}
-bool Sck_Noise::FFT(int32_t *source)
-{
-    double divider = dynamicScale(source, scaledSource);
-
-    applyWindow(scaledSource, hannWindow, SAMPLE_NUM);
-
-    static int16_t ALIGN4 scratchData[SAMPLE_NUM * 2];
-
-    // Split the data
-    for(int i=0; i<SAMPLE_NUM*2; i+=2){
-        scratchData[i] = scaledSource[i/2]; // Real
-        scratchData[i+1] = 0; // Imaginary
-    }
-
-    arm_radix2_butterfly(scratchData, (int16_t)SAMPLE_NUM, (int16_t *)twiddleCoefQ15_512);
-    arm_bitreversal(scratchData, SAMPLE_NUM, (uint16_t *)armBitRevTable8);
-
-    for (int i=0; i<SAMPLE_NUM/2; i++) {
-
-        // Calculate result and normalize SpectrumBuffer, also revert dynamic scaling
-        uint32_t myReal = pow(scratchData[i*2], 2);
-        uint32_t myImg = pow(scratchData[(i*2)+1], 2);
-
-        readingFFT[i] = sqrt(myReal + myImg) * divider * 4;
-    }
-
-    // Exception for the first bin
-    readingFFT[0] = readingFFT[0] / 2;
-
-    return 0;
-}
-double Sck_Noise::dynamicScale(int32_t *source, int16_t *scaledSource)
-{
-    int32_t maxLevel = 0;
-    for (uint16_t i=0; i<SAMPLE_NUM; i++) if (abs(source[i]) > maxLevel) maxLevel = abs(source[i]);
-    double divider = (maxLevel+1) / 32768.0; // 16 bits
-    if (divider < 1) divider = 1;
-
-    for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = source[i] / divider;
-
-    return divider;
-}
-void Sck_Noise::applyWindow(int16_t *src, const uint16_t *window, uint16_t len)
-{
-    /* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
-        -------
-        This is an FFT library for ARM cortex M0+ CPUs
-        Adafruit invests time and resources providing this open source code,
-        please support Adafruit and open-source hardware by purchasing products from Adafruit!
-        Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
-        ------
-    */
-
-    while(len--){
-        int32_t val = *src * *window++;
-        *src = val >> 15;
-        src++;
-    }
-}
-void Sck_Noise::arm_radix2_butterfly(int16_t * pSrc, int16_t fftLen, int16_t * pCoef)
-{
-    /* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
-        -------
-        This is an FFT library for ARM cortex M0+ CPUs
-        Adafruit invests time and resources providing this open source code,
-        please support Adafruit and open-source hardware by purchasing products from Adafruit!
-        Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
-        ------
-    */
-
-    int i, j, k, l;
-    int n1, n2, ia;
-    int16_t xt, yt, cosVal, sinVal;
-
-    n2 = fftLen;
-
-    n1 = n2;
-    n2 = n2 >> 1;
-    ia = 0;
-
-    // loop for groups
-    for (j=0; j<n2; j++) {
-        cosVal = pCoef[ia * 2];
-        sinVal = pCoef[(ia * 2) + 1];
-        ia++;
-
-        // loop for butterfly
-        for (i=j; i<fftLen; i+=n1) {
-            l = i + n2;
-            xt = (pSrc[2 * i] >> 2u) - (pSrc[2 * l] >> 2u);
-            pSrc[2 * i] = ((pSrc[2 * i] >> 2u) + (pSrc[2 * l] >> 2u)) >> 1u;
-
-            yt = (pSrc[2 * i + 1] >> 2u) - (pSrc[2 * l + 1] >> 2u);
-            pSrc[2 * i + 1] =
-                ((pSrc[2 * l + 1] >> 2u) + (pSrc[2 * i + 1] >> 2u)) >> 1u;
-
-            pSrc[2u * l] = (((int16_t) (((int32_t) xt * cosVal) >> 16)) +
-                ((int16_t) (((int32_t) yt * sinVal) >> 16)));
-
-            pSrc[2u * l + 1u] = (((int16_t) (((int32_t) yt * cosVal) >> 16)) -
-                ((int16_t) (((int32_t) xt * sinVal) >> 16)));
-
-        }                           // butterfly loop end
-    }                             // groups loop end
-
-    uint16_t twidCoefModifier = 2;
-
-    // loop for stage
-    for (k = fftLen / 2; k > 2; k = k >> 1) {
-        n1 = n2;
-        n2 = n2 >> 1;
-        ia = 0;
-
-        // loop for groups
-        for (j=0; j<n2; j++) {
-            cosVal = pCoef[ia * 2];
-            sinVal = pCoef[(ia * 2) + 1];
-
-            ia = ia + twidCoefModifier;
-
-            // loop for butterfly
-            for (i=j; i<fftLen; i+=n1) {
-                l = i + n2;
-                xt = pSrc[2 * i] - pSrc[2 * l];
-                pSrc[2 * i] = (pSrc[2 * i] + pSrc[2 * l]) >> 1u;
-
-                yt = pSrc[2 * i + 1] - pSrc[2 * l + 1];
-                pSrc[2 * i + 1] = (pSrc[2 * l + 1] + pSrc[2 * i + 1]) >> 1u;
-
-                pSrc[2u * l] = (((int16_t) (((int32_t) xt * cosVal) >> 16)) +
-                    ((int16_t) (((int32_t) yt * sinVal) >> 16)));
-
-                pSrc[2u * l + 1u] = (((int16_t) (((int32_t) yt * cosVal) >> 16)) -
-                    ((int16_t) (((int32_t) xt * sinVal) >> 16)));
-
-            }                         // butterfly loop end
-        }                           // groups loop end
-        twidCoefModifier = twidCoefModifier << 1u;
-    }                             // stages loop end
-
-    n1 = n2;
-    n2 = n2 >> 1;
-    ia = 0;
-    // loop for groups
-    for (j=0; j<n2; j++) {
-        cosVal = pCoef[ia * 2];
-        sinVal = pCoef[(ia * 2) + 1];
-
-        ia = ia + twidCoefModifier;
-
-        // loop for butterfly
-        for (i=j; i<fftLen; i+=n1) {
-            l = i + n2;
-            xt = pSrc[2 * i] - pSrc[2 * l];
-            pSrc[2 * i] = (pSrc[2 * i] + pSrc[2 * l]);
-
-            yt = pSrc[2 * i + 1] - pSrc[2 * l + 1];
-            pSrc[2 * i + 1] = (pSrc[2 * l + 1] + pSrc[2 * i + 1]);
-
-            pSrc[2u * l] = xt;
-
-            pSrc[2u * l + 1u] = yt;
-
-        }                           // butterfly loop end
-    }                             // groups loop end
-}
-void Sck_Noise::arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab)
-{
-    /* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
-        -------
-        This is an FFT library for ARM cortex M0+ CPUs
-        Adafruit invests time and resources providing this open source code,
-        please support Adafruit and open-source hardware by purchasing products from Adafruit!
-        Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
-        ------
-    */
-
-    int32_t *pSrc = (int32_t *) pSrc16;
-    int32_t in;
-    uint32_t fftLenBy2, fftLenBy2p1;
-    uint32_t i, j;
-
-    /*  Initializations */
-    j = 0u;
-    fftLenBy2 = fftLen / 2u;
-    fftLenBy2p1 = (fftLen / 2u) + 1u;
-
-    /* Bit Reversal Implementation */
-    for (i = 0u; i <= (fftLenBy2 - 2u); i += 2u) {
-        if(i < j) {
-            in = pSrc[i];
-            pSrc[i] = pSrc[j];
-            pSrc[j] = in;
-
-            in = pSrc[i + fftLenBy2p1];
-            pSrc[i + fftLenBy2p1] = pSrc[j + fftLenBy2p1];
-            pSrc[j + fftLenBy2p1] = in;
-        }
-
-        in = pSrc[i + 1u];
-        pSrc[i + 1u] = pSrc[j + fftLenBy2];
-        pSrc[j + fftLenBy2] = in;
-
-        /*  Reading the index for the bit reversal */
-        j = *pBitRevTab;
-
-        /*  Updating the bit reversal index depending on the fft length  */
-        pBitRevTab++;
-    }
 }
 void Sck_Noise::fft2db()
 {

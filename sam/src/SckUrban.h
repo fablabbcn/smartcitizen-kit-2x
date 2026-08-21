@@ -6,6 +6,12 @@
 
 #include <Sensors.h>
 #include "Pins.h"
+
+#if defined(SCK_WITH_NOISE) || defined(SCK_WITH_AS7341)
+#include "SckFFT.h"
+#include "SckTables.h"
+#endif
+
 #ifdef SCK_WITH_URBAN
 #ifdef SCK_WITH_MPL
 #include <Adafruit_MPL3115A2.h>
@@ -145,14 +151,20 @@ class Sck_SHT31
 
 // Noise
 #ifdef SCK_WITH_NOISE
+#define SCK_NOISE_SAMPLE_RATE_HZ 44100
+#define SCK_NOISE_NUM_SAMPLES 512
+#define SCK_NOISE_SAMPLE_INTERVAL_MS 500
+#define SCK_NOISE_DISCARD_I2S_MS 200
+#define SCK_NOISE_TIMEOUT_I2S_MS 30
 class Sck_Noise
     {
     public:
         bool debugFlag = false;
-        const uint32_t sampleRate = 44100;
-        static const uint16_t SAMPLE_NUM = 512;
-        static const uint16_t FFT_NUM = 256;
-        float readingDB;
+        const uint32_t sampleRateHz = SCK_NOISE_SAMPLE_RATE_HZ;
+        static const uint16_t SAMPLE_NUM = SCK_NOISE_NUM_SAMPLES;
+        static const uint16_t FFT_NUM = SCK_NOISE_NUM_SAMPLES / 2;
+        float readingDB = 0;
+        float readingPeakFreq = 0;
         int32_t readingFFT[FFT_NUM];
         bool start();
         bool stop();
@@ -160,18 +172,13 @@ class Sck_Noise
 
     private:
         bool alreadyStarted = false;
-        const double RMS_HANN = 0.61177;
         const uint8_t FULL_SCALE_DBSPL = 120;
         const uint8_t BIT_LENGTH = 24;
         const double FULL_SCALE_DBFS = 20*log10(pow(2,(BIT_LENGTH)));
         int32_t source[SAMPLE_NUM]; // 2k
-        int16_t scaledSource[SAMPLE_NUM]; // 1k
-        bool FFT(int32_t *source);
-        void arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab);
-        void arm_radix2_butterfly( int16_t * pSrc, int16_t fftLen, int16_t * pCoef);
-        void applyWindow(int16_t *src, const uint16_t *window, uint16_t len);
-        double dynamicScale(int32_t *source, int16_t *scaledSource);
+        Sck_FFT<SAMPLE_NUM> sckFFT;
         void fft2db();
+        uint32_t lastReading = 0;
 
     };
 #endif

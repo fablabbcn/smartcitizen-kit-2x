@@ -78,6 +78,11 @@
 #include <SparkFun_SCD30_Arduino_Library.h>
 #endif
 
+#ifdef SCK_WITH_SCD4X
+// Sensirion I2C SCD4X library
+#include <SensirionI2cScd4x.h>
+#endif
+
 #ifdef  SCK_WITH_SFA30
 // Sensirion I2C SFA3X library
 #include <SensirionI2CSfa3x.h>
@@ -157,7 +162,11 @@ class AuxBoards
         // 0x61,           // SENSOR_SCD30_CO2,    --> Conflict with SENSOR_ATLAS_DO
         // 0x61,           // SENSOR_SCD30_TEMP,   --> Conflict with SENSOR_ATLAS_DO
         // 0x61,           // SENSOR_SCD30_HUM,    --> Conflict with SENSOR_ATLAS_DO
-        //
+
+        // 0x62,           // SENSOR_SCD4X_CO2,    --> Conflict with SENSOR_ATLAS_ORP
+        // 0x62,           // SENSOR_SCD4X_TEMP,   --> Conflict with SENSOR_ATLAS_ORP
+        // 0x62,           // SENSOR_SCD4X_HUM,    --> Conflict with SENSOR_ATLAS_ORP
+
         // 0x20,           // SENSOR_CHIRP_MOISTURE_RAW,
         // 0x20,           // SENSOR_CHIRP_MOISTURE,
         // 0x20,           // SENSOR_CHIRP_TEMPERATURE,
@@ -793,6 +802,42 @@ class Sck_SCD30
         bool started = false;
         uint16_t measInterval = 2;  // "2-1800 seconds"
         SCD30 sparkfun_scd30;
+    };
+#endif
+
+#ifdef SCK_WITH_SCD4X
+#define SCK_SCD4X_MAX_RETRIES 3
+#define SCK_SCD4X_INTERVAL_MS 500
+#define SCK_SCD4X_NO_ERROR 0
+class Sck_SCD4X
+    {
+    public:
+        const byte deviceAddress = 0x62;
+        bool start(SensorType whichSensor);
+        bool stop(SensorType whichSensor);
+        bool getReading();
+        bool autoSelfCal(int8_t value=-1);
+        uint16_t forcedRecalFactor(uint16_t newFactor=0);
+        float tempOffset(float userTemp, bool off=false);
+
+        enum SCD4XState { SCD4X_OFF, SCD4X_IDLE, SCD4X_MEASUREMENT };
+        SCD4XState state = SCD4X_OFF;
+        SCD4xSensorVariant sensorVariant{};
+
+        uint16_t co2 = 0;
+        float temperature = 0;
+        float humidity = 0;
+        uint16_t ascActive = 0;
+
+    private:
+        uint8_t enabled[3][2] = { {SENSOR_SCD4X_CO2, 0}, {SENSOR_SCD4X_TEMP, 0}, {SENSOR_SCD4X_HUM, 0} };
+        bool _debug = false;
+        bool started = false;
+        uint32_t lastRead = 0;
+        bool stopMeasurement();
+        bool wakeUp();
+        bool startMeasurement();
+        SensirionI2cScd4x sensirion_scd4x;
     };
 #endif
 

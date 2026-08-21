@@ -43,6 +43,7 @@
 #define SCK_WITH_SFA30
 #define SCK_WITH_GPS
 #define SCK_WITH_EXT_TEMP
+#define SCK_WITH_SCD4X
 #define URBAN_T_OFFSET -1.0
 #define URBAN_RH_OFFSET 3.5
 #define SCK_WITH_AS7341
@@ -299,6 +300,11 @@ enum SensorType
     SENSOR_AS7341_NIR,
     SENSOR_AS7341_FLICKER_FREQ,
     SENSOR_AS7341_FLICKER_P2P,
+#endif
+#ifdef SCK_WITH_SCD4X
+    SENSOR_SCD4X_CO2,
+    SENSOR_SCD4X_TEMP,
+    SENSOR_SCD4X_HUM,
 #endif
 
     // Actuators (This is temp)
@@ -591,6 +597,13 @@ class AllSensors
 #endif
 
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SCD4X
+            OneSensor { BOARD_AUX,      100,    SENSOR_SCD4X_CO2,               "SCD4X_CO2",        "SCD4X CO2",                            0,    true,       1,  "ppm"                      },
+            OneSensor { BOARD_AUX,      100,    SENSOR_SCD4X_TEMP,              "SCD4X_TEMP",       "SCD4X Temperature",                    0,    true,       1,  "C",         false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_SCD4X_HUM,               "SCD4X_HUM",        "SCD4X Humidity",                       0,    true,       1,  "%" ,        false         },
+#endif
+
+#ifdef WITH_SENSOR_GROVE_OLED
             // Later this will be moved to a Actuators.h file
             // Groove I2C Oled Display 96x96
             OneSensor { BOARD_AUX,      250,    SENSOR_GROVE_OLED,              "GR_OLED",          "Groove OLED",                          0,      true,       1,  "",          false         },

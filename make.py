@@ -31,14 +31,15 @@ def blockPrint():
 def enablePrint():
     sys.stdout = sys.__stdout__
 
-if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv or len(sys.argv) < 2 or (not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv):
+if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv or len(sys.argv) < 2 or (not 'build' in sys.argv and not 'flash' in sys.argv and not 'boot' in sys.argv and not 'dump-env' in sys.argv):
     print('USAGE:\n\n\tpython make.py [options] action[s] target[s] [target-options]')
     print('\nOptions:')
     print('\t-v: verbose')
     print('\t-k: keep configuration')
     print('\t-p port: specify a port instead of scanning')
     print('\t-f: force flashing even if no SCK is found, (port must be specified)')
-    print('\nActions:\n\tboot: flash SAM bootloader (Extra hardware is needed)\n\tbuild: build firmware\n\tflash: upload compiled code')
+    print('\t--no-pio-check: avoid checking platformio environments')
+    print('\nActions:\n\tboot: flash SAM bootloader (Extra hardware is needed)\n\tbuild: build firmware\n\tflash: upload compiled code\n\tdump-env: dump pio env to file')
     print('\nTargets:\n\tsam: SAMD21 chip\n\tesp: ESP8266 (WiFi) chip')
     print('\nTarget Options (only SAM):')
     print('\t--env: Environment to build (all to build all)')
@@ -51,7 +52,17 @@ if '-v' in sys.argv:
     enablePrint()
 
 import sck
-kit = sck.sck(check_pio_sam='sam' in sys.argv, check_pio_esp='esp' in sys.argv)
+
+if 'dump-env' in sys.argv:
+    kit = sck.sck(check_pio_sam=True, check_pio_esp=True, dump_env=True)
+    sys.exit()
+
+check_pio_sam = True
+check_pio_esp = True
+if '--no-pio-check' in sys.argv:
+    check_pio_sam = False
+
+kit = sck.sck(check_pio_sam=check_pio_sam, check_pio_esp=check_pio_esp)
 
 if 'flash' in sys.argv:
     force = False
@@ -100,6 +111,8 @@ if 'boot' in sys.argv:
         ERROR('Failed building SCK bootloader!!!')
     os.chdir('../..')
 
+buildSAMOK = False
+buildESPOK = False
 if 'build' in sys.argv:
     if 'sam' in sys.argv:
         oneLine('Building SAM firmware... ')

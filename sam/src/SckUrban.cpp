@@ -1002,10 +1002,8 @@ bool Sck_Noise::getReading(SensorType wichSensor)
     if (millis() - lastReading < SCK_NOISE_SAMPLE_INTERVAL_MS) {
         return true;
     }
-    Serial.println("Reading noise");
 
     if (!I2S.begin(I2S_PHILIPS_MODE, sampleRateHz, 32)) return false;
-    Serial.println("Started I2S");
 
     // Wait 263000 I2s cycles or 85 ms at 441000 hz
     uint32_t startPoint = millis();

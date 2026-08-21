@@ -54,6 +54,9 @@ if '-v' in sys.argv:
 import sck
 
 if 'dump-env' in sys.argv:
+    other_actions = [a for a in ('build', 'flash', 'boot') if a in sys.argv]
+    if other_actions:
+        ERROR('dump-env cannot be combined with other actions: ' + ', '.join(other_actions)); sys.exit()
     kit = sck.sck(check_pio_sam=True, check_pio_esp=True, dump_env=True)
     sys.exit()
 

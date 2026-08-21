@@ -854,6 +854,7 @@ class Sck_AS7341
         float channel_nir = 0;
         float flickerPeakFreq = 0;
         float flickerPeakToPeak = 0;
+        // TODO make flicker sampling configurable in gain or dynamic?
 
     private:
         static const uint8_t totalMetrics = 12;

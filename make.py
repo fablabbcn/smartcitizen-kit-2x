@@ -58,7 +58,6 @@ if 'dump-env' in sys.argv:
     if other_actions:
         ERROR('dump-env cannot be combined with other actions: ' + ', '.join(other_actions)); sys.exit()
     kit = sck.sck(check_pio_sam=True, check_pio_esp=True, dump_env=True)
-    sys.exit()
 
 check_pio_sam = True
 check_pio_esp = True

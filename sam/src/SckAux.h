@@ -816,7 +816,7 @@ class Sck_SFA30
         bool started = false;
         bool isError(uint16_t response);
 
-        SensirionI2CSfa3x sfa30;
+        SensirionI2CSfa3x sensirion_sfa30;
     };
 #endif
 

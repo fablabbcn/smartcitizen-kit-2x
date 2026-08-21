@@ -344,6 +344,7 @@ bool AuxBoards::stop(SensorType whichSensor)
 #ifdef  SCK_WITH_SFA30
         case SENSOR_SFA30_TEMPERATURE:
         case SENSOR_SFA30_HUMIDITY:
+        case SENSOR_SFA30_FORMALDEHYDE:             return sfa30.stop(whichSensor);
 #endif
 #ifdef  SCK_WITH_AS7341
         case SENSOR_AS7341_415NM_F1:
@@ -477,6 +478,9 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_SCD30_HUM:                      if (scd30.getReading(whichSensor->type))     { whichSensor->reading = String(scd30.humidity);         return; } break;
 #endif
 #ifdef  SCK_WITH_SFA30
+        case SENSOR_SFA30_TEMPERATURE:              if (sfa30.getReading(whichSensor->type)) { whichSensor->reading = String(sfa30.temperature);  return; } break;
+        case SENSOR_SFA30_HUMIDITY:                 if (sfa30.getReading(whichSensor->type)) { whichSensor->reading = String(sfa30.humidity);     return; } break;
+        case SENSOR_SFA30_FORMALDEHYDE:             if (sfa30.getReading(whichSensor->type)) { whichSensor->reading = String(sfa30.formaldehyde); return; } break;
 #endif
 #ifdef  SCK_WITH_AS7341
         case SENSOR_AS7341_415NM_F1:                if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_f1);  return; } break;
@@ -2941,12 +2945,12 @@ bool Sck_SFA30::start(SensorType whichSensor)
         return true;
     }
 
-    sfa30.begin(auxWire);
+    sensirion_sfa30.begin(auxWire);
 
-    if (isError(sfa30.startContinuousMeasurement())) return false;
+    if (isError(sensirion_sfa30.startContinuousMeasurement())) return false;
 
     // Mark this specific metric as enabled
-    for (uint8_t i=0; i<3; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
+    for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
 
     return true;
 }
@@ -2967,7 +2971,7 @@ bool Sck_SFA30::stop(SensorType whichSensor)
         if (enabled[i][1] == 1) return changed;
     }
 
-    if (isError(sfa30.stopMeasurement())) return false;
+    if (isError(sensirion_sfa30.stopMeasurement())) return false;
 
     started = false;
     return true;
@@ -2978,7 +2982,7 @@ bool Sck_SFA30::getReading(SensorType whichSensor)
     int16_t hum;
     int16_t temp;
 
-    if (isError(sfa30.readMeasuredValues(form, hum, temp))) return false;
+    if (isError(sensirion_sfa30.readMeasuredValues(form, hum, temp))) return false;
 
     temperature =   temp / 200.0;
     humidity =      hum  / 100;

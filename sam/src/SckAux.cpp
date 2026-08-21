@@ -3149,10 +3149,6 @@ bool Sck_AS7341::getFlickerReading()
         Serial.println(" Hz");
     }
 
-    // The DC offset (mean illumination level) is kept in the spectrum: it is
-    // used below as the reference level for the modulation depth, and it
-    // costs nothing since the AS7341's raw counts are far below the dynamic
-    // range that would need it removed.
     for (uint16_t i = 0; i < SAMPLE_NUM; i++) {
         flickerSource[i] = fifoSamples[i];
         if (debug) {

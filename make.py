@@ -38,7 +38,7 @@ if '-h' in sys.argv or '--help' in sys.argv or '-help' in sys.argv or len(sys.ar
     print('\t-k: keep configuration')
     print('\t-p port: specify a port instead of scanning')
     print('\t-f: force flashing even if no SCK is found, (port must be specified)')
-    print('\t--no-pio-check: avoid checking platformio environments')
+    print('\t--no-sam-pio-check: avoid checking SAMD platformio environment')
     print('\nActions:\n\tboot: flash SAM bootloader (Extra hardware is needed)\n\tbuild: build firmware\n\tflash: upload compiled code\n\tdump-env: dump pio env to file')
     print('\nTargets:\n\tsam: SAMD21 chip\n\tesp: ESP8266 (WiFi) chip')
     print('\nTarget Options (only SAM):')
@@ -59,7 +59,7 @@ if 'dump-env' in sys.argv:
 
 check_pio_sam = True
 check_pio_esp = True
-if '--no-pio-check' in sys.argv:
+if '--no-sam-pio-check' in sys.argv:
     check_pio_sam = False
 
 kit = sck.sck(check_pio_sam=check_pio_sam, check_pio_esp=check_pio_esp)

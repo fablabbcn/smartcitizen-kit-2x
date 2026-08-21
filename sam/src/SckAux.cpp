@@ -3017,7 +3017,8 @@ bool Sck_AS7341::start(SensorType whichSensor)
         return true;
     }
 
-    adafruit_as7341.begin(deviceAddress, &auxWire);
+    if (!adafruit_as7341.begin(deviceAddress, &auxWire))
+        return false;
 
     // Mark this specific metric as enabled
     for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;

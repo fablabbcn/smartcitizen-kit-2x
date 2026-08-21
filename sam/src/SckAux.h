@@ -876,6 +876,7 @@ class Sck_AS7341
         bool getReadingAtGain(as7341_gain_t gain);
 
         bool started = false;
+        bool getReadingOK = false;
         uint32_t lastReadSpectrum = 0;
         uint32_t lastReadFlicker = 0;
         Adafruit_AS7341 adafruit_as7341;

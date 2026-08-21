@@ -224,7 +224,7 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         case SENSOR_AS7341_NIR:
         case SENSOR_AS7341_CLEAR:
         case SENSOR_AS7341_FLICKER_FREQ:
-        case SENSOR_AS7341_FLICKER_MOD:             return as7341.start(whichSensor);
+        case SENSOR_AS7341_FLICKER_P2P:             return as7341.start(whichSensor);
 #endif
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.start();
@@ -358,7 +358,7 @@ bool AuxBoards::stop(SensorType whichSensor)
         case SENSOR_AS7341_NIR:
         case SENSOR_AS7341_CLEAR:
         case SENSOR_AS7341_FLICKER_FREQ:             return as7341.stop(whichSensor);
-        case SENSOR_AS7341_FLICKER_MOD:              return as7341.stop(whichSensor);
+        case SENSOR_AS7341_FLICKER_P2P:              return as7341.stop(whichSensor);
 #endif
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.stop();
@@ -494,7 +494,7 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_AS7341_NIR:                     if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_nir); return; } break;
         case SENSOR_AS7341_CLEAR:                   if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_clear); return; } break;
         case SENSOR_AS7341_FLICKER_FREQ:            if (as7341.getFlickerReading())  { whichSensor->reading = String(as7341.flickerPeakFreq); return; } break;
-        case SENSOR_AS7341_FLICKER_MOD:             if (as7341.getFlickerReading())  { whichSensor->reading = String(as7341.flickerMod); return; } break;
+        case SENSOR_AS7341_FLICKER_P2P:             if (as7341.getFlickerReading())  { whichSensor->reading = String(as7341.flickerPeakToPeak); return; } break;
 #endif
         default: break;
     }
@@ -3174,7 +3174,11 @@ bool Sck_AS7341::getFlickerReading()
     uint16_t peakBin = sckFFT.dominantBin(flickerSpectrum);
 
     flickerPeakFreq = peakBin * (sampleRateHz / SAMPLE_NUM);
-    flickerMod = sckFFT.modulationDepth(flickerSpectrum, peakBin);
+    int32_t sampleMax = 0;
+    int32_t sampleMin = 0;
+    sckFFT.minMax(flickerSource, &sampleMin, &sampleMax);
+
+    flickerPeakToPeak = sampleMax - sampleMin;
 
     if (debug) {
         Serial.println("Flicker spectrum");
@@ -3185,12 +3189,10 @@ bool Sck_AS7341::getFlickerReading()
         }
         Serial.println("---");
 
-        Serial.print("Peak bin (Hz): ");
-        Serial.println(peakBin);
         Serial.print("Flicker frequency (Hz): ");
         Serial.println(flickerPeakFreq);
-        Serial.print("Flicker modulation (%): ");
-        Serial.println(flickerMod);
+        Serial.print("Flicker peak-to-peak (-): ");
+        Serial.println(flickerPeakToPeak);
     }
 
     return true;

@@ -298,7 +298,7 @@ enum SensorType
     SENSOR_AS7341_CLEAR,
     SENSOR_AS7341_NIR,
     SENSOR_AS7341_FLICKER_FREQ,
-    SENSOR_AS7341_FLICKER_MOD,
+    SENSOR_AS7341_FLICKER_P2P,
 #endif
 
     // Actuators (This is temp)
@@ -586,8 +586,8 @@ class AllSensors
             OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_680NM_F8,         "AS7341_680NM_F8",  "AS7341 680nm",                         251,    true,       1,  "",          false         },
             OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_CLEAR,            "AS7341_CLEAR",     "AS7341 Clear",                         252,    true,       1,  "",          false         },
             OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_NIR,              "AS7341_NIR",       "AS7341 NIR",                           253,    true,       1,  "",          false         },
-            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_FREQ,     "AS7341_FLICKER_FREQ","AS7341 Flicker Freq",                0,      true,       1,  "Hz",        false         },
-            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_MOD,      "AS7341_FLICKER_MOD", "AS7341 Flicker Modulation",          0,      true,       1,  "%",         false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_FREQ,     "AS7341_FLICKER_FREQ","AS7341 Flicker Freq",                255,      true,       1,  "Hz",        false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_P2P,      "AS7341_FLICKER_P2P", "AS7341 Flicker Peak to Peak",        256,      true,       1,  "",         false         },
 #endif
 
 #ifdef SCK_WITH_SENSOR_GROVE_OLED

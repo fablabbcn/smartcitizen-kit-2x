@@ -853,7 +853,7 @@ class Sck_AS7341
         float channel_clear = 0;
         float channel_nir = 0;
         float flickerPeakFreq = 0;
-        float flickerMod = 0;
+        float flickerPeakToPeak = 0;
 
     private:
         static const uint8_t totalMetrics = 12;
@@ -869,7 +869,7 @@ class Sck_AS7341
             {SENSOR_AS7341_CLEAR, 0},
             {SENSOR_AS7341_NIR, 0},
             {SENSOR_AS7341_FLICKER_FREQ, 0},
-            {SENSOR_AS7341_FLICKER_MOD, 0}
+            {SENSOR_AS7341_FLICKER_P2P, 0}
         };
 
         int nextLowerGain(as7341_gain_t currentGain);

@@ -3069,8 +3069,6 @@ bool Sck_AS7341::getSpectralReading()
         adafruit_as7341.setATIME(SCK_AS7341_ATIME);
         adafruit_as7341.setASTEP(SCK_AS7341_ASTEP);
 
-        // TODO DAYLIGHT CORR
-
         // Avoid reading all channels too frequently
         if ((millis() - lastReadSpectrum > SCK_AS7341_INTERVAL_MS) || (lastReadSpectrum == 0)) {
 

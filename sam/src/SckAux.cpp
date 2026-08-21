@@ -3071,13 +3071,17 @@ bool Sck_AS7341::getSpectralReading()
         adafruit_as7341.setASTEP(SCK_AS7341_ASTEP);
 
         // Avoid reading all channels too frequently
+        bool getReadingOK = false;
         if ((millis() - lastReadSpectrum > SCK_AS7341_INTERVAL_MS) || (lastReadSpectrum == 0)) {
 
             as7341_gain_t gain = AS7341_GAIN_512X;
 
             for (uint8_t retry=0; retry < SCK_AS7341_N_RETRIES; retry++){
 
-                if (gain == -1) break; // We got to the minimum gain
+                if (gain == -1) {
+                    getReadingOK = true; // we have to live with a saturated reading
+                    break; // We got to the minimum gain
+                }
                 saturated = false;
 
                 if (getReadingAtGain(gain)) {
@@ -3096,11 +3100,15 @@ bool Sck_AS7341::getSpectralReading()
                         g = nextLowerGain(gain);
                         gain = static_cast<as7341_gain_t>(g);
                     } else {
+                        getReadingOK = true;
                         break;
                     }
                 }
             }
         }
+
+        if (!getReadingOK)
+            return false;
 
         // Convert to "basic counts" - Normalize gain and integration time
         for(uint8_t i = 0; i < SCK_AS7341_N_SPECTRAL_READINGS; i++) {

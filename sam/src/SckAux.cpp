@@ -1161,7 +1161,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
                 command.replace("caltemp", "");
                 command.trim();
 
-                float userTemp;
+                float userTemp = 0;
                 bool off = false;
 
                 if (command.startsWith("off")) off = true;
@@ -1175,7 +1175,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
 
                 return String F("Current temperature: ") + String(scd4x.temperature) + F(" C") + F("\r\nTemperature offset: ") + String(scd4x.tempOffset(userTemp, off)) + F(" C");
             } else {
-                return F("Wrong command!!\r\nOptions:\r\ninterval [2-1000 (seconds)]\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]\r\npressure");
+                return F("Wrong command!!\r\nOptions:\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]");
             }
 
         }
@@ -3063,6 +3063,10 @@ bool Sck_SCD4X::stopMeasurement()
 {
     uint16_t error;
 
+    if (state != SCD4X_MEASUREMENT) {
+        return true;
+    }
+
     error = sensirion_scd4x.stopPeriodicMeasurement();
     if (error != SCK_SCD4X_NO_ERROR) {
         return false;
@@ -3074,15 +3078,15 @@ bool Sck_SCD4X::stopMeasurement()
 bool Sck_SCD4X::stop(SensorType whichSensor)
 {
     // Mark this specific metric as disabled
-    if (!stopMeasurement())
-        return false;
-
     for (uint8_t i=0; i<3; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 0;
 
     // Turn sensor off only if all 3 metrics are disabled
     for (uint8_t i=0; i<3; i++) {
         if (enabled[i][1] == 1) return false;
     }
+
+    if (!stopMeasurement())
+        return false;
 
     if (sensirion_scd4x.powerDown() != SCK_SCD4X_NO_ERROR) {
         return false;
@@ -3130,14 +3134,14 @@ bool Sck_SCD4X::getReading()
 
         lastRead = millis();
 
-        if (error != SCK_SCD4X_NO_ERROR) {
-            if (_co2 == 0) {
-                return false;
-            }
+        if (error != SCK_SCD4X_NO_ERROR || _co2 == 0) {
+            return false;
         }
+
         co2 = _co2;
         temperature = _temperature;
         humidity = _humidity;
+
         return true;
     }
 
@@ -3147,9 +3151,11 @@ bool Sck_SCD4X::autoSelfCal(int8_t value)
 {
     uint16_t error;
 
-    // Value: 0 -> disable, 1 -> enable, any other -> get current setting
+    if (!stopMeasurement())
+        return false;
 
-    if (value != -1) {
+    // Value: 0 -> disable, 1 -> enable, any other -> get current setting
+    if (value == 0 || value == 1) {
         error = sensirion_scd4x.setAutomaticSelfCalibrationEnabled((uint16_t)value);
 
         if (error != SCK_SCD4X_NO_ERROR) {
@@ -3168,6 +3174,8 @@ bool Sck_SCD4X::autoSelfCal(int8_t value)
     if (error != SCK_SCD4X_NO_ERROR) {
         return false;
     }
+
+    startMeasurement();
 
     return ascActive;
 }
@@ -3190,6 +3198,9 @@ uint16_t Sck_SCD4X::forcedRecalFactor(uint16_t newFactor)
     if (frcCorr == 0xFFFF) {
         return false;
     }
+
+    startMeasurement();
+
     return (uint16_t)(frcCorr - 0x8000);
 }
 float Sck_SCD4X::tempOffset(float userTemp, bool off)
@@ -3241,6 +3252,8 @@ float Sck_SCD4X::tempOffset(float userTemp, bool off)
     }
 
     sensirion_scd4x.getTemperatureOffset(updatedTempOffset);
+
+    startMeasurement();
 
     return updatedTempOffset;
 }

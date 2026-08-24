@@ -11,7 +11,7 @@
 #include <LinkedList.h>
 
 #include "SdFat.h"
-#define DISABLE_CHIP_SELECT pinCS_FLASH 
+#define DISABLE_CHIP_SELECT pinCS_FLASH
 
 #include "Pins.h"
 #include "SckLed.h"
@@ -158,7 +158,7 @@ class SckBase
 		bool sdPublish(); 				//  Publishes the provided group of readings to sdcard (if available)
 		LinkedList<SensorType> pendingSensorsLinkedList;
 
-		SckList::GroupIndex wichGroupPublishing; 	// Index of the group beeing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
+		SckList::GroupIndex whichGroupPublishing; 	// Index of the group beeing published (already sent to ESP and waiting for OK/ERROR response), -1 if there is none.
 		uint32_t dynamicLast = 0; 			// Last time that we detected enough speed to trigger dynamic interval
 		uint8_t dynamicCounter = 0;
 		const uint8_t DYNAMIC_COUNTER_THRESHOLD = 3; 	// Number of high speed repetitions that triggers dynamic interval
@@ -208,7 +208,7 @@ class SckBase
 		// **** Sensors
 		AllSensors sensors;
 		bool getReading(OneSensor *wichSensor);
-		void controlSensor(SensorType wichSensorType, String wichCommand);
+		void controlSensor(SensorType wichSensorType, String wwhichommand);
 		bool enableSensor(SensorType wichSensor);
 		bool disableSensor(SensorType wichSensor);
 		bool writeHeader = false;
@@ -236,8 +236,8 @@ class SckBase
 		uint32_t espFlashSpeed = 115200;
 
 		// ESP communication
-		bool ESPsend(SCKMessage wichMessage);
-		bool ESPsend(SCKMessage wichMessage, const char *content);
+		bool ESPsend(SCKMessage whichMessage);
+		bool ESPsend(SCKMessage whichMessage, const char *content);
 		bool pendingSyncConfig = false;
 		String ipAddress;
 		char hostname[17];
@@ -263,7 +263,7 @@ class SckBase
 		AllCommands commands;
 
 		// Sd card Storage
-        FsFile sckFile;   // FAT16/FAT32 and exFAT support. For only FAT16/32 use "File32 sckFile;" (saves some flash). Also remember to change SdFs 
+        FsFile sckFile;   // FAT16/FAT32 and exFAT support. For only FAT16/32 use "File32 sckFile;" (saves some flash). Also remember to change SdFs
         #define SD_CONFIG_NAME  "CONFIG.TXT"
         #define SD_DEBUG_NAME   "DEBUG.TXT"
         #define SD_SPEED_NAME   "SPEED.TXT"
@@ -295,12 +295,12 @@ class SckBase
 
 		const char *modeTitles[MODE_COUNT] PROGMEM = {
 			"not configured",		// modeTitles[MODE_NOT_CONFIGURED]
-			"network",			// modeTitles[MODE_NET]
-			"sdcard",			// modeTitles[MODE_SD]
-			"sleep"				// modeTitles[MODE_SLEEP]
+			"network",				// modeTitles[MODE_NET]
+			"sdcard",				// modeTitles[MODE_SD]
+			"sleep"					// modeTitles[MODE_SLEEP]
 		};
 
-#ifdef TESTING
+#ifdef SC_TESTING
         const bool inTest = true;
         friend class SckTest;
 #else

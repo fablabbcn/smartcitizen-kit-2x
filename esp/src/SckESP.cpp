@@ -42,7 +42,7 @@ void SckESP::setup()
     strncat(hostname, tailMacAddr.c_str(), 4);
 
     WiFi.hostname(hostname);
-    WiFi.persistent(false);             // Only write to flash credentials when changed (for protecting flash from wearing out)
+    WiFi.persistent(false); // Only write to flash credentials when changed (for protecting flash from wearing out)
 
     loadConfig();
     currentWIFIStatus = WiFi.status();
@@ -58,6 +58,7 @@ void SckESP::setup()
     MQTTclient.setKeepAlive(MQTT_KEEP_ALIVE);
     MQTTclient.setBufferSize(MQTT_BUFF_SIZE);
 }
+
 void SckESP::update()
 {
     if (bootedPending) {
@@ -82,18 +83,24 @@ void SckESP::update()
                 // On every connection we check RSSI and send it
                 char charRSSI[8];
                 snprintf(charRSSI, 8, "%i", getRSSI());
-				
+
                 ledSet(1);
                 serSAM.send(SAMMES_WIFI_CONNECTED, charRSSI);
 				break;
 			}
-			case WL_CONNECT_FAILED: 
+			case WL_WRONG_PASSWORD:
 			{
-				ledBlink(LED_FAST); 
-				serSAM.send(SAMMES_PASS_ERROR, ""); 
+				ledBlink(LED_FAST);
+				serSAM.send(SAMMES_PASS_ERROR, "");
 				break;
-			} 
-			case WL_NO_SSID_AVAIL: 
+			}
+			case WL_CONNECT_FAILED:
+			{
+				ledBlink(LED_FAST);
+				serSAM.send(SAMMES_PASS_ERROR, "");
+				break;
+			}
+			case WL_NO_SSID_AVAIL:
 			{
 				ledBlink(LED_FAST);
 				serSAM.send(SAMMES_SSID_ERROR, "");
@@ -101,18 +108,23 @@ void SckESP::update()
 			}
 			case WL_DISCONNECTED:
 			{
-				if (config.credentials.set && WiFi.getMode() != WIFI_AP) ledBlink(LED_SLOW);
+                // Module is not configured in station mode
+				if (config.credentials.set && WiFi.getMode() != WIFI_AP) {
+                    ledBlink(LED_SLOW);
+                }
 				else ledBlink(LED_FAST);
 				break;
 			}
-			default: 
+			default:
 			{
-				ledBlink(LED_FAST); 
+				ledBlink(LED_FAST);
 				serSAM.send(SAMMES_WIFI_UNKNOWN_ERROR, "");
 				break;
 			}
 		}
 	}
+
+    // if (MQTTclient.connected()) MQTTclient.loop();
 
     SAMbusUpdate();
 
@@ -130,6 +142,8 @@ void SckESP::tryConnection()
         String tp = String(config.credentials.pass);
         if (tp.length() == 0) WiFi.begin(config.credentials.ssid);
         else WiFi.begin(config.credentials.ssid, config.credentials.pass);
+        // WiFi.setAutoConnect(true);
+        WiFi.setAutoReconnect(true);
 
     } else {
         debugOUT(String F("Already connected to wifi: ") + String(WiFi.SSID()));
@@ -210,7 +224,7 @@ void SckESP::SAMbusUpdate()
 
         case ESPMES_MQTT_HELLO:
 
-			if (mqttHellow()) serSAM.send(SAMMES_MQTT_HELLO_OK, "");
+			if (mqttHello()) serSAM.send(SAMMES_MQTT_HELLO_OK, "");
 			break;
 
 		case ESPMES_MQTT_PUBLISH:
@@ -320,7 +334,7 @@ bool SckESP::mqttConnect()
         return false;
     }
 }
-bool SckESP::mqttHellow()
+bool SckESP::mqttHello()
 {
     debugOUT(F("Trying MQTT Hello..."));
 
@@ -818,7 +832,7 @@ bool SckESP::saveConfig()
 	json["ns"] = config.ntp.server;
 	json["np"] = config.ntp.port;
     json["lb"] = config.ledBrightness;
-		
+
     File configFile = SPIFFS.open(configFileName, "w");
     if (configFile) {
         serializeJson(json, configFile);
@@ -846,7 +860,7 @@ bool SckESP::loadConfig()
 		JsonObject json = jsonBuffer.as<JsonObject>();
 
 		if (json) {
-			
+
 			if (json.containsKey("cs")) config.credentials.set = json["cs"];
 			if (json.containsKey("ss")) strcpy(config.credentials.ssid, json["ss"]);
 			if (json.containsKey("pa")) strcpy(config.credentials.pass, json["pa"]);
@@ -856,7 +870,7 @@ bool SckESP::loadConfig()
 
 			if (json.containsKey("ms")) strcpy(config.mqtt.server, json["ms"]);
 			if (json.containsKey("mp")) config.mqtt.port = json["mp"];
-			if (json.containsKey("ns")) strcpy(config.ntp.server, json["ms"]);
+			if (json.containsKey("ns")) strcpy(config.ntp.server, json["ns"]);
 			if (json.containsKey("np")) config.ntp.port = json["np"];
 
             // led brightness
@@ -909,12 +923,16 @@ time_t SckESP::getNtpTime()
 {
     IPAddress ntpServerIP;
 
-    while (Udp.parsePacket() > 0) ; // discard any previously received packets
+    // discard any previously received packets
+    while (Udp.parsePacket() > 0) {
+        yield(); // feed the WiFi stack during the wait
+    }
     WiFi.hostByName(config.ntp.server, ntpServerIP);
 
     sendNTPpacket(ntpServerIP);
     uint32_t beginWait = millis();
     while (millis() - beginWait < 1500) {
+        yield(); // feed the WiFi stack during the wait
         int size = Udp.parsePacket();
         if (size >= 48) {
             Udp.read(packetBuffer, 48);  // read packet into the buffer

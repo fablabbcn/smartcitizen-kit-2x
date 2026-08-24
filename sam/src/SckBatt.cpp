@@ -245,11 +245,11 @@ byte SckCharger::getNewFault()
 
     return fault;
 }
-byte SckCharger::readREG(byte wichRegister)
+byte SckCharger::readREG(byte whichRegister)
 {
 
     Wire.beginTransmission(address);
-    Wire.write(wichRegister);
+    Wire.write(whichRegister);
     Wire.endTransmission(true);
     Wire.requestFrom(address, 1);
 
@@ -259,14 +259,14 @@ byte SckCharger::readREG(byte wichRegister)
     }
     return Wire.read();
 }
-bool SckCharger::writeREG(byte wichRegister, byte data)
+bool SckCharger::writeREG(byte whichRegister, byte data)
 {
     Wire.beginTransmission(address);
-    Wire.write(wichRegister);
+    Wire.write(whichRegister);
     Wire.write(data);
     Wire.endTransmission(true);
 
-    if (readREG(wichRegister) == data) return true;
+    if (readREG(whichRegister) == data) return true;
     else return false;
 }
 void SckCharger::detectUSB(SckBase *base)

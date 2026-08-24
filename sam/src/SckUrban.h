@@ -328,8 +328,8 @@ class Sck_CCS811
         bool stop();
         bool getReading(SckBase *base);
         uint16_t getBaseline();
-        bool setBaseline(uint16_t wichBaseline);
-        bool setDriveMode(uint8_t wichDrivemode);
+        bool setBaseline(uint16_t whichBaseline);
+        bool setDriveMode(uint8_t whichDrivemode);
 
         //Mode 0 = Idle
         //Mode 1 = read every 1s
@@ -519,8 +519,8 @@ class Sck_SEN5X
         uint8_t update(SensorType wichSensor); // returns: 0: ok, 1: data is not yet ready, 2: error
         bool findModel();
 
-        bool sen_sendCommand(uint16_t wichCommand);
-        bool sen_sendCommand(uint16_t wichCommand, uint8_t* buffer, uint8_t byteNumber=0);
+        bool sen_sendCommand(uint16_t whichCommand);
+        bool sen_sendCommand(uint16_t whichCommand, uint8_t* buffer, uint8_t byteNumber=0);
         uint8_t sen_readBuffer(uint8_t* buffer, uint8_t byteNumber); // Return number of bytes received
         uint8_t sen_CRC(uint8_t* buffer);
         bool sen_readValues();
@@ -654,9 +654,9 @@ class Sck_AS7331
         //      OUTCONVH 6 -> Time reference, result of conversion time measurement (most significant byte and one empty byte with 00h).
 
 
-        byte getByte(byte wichByte);
-        byte writeByte(byte wichByte, byte wichValue);
-        uint8_t readBytes(uint8_t wichReg, uint8_t howMany, uint8_t * buff);
+        byte getByte(byte whichByte);
+        byte writeByte(byte whichByte, byte whichValue);
+        uint8_t readBytes(uint8_t whichReg, uint8_t howMany, uint8_t * buff);
         bool started = false;
         uint32_t lastReading = 0;
 

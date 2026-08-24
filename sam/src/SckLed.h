@@ -22,7 +22,7 @@ class SckLed
         };
 
         struct Color { uint8_t r; uint8_t g; uint8_t b; ColorName name; };
- 
+
         const Color colors[COLOR_COUNT] = {
             { 0,     29,     225,    BLUE    },
             { 250,   4,      0,      RED     },
@@ -35,8 +35,8 @@ class SckLed
             { 0,     39,     255,    BLUE2   },
             { 149,   22,     132,    PINK2   }
         };
-        Color getColor(ColorName wichName) {
-            for (uint8_t i=0; i<COLOR_COUNT; i++) if (colors[i].name == wichName) return colors[i];
+        Color getColor(ColorName whichName) {
+            for (uint8_t i=0; i<COLOR_COUNT; i++) if (colors[i].name == whichName) return colors[i];
         }
 
         // Color fade values
@@ -45,10 +45,10 @@ class SckLed
             { 0.0,    1.16,   9.0,  BLUE    },
             { 10.0,   0.16,   0.0,  RED     },
             { 5.16,   0.48,   4.48, PINK    },
-            { 10.0,   10.0,   10.0, WHITE   } 
+            { 10.0,   10.0,   10.0, WHITE   }
         };
-        Color_float getDiff(ColorName wichName) {
-            for (uint8_t i=0; i<4; i++) if (diff[i].name == wichName) return diff[i];
+        Color_float getDiff(ColorName whichName) {
+            for (uint8_t i=0; i<4; i++) if (diff[i].name == whichName) return diff[i];
         }
 
         enum pulseModes {
@@ -80,7 +80,7 @@ class SckLed
         /* void setRGBColor(Color myColor); */
         void configureTimer5(uint16_t periodMS);
         void disableTimer5();
-        Color multiply(Color wichColor, float divider);
+        Color multiply(Color whichColor, float divider);
         void show(Color color);
 
         // Hardware interrupt settings

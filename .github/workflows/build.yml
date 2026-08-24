@@ -4,11 +4,13 @@ on:
   pull_request:
     branches:
     - master
+    - develop
     paths-ignore:
     - hardware/**
   push:
     branches:
     - master
+    - develop
     paths-ignore:
     - hardware/**
 
@@ -52,6 +54,7 @@ jobs:
 
     - name: Run Builds
       run: |
+        python make.py dump-env
         python make.py build sam --env all esp -v
 
     - name: Release

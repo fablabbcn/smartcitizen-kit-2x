@@ -1,6 +1,6 @@
 #include "SckBase.h"
 
-#ifdef TESTING
+#ifdef SC_TESTING
 #include "SckTest.h"
 
 extern SckSerial serESP;

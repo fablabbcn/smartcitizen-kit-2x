@@ -211,11 +211,11 @@ class AuxBoards
         // 0x5d,           // SENSOR_SFA30_HUMIDITY,
         // 0x5d,           // SENSOR_SFA30_FORMALDEHYDE,
 
-        bool start(SckBase *base, SensorType wichSensor);
-        bool stop(SensorType wichSensor);
-        void getReading(SckBase *base, OneSensor *wichSensor);
-        bool getBusyState(SensorType wichSensor);
-        String control(SensorType wichSensor, String command);
+        bool start(SckBase *base, SensorType whichSensor);
+        bool stop(SensorType whichSensor);
+        void getReading(SckBase *base, OneSensor *whichSensor);
+        bool getBusyState(SensorType whichSensor);
+        String control(SensorType whichSensor, String command);
 #ifdef WITH_SENSOR_GROVE_OLED
         void print(char *payload);
         void updateDisplay(SckBase* base, bool force=false);
@@ -266,7 +266,7 @@ class INA219
         Adafruit_INA219 ada_ina219 = Adafruit_INA219(deviceAddress);
         bool start();
         bool stop();
-        float getReading(typeOfReading wichReading=CURRENT);
+        float getReading(typeOfReading whichReading=CURRENT);
 
     private:
     };
@@ -297,7 +297,7 @@ class Groove_OLED
         const uint32_t refreshRate = 50;
 
         void drawBar(SckBase* base);
-        void drawError(errorType wichError);
+        void drawError(errorType whichError);
         errorType lastError;
         void drawSetup(SckBase* base);
 
@@ -381,8 +381,8 @@ class Atlas
         State state = REST;
 
         // Constructor varies by sensor type
-        Atlas(SensorType wichSensor) {
-            atlasType = wichSensor;
+        Atlas(SensorType whichSensor) {
+            atlasType = whichSensor;
 
             switch(atlasType) {
                 case SENSOR_ATLAS_PH: {
@@ -461,7 +461,7 @@ class Moisture
 
         bool start();
         bool stop();
-        bool getReading(SensorType wichSensor);
+        bool getReading(SensorType whichSensor);
         uint8_t getVersion();
         bool resetAddress(int currentAddress);
 
@@ -507,8 +507,8 @@ class PMsensor
     {
     public:
         // Constructor varies by sensor type
-        PMsensor(PMslot wichSlot) {
-            _slot = wichSlot;
+        PMsensor(PMslot whichSlot) {
+            _slot = whichSlot;
         }
 
         const byte deviceAddress = 0x02;
@@ -616,7 +616,7 @@ class GPS_Source
     {
     public:
         virtual bool stop();
-        virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+        virtual bool getReading(SensorType whichSensor, GpsReadings &r);
         virtual bool update();
     };
 
@@ -631,7 +631,7 @@ class Sck_GPS
 
         bool start();
         bool stop();
-        bool getReading(SckBase *base, SensorType wichSensor);
+        bool getReading(SckBase *base, SensorType whichSensor);
         bool update();
     };
 
@@ -642,7 +642,7 @@ class PM_Grove_GPS: public GPS_Source
 
         bool start();
         virtual bool stop();
-        virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+        virtual bool getReading(SensorType whichSensor, GpsReadings &r);
         virtual bool update();
 
     private:
@@ -658,7 +658,7 @@ class XA111GPS: public GPS_Source
 
         bool start();
         virtual bool stop();
-        virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+        virtual bool getReading(SensorType whichSensor, GpsReadings &r);
         virtual bool update();
 
     private:
@@ -674,7 +674,7 @@ class NEOM8UGPS: public GPS_Source
 
         bool start();
         virtual bool stop();
-        virtual bool getReading(SensorType wichSensor, GpsReadings &r);
+        virtual bool getReading(SensorType whichSensor, GpsReadings &r);
         virtual bool update();
 
     private:
@@ -706,7 +706,7 @@ class Sck_Range
         const byte deviceAddress = 0x29;
         bool start();
         bool stop();
-        bool getReading(SensorType wichSensor);
+        bool getReading(SensorType whichSensor);
 
         float readingLight;
         float readingDistance;
@@ -724,19 +724,19 @@ class Sck_ADS1X15
         const byte deviceAddress = 0x48;
         bool start(uint8_t address);
         bool stop();
-        bool getReading(uint8_t wichChannel);
+        bool getReading(uint8_t whichChannel);
         float reading;
 
 #ifdef adsTest
         uint8_t adsChannelW = 0; // Default channel for WE
         uint8_t adsChannelA = 1; // Default channel for AE
-        void setTesterCurrent(int16_t wichCurrent, uint8_t wichChannel);
+        void setTesterCurrent(int16_t whichCurrent, uint8_t whichChannel);
         // double preVoltA = -99;
         // double preVoltW = -99;
         // double threshold = 0.05;
         // uint8_t maxErrorsA = 5;
         // uint8_t maxErrorsW = 5;
-        void runTester(uint8_t wichChannel);
+        void runTester(uint8_t whichChannel);
         testerGasesBoard tester;
 #endif
 
@@ -755,9 +755,9 @@ class Sck_SCD30
     {
     public:
         const byte deviceAddress = 0x61;
-        bool start(SckBase *base, SensorType wichSensor);
-        bool stop(SensorType wichSensor);
-        bool getReading(SensorType wichSensor);
+        bool start(SckBase *base, SensorType whichSensor);
+        bool stop(SensorType whichSensor);
+        bool getReading(SensorType whichSensor);
         uint16_t interval(uint16_t newInterval=0);
         bool autoSelfCal(int8_t value=-1);
         uint16_t forcedRecalFactor(uint16_t newFactor=0);
@@ -783,9 +783,9 @@ class Sck_SFA30
     {
     public:
         const byte deviceAddress = 0x5d;
-        bool start(SensorType wichSensor);
-        bool stop(SensorType wichSensor);
-        bool getReading(SensorType wichSensor);
+        bool start(SensorType whichSensor);
+        bool stop(SensorType whichSensor);
+        bool getReading(SensorType whichSensor);
         bool debug = false;
 
         float temperature = 0;

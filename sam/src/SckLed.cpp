@@ -121,13 +121,12 @@ void SckLed::show(Color color)
         digitalWrite(pinBLUE, HIGH);
     } else analogWrite(pinBLUE,    255 - c.b);
 }
-SckLed::Color SckLed::multiply(Color wichColor, float mult)
+SckLed::Color SckLed::multiply(Color whichColor, float mult)
 {
     Color result;
-    result.r = wichColor.r * mult;
-    result.g = wichColor.g * mult;
-    result.b = wichColor.b * mult;
-    result.name = wichColor.name;
+    result.r = whichColor.r * mult;
+    result.g = whichColor.g * mult;
+    result.b = whichColor.b * mult;
     return result;
 }
 void SckLed::configureTimer5(uint16_t periodMS)

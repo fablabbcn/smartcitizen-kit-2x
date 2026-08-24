@@ -65,7 +65,7 @@ Sck_SCD4X           scd4x;
 #endif
 
 #ifdef  SCK_WITH_SFA30
-Sck_SFA30           sck_sfa30;
+Sck_SFA30           sfa30;
 #endif
 
 // Eeprom flash emulation to store I2C address
@@ -512,7 +512,7 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_AS7341_FLICKER_FREQ:            if (as7341.getFlickerReading())  { whichSensor->reading = String(as7341.flickerPeakFreq); return; } break;
         case SENSOR_AS7341_FLICKER_P2P:             if (as7341.getFlickerReading())  { whichSensor->reading = String(as7341.flickerPeakToPeak); return; } break;
 #endif
-#ifdef WITH_SCD4X
+#ifdef SCK_WITH_SCD4X
         case SENSOR_SCD4X_CO2:                      if (scd4x.getReading())                      { whichSensor->reading = String(scd4x.co2);              return; } break;
         case SENSOR_SCD4X_TEMP:                     if (scd4x.getReading())                      { whichSensor->reading = String(scd4x.temperature);      return; } break;
         case SENSOR_SCD4X_HUM:                      if (scd4x.getReading())                      { whichSensor->reading = String(scd4x.humidity);         return; } break;
@@ -1132,7 +1132,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
             }
         }
 #endif
-#ifdef WITH_SCD4X
+#ifdef SCK_WITH_SCD4X
         case SENSOR_SCD4X_CO2:
         case SENSOR_SCD4X_TEMP:
         case SENSOR_SCD4X_HUM: {

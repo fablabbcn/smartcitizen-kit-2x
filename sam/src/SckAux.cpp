@@ -62,7 +62,7 @@ Sck_SFA30           sck_sfa30;
 // Eeprom flash emulation to store I2C address
 FlashStorage(eepromAuxData, EepromAuxData);
 
-bool AuxBoards::start(SckBase *base, SensorType wichSensor)
+bool AuxBoards::start(SckBase *base, SensorType whichSensor)
 {
     if (!dataLoaded) {
         data = eepromAuxData.read();
@@ -90,7 +90,7 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 #endif
     }
 
-    switch (wichSensor) {
+    switch (whichSensor) {
 
 #ifdef WITH_GASES_BOARD
         case SENSOR_GASESBOARD_SLOT_1A:
@@ -202,12 +202,12 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 #ifdef WITH_SCD30
         case SENSOR_SCD30_CO2:
         case SENSOR_SCD30_TEMP:
-        case SENSOR_SCD30_HUM:                      return scd30.start(base, wichSensor);
+        case SENSOR_SCD30_HUM:                      return scd30.start(base, whichSensor);
 #endif
 #ifdef  WITH_SFA30
         case SENSOR_SFA30_TEMPERATURE:
         case SENSOR_SFA30_HUMIDITY:
-        case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(wichSensor);
+        case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(whichSensor);
 #endif
 #ifdef WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.start();
@@ -217,9 +217,9 @@ bool AuxBoards::start(SckBase *base, SensorType wichSensor)
 
     return false;
 }
-bool AuxBoards::stop(SensorType wichSensor)
+bool AuxBoards::stop(SensorType whichSensor)
 {
-    switch (wichSensor) {
+    switch (whichSensor) {
 
 #ifdef WITH_GASES_BOARD
         case SENSOR_GASESBOARD_SLOT_1A:
@@ -322,12 +322,12 @@ bool AuxBoards::stop(SensorType wichSensor)
 #ifdef WITH_SCD30
         case SENSOR_SCD30_CO2:
         case SENSOR_SCD30_TEMP:
-        case SENSOR_SCD30_HUM:                      return scd30.stop(wichSensor);
+        case SENSOR_SCD30_HUM:                      return scd30.stop(whichSensor);
 #endif
 #ifdef  WITH_SFA30
         case SENSOR_SFA30_TEMPERATURE:
         case SENSOR_SFA30_HUMIDITY:
-        case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(wichSensor);
+        case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(whichSensor);
 #endif
 #ifdef WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.stop();
@@ -337,130 +337,130 @@ bool AuxBoards::stop(SensorType wichSensor)
 
     return false;
 }
-void AuxBoards::getReading(SckBase *base, OneSensor *wichSensor)
+void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
 {
-    wichSensor->state = 0;
-    switch (wichSensor->type) {
+    whichSensor->state = 0;
+    switch (whichSensor->type) {
 #ifdef WITH_GASES_BOARD
-        case SENSOR_GASESBOARD_SLOT_1A:             wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_A)); return;
-        case SENSOR_GASESBOARD_SLOT_1W:             wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_W)); return;
-        case SENSOR_GASESBOARD_SLOT_2A:             wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot2.electrode_A)); return;
-        case SENSOR_GASESBOARD_SLOT_2W:             wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot2.electrode_W)); return;
-        case SENSOR_GASESBOARD_SLOT_3A:             wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot3.electrode_A)); return;
-        case SENSOR_GASESBOARD_SLOT_3W:             wichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot3.electrode_W)); return;
-        case SENSOR_GASESBOARD_HUMIDITY:            wichSensor->reading = String(gasBoard.getHumidity()); return;
-        case SENSOR_GASESBOARD_TEMPERATURE:         wichSensor->reading = String(gasBoard.getTemperature()); return;
+        case SENSOR_GASESBOARD_SLOT_1A:             whichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_A)); return;
+        case SENSOR_GASESBOARD_SLOT_1W:             whichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot1.electrode_W)); return;
+        case SENSOR_GASESBOARD_SLOT_2A:             whichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot2.electrode_A)); return;
+        case SENSOR_GASESBOARD_SLOT_2W:             whichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot2.electrode_W)); return;
+        case SENSOR_GASESBOARD_SLOT_3A:             whichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot3.electrode_A)); return;
+        case SENSOR_GASESBOARD_SLOT_3W:             whichSensor->reading = String(gasBoard.getElectrode(gasBoard.Slot3.electrode_W)); return;
+        case SENSOR_GASESBOARD_HUMIDITY:            whichSensor->reading = String(gasBoard.getHumidity()); return;
+        case SENSOR_GASESBOARD_TEMPERATURE:         whichSensor->reading = String(gasBoard.getTemperature()); return;
 #endif
 #ifdef WITH_GROVE_I2C_ADC
-        case SENSOR_GROOVE_I2C_ADC:                 wichSensor->reading = String(grooveI2C_ADC.getReading()); return;
+        case SENSOR_GROOVE_I2C_ADC:                 whichSensor->reading = String(grooveI2C_ADC.getReading()); return;
 #endif
 #ifdef WITH_INA219
-        case SENSOR_INA219_BUSVOLT:                 wichSensor->reading = String(ina219.getReading(ina219.BUS_VOLT)); return;
-        case SENSOR_INA219_SHUNT:                   wichSensor->reading = String(ina219.getReading(ina219.SHUNT_VOLT)); return;
-        case SENSOR_INA219_CURRENT:                 wichSensor->reading = String(ina219.getReading(ina219.CURRENT)); return;
-        case SENSOR_INA219_LOADVOLT:                wichSensor->reading = String(ina219.getReading(ina219.LOAD_VOLT)); return;
+        case SENSOR_INA219_BUSVOLT:                 whichSensor->reading = String(ina219.getReading(ina219.BUS_VOLT)); return;
+        case SENSOR_INA219_SHUNT:                   whichSensor->reading = String(ina219.getReading(ina219.SHUNT_VOLT)); return;
+        case SENSOR_INA219_CURRENT:                 whichSensor->reading = String(ina219.getReading(ina219.CURRENT)); return;
+        case SENSOR_INA219_LOADVOLT:                whichSensor->reading = String(ina219.getReading(ina219.LOAD_VOLT)); return;
 #endif
 #ifdef WITH_DS18B20
-        case SENSOR_WATER_TEMP_DS18B20:             wichSensor->reading = String(waterTemp_DS18B20.getReading()); return;
+        case SENSOR_WATER_TEMP_DS18B20:             whichSensor->reading = String(waterTemp_DS18B20.getReading()); return;
 #endif
 #ifdef WITH_ATLAS
-        case SENSOR_ATLAS_TEMPERATURE:              if (atlasTEMP.getReading())     { wichSensor->reading = String(atlasTEMP.newReading[0]); return; } break;
-        case SENSOR_ATLAS_PH:                       if (atlasPH.getReading())   { wichSensor->reading = String(atlasPH.newReading[0]); return; } break;
-        case SENSOR_ATLAS_EC:                       if (atlasEC.getReading())   { wichSensor->reading = String(atlasEC.newReading[0]); return; } break;
-        case SENSOR_ATLAS_EC_TDS:                   if (atlasEC.getReading())   { wichSensor->reading = String(atlasEC.newReading[1]); return; } break;
-        case SENSOR_ATLAS_EC_SAL:                   if (atlasEC.getReading())   { wichSensor->reading = String(atlasEC.newReading[2]); return; } break;
-        case SENSOR_ATLAS_EC_SG:                    if (atlasEC.getReading())   { wichSensor->reading = String(atlasEC.newReading[3]); return; } break;
-        case SENSOR_ATLAS_DO:                       if (atlasDO.getReading())   { wichSensor->reading = String(atlasDO.newReading[0]); return; } break;
-        case SENSOR_ATLAS_DO_SAT:                   if (atlasDO.getReading())   { wichSensor->reading = String(atlasDO.newReading[1]); return; } break;
-        case SENSOR_ATLAS_ORP:                      if (atlasORP.getReading())  { wichSensor->reading = String(atlasORP.newReading[0]); return; } break;
+        case SENSOR_ATLAS_TEMPERATURE:              if (atlasTEMP.getReading())     { whichSensor->reading = String(atlasTEMP.newReading[0]); return; } break;
+        case SENSOR_ATLAS_PH:                       if (atlasPH.getReading())   { whichSensor->reading = String(atlasPH.newReading[0]); return; } break;
+        case SENSOR_ATLAS_EC:                       if (atlasEC.getReading())   { whichSensor->reading = String(atlasEC.newReading[0]); return; } break;
+        case SENSOR_ATLAS_EC_TDS:                   if (atlasEC.getReading())   { whichSensor->reading = String(atlasEC.newReading[1]); return; } break;
+        case SENSOR_ATLAS_EC_SAL:                   if (atlasEC.getReading())   { whichSensor->reading = String(atlasEC.newReading[2]); return; } break;
+        case SENSOR_ATLAS_EC_SG:                    if (atlasEC.getReading())   { whichSensor->reading = String(atlasEC.newReading[3]); return; } break;
+        case SENSOR_ATLAS_DO:                       if (atlasDO.getReading())   { whichSensor->reading = String(atlasDO.newReading[0]); return; } break;
+        case SENSOR_ATLAS_DO_SAT:                   if (atlasDO.getReading())   { whichSensor->reading = String(atlasDO.newReading[1]); return; } break;
+        case SENSOR_ATLAS_ORP:                      if (atlasORP.getReading())  { whichSensor->reading = String(atlasORP.newReading[0]); return; } break;
 #endif
 #ifdef WITH_CHIRP
-        case SENSOR_CHIRP_MOISTURE_RAW:             if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE_RAW)) { wichSensor->reading = String(moistureChirp.raw); return; } break;
-        case SENSOR_CHIRP_MOISTURE:                 if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE)) { wichSensor->reading = String(moistureChirp.moisture); return; } break;
-        case SENSOR_CHIRP_TEMPERATURE:              if (moistureChirp.getReading(SENSOR_CHIRP_TEMPERATURE)) { wichSensor->reading = String(moistureChirp.temperature); return; } break;
-        case SENSOR_CHIRP_LIGHT:                    if (moistureChirp.getReading(SENSOR_CHIRP_LIGHT)) { wichSensor->reading = String(moistureChirp.light); return; } break;
+        case SENSOR_CHIRP_MOISTURE_RAW:             if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE_RAW)) { whichSensor->reading = String(moistureChirp.raw); return; } break;
+        case SENSOR_CHIRP_MOISTURE:                 if (moistureChirp.getReading(SENSOR_CHIRP_MOISTURE)) { whichSensor->reading = String(moistureChirp.moisture); return; } break;
+        case SENSOR_CHIRP_TEMPERATURE:              if (moistureChirp.getReading(SENSOR_CHIRP_TEMPERATURE)) { whichSensor->reading = String(moistureChirp.temperature); return; } break;
+        case SENSOR_CHIRP_LIGHT:                    if (moistureChirp.getReading(SENSOR_CHIRP_LIGHT)) { whichSensor->reading = String(moistureChirp.light); return; } break;
 #endif
 #ifdef WITH_PMS
-        case SENSOR_EXT_A_PM_1:                     if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pm1); return; } break;
-        case SENSOR_EXT_A_PM_25:                    if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pm25); return; } break;
-        case SENSOR_EXT_A_PM_10:                    if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pm10); return; } break;
-        case SENSOR_EXT_A_PN_03:                    if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn03); return; } break;
-        case SENSOR_EXT_A_PN_05:                    if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn05); return; } break;
-        case SENSOR_EXT_A_PN_1:                     if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn1); return; } break;
-        case SENSOR_EXT_A_PN_25:                    if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn25); return; } break;
-        case SENSOR_EXT_A_PN_5:                     if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn5); return; } break;
-        case SENSOR_EXT_A_PN_10:                    if (pmSensorA.update()) { wichSensor->reading = String(pmSensorA.pn10); return; } break;
-        case SENSOR_EXT_B_PM_1:                     if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pm1); return; } break;
-        case SENSOR_EXT_B_PM_25:                    if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pm25); return; } break;
-        case SENSOR_EXT_B_PM_10:                    if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pm10); return; } break;
-        case SENSOR_EXT_B_PN_03:                    if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn03); return; } break;
-        case SENSOR_EXT_B_PN_05:                    if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn05); return; } break;
-        case SENSOR_EXT_B_PN_1:                     if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn1); return; } break;
-        case SENSOR_EXT_B_PN_25:                    if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn25); return; } break;
-        case SENSOR_EXT_B_PN_5:                     if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn5); return; } break;
-        case SENSOR_EXT_B_PN_10:                    if (pmSensorB.update()) { wichSensor->reading = String(pmSensorB.pn10); return; } break;
+        case SENSOR_EXT_A_PM_1:                     if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pm1); return; } break;
+        case SENSOR_EXT_A_PM_25:                    if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pm25); return; } break;
+        case SENSOR_EXT_A_PM_10:                    if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pm10); return; } break;
+        case SENSOR_EXT_A_PN_03:                    if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pn03); return; } break;
+        case SENSOR_EXT_A_PN_05:                    if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pn05); return; } break;
+        case SENSOR_EXT_A_PN_1:                     if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pn1); return; } break;
+        case SENSOR_EXT_A_PN_25:                    if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pn25); return; } break;
+        case SENSOR_EXT_A_PN_5:                     if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pn5); return; } break;
+        case SENSOR_EXT_A_PN_10:                    if (pmSensorA.update()) { whichSensor->reading = String(pmSensorA.pn10); return; } break;
+        case SENSOR_EXT_B_PM_1:                     if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pm1); return; } break;
+        case SENSOR_EXT_B_PM_25:                    if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pm25); return; } break;
+        case SENSOR_EXT_B_PM_10:                    if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pm10); return; } break;
+        case SENSOR_EXT_B_PN_03:                    if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pn03); return; } break;
+        case SENSOR_EXT_B_PN_05:                    if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pn05); return; } break;
+        case SENSOR_EXT_B_PN_1:                     if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pn1); return; } break;
+        case SENSOR_EXT_B_PN_25:                    if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pn25); return; } break;
+        case SENSOR_EXT_B_PN_5:                     if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pn5); return; } break;
+        case SENSOR_EXT_B_PN_10:                    if (pmSensorB.update()) { whichSensor->reading = String(pmSensorB.pn10); return; } break;
 #endif
 #ifdef WITH_DALLAS_TEMP
-        case SENSOR_PM_DALLAS_TEMP:                 wichSensor->reading = String(pmDallasTemp.getReading()); return;
-        case SENSOR_DALLAS_TEMP:                    if (dallasTemp.getReading())            { wichSensor->reading = String(dallasTemp.reading); return; } break;
+        case SENSOR_PM_DALLAS_TEMP:                 whichSensor->reading = String(pmDallasTemp.getReading()); return;
+        case SENSOR_DALLAS_TEMP:                    if (dallasTemp.getReading())            { whichSensor->reading = String(dallasTemp.reading); return; } break;
 #endif
 #ifdef WITH_EXT_TEMP
-        case SENSOR_SHT31_TEMP:                     if (sht31.getReading())                 { wichSensor->reading = String(sht31.temperature); return; } break;
-        case SENSOR_SHT31_HUM:                      if (sht31.getReading())                 { wichSensor->reading = String(sht31.humidity); return; } break;
-        case SENSOR_SHT35_TEMP:                     if (sht35.getReading())                 { wichSensor->reading = String(sht35.temperature); return; } break;
-        case SENSOR_SHT35_HUM:                      if (sht35.getReading())                 { wichSensor->reading = String(sht35.humidity); return; } break;
+        case SENSOR_SHT31_TEMP:                     if (sht31.getReading())                 { whichSensor->reading = String(sht31.temperature); return; } break;
+        case SENSOR_SHT31_HUM:                      if (sht31.getReading())                 { whichSensor->reading = String(sht31.humidity); return; } break;
+        case SENSOR_SHT35_TEMP:                     if (sht35.getReading())                 { whichSensor->reading = String(sht35.temperature); return; } break;
+        case SENSOR_SHT35_HUM:                      if (sht35.getReading())                 { whichSensor->reading = String(sht35.humidity); return; } break;
 #endif
 #ifdef WITH_RANGE
-        case SENSOR_RANGE_DISTANCE:                 if (range.getReading(SENSOR_RANGE_DISTANCE))    { wichSensor->reading = String(range.readingDistance); return; } break;
-        case SENSOR_RANGE_LIGHT:                    if (range.getReading(SENSOR_RANGE_LIGHT))   { wichSensor->reading = String(range.readingLight); return; } break;
+        case SENSOR_RANGE_DISTANCE:                 if (range.getReading(SENSOR_RANGE_DISTANCE))    { whichSensor->reading = String(range.readingDistance); return; } break;
+        case SENSOR_RANGE_LIGHT:                    if (range.getReading(SENSOR_RANGE_LIGHT))   { whichSensor->reading = String(range.readingLight); return; } break;
 #endif
 #ifdef WITH_GPS
-        case SENSOR_GPS_FIX_QUALITY:                if (gps.getReading(base, SENSOR_GPS_FIX_QUALITY))   { wichSensor->reading = String(gps.r.fixQuality); return; } break;
-        case SENSOR_GPS_LATITUDE:                   if (gps.getReading(base, SENSOR_GPS_LATITUDE))      { wichSensor->reading = String(gps.r.latitude, 6); return; } break;
-        case SENSOR_GPS_LONGITUDE:                  if (gps.getReading(base, SENSOR_GPS_LONGITUDE))     { wichSensor->reading = String(gps.r.longitude, 6); return; } break;
-        case SENSOR_GPS_ALTITUDE:                   if (gps.getReading(base, SENSOR_GPS_ALTITUDE))      { wichSensor->reading = String(gps.r.altitude, 2); return; } break;
-        case SENSOR_GPS_SPEED:                      if (gps.getReading(base, SENSOR_GPS_SPEED))         { wichSensor->reading = String(gps.r.speed, 2); return; } break;
-        case SENSOR_GPS_HDOP:                       if (gps.getReading(base, SENSOR_GPS_HDOP))      { wichSensor->reading = String(gps.r.hdop, 2); return; } break;
-        case SENSOR_GPS_SATNUM:                     if (gps.getReading(base, SENSOR_GPS_SATNUM))        { wichSensor->reading = String(gps.r.satellites); return; } break;
+        case SENSOR_GPS_FIX_QUALITY:                if (gps.getReading(base, SENSOR_GPS_FIX_QUALITY))   { whichSensor->reading = String(gps.r.fixQuality); return; } break;
+        case SENSOR_GPS_LATITUDE:                   if (gps.getReading(base, SENSOR_GPS_LATITUDE))      { whichSensor->reading = String(gps.r.latitude, 6); return; } break;
+        case SENSOR_GPS_LONGITUDE:                  if (gps.getReading(base, SENSOR_GPS_LONGITUDE))     { whichSensor->reading = String(gps.r.longitude, 6); return; } break;
+        case SENSOR_GPS_ALTITUDE:                   if (gps.getReading(base, SENSOR_GPS_ALTITUDE))      { whichSensor->reading = String(gps.r.altitude, 2); return; } break;
+        case SENSOR_GPS_SPEED:                      if (gps.getReading(base, SENSOR_GPS_SPEED))         { whichSensor->reading = String(gps.r.speed, 2); return; } break;
+        case SENSOR_GPS_HDOP:                       if (gps.getReading(base, SENSOR_GPS_HDOP))      { whichSensor->reading = String(gps.r.hdop, 2); return; } break;
+        case SENSOR_GPS_SATNUM:                     if (gps.getReading(base, SENSOR_GPS_SATNUM))        { whichSensor->reading = String(gps.r.satellites); return; } break;
 #endif
 #ifdef WITH_ADS1X15
-        case SENSOR_ADS1X15_48_0:                   if (ads48.getReading(0))                    { wichSensor->reading = String(ads48.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_48_1:                   if (ads48.getReading(1))                    { wichSensor->reading = String(ads48.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_48_2:                   if (ads48.getReading(2))                    { wichSensor->reading = String(ads48.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_48_3:                   if (ads48.getReading(3))                    { wichSensor->reading = String(ads48.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_49_0:                   if (ads49.getReading(0))                    { wichSensor->reading = String(ads49.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_49_1:                   if (ads49.getReading(1))                    { wichSensor->reading = String(ads49.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_49_2:                   if (ads49.getReading(2))                    { wichSensor->reading = String(ads49.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_49_3:                   if (ads49.getReading(3))                    { wichSensor->reading = String(ads49.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_4A_0:                   if (ads4A.getReading(0))                    { wichSensor->reading = String(ads4A.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_4A_1:                   if (ads4A.getReading(1))                    { wichSensor->reading = String(ads4A.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_4A_2:                   if (ads4A.getReading(2))                    { wichSensor->reading = String(ads4A.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_4A_3:                   if (ads4A.getReading(3))                    { wichSensor->reading = String(ads4A.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_4B_0:                   if (ads4B.getReading(0))                    { wichSensor->reading = String(ads4B.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_4B_1:                   if (ads4B.getReading(1))                    { wichSensor->reading = String(ads4B.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_4B_2:                   if (ads4B.getReading(2))                    { wichSensor->reading = String(ads4B.reading, 6);       return; } break;
-        case SENSOR_ADS1X15_4B_3:                   if (ads4B.getReading(3))                    { wichSensor->reading = String(ads4B.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_48_0:                   if (ads48.getReading(0))                    { whichSensor->reading = String(ads48.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_48_1:                   if (ads48.getReading(1))                    { whichSensor->reading = String(ads48.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_48_2:                   if (ads48.getReading(2))                    { whichSensor->reading = String(ads48.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_48_3:                   if (ads48.getReading(3))                    { whichSensor->reading = String(ads48.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_49_0:                   if (ads49.getReading(0))                    { whichSensor->reading = String(ads49.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_49_1:                   if (ads49.getReading(1))                    { whichSensor->reading = String(ads49.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_49_2:                   if (ads49.getReading(2))                    { whichSensor->reading = String(ads49.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_49_3:                   if (ads49.getReading(3))                    { whichSensor->reading = String(ads49.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_4A_0:                   if (ads4A.getReading(0))                    { whichSensor->reading = String(ads4A.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_4A_1:                   if (ads4A.getReading(1))                    { whichSensor->reading = String(ads4A.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_4A_2:                   if (ads4A.getReading(2))                    { whichSensor->reading = String(ads4A.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_4A_3:                   if (ads4A.getReading(3))                    { whichSensor->reading = String(ads4A.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_4B_0:                   if (ads4B.getReading(0))                    { whichSensor->reading = String(ads4B.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_4B_1:                   if (ads4B.getReading(1))                    { whichSensor->reading = String(ads4B.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_4B_2:                   if (ads4B.getReading(2))                    { whichSensor->reading = String(ads4B.reading, 6);       return; } break;
+        case SENSOR_ADS1X15_4B_3:                   if (ads4B.getReading(3))                    { whichSensor->reading = String(ads4B.reading, 6);       return; } break;
 #endif
 #ifdef WITH_SCD30
-        case SENSOR_SCD30_CO2:                      if (scd30.getReading(wichSensor->type))     { wichSensor->reading = String(scd30.co2);              return; } break;
-        case SENSOR_SCD30_TEMP:                     if (scd30.getReading(wichSensor->type))     { wichSensor->reading = String(scd30.temperature);      return; } break;
-        case SENSOR_SCD30_HUM:                      if (scd30.getReading(wichSensor->type))     { wichSensor->reading = String(scd30.humidity);         return; } break;
+        case SENSOR_SCD30_CO2:                      if (scd30.getReading(whichSensor->type))     { whichSensor->reading = String(scd30.co2);              return; } break;
+        case SENSOR_SCD30_TEMP:                     if (scd30.getReading(whichSensor->type))     { whichSensor->reading = String(scd30.temperature);      return; } break;
+        case SENSOR_SCD30_HUM:                      if (scd30.getReading(whichSensor->type))     { whichSensor->reading = String(scd30.humidity);         return; } break;
 #endif
 #ifdef  WITH_SFA30
-        case SENSOR_SFA30_TEMPERATURE:              if (sck_sfa30.getReading(wichSensor->type)) { wichSensor->reading = String(sck_sfa30.temperature);  return; } break;
-        case SENSOR_SFA30_HUMIDITY:                 if (sck_sfa30.getReading(wichSensor->type)) { wichSensor->reading = String(sck_sfa30.humidity);     return; } break;
-        case SENSOR_SFA30_FORMALDEHYDE:             if (sck_sfa30.getReading(wichSensor->type)) { wichSensor->reading = String(sck_sfa30.formaldehyde); return; } break;
+        case SENSOR_SFA30_TEMPERATURE:              if (sck_sfa30.getReading(whichSensor->type)) { whichSensor->reading = String(sck_sfa30.temperature);  return; } break;
+        case SENSOR_SFA30_HUMIDITY:                 if (sck_sfa30.getReading(whichSensor->type)) { whichSensor->reading = String(sck_sfa30.humidity);     return; } break;
+        case SENSOR_SFA30_FORMALDEHYDE:             if (sck_sfa30.getReading(whichSensor->type)) { whichSensor->reading = String(sck_sfa30.formaldehyde); return; } break;
 #endif
         default: break;
     }
 
-    wichSensor->reading = "null";
-    wichSensor->state = -1;
+    whichSensor->reading = "null";
+    whichSensor->state = -1;
 }
-bool AuxBoards::getBusyState(SensorType wichSensor)
+bool AuxBoards::getBusyState(SensorType whichSensor)
 {
 
-    switch(wichSensor) {
+    switch(whichSensor) {
 #ifdef WITH_ATLAS
         case SENSOR_ATLAS_TEMPERATURE:  return atlasTEMP.getBusyState(); break;
         case SENSOR_ATLAS_PH:       return atlasPH.getBusyState(); break;
@@ -475,9 +475,9 @@ bool AuxBoards::getBusyState(SensorType wichSensor)
         default: return false; break;
     }
 }
-String AuxBoards::control(SensorType wichSensor, String command)
+String AuxBoards::control(SensorType whichSensor, String command)
 {
-    switch(wichSensor) {
+    switch(whichSensor) {
 #ifdef WITH_GASES_BOARD
         case SENSOR_GASESBOARD_SLOT_1A:
         case SENSOR_GASESBOARD_SLOT_1W:
@@ -488,23 +488,23 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
             if (command.startsWith("set pot")) {
 
-                Electrode wichElectrode;
+                Electrode whichElectrode;
 
-                switch(wichSensor) {
-                    case SENSOR_GASESBOARD_SLOT_1A: wichElectrode = gasBoard.Slot1.electrode_A;
-                    case SENSOR_GASESBOARD_SLOT_1W: wichElectrode = gasBoard.Slot1.electrode_W;
-                    case SENSOR_GASESBOARD_SLOT_2A: wichElectrode = gasBoard.Slot2.electrode_A;
-                    case SENSOR_GASESBOARD_SLOT_2W: wichElectrode = gasBoard.Slot2.electrode_W;
-                    case SENSOR_GASESBOARD_SLOT_3A: wichElectrode = gasBoard.Slot3.electrode_A;
-                    case SENSOR_GASESBOARD_SLOT_3W: wichElectrode = gasBoard.Slot3.electrode_W;
+                switch(whichSensor) {
+                    case SENSOR_GASESBOARD_SLOT_1A: whichElectrode = gasBoard.Slot1.electrode_A;
+                    case SENSOR_GASESBOARD_SLOT_1W: whichElectrode = gasBoard.Slot1.electrode_W;
+                    case SENSOR_GASESBOARD_SLOT_2A: whichElectrode = gasBoard.Slot2.electrode_A;
+                    case SENSOR_GASESBOARD_SLOT_2W: whichElectrode = gasBoard.Slot2.electrode_W;
+                    case SENSOR_GASESBOARD_SLOT_3A: whichElectrode = gasBoard.Slot3.electrode_A;
+                    case SENSOR_GASESBOARD_SLOT_3W: whichElectrode = gasBoard.Slot3.electrode_W;
                     default: break;
                 }
 
                 command.replace("set pot", "");
                 command.trim();
-                int wichValue = command.toInt();
-                gasBoard.setPot(wichElectrode, wichValue);
-                return String F("Setting pot to: ") + String(wichValue) + F(" Ohms\n\rActual value: ") + String(gasBoard.getPot(wichElectrode)) + F(" Ohms");
+                int whichValue = command.toInt();
+                gasBoard.setPot(whichElectrode, whichValue);
+                return String F("Setting pot to: ") + String(whichValue) + F(" Ohms\n\rActual value: ") + String(gasBoard.getPot(whichElectrode)) + F(" Ohms");
 
 #ifdef gasesBoardTest
             } else if (command.startsWith("test")) {
@@ -513,7 +513,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
                 // Get slot
                 String slotSTR = String(command.charAt(0));
-                uint8_t wichSlot = slotSTR.toInt();
+                uint8_t whichSlot = slotSTR.toInt();
 
                 command.remove(0,1);
                 command.trim();
@@ -524,12 +524,12 @@ String AuxBoards::control(SensorType wichSensor, String command)
                     command.trim();
 
                     // Get value
-                    int wichValue = command.toInt();
-                    gasBoard.setTesterCurrent(wichValue, wichSlot);
+                    int whichValue = command.toInt();
+                    gasBoard.setTesterCurrent(whichValue, whichSlot);
 
                 } else if (command.startsWith("full")) {
 
-                    gasBoard.runTester(wichSlot);
+                    gasBoard.runTester(whichSlot);
 
                 } else {
                     return F("Unrecognized test command!!\r\nOptions:\r\ntest slot set value (slot: 1-3, value:-1400/+1400 nA)\r\ntest slot full (test the full cycle on slot (1-3))");
@@ -565,10 +565,10 @@ String AuxBoards::control(SensorType wichSensor, String command)
         case SENSOR_ATLAS_TEMPERATURE: {
 
             Atlas *thisAtlas = &atlasPH;
-            if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG || wichSensor == SENSOR_ATLAS_EC_TDS || wichSensor == SENSOR_ATLAS_EC_SAL) thisAtlas = &atlasEC;
-            else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
-            else if (wichSensor == SENSOR_ATLAS_ORP) thisAtlas = &atlasORP;
-            else if (wichSensor == SENSOR_ATLAS_TEMPERATURE) thisAtlas = &atlasTEMP;
+            if (whichSensor == SENSOR_ATLAS_EC || whichSensor == SENSOR_ATLAS_EC_SG || whichSensor == SENSOR_ATLAS_EC_TDS || whichSensor == SENSOR_ATLAS_EC_SAL) thisAtlas = &atlasEC;
+            else if (whichSensor == SENSOR_ATLAS_DO || whichSensor == SENSOR_ATLAS_DO_SAT) thisAtlas = &atlasDO;
+            else if (whichSensor == SENSOR_ATLAS_ORP) thisAtlas = &atlasORP;
+            else if (whichSensor == SENSOR_ATLAS_TEMPERATURE) thisAtlas = &atlasTEMP;
 
             //   Calibration command options:
             //      Atlas PH: (https://www.atlas-scientific.com/files/pH_EZO_Datasheet.pdf) page 52
@@ -612,7 +612,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
             } else if (command.startsWith("tcomp")) {
                 // Enable or disable temperature compensation on sensors
-                if (wichSensor == SENSOR_ATLAS_TEMPERATURE || wichSensor == SENSOR_ATLAS_ORP) {
+                if (whichSensor == SENSOR_ATLAS_TEMPERATURE || whichSensor == SENSOR_ATLAS_ORP) {
                     return String("Sensor does not support temperature compensation. Ignoring");
                 }
 
@@ -626,11 +626,11 @@ String AuxBoards::control(SensorType wichSensor, String command)
                     thisAtlas->enableTComp = false;
                 }
 
-                if (wichSensor == SENSOR_ATLAS_EC || wichSensor == SENSOR_ATLAS_EC_SG || wichSensor == SENSOR_ATLAS_EC_TDS || wichSensor == SENSOR_ATLAS_EC_SAL) {
+                if (whichSensor == SENSOR_ATLAS_EC || whichSensor == SENSOR_ATLAS_EC_SG || whichSensor == SENSOR_ATLAS_EC_TDS || whichSensor == SENSOR_ATLAS_EC_SAL) {
                     data.atlasConfig.ECEnableTComp = thisAtlas->enableTComp;
-                } else if (wichSensor == SENSOR_ATLAS_DO || wichSensor == SENSOR_ATLAS_DO_SAT) {
+                } else if (whichSensor == SENSOR_ATLAS_DO || whichSensor == SENSOR_ATLAS_DO_SAT) {
                     data.atlasConfig.DOEnableTComp = thisAtlas->enableTComp;
-                } else if (wichSensor == SENSOR_ATLAS_PH) {
+                } else if (whichSensor == SENSOR_ATLAS_PH) {
                     data.atlasConfig.pHEnableTComp = thisAtlas->enableTComp;
                 }
 
@@ -639,7 +639,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
                 return String F("Atlas temperature compensation: ") + String(thisAtlas->enableTComp ? "on" : "off");
             } else {
 
-                if (wichSensor == SENSOR_ATLAS_TEMPERATURE || wichSensor == SENSOR_ATLAS_ORP) {
+                if (whichSensor == SENSOR_ATLAS_TEMPERATURE || whichSensor == SENSOR_ATLAS_ORP) {
                     return F("No command received.\r\nOptions:\r\ncom [atlas commands]");
                 } else {
                     return F("No command received.\r\nOptions:\r\ntcomp [on/off] # Enables temperature compensation\r\ncom [atlas commands]");
@@ -862,7 +862,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
                 // Get channels
                 String channelSTR = String(command.charAt(0));
-                uint8_t wichChannel = channelSTR.toInt();
+                uint8_t whichChannel = channelSTR.toInt();
 
                 command.remove(0,1);
                 command.trim();
@@ -873,12 +873,12 @@ String AuxBoards::control(SensorType wichSensor, String command)
                     command.trim();
 
                     // Get value
-                    int wichValue = command.toInt();
-                    ads48.setTesterCurrent(wichValue, wichChannel);
+                    int whichValue = command.toInt();
+                    ads48.setTesterCurrent(whichValue, whichChannel);
 
                 } else if (command.startsWith("full")) {
 
-                    ads48.runTester(wichChannel);
+                    ads48.runTester(whichChannel);
 
                 } else {
 
@@ -900,7 +900,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
                 // Get channels
                 String channelSTR = String(command.charAt(0));
-                uint8_t wichChannel = channelSTR.toInt();
+                uint8_t whichChannel = channelSTR.toInt();
 
                 command.remove(0,1);
                 command.trim();
@@ -911,12 +911,12 @@ String AuxBoards::control(SensorType wichSensor, String command)
                     command.trim();
 
                     // Get value
-                    int wichValue = command.toInt();
-                    ads49.setTesterCurrent(wichValue, wichChannel);
+                    int whichValue = command.toInt();
+                    ads49.setTesterCurrent(whichValue, whichChannel);
 
                 } else if (command.startsWith("full")) {
 
-                    ads49.runTester(wichChannel);
+                    ads49.runTester(whichChannel);
 
                 } else {
 
@@ -938,7 +938,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
                 // Get channels
                 String channelSTR = String(command.charAt(0));
-                uint8_t wichChannel = channelSTR.toInt();
+                uint8_t whichChannel = channelSTR.toInt();
 
                 command.remove(0,1);
                 command.trim();
@@ -949,12 +949,12 @@ String AuxBoards::control(SensorType wichSensor, String command)
                     command.trim();
 
                     // Get value
-                    int wichValue = command.toInt();
-                    ads4A.setTesterCurrent(wichValue, wichChannel);
+                    int whichValue = command.toInt();
+                    ads4A.setTesterCurrent(whichValue, whichChannel);
 
                 } else if (command.startsWith("full")) {
 
-                    ads4A.runTester(wichChannel);
+                    ads4A.runTester(whichChannel);
 
                 } else {
 
@@ -976,7 +976,7 @@ String AuxBoards::control(SensorType wichSensor, String command)
 
                 // Get channels
                 String channelSTR = String(command.charAt(0));
-                uint8_t wichChannel = channelSTR.toInt();
+                uint8_t whichChannel = channelSTR.toInt();
 
                 command.remove(0,1);
                 command.trim();
@@ -987,12 +987,12 @@ String AuxBoards::control(SensorType wichSensor, String command)
                     command.trim();
 
                     // Get value
-                    int wichValue = command.toInt();
-                    ads4B.setTesterCurrent(wichValue, wichChannel);
+                    int whichValue = command.toInt();
+                    ads4B.setTesterCurrent(whichValue, whichChannel);
 
                 } else if (command.startsWith("full")) {
 
-                    ads4B.runTester(wichChannel);
+                    ads4B.runTester(whichChannel);
 
                 } else {
 
@@ -1151,10 +1151,10 @@ bool INA219::stop()
     // TODO check if there is a way to minimize power consumption
     return true;
 }
-float INA219::getReading(typeOfReading wichReading)
+float INA219::getReading(typeOfReading whichReading)
 {
 
-    switch(wichReading) {
+    switch(whichReading) {
         case BUS_VOLT: {
 
             return ada_ina219.getBusVoltage_V();
@@ -1348,9 +1348,9 @@ void Groove_OLED::drawBar(SckBase* base)
     u8g2_oled.drawHLine(0, 15, 128);
     u8g2_oled.updateDisplayArea(0, 0, 16, 2);
 }
-void Groove_OLED::drawError(errorType wichError)
+void Groove_OLED::drawError(errorType whichError)
 {
-    if (lastError == wichError) return;
+    if (lastError == whichError) return;
 
     // Clear error buffer area
     uint8_t *buffStart = u8g2_oled.getBufferPtr();
@@ -1365,7 +1365,7 @@ void Groove_OLED::drawError(errorType wichError)
 
     // Set message
     char errorMsg[18];
-    switch(wichError) {
+    switch(whichError) {
         case ERROR_SD:
             snprintf(errorMsg, sizeof(errorMsg), "NO SDCARD FOUND");
             break;
@@ -1403,7 +1403,7 @@ void Groove_OLED::drawError(errorType wichError)
     // Print message
     u8g2_oled.drawStr(19, 125, errorMsg);
 
-    lastError = wichError;
+    lastError = whichError;
 
     // Update display
     u8g2_oled.updateDisplayArea(0, 14, 16, 2);
@@ -1989,7 +1989,7 @@ bool Moisture::stop()
     return true;
 }
 
-bool Moisture::getReading(SensorType wichSensor)
+bool Moisture::getReading(SensorType whichSensor)
 {
     uint32_t started = millis();
     while (chirp.isBusy()) {
@@ -1997,7 +1997,7 @@ bool Moisture::getReading(SensorType wichSensor)
         delay(1);
     }
 
-    switch(wichSensor) {
+    switch(whichSensor) {
         case SENSOR_CHIRP_MOISTURE_RAW: {
 
             raw = chirp.getCapacitance();
@@ -2200,7 +2200,7 @@ bool Sck_GPS::stop()
 
     return true;
 }
-bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
+bool Sck_GPS::getReading(SckBase *base, SensorType whichSensor)
 {
     // Use time from gps to set RTC if time is not set or older than 1 hour
     if (((millis() - base->lastTimeSync) > 3600000 || base->lastTimeSync == 0)) {
@@ -2217,7 +2217,7 @@ bool Sck_GPS::getReading(SckBase *base, SensorType wichSensor)
         fixCounter = 0;
     }
 
-    if (!gps_source->getReading(wichSensor, r)) return false;
+    if (!gps_source->getReading(whichSensor, r)) return false;
 
     return true;
 }
@@ -2248,7 +2248,7 @@ bool PM_Grove_GPS::stop()
 
     return true;
 }
-bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
+bool PM_Grove_GPS::getReading(SensorType whichSensor, GpsReadings &r)
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
@@ -2287,27 +2287,27 @@ bool PM_Grove_GPS::getReading(SensorType wichSensor, GpsReadings &r)
         // Longitude
         memcpy(&r.longitude, &data[10], 8);
 
-    } else if (wichSensor == SENSOR_GPS_LATITUDE || wichSensor == SENSOR_GPS_LONGITUDE) return false;
+    } else if (whichSensor == SENSOR_GPS_LATITUDE || whichSensor == SENSOR_GPS_LONGITUDE) return false;
 
     // Altitude
     memcpy(&r.altitudeValid, &data[18], 1);
     if (r.altitudeValid) memcpy(&r.altitude, &data[19], 4);
-    else if (wichSensor == SENSOR_GPS_ALTITUDE) return false;
+    else if (whichSensor == SENSOR_GPS_ALTITUDE) return false;
 
     // Speed
     memcpy(&r.speedValid, &data[28], 1);
     if (r.speedValid) memcpy(&r.speed, &data[29], 4);
-    else if (wichSensor == SENSOR_GPS_SPEED) return false;
+    else if (whichSensor == SENSOR_GPS_SPEED) return false;
 
     // Horizontal dilution of position
     memcpy(&r.hdopValid, &data[33], 1);
     if (r.hdopValid) memcpy(&r.hdop, &data[34], 4);
-    else if (wichSensor == SENSOR_GPS_HDOP) return false;
+    else if (whichSensor == SENSOR_GPS_HDOP) return false;
 
     // Satellites
     memcpy(&r.satellitesValid, &data[38], 1);
     if (r.satellitesValid) memcpy(&r.satellites, &data[39], 1);
-    else if (wichSensor == SENSOR_GPS_SATNUM) return false;
+    else if (whichSensor == SENSOR_GPS_SATNUM) return false;
 
     lastReading = millis();
 
@@ -2329,7 +2329,7 @@ bool XA111GPS::stop()
 {
     return true;
 }
-bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
+bool XA111GPS::getReading(SensorType whichSensor, GpsReadings &r)
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
@@ -2375,27 +2375,27 @@ bool XA111GPS::getReading(SensorType wichSensor, GpsReadings &r)
         // Longitude
         r.longitude = tinyGps.location.lng();
 
-    } else if (wichSensor == SENSOR_GPS_LATITUDE || wichSensor == SENSOR_GPS_LONGITUDE) return false;
+    } else if (whichSensor == SENSOR_GPS_LATITUDE || whichSensor == SENSOR_GPS_LONGITUDE) return false;
 
     // Altitude
     r.altitudeValid = tinyGps.altitude.isValid();
     if (r.altitudeValid) r.altitude = tinyGps.altitude.meters();
-    else if (wichSensor == SENSOR_GPS_ALTITUDE) return false;
+    else if (whichSensor == SENSOR_GPS_ALTITUDE) return false;
 
     // Speed
     r.speedValid = tinyGps.speed.isValid();
     if (r.speedValid) r.speed = tinyGps.speed.mps();
-    else if (wichSensor == SENSOR_GPS_SPEED) return false;
+    else if (whichSensor == SENSOR_GPS_SPEED) return false;
 
     // Horizontal dilution of position
     r.hdopValid = tinyGps.hdop.isValid();
     if (r.hdopValid) r.hdop = tinyGps.hdop.value();
-    else if (wichSensor == SENSOR_GPS_HDOP) return false;
+    else if (whichSensor == SENSOR_GPS_HDOP) return false;
 
     // Satellites
     r.satellitesValid = tinyGps.satellites.isValid();
     if (r.satellitesValid) r.satellites = tinyGps.satellites.value();
-    else if (wichSensor == SENSOR_GPS_SATNUM) return false;
+    else if (whichSensor == SENSOR_GPS_SATNUM) return false;
 
     lastReading = millis();
 
@@ -2432,11 +2432,11 @@ bool NEOM8UGPS::stop()
     // Lowpower mode
     return true;
 }
-bool NEOM8UGPS::getReading(SensorType wichSensor, GpsReadings &r)
+bool NEOM8UGPS::getReading(SensorType whichSensor, GpsReadings &r)
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-    switch(wichSensor) {
+    switch(whichSensor) {
 
         case SENSOR_GPS_FIX_QUALITY:
             {
@@ -2584,9 +2584,9 @@ bool Sck_Range::stop()
     alreadyStarted = false;
     return true;
 }
-bool Sck_Range::getReading(SensorType wichSensor)
+bool Sck_Range::getReading(SensorType whichSensor)
 {
-    switch(wichSensor)
+    switch(whichSensor)
     {
         case SENSOR_RANGE_DISTANCE:
             readingDistance = vl6180x.getDistance();
@@ -2617,7 +2617,7 @@ bool Sck_ADS1X15::stop()
     started = false;
     return true;
 }
-bool Sck_ADS1X15::getReading(uint8_t wichChannel)
+bool Sck_ADS1X15::getReading(uint8_t whichChannel)
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
@@ -2626,7 +2626,7 @@ bool Sck_ADS1X15::getReading(uint8_t wichChannel)
     double voltage_range = 6.144;
 
     // Get value with full range
-    uint16_t value = ads.readADC_SingleEnded(wichChannel);
+    uint16_t value = ads.readADC_SingleEnded(whichChannel);
 
     // If value is under 4.096v increase the gain depending on voltage
     if (value < 21845) {
@@ -2662,7 +2662,7 @@ bool Sck_ADS1X15::getReading(uint8_t wichChannel)
         }
 
         // Get the value again
-        value = ads.readADC_SingleEnded(wichChannel);
+        value = ads.readADC_SingleEnded(whichChannel);
     }
 
     reading = (float)value / 32768 * voltage_range;
@@ -2670,21 +2670,21 @@ bool Sck_ADS1X15::getReading(uint8_t wichChannel)
 }
 
 #ifdef adsTest
-void Sck_ADS1X15::setTesterCurrent(int16_t wichCurrent, uint8_t wichChannel)
+void Sck_ADS1X15::setTesterCurrent(int16_t whichCurrent, uint8_t whichChannel)
 {
     // Support both combinations of ADC channels:
-    // wichChannel = 0 (default) -> WE in ADS_Ch0 and AE in ADS_Ch1
-    // wichChannel = 1           -> WE in ADS_Ch2 and AE in ADS_Ch3
-    if (wichChannel > 0) {
+    // whichChannel = 0 (default) -> WE in ADS_Ch0 and AE in ADS_Ch1
+    // whichChannel = 1           -> WE in ADS_Ch2 and AE in ADS_Ch3
+    if (whichChannel > 0) {
         adsChannelW = 2;
         adsChannelA = 3;
     }
 
     SerialUSB.print("Setting test current to: ");
-    SerialUSB.println(wichCurrent);
+    SerialUSB.println(whichCurrent);
 
-    tester.setCurrent(tester.electrode_W, wichCurrent);
-    tester.setCurrent(tester.electrode_A, wichCurrent);
+    tester.setCurrent(tester.electrode_W, whichCurrent);
+    tester.setCurrent(tester.electrode_A, whichCurrent);
 
     SerialUSB.print("Tester Electrode W: ");
     SerialUSB.println(tester.getCurrent(tester.electrode_W));
@@ -2699,12 +2699,12 @@ void Sck_ADS1X15::setTesterCurrent(int16_t wichCurrent, uint8_t wichChannel)
     SerialUSB.println(this->reading);
 
 }
-void Sck_ADS1X15::runTester(uint8_t wichChannel)
+void Sck_ADS1X15::runTester(uint8_t whichChannel)
 {
     // Support both combinations of ADC channels:
-    // wichChannel = 0 (default) -> WE in ADS_Ch0 and AE in ADS_Ch1
-    // wichChannel = 1           -> WE in ADS_Ch2 and AE in ADS_Ch3
-    if (wichChannel > 0) {
+    // whichChannel = 0 (default) -> WE in ADS_Ch0 and AE in ADS_Ch1
+    // whichChannel = 1           -> WE in ADS_Ch2 and AE in ADS_Ch3
+    if (whichChannel > 0) {
         adsChannelW = 2;
         adsChannelA = 3;
     }
@@ -2748,13 +2748,13 @@ void Sck_ADS1X15::runTester(uint8_t wichChannel)
 #endif
 
 #ifdef WITH_SCD30
-bool Sck_SCD30::start(SckBase *base, SensorType wichSensor)
+bool Sck_SCD30::start(SckBase *base, SensorType whichSensor)
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
     if (started) {
         // Mark this specific metric as enabled
-        for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+        for (uint8_t i=0; i<3; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
         return true;
     }
 
@@ -2791,15 +2791,15 @@ bool Sck_SCD30::start(SckBase *base, SensorType wichSensor)
     if (!sparkfun_scd30.beginMeasuring()) return false;
 
     // Mark this specific metric as enabled
-    for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+    for (uint8_t i=0; i<3; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
 
     started = true;
     return true;
 }
-bool Sck_SCD30::stop(SensorType wichSensor)
+bool Sck_SCD30::stop(SensorType whichSensor)
 {
     // Mark this specific metric as disabled
-    for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 0;
+    for (uint8_t i=0; i<3; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 0;
 
     // Turn sensor off only if all 3 metrics are disabled
     for (uint8_t i=0; i<3; i++) {
@@ -2810,9 +2810,9 @@ bool Sck_SCD30::stop(SensorType wichSensor)
     started = false;
     return true;
 }
-bool Sck_SCD30::getReading(SensorType wichSensor)
+bool Sck_SCD30::getReading(SensorType whichSensor)
 {
-    switch (wichSensor)
+    switch (whichSensor)
     {
         case SENSOR_SCD30_CO2:
             co2 = sparkfun_scd30.getCO2();
@@ -2889,14 +2889,14 @@ float Sck_SCD30::tempOffset(float userTemp, bool off)
 #endif
 
 #ifdef  WITH_SFA30
-bool Sck_SFA30::start(SensorType wichSensor)
+bool Sck_SFA30::start(SensorType whichSensor)
 {
     delay(10); // Without this, Humidity detection fails sometimes
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
     if (started) {
         // Mark this specific metric as enabled
-        for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+        for (uint8_t i=0; i<totalMetrics; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
         return true;
     }
 
@@ -2905,17 +2905,17 @@ bool Sck_SFA30::start(SensorType wichSensor)
     if (isError(sfa30.startContinuousMeasurement())) return false;
 
     // Mark this specific metric as enabled
-    for (uint8_t i=0; i<3; i++) if (enabled[i][0] == wichSensor) enabled[i][1] = 1;
+    for (uint8_t i=0; i<3; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
 
     return true;
 }
-bool Sck_SFA30::stop(SensorType wichSensor)
+bool Sck_SFA30::stop(SensorType whichSensor)
 {
     bool changed = false;
 
     // Mark this specific metric as disabled
     for (uint8_t i=0; i<totalMetrics; i++) {
-        if (enabled[i][0] == wichSensor) {
+        if (enabled[i][0] == whichSensor) {
             enabled[i][1] = 0;
             changed = true;
         }
@@ -2931,7 +2931,7 @@ bool Sck_SFA30::stop(SensorType wichSensor)
     started = false;
     return true;
 }
-bool Sck_SFA30::getReading(SensorType wichSensor)
+bool Sck_SFA30::getReading(SensorType whichSensor)
 {
     int16_t form;
     int16_t hum;

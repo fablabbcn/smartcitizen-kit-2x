@@ -1769,19 +1769,19 @@ uint16_t Sck_CCS811::getBaseline()
     }
     return ccs.getBaseline();
 }
-bool Sck_CCS811::setBaseline(uint16_t wichBaseline)
+bool Sck_CCS811::setBaseline(uint16_t whichBaseline)
 {
     if (!alreadyStarted) {
         if (!start()) return false;
     }
 
-    if (ccs.setBaseline(wichBaseline) != ccs.CCS811_Stat_SUCCESS) return false;
+    if (ccs.setBaseline(whichBaseline) != ccs.CCS811_Stat_SUCCESS) return false;
 
     return true;
 }
-bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
+bool Sck_CCS811::setDriveMode(uint8_t whichDrivemode)
 {
-    driveMode = wichDrivemode;
+    driveMode = whichDrivemode;
     if (ccs.setDriveMode(driveMode) != CCS811Core::CCS811_Stat_SUCCESS) return false;
     return true;
 }
@@ -2627,12 +2627,12 @@ bool Sck_SEN5X::sen_readRawValues()
 
     return true;
 }
-bool Sck_SEN5X::sen_sendCommand(uint16_t wichCommand)
+bool Sck_SEN5X::sen_sendCommand(uint16_t whichCommand)
 {
     uint8_t nothing;
-    return sen_sendCommand(wichCommand, &nothing, 0);
+    return sen_sendCommand(whichCommand, &nothing, 0);
 }
-bool Sck_SEN5X::sen_sendCommand(uint16_t wichCommand, uint8_t* buffer, uint8_t byteNumber)
+bool Sck_SEN5X::sen_sendCommand(uint16_t whichCommand, uint8_t* buffer, uint8_t byteNumber)
 {
     // At least we need two bytes for the command
     uint8_t bufferSize = 2;
@@ -2642,8 +2642,8 @@ bool Sck_SEN5X::sen_sendCommand(uint16_t wichCommand, uint8_t* buffer, uint8_t b
 
     uint8_t toSend[bufferSize];
     uint8_t i = 0;
-    toSend[i++] = static_cast<uint8_t>((wichCommand & 0xFF00) >> 8);
-    toSend[i++] = static_cast<uint8_t>((wichCommand & 0x00FF) >> 0);
+    toSend[i++] = static_cast<uint8_t>((whichCommand & 0xFF00) >> 8);
+    toSend[i++] = static_cast<uint8_t>((whichCommand & 0x00FF) >> 0);
 
     // Prepare buffer with CRC every third byte
     uint8_t bi = 0;
@@ -3013,26 +3013,26 @@ bool Sck_AS7331::getReading(OneSensor* wichSensor)
 
     return true;
 }
-byte Sck_AS7331::getByte(byte wichReg)
+byte Sck_AS7331::getByte(byte whichReg)
 {
     Wire.beginTransmission(address);
-    Wire.write(wichReg);
+    Wire.write(whichReg);
     Wire.endTransmission(false);
     Wire.requestFrom(address, 1);
     return Wire.read();
 }
-byte Sck_AS7331::writeByte(byte wichReg, byte wichValue)
+byte Sck_AS7331::writeByte(byte whichReg, byte whichValue)
 {
     Wire.beginTransmission(address);
-    Wire.write(wichReg);
-    Wire.write(wichValue);
+    Wire.write(whichReg);
+    Wire.write(whichValue);
     Wire.endTransmission();
 
 }
-uint8_t Sck_AS7331::readBytes(uint8_t wichReg, uint8_t howMany, uint8_t * buff)
+uint8_t Sck_AS7331::readBytes(uint8_t whichReg, uint8_t howMany, uint8_t * buff)
 {
     Wire.beginTransmission(address);
-    Wire.write(wichReg);
+    Wire.write(whichReg);
     Wire.endTransmission(false);
     Wire.requestFrom(address, howMany);
 

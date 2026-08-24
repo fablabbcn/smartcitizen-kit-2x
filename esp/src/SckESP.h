@@ -33,10 +33,10 @@ struct ESP_Configuration {
 	bool debug_serial = true;
     uint8_t ledBrightness = 100;
 };
-struct VersionInt { 
-	uint8_t mayor; 
-	uint8_t minor; 
-	uint8_t build; 
+struct VersionInt {
+	uint8_t mayor;
+	uint8_t minor;
+	uint8_t build;
 };
 
 class SckESP
@@ -60,7 +60,7 @@ class SckESP
 
 		// **** MQTT
 		bool mqttConnect();
-		bool mqttHellow();
+		bool mqttHello();
 		bool mqttPublishRaw();
 		bool mqttInfo();
 		bool mqttInventory();

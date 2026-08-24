@@ -1,12 +1,12 @@
 #include "SckSerial.h"
 
-void SckSerial::begin(uint32_t bauds) 
+void SckSerial::begin(uint32_t bauds)
 {
 	_serial.begin(bauds);
 }
 bool  SckSerial::_send()
 {
-	// Sends header 
+	// Sends header
 	_serial.write(0x06);
 	_serial.write(0x85);
 
@@ -60,12 +60,12 @@ bool  SckSerial::_send()
 
 	return true;
 }
-bool SckSerial::send(SCKMessage wichMessage)
+bool SckSerial::send(SCKMessage whichMessage)
 {
 	// Use this function if the buffer is prefilled with payload
-	
-	msg = wichMessage;
-	
+
+	msg = whichMessage;
+
 	// Retry loop
 	uint8_t _try = 0;
 	while (_try < maxTry) {
@@ -82,18 +82,18 @@ bool SckSerial::send(SCKMessage wichMessage)
 
 	return false;
 }
-bool SckSerial::send(SCKMessage wichMessage, const char *content)
+bool SckSerial::send(SCKMessage whichMessage, const char *content)
 {
 	// Use this function to send payload as parameter
 	// or to send a msg without payload (by sending an empty content: "")
-	
+
 	// Check if message fits on buffer
 	if (strlen(content) > NETBUFF_SIZE) return false;
 
 	// Fills buffer with content
 	sprintf(buff, "%s", content);
 
-	return send(wichMessage);
+	return send(whichMessage);
 }
 bool SckSerial::receive()
 {
@@ -103,7 +103,7 @@ bool SckSerial::receive()
 	// check for Header char
 	if (_serial.read() != 0x06) return false;
 	if (_serial.read() != 0x85) return false;
-	
+
 	debugPln("Got header char");
 
 	// Get SCKmessage (not payload)
@@ -125,14 +125,6 @@ bool SckSerial::receive()
 		debugPln("Msg without payload");
 		sendACK();
 		return true;
-	}
-	
-	// Guard against oversized payloads that would overflow the buffer.
-	// A corrupted frame could claim any size up to 65535; NETBUFF_SIZE-1
-	// leaves room for the null terminator written below.
-	if (size > NETBUFF_SIZE - 1) {
-		debugPln("Payload too large, dropping frame");
-		return false;
 	}
 
 	// Get payload

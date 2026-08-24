@@ -3164,7 +3164,7 @@ bool Sck_SCD4X::factoryReset()
         return false;
     }
 
-    startMeasurement();
+    if (!startMeasurement()) return false;
 
     return true;
 }
@@ -3197,7 +3197,7 @@ bool Sck_SCD4X::autoSelfCal(int8_t value)
         return false;
     }
 
-    startMeasurement();
+    if (!startMeasurement()) return false;
 
     return ascActive;
 }
@@ -3221,7 +3221,7 @@ uint16_t Sck_SCD4X::forcedRecalFactor(uint16_t newFactor)
         return false;
     }
 
-    startMeasurement();
+    if (!startMeasurement()) return false;
 
     return (uint16_t)(frcCorr - 0x8000);
 }
@@ -3275,7 +3275,7 @@ float Sck_SCD4X::tempOffset(float userTemp)
 
     sensirion_scd4x.getTemperatureOffset(updatedTempOffset);
 
-    startMeasurement();
+    if (!startMeasurement()) return false;
 
     return updatedTempOffset;
 }

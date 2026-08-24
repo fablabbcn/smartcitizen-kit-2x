@@ -42,7 +42,8 @@ uint8_t AllSensors::countMatchedWords(SensorType whichSensor, const char* input)
     char* rest = NULL;
     pch = strtok_r(inputLow," ", &rest);
     while (pch != NULL) {
-        if (strstr(titleCompare, pch) != NULL) matched++;
+        if (strstr(titleCompare, pch) == NULL) break;
+        matched++;
         pch = strtok_r(NULL, " ", &rest);
     }
 

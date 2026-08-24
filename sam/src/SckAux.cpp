@@ -3204,13 +3204,18 @@ bool Sck_SCD4X::autoSelfCal(int8_t value)
 }
 uint16_t Sck_SCD4X::forcedRecalFactor(uint16_t newFactor)
 {
+    if (newFactor <= 400 || newFactor >= 2000) {
+        return false;
+    }
+
     uint16_t error, frcCorr;
+
     if (!stopMeasurement()) {
         return false;
     }
-    if (newFactor >= 400 && newFactor <= 2000) {
-        error = sensirion_scd4x.performForcedRecalibration(newFactor, frcCorr);
-    }
+
+    error = sensirion_scd4x.performForcedRecalibration(newFactor, frcCorr);
+
     // SCD4X Sensirion datasheet
     delay(400);
 

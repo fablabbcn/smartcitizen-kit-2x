@@ -3052,7 +3052,7 @@ bool Sck_SCD4X::startMeasurement()
         return true;
     }
 
-    error = sensirion_scd4x.startLowPowerPeriodicMeasurement();
+    error = sensirion_scd4x.startPeriodicMeasurement();
 
     if (error == SCK_SCD4X_NO_ERROR) {
         state = SCD4X_MEASUREMENT;

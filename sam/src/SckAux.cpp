@@ -1171,11 +1171,14 @@ String AuxBoards::control(SensorType whichSensor, String command)
                     else return F("Wrong temperature value, try again.");
                 }
 
-                scd4x.getReading();
+            } else if (command.startsWith("factory")) {
 
-                return String F("Current temperature: ") + String(scd4x.temperature) + F(" C") + F("\r\nTemperature offset: ") + String(scd4x.tempOffset(userTemp, off)) + F(" C");
+                command.replace("factory", "");
+                command.trim();
+
+                return String F("Factory reset: ") + String(scd4x.factoryReset() ? "OK" : "not OK");
             } else {
-                return F("Wrong command!!\r\nOptions:\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]");
+                return F("Wrong command!!\r\nOptions:\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp]\r\nfactory");
             }
 
         }
@@ -3147,6 +3150,26 @@ bool Sck_SCD4X::getReading()
 
     return true;
 }
+bool Sck_SCD4X::factoryReset()
+{
+    uint16_t error;
+
+
+    if (!stopMeasurement()) {
+        return false;
+    }
+
+    error = sensirion_scd4x.performFactoryReset();
+
+    if (error != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    startMeasurement();
+
+    return true;
+}
+
 bool Sck_SCD4X::autoSelfCal(int8_t value)
 {
     uint16_t error;

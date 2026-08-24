@@ -807,7 +807,7 @@ class Sck_SCD30
 
 #ifdef SCK_WITH_SCD4X
 #define SCK_SCD4X_MAX_RETRIES 3
-#define SCK_SCD4X_INTERVAL_MS 500
+#define SCK_SCD4X_INTERVAL_MS 100
 #define SCK_SCD4X_NO_ERROR 0
 class Sck_SCD4X
     {

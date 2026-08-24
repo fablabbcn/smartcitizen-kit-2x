@@ -517,10 +517,10 @@ void monitorSensor_com(SckBase* base, String parameters)
     // Titles
     strncpy(base->outBuff, "", 240);
     if (printTime) sprintf(base->outBuff, "%s\t", "Time");
-    if (printMs) snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s\t", base->outBuff, "Miliseconds");
+    if (printMs) { size_t _l = strlen(base->outBuff); snprintf(base->outBuff + _l, sizeof(base->outBuff) - _l, "%s\t", "Miliseconds"); }
     for (uint8_t i=0; i<index; i++) {
-        sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
-        if (i < index - 1) snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t", base->outBuff);
+        strncat(base->outBuff, base->sensors[sensorsToMonitor[i]].title, sizeof(base->outBuff) - strlen(base->outBuff) - 1);
+        if (i < index - 1) strncat(base->outBuff, "\t", sizeof(base->outBuff) - strlen(base->outBuff) - 1);
 #ifdef WITH_SENSOR_GROVE_OLED
         if (oled && i==0) base->plot(base->sensors[sensorsToMonitor[i]].reading, base->sensors[sensorsToMonitor[i]].title, base->sensors[sensorsToMonitor[i]].unit);
 #endif
@@ -540,11 +540,11 @@ void monitorSensor_com(SckBase* base, String parameters)
 
         if (printTime) {
             base->ISOtime();
-            snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s\t", base->outBuff, base->ISOtimeBuff);
+            { size_t _l = strlen(base->outBuff); snprintf(base->outBuff + _l, sizeof(base->outBuff) - _l, "%s\t", base->ISOtimeBuff); }
         }
 
         if (printMs) {
-            snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%lu\t", base->outBuff, millis() - lastMillis);
+            { size_t _l = strlen(base->outBuff); snprintf(base->outBuff + _l, sizeof(base->outBuff) - _l, "%lu\t", millis() - lastMillis); }
             lastMillis = millis();
         }
 
@@ -599,7 +599,7 @@ void monitorSensor_com(SckBase* base, String parameters)
             base->getReading(&wichSensor);
 
             if (wichSensor.state == 0) {
-                snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t%s", base->outBuff, wichSensor.reading.c_str());
+                { size_t _l = strlen(base->outBuff); snprintf(base->outBuff + _l, sizeof(base->outBuff) - _l, "\t%s", wichSensor.reading.c_str()); }
 
 #ifdef WITH_SENSOR_GROVE_OLED
                 if (theFirst && oled) {
@@ -609,7 +609,7 @@ void monitorSensor_com(SckBase* base, String parameters)
 #endif
                 printit++;
 
-            } else snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s%s", base->outBuff, "none");
+            } else strncat(base->outBuff, "none", sizeof(base->outBuff) - strlen(base->outBuff) - 1);
         }
 
         // If we are missing sensors we don't print the output

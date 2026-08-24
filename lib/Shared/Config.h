@@ -1,15 +1,19 @@
 #pragma once
 #include "Sensors.h"
 
-static const uint32_t default_reading_interval = 60;
-static const uint32_t minimal_reading_interval = 5;
-static const uint32_t max_reading_interval = 86400;		// One day
-static const float speed_threshold = 1.4; 			// m/s -> faster than this we enter dynamic mode - 1.4 m/s ~= 5 km/h
-static const uint32_t dynamicInterval = 5; 			// Seconds
+static const uint32_t SC_DEFAULT_READING_INTERVAL = 60;
+static const uint32_t SC_MIN_READING_INTERVAL = 5;
+static const uint32_t SC_MAX_READING_INTERVAL = 86400;		// One day
 
-static const uint32_t minimal_publish_interval = 5;
-static const uint32_t default_publish_interval = 60 * 3;
-static const uint32_t max_publish_interval = 3600;		// One hour
+static const uint32_t SC_MIN_PUB_INTERVAL = 5;
+static const uint32_t SC_DEFAULT_PUB_INTERVAL = 60 * 3;
+static const uint32_t SC_MAX_PUB_INTERVAL = 3600;			// One hour
+
+static const float SC_GPS_SPEED_THD = 1.4; 					// m/s -> faster than this we enter dynamic mode - 1.4 m/s ~= 5 km/h
+static const uint32_t SC_GPS_DYNAMIC_INTERVAL = 5; 			// Seconds
+
+static const uint8_t SC_MAX_WIFI_RETRIES = 5;
+static const uint8_t SC_DEFAULT_OFFLINE_INTERVAL = 3;
 
 enum SCKmodes {
 	MODE_NOT_CONFIGURED,
@@ -63,13 +67,17 @@ struct Extra {
 #endif
 };
 
-struct Offline { uint32_t retry = default_publish_interval * 5; int8_t start=-1; int8_t end=-1; };
+struct Offline {
+	uint32_t retry = SC_DEFAULT_PUB_INTERVAL * SC_DEFAULT_OFFLINE_INTERVAL;
+	int8_t start = -1;
+	int8_t end = -1;
+};
 
 struct Configuration {
 	bool valid = true;
 	SCKmodes mode = MODE_NOT_CONFIGURED;					// This mode only changes on user configuration, it can only be MODE_SD or MODE_NET or MODE_NOT_CONFIGURED
-	uint32_t publishInterval = default_publish_interval; 			// in seconds
-	uint32_t readInterval = default_reading_interval; 			// in seconds
+	uint32_t publishInterval = SC_DEFAULT_PUB_INTERVAL; 			// in seconds
+	uint32_t readInterval = SC_DEFAULT_READING_INTERVAL; 			// in seconds
 	MAC mac; 								// Stored here after first boot
 	Credentials credentials;
 	Token token;

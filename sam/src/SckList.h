@@ -91,14 +91,14 @@ class SckList
         bool flashFormat();             // Erases the flash memory and starts it again
         void flashUpdate();             // After SCK config changes (ej. from sd card mode to net mode) updating flash indexes (or reseting the kit) is mandatory to find all readings.
         GroupIndex saveGroup();         // Saves group to flash memory, return group index
-        GroupIndex readGroup(PubFlags wichFlag, GroupIndex forceIndex={-1,-1,0}); // Copies to buffer the next available group that hasn't been published to NET or SD. The format of data is dependant on the provided flag. If no group available it returns index.group = -1 unless forceIndex parameter exists and is a valid group index
-        uint8_t setPublished(GroupIndex wichGroup, PubFlags wichFlag); // Set the group as published depending on the flag (accepted flags: NET, SD). Return the number of readings on published group.
-        uint32_t countGroups(PubFlags wichFlag); // Returns the number of non published (for the specified flag) groups founded on flash.
+        GroupIndex readGroup(PubFlags whichFlag, GroupIndex forceIndex={-1,-1,0}); // Copies to buffer the next available group that hasn't been published to NET or SD. The format of data is dependant on the provided flag. If no group available it returns index.group = -1 unless forceIndex parameter exists and is a valid group index
+        uint8_t setPublished(GroupIndex whichGroup, PubFlags whichFlag); // Set the group as published depending on the flag (accepted flags: NET, SD). Return the number of readings on published group.
+        uint32_t countGroups(PubFlags whichFlag); // Returns the number of non published (for the specified flag) groups founded on flash.
 
 
-        uint16_t recover(uint16_t wichSector, PubFlags wichFlag);   // Recover all the readings on specified sector and outputs them to the specified media, returns de number of recovered groups
-        SectorInfo sectorInfo(uint16_t wichSector);
-        void dumpSector(uint16_t wichSector, uint16_t howMany=SECTOR_SIZE);
+        uint16_t recover(uint16_t whichSector, PubFlags whichFlag);   // Recover all the readings on specified sector and outputs them to the specified media, returns de number of recovered groups
+        SectorInfo sectorInfo(uint16_t whichSector);
+        void dumpSector(uint16_t whichSector, uint16_t howMany=SECTOR_SIZE);
         void flashInfo(FlashInfo* info);
         uint32_t getFlashCapacity();
         bool testFlash();
@@ -129,24 +129,24 @@ class SckList
         bool _flashFormat();
 
         // Sector functions
-        uint32_t _getSectAddr(uint16_t wichSector);
-        uint8_t _getSectState(uint16_t wichSector);
-        int8_t _setSectPublished(uint16_t wichSector, PubFlags wichFlag);       // Sector flags are only  marked if SectorState = SECTOR_FULL and all groups in the sector are already published in the correspondant flag
-        int8_t _closeSector(uint16_t wichSector);                   // Marks sector as SECTOR_FULL and if there is no unpublished data in the sector also mark it as published, searchs for the next usable sector and updates _currSector to save next readings.
-        int8_t _isSectPublished(uint16_t wichSector, PubFlags wichFlag);
-        int16_t _getSectFreeSpace(uint16_t wichSector);
-        bool _countSectGroups(uint16_t wichSector, SectorInfo* info);           // Counts groups in sector (indepently of their state). To count more that one type of groups in the sector this is more efficient.
-        int16_t _countSectGroups(uint16_t wichSector, PubFlags wichFlag, byte publishedState, bool getAll=false);   // Count specified groups on sector. To count different type of groups this is not efficient, try the previous function.
-        GroupIndex _getUnpubGrpIdx(uint16_t wichSector, PubFlags wichFlag);         // Returns the index of the first non-published group on the sector and aflag specified
-        bool _searchUnpubSect(PubFlags wichFlag, uint16_t startSector=0);       // Return first sector with unpublished data
+        uint32_t _getSectAddr(uint16_t whichSector);
+        uint8_t _getSectState(uint16_t whichSector);
+        int8_t _setSectPublished(uint16_t whichSector, PubFlags whichFlag);       // Sector flags are only  marked if SectorState = SECTOR_FULL and all groups in the sector are already published in the correspondant flag
+        int8_t _closeSector(uint16_t whichSector);                   // Marks sector as SECTOR_FULL and if there is no unpublished data in the sector also mark it as published, searchs for the next usable sector and updates _currSector to save next readings.
+        int8_t _isSectPublished(uint16_t whichSector, PubFlags whichFlag);
+        int16_t _getSectFreeSpace(uint16_t whichSector);
+        bool _countSectGroups(uint16_t whichSector, SectorInfo* info);           // Counts groups in sector (indepently of their state). To count more that one type of groups in the sector this is more efficient.
+        int16_t _countSectGroups(uint16_t whichSector, PubFlags whichFlag, byte publishedState, bool getAll=false);   // Count specified groups on sector. To count different type of groups this is not efficient, try the previous function.
+        GroupIndex _getUnpubGrpIdx(uint16_t whichSector, PubFlags whichFlag);         // Returns the index of the first non-published group on the sector and aflag specified
+        bool _searchUnpubSect(PubFlags whichFlag, uint16_t startSector=0);       // Return first sector with unpublished data
         void _scanSectors();
 
         // Group functions
-        bool _getGrpAddr(GroupIndex* wichGroup);
-        int8_t _setGrpPublished(GroupIndex wichGroup, PubFlags wichFlag);
-        int8_t _isGrpPublished(GroupIndex wichGroup, PubFlags wichFlag);
-        uint8_t _countReadings(GroupIndex wichGroup);   // Returns the number of readings inside a group
+        bool _getGrpAddr(GroupIndex* whichGroup);
+        int8_t _setGrpPublished(GroupIndex whichGroup, PubFlags whichFlag);
+        int8_t _isGrpPublished(GroupIndex whichGroup, PubFlags whichFlag);
+        uint8_t _countReadings(GroupIndex whichGroup);   // Returns the number of readings inside a group
 
-        uint8_t _formatSD(GroupIndex wichGroup, char* buffer);          // Return the number of readings found on formated group
-        uint8_t _formatNET(GroupIndex wichGroup, char* buffer);         // Return the number of readings found on formated group
+        uint8_t _formatSD(GroupIndex whichGroup, char* buffer);          // Return the number of readings found on formated group
+        uint8_t _formatNET(GroupIndex whichGroup, char* buffer);         // Return the number of readings found on formated group
     };

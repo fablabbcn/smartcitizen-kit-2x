@@ -3226,11 +3226,11 @@ uint16_t Sck_SCD4X::forcedRecalFactor(uint16_t newFactor)
 
     return (uint16_t)(frcCorr - 0x8000);
 }
-float Sck_SCD4X::tempOffset(float userTemp, bool off)
+float Sck_SCD4X::tempOffset(float userTemp)
 {
     // We expect from user the REAL temperature measured during calibration
     // We calculate the difference against the sensor measured temperature to set the correct offset. Please wait for sensor to stabilize temperatures before aplying an offset.
-    // Temperature offset should always be positive (the sensor is generating heat)
+
     uint16_t error;
     float prevTempOffset;
     float updatedTempOffset;

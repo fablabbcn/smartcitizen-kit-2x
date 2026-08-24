@@ -1162,15 +1162,14 @@ String AuxBoards::control(SensorType whichSensor, String command)
                 command.trim();
 
                 float userTemp = 0;
-                bool off = false;
 
-                if (command.startsWith("off")) off = true;
+                if (command.startsWith("off")) return F("Wrong command, try again.");
                 else {
-
                     if (command.length() > 0 && isDigit(command.charAt(0))) userTemp = command.toFloat();
                     else return F("Wrong temperature value, try again.");
                 }
 
+                return String F("Current temperature: ") + String(scd4x.temperature) + F(" C") + F("\r\nTemperature offset: ") + String(scd4x.tempOffset(userTemp)) + F(" C");
             } else if (command.startsWith("factory")) {
 
                 command.replace("factory", "");

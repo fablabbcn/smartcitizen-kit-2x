@@ -3134,8 +3134,6 @@ bool Sck_SCD4X::getReading()
 
         error = sensirion_scd4x.readMeasurement(_co2, _temperature, _humidity);
 
-        lastRead = millis();
-
         if (error != SCK_SCD4X_NO_ERROR || _co2 == 0) {
             return false;
         }
@@ -3143,6 +3141,8 @@ bool Sck_SCD4X::getReading()
         co2 = _co2;
         temperature = _temperature;
         humidity = _humidity;
+
+        lastRead = millis();
 
         return true;
     }

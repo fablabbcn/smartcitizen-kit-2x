@@ -3202,7 +3202,7 @@ bool Sck_SCD4X::autoSelfCal(int8_t value)
 
     return ascActive;
 }
-uint16_t Sck_SCD4X::forcedRecalFactor(uint16_t newFactor)
+int16_t Sck_SCD4X::forcedRecalFactor(uint16_t newFactor)
 {
     if (newFactor <= 400 || newFactor >= 2000) {
         return false;
@@ -3229,7 +3229,7 @@ uint16_t Sck_SCD4X::forcedRecalFactor(uint16_t newFactor)
 
     if (!startMeasurement()) return false;
 
-    return (uint16_t)(frcCorr - 0x8000);
+    return (int16_t)(frcCorr - 0x8000);
 }
 float Sck_SCD4X::tempOffset(float userTemp, bool off)
 {

@@ -817,7 +817,7 @@ class Sck_SCD4X
         bool stop(SensorType whichSensor);
         bool getReading();
         bool autoSelfCal(int8_t value=-1);
-        uint16_t forcedRecalFactor(uint16_t newFactor=0);
+        int16_t forcedRecalFactor(uint16_t newFactor=0);
         float tempOffset(float userTemp, bool off);
         bool factoryReset();
 

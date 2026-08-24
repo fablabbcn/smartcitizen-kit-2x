@@ -1162,14 +1162,15 @@ String AuxBoards::control(SensorType whichSensor, String command)
                 command.trim();
 
                 float userTemp = 0;
+                bool off = false;
 
-                if (command.startsWith("off")) return F("Wrong command, try again.");
+                if (command.startsWith("off")) off = true;
                 else {
                     if (command.length() > 0 && isDigit(command.charAt(0))) userTemp = command.toFloat();
-                    else return F("Wrong temperature value, try again.");
+                    else return String F("\r\nGetting offset: ") + String(scd4x.tempOffset(0, off) ? "OK" : "not OK");
                 }
 
-                return String F("Current temperature: ") + String(scd4x.temperature) + F(" C") + F("\r\nTemperature offset: ") + String(scd4x.tempOffset(userTemp)) + F(" C");
+                return String F("\r\nTemperature offset updated: ") + String(scd4x.tempOffset(userTemp, off) ? "OK" : "not OK");
             } else if (command.startsWith("factory")) {
 
                 command.replace("factory", "");
@@ -1177,7 +1178,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
 
                 return String F("Factory reset: ") + String(scd4x.factoryReset() ? "OK" : "not OK");
             } else {
-                return F("Wrong command!!\r\nOptions:\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp]\r\nfactory");
+                return F("Wrong command!!\r\nOptions:\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp,off]\r\nfactory");
             }
 
         }
@@ -3225,10 +3226,12 @@ uint16_t Sck_SCD4X::forcedRecalFactor(uint16_t newFactor)
 
     return (uint16_t)(frcCorr - 0x8000);
 }
-float Sck_SCD4X::tempOffset(float userTemp)
+float Sck_SCD4X::tempOffset(float userTemp, bool off)
 {
     // We expect from user the REAL temperature measured during calibration
-    // We calculate the difference against the sensor measured temperature to set the correct offset. Please wait for sensor to stabilize temperatures before aplying an offset.
+    // We calculate the difference against the sensor measured temperature to set the correct offset.
+    // Please wait for sensor to stabilize temperatures before aplying an offset.
+    // Temperature can't be higher (we expect overheat)
 
     uint16_t error;
     float prevTempOffset;
@@ -3249,35 +3252,63 @@ float Sck_SCD4X::tempOffset(float userTemp)
         return false;
     }
 
+    Serial.print("Current temperature: ");
+    Serial.println(_temperature);
+
     if (!stopMeasurement()) {
         return false;
     }
 
-    error = sensirion_scd4x.getTemperatureOffset(prevTempOffset);
+    if (off) {
+        error = sensirion_scd4x.setTemperatureOffset(0);
+        if (error != SCK_SCD4X_NO_ERROR) {
+            return false;
+        }
+    } else {
+        error = sensirion_scd4x.getTemperatureOffset(prevTempOffset);
+        Serial.print("Current temperature offset: ");
+        Serial.println(prevTempOffset);
 
-    if (error != SCK_SCD4X_NO_ERROR) {
-        return false;
+        if (error != SCK_SCD4X_NO_ERROR) {
+            return false;
+        }
+
+        if (userTemp){
+            tempOffset = _temperature - userTemp + prevTempOffset;
+            if (tempOffset < 0) {
+                Serial.println("Temperature setting can't be higher than current");
+                return false;
+            }
+            Serial.print("Setting temp offset at: ");
+            Serial.println(tempOffset);
+            error = sensirion_scd4x.setTemperatureOffset(tempOffset);
+            if (error != SCK_SCD4X_NO_ERROR) {
+                return false;
+            }
+        } else {
+            if (!startMeasurement()) return false;
+            return true;
+        }
     }
 
-    tempOffset = _temperature - userTemp + prevTempOffset;
-
-    error = sensirion_scd4x.setTemperatureOffset(tempOffset);
-
-    if (error != SCK_SCD4X_NO_ERROR) {
-        return false;
-    }
-
+    Serial.println("Persist settings");
     error = sensirion_scd4x.persistSettings();
 
     if (error != SCK_SCD4X_NO_ERROR) {
         return false;
     }
 
-    sensirion_scd4x.getTemperatureOffset(updatedTempOffset);
+    error = sensirion_scd4x.getTemperatureOffset(updatedTempOffset);
+    Serial.print("Updated temperature offset: ");
+    Serial.println(updatedTempOffset);
+
+    if (error != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
 
     if (!startMeasurement()) return false;
 
-    return updatedTempOffset;
+    return true;
 }
 #endif
 

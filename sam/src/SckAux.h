@@ -818,7 +818,7 @@ class Sck_SCD4X
         bool getReading();
         bool autoSelfCal(int8_t value=-1);
         uint16_t forcedRecalFactor(uint16_t newFactor=0);
-        float tempOffset(float userTemp);
+        float tempOffset(float userTemp, bool off);
         bool factoryReset();
 
         enum SCD4XState { SCD4X_OFF, SCD4X_IDLE, SCD4X_MEASUREMENT };

@@ -298,7 +298,6 @@ class Groove_OLED
 
         void drawBar(SckBase* base);
         void drawError(errorType whichError);
-        errorType lastError;
         void drawSetup(SckBase* base);
 
         // Plot

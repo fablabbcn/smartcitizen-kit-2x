@@ -1270,18 +1270,12 @@ void Groove_OLED::update(SckBase* base, bool force)
     // Info bar
     drawBar(base);
 
-    if (base->st.error == ERROR_NONE) {
+    // Setup mode screen, or rotate through sensor readings
+    if (base->st.onSetup) drawSetup(base);
+    else displayReading(base);
 
-        // Setup mode screen
-        if (base->st.onSetup) drawSetup(base);
-        else displayReading(base);
-
-    } else {
-
-        // Error popup
-        drawError(base->st.error);
-
-    }
+    // Error popup overlaid on top, so readings keep rotating even in error state
+    if (base->st.error != ERROR_NONE) drawError(base->st.error);
 
 }
 void Groove_OLED::drawBar(SckBase* base)
@@ -1350,8 +1344,6 @@ void Groove_OLED::drawBar(SckBase* base)
 }
 void Groove_OLED::drawError(errorType whichError)
 {
-    if (lastError == whichError) return;
-
     // Clear error buffer area
     uint8_t *buffStart = u8g2_oled.getBufferPtr();
     memset(&buffStart[1792], 0, 256);
@@ -1402,8 +1394,6 @@ void Groove_OLED::drawError(errorType whichError)
 
     // Print message
     u8g2_oled.drawStr(19, 125, errorMsg);
-
-    lastError = whichError;
 
     // Update display
     u8g2_oled.updateDisplayArea(0, 14, 16, 2);

@@ -1270,9 +1270,14 @@ void Groove_OLED::update(SckBase* base, bool force)
     // Info bar
     drawBar(base);
 
+    // If an error just cleared, force a redraw now so that the error banner
+    // isn't left on screen until the next scheduled sensor rotation
+    bool errorJustCleared = (lastError != ERROR_NONE && base->st.error == ERROR_NONE);
+    lastError = base->st.error;
+
     // Setup mode screen, or rotate through sensor readings
     if (base->st.onSetup) drawSetup(base);
-    else displayReading(base);
+    else displayReading(base, errorJustCleared);
 
     // Error popup overlaid on top, so readings keep rotating even in error state
     if (base->st.error != ERROR_NONE) drawError(base->st.error);
@@ -1425,9 +1430,9 @@ void Groove_OLED::drawSetup(SckBase* base)
 
     u8g2_oled.updateDisplayArea(0, 2, 16, 14);
 }
-void Groove_OLED::displayReading(SckBase* base)
+void Groove_OLED::displayReading(SckBase* base, bool force)
 {
-    if (base->rtc.getEpoch() - showStartTime <= showTime) return;
+    if (!force && base->rtc.getEpoch() - showStartTime <= showTime) return;
 
     SensorType sensorToShow = SENSOR_COUNT;
     uint8_t cycles = 0;

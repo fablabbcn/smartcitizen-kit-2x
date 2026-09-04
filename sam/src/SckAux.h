@@ -286,7 +286,7 @@ class Groove_OLED
         bool stop();
         void print(char *payload);
         void update(SckBase* base, bool force);
-        void displayReading(SckBase* base);
+        void displayReading(SckBase* base, bool force=false);
         void plot(String value, const char *title=NULL, const char *unit=NULL);
 
     private:
@@ -298,6 +298,7 @@ class Groove_OLED
 
         void drawBar(SckBase* base);
         void drawError(errorType whichError);
+        errorType lastError = ERROR_NONE;
         void drawSetup(SckBase* base);
 
         // Plot

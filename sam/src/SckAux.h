@@ -233,7 +233,6 @@ class AuxBoards
         void getReading(SckBase *base, OneSensor *whichSensor);
         bool getBusyState(SensorType whichSensor);
         String control(SensorType whichSensor, String command);
-
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
         void print(char *payload);
         void updateDisplay(SckBase* base, bool force=false);
@@ -304,7 +303,7 @@ class Groove_OLED
         bool stop();
         void print(char *payload);
         void update(SckBase* base, bool force);
-        void displayReading(SckBase* base);
+        void displayReading(SckBase* base, bool force=false);
         void plot(String value, const char *title=NULL, const char *unit=NULL);
 
     private:
@@ -316,7 +315,7 @@ class Groove_OLED
 
         void drawBar(SckBase* base);
         void drawError(errorType whichError);
-        errorType lastError;
+        errorType lastError = ERROR_NONE;
         void drawSetup(SckBase* base);
 
         // Plot

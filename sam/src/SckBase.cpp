@@ -123,7 +123,7 @@ void SckBase::setup()
                 enableSensor(wichSensor->type);
             } else {
                 wichSensor->enabled = false;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
                 wichSensor->oled_display = false;
 #endif
             }
@@ -210,7 +210,7 @@ void SckBase::update()
         }
 #endif
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         // If we have a screen update it
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 #endif
@@ -646,7 +646,7 @@ void SckBase::sckOut(PrioLevels priority, bool newLine)
         } else st.cardPresent = false;
     }
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
     // Debug output to oled display
     if (config.debug.oled) {
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.print(outBuff);
@@ -658,7 +658,7 @@ void SckBase::prompt()
     sprintf(outBuff, "%s", "SCK > ");
     sckOut(PRIO_MED, false);
 }
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 void SckBase::plot(String value, const char *title, const char *unit)
 {
     auxBoards.plot(value, title, unit);
@@ -730,7 +730,7 @@ void SckBase::saveConfig(bool defaults)
             SensorType wichSensorType = static_cast<SensorType>(i);
 
             config.sensors[wichSensorType].enabled = sensors[wichSensorType].defaultEnabled;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
             config.sensors[wichSensorType].oled_display = sensors[wichSensorType].oled_display;
 #endif
             config.sensors[wichSensorType].everyNint = sensors[wichSensorType].defaultEveryNint;
@@ -1632,7 +1632,7 @@ void SckBase::updatePower()
 
                 sckOut("Emergency low battery!!", PRIO_ERROR);
                 st.error = ERROR_BATT;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
                 auxBoards.updateDisplay(this, true);        // Force update of screen before going to sleep
 #endif
                 // Ignore last user event and go to sleep
@@ -1777,7 +1777,7 @@ void SckBase::sleepLoop()
         updateSensors();
         updatePower();
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         // If we have a screen update it
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this, true);
 #endif
@@ -1974,7 +1974,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
         sprintf(outBuff, "Enabling %s", sensors[wichSensor].title);
         sckOut();
         sensors[wichSensor].enabled = true;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         sensors[wichSensor].oled_display = config.sensors[wichSensor].oled_display;  // Show detected sensors on oled display if config is true (default).
 #endif
         writeHeader = true;
@@ -1982,7 +1982,7 @@ bool SckBase::enableSensor(SensorType wichSensor)
     }
 
     sensors[wichSensor].enabled = false;
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
     sensors[wichSensor].oled_display = false;
 #endif
     // Avoid spamming with mesgs for every supported auxiliary sensor

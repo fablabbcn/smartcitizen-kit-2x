@@ -159,7 +159,7 @@ void sensorConfig_com(SckBase* base, String parameters)
                 snprintf(base->outBuff, sizeof(base->outBuff), "%s -> every %i int (%lu sec)", base->sensors[thisType].title, base->sensors[thisType].everyNint, (base->sensors[thisType].everyNint * base->config.readInterval));
                 base->sckOut(PRIO_MED, false);
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
                 if (base->sensors[SENSOR_GROVE_OLED].enabled && base->config.sensors[thisType].oled_display)  base->sckOut(" - oled");
                 else base->sckOut(" ");
 #else
@@ -327,7 +327,7 @@ void sensorConfig_com(SckBase* base, String parameters)
             saveNeeded = true;
         }
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         if (parameters.indexOf("-oled") >=0) {
 
             base->config.sensors[sensorToChange].oled_display = !base->config.sensors[sensorToChange].oled_display;
@@ -521,7 +521,7 @@ void monitorSensor_com(SckBase* base, String parameters)
     for (uint8_t i=0; i<index; i++) {
         sprintf(base->outBuff, "%s%s", base->outBuff, base->sensors[sensorsToMonitor[i]].title);
         if (i < index - 1) snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t", base->outBuff);
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         if (oled && i==0) base->plot(base->sensors[sensorsToMonitor[i]].reading, base->sensors[sensorsToMonitor[i]].title, base->sensors[sensorsToMonitor[i]].unit);
 #endif
     }
@@ -601,7 +601,7 @@ void monitorSensor_com(SckBase* base, String parameters)
             if (wichSensor.state == 0) {
                 snprintf(base->outBuff, sizeof(base->outBuff) - strlen(base->outBuff), "%s\t%s", base->outBuff, wichSensor.reading.c_str());
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
                 if (theFirst && oled) {
                     base->plot(wichSensor.reading);
                     theFirst = false;
@@ -1098,7 +1098,7 @@ void debug_com(SckBase* base, String parameters)
 			base->sckOut();
 			saveNeeded = true;
 		}
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 		if (parameters.indexOf("-oled") >= 0) {
 			base->config.debug.oled = !base->config.debug.oled;
 			sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
@@ -1132,7 +1132,7 @@ void debug_com(SckBase* base, String parameters)
 		sprintf(base->outBuff, "SD card debug: %s", base->config.debug.sdcard ? "true" : "false");
 		base->sckOut();
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 		sprintf(base->outBuff, "Oled display debug: %s", base->config.debug.oled ? "true" : "false");
 		base->sckOut();
 #endif

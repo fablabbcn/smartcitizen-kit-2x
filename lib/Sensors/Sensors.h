@@ -65,7 +65,7 @@
 // #define WITH_PMS
 
 // Auxiliary Sensors (ALl this sensors use around 8kb)
-// #define WITH_SENSOR_GROVE_OLED  // Saves 2496 bytes
+// #define SCK_WITH_SENSOR_GROVE_OLED  // Saves 2496 bytes
 // #define WITH_GASES_BOARD        // Saves 756 bytes
 // #define WITH_GROVE_I2C_ADC      // Saves 244 bytes
 // #define WITH_INA219             // Saves 388 bytes
@@ -313,7 +313,7 @@ enum SensorType
 #endif
 
     // Actuators (This is temp)
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
     SENSOR_GROVE_OLED,
 #endif
 
@@ -591,7 +591,7 @@ class AllSensors
             OneSensor { BOARD_AUX,      100,    SENSOR_SFA30_FORMALDEHYDE,      "SFA30_HCHO",       "SFA30 Formaldehyde",                   212,    true,       1,  "ppb"                      },
 #endif
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
             // Later this will be moved to a Actuators.h file
             // Groove I2C Oled Display 96x96
             OneSensor { BOARD_AUX,      250,    SENSOR_GROVE_OLED,              "GR_OLED",          "Groove OLED",                          0,      true,       1,  "",          false         },

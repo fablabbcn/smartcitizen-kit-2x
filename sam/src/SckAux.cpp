@@ -9,7 +9,7 @@ GrooveI2C_ADC       grooveI2C_ADC;
 #ifdef WITH_INA219
 INA219              ina219;
 #endif
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 Groove_OLED         groove_OLED;
 #endif
 #ifdef WITH_DS18B20
@@ -209,7 +209,7 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         case SENSOR_SFA30_HUMIDITY:
         case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(whichSensor);
 #endif
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.start();
 #endif
         default: break;
@@ -329,7 +329,7 @@ bool AuxBoards::stop(SensorType whichSensor)
         case SENSOR_SFA30_HUMIDITY:
         case SENSOR_SFA30_FORMALDEHYDE:             return sck_sfa30.start(whichSensor);
 #endif
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.stop();
 #endif
         default: break;
@@ -1072,7 +1072,7 @@ String AuxBoards::control(SensorType whichSensor, String command)
     }
     return "Unknown error on control command!!!";
 }
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 void AuxBoards::print(char *payload)
 {
     groove_OLED.print(payload);
@@ -1185,7 +1185,7 @@ float INA219::getReading(typeOfReading whichReading)
 }
 #endif
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 bool Groove_OLED::start()
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;

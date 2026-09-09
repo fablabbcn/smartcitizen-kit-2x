@@ -42,7 +42,7 @@ enum errorType {
 	ERROR_ESP
 };
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 struct SensorConfig { bool enabled; uint8_t everyNint; bool oled_display=true; };
 struct Debug { bool sdcard=false; bool serial=false; bool oled=false; bool flash=false; bool speed=false; };
 #else

@@ -20,7 +20,7 @@
 // Urban board library
 #include <SckUrban.h>
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 // Groove_OLED libs
 #include <U8g2lib.h>
 // Icons for screen
@@ -216,7 +216,7 @@ class AuxBoards
         void getReading(SckBase *base, OneSensor *whichSensor);
         bool getBusyState(SensorType whichSensor);
         String control(SensorType whichSensor, String command);
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         void print(char *payload);
         void updateDisplay(SckBase* base, bool force=false);
         void plot(String value, const char *title=NULL, const char *unit=NULL);
@@ -272,7 +272,7 @@ class INA219
     };
 #endif
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 // This implementation works with a 128x128 pixel Oled screen with SH1107 controler
 class Groove_OLED
     {

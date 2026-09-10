@@ -115,6 +115,7 @@ class SckList
         GroupIndex potencialNextGroup = {-1,-1,0};  // To store potencial next groups to be published in batch mode
         GroupIndex _lastGroup = {-1,-1,0};      // To store the last saved group
 
+        bool _write(uint32_t wichAddr, char value); // Bounds-checked single-byte write; validates address is within a written sector
         bool _append(char value);           // Appends a byte at the end of the list
 
         // Flash memory functions

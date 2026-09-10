@@ -3024,13 +3024,21 @@ bool Sck_AS7341::start(SensorType whichSensor)
 
 bool Sck_AS7341::stop(SensorType whichSensor)
 {
-    started = false;
+
     // Mark this specific metric as disabled
     for (uint8_t i=0; i<totalMetrics; i++) {
         if (enabled[i][0] == whichSensor) {
             enabled[i][1] = 0;
         }
     }
+
+    // Turn sensor off only if all 3 metrics are disabled
+    for (uint8_t i=0; i<totalMetrics; i++) {
+        if (enabled[i][1] == 1) return false;
+    }
+
+    started = false;
+
     return true;
 }
 

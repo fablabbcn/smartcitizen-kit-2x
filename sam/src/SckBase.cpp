@@ -99,6 +99,7 @@ void SckBase::setup()
     pinPeripheral(pinAUX_WIRE_SDA, PIO_SERCOM);
     pinPeripheral(pinAUX_WIRE_SCL, PIO_SERCOM);
     auxWire.begin();
+    auxWire.setClock(SCK_AUX_WIRE_STD_CLOCK);       // Standard/fast mode clock shared by GPS and sensors on this bus
     delay(3000);                // Give some time for external boards to boot
 
 

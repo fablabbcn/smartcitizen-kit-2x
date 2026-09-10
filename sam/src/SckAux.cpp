@@ -1235,13 +1235,14 @@ bool Groove_OLED::start()
 {
     if (!I2Cdetect(&auxWire, deviceAddress)) return false;
 
-    u8g2_oled.setBusClock(1000000);     // 1000000 -> 68 ms for a full buffer redraw
+    u8g2_oled.setBusClock(SCK_AUX_WIRE_OLED_CLOCK);     // 1000000 -> 68 ms for a full buffer redraw
     u8g2_oled.begin();
     u8g2_oled.drawXBM( 16, 16, 96, 96, scLogo);
     u8g2_oled.sendBuffer();
     currentLine = 1;
     delay(1000);
     u8g2_oled.clearDisplay();
+    auxWire.setClock(SCK_AUX_WIRE_STD_CLOCK);     // Restore bus speed for GPS/sensors sharing auxWire
 
     return true;;
 }
@@ -1277,6 +1278,7 @@ void Groove_OLED::print(char *payload)
     }
 
     u8g2_oled.sendBuffer();
+    auxWire.setClock(SCK_AUX_WIRE_STD_CLOCK);     // Restore bus speed for GPS/sensors sharing auxWire
 }
 void Groove_OLED::printLine(char *payload, uint8_t size)
 {
@@ -1327,6 +1329,7 @@ void Groove_OLED::update(SckBase* base, bool force)
     // Error popup overlaid on top, so readings keep rotating even in error state
     if (base->st.error != ERROR_NONE) drawError(base->st.error);
 
+    auxWire.setClock(SCK_AUX_WIRE_STD_CLOCK);     // Restore bus speed for GPS/sensors sharing auxWire
 }
 void Groove_OLED::drawBar(SckBase* base)
 {
@@ -1632,6 +1635,7 @@ void Groove_OLED::plot(String value, const char *title, const char *unit)
     u8g2_oled.drawHLine(118, 127, 10);
 
     u8g2_oled.sendBuffer();
+    auxWire.setClock(SCK_AUX_WIRE_STD_CLOCK);     // Restore bus speed for GPS/sensors sharing auxWire
 }
 void Groove_OLED::remap(float newMaxY)
 {

@@ -91,6 +91,12 @@
 
 extern TwoWire auxWire;
 
+// Define speeds for AUX_WIRE and OLED_CLOCK to restore i2c
+#define SCK_AUX_WIRE_STD_CLOCK 100000
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
+#define SCK_AUX_WIRE_OLED_CLOCK 1000000
+#endif
+
 class SckBase;
 
 

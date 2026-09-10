@@ -7,12 +7,12 @@
 #include <Wire.h>
 #include <FlashStorage.h>
 
-#ifdef WITH_INA219
+#ifdef SCK_WITH_INA219
 // INA219 libs
 #include <Adafruit_INA219.h>
 #endif
 
-#ifdef WITH_GASES_BOARD
+#ifdef SCK_WITH_GASES_BOARD
 // Gases Board libs
 #include <GasesBoard.h>
 #endif
@@ -30,23 +30,23 @@
 // DS2482 library (I2C-1Wire bridge)
 #include <DS2482.h>
 
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
 // I2C Moisture Sensor (chirp)
 #include <I2CSoilMoistureSensor.h>
 #endif
 
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
 // Libraries for DallasTemp
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #endif
 
-#ifdef WTIH_RANGE
+#ifdef SCK_WITH_RANGE
 // Sparkfun VL6180x time of flight range finder
 #include <SparkFun_VL6180X.h>
 #endif
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
 // Library for GPS data parsing
 #include "TinyGPS++.h"
 
@@ -60,7 +60,7 @@
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 #endif
 
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
 // Adafruit library for ADS1x15 12/16 bits ADC
 #include <Adafruit_ADS1X15.h>
 #endif
@@ -73,14 +73,19 @@
 #include "GasesBoardTester.h"
 #endif
 
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
 // Sparkfun library for SCD30 CO2 sensor
 #include <SparkFun_SCD30_Arduino_Library.h>
 #endif
 
-#ifdef  WITH_SFA30
+#ifdef  SCK_WITH_SFA30
 // Sensirion I2C SFA3X library
 #include <SensirionI2CSfa3x.h>
+#endif
+
+#ifdef SCK_WITH_AS7341
+// Adafruit I2C AS7341 library
+#include <Adafruit_AS7341.h>
 #endif
 
 
@@ -188,15 +193,15 @@ class AuxBoards
 
         // 0x02,           // SENSOR_PM_DALLAS_TEMP,
         // 0x00,           // SENSOR_DALLAS_TEMP,      -- 2 wire (no I2C address)
-        //
+
         // 0x44,           // SENSOR_SHT31_TEMP,
         // 0x44,           // SENSOR_SHT31_HUM,
         // 0x45,           // SENSOR_SHT35_TEMP,
         // 0x45,           // SENSOR_SHT35_HUM,
-        //
+
         // 0x29,           // SENSOR_RANGE_LIGHT,
         // 0x29,           // SENSOR_RANGE_DISTANCE,
-        //
+
         // 0x02,           // SENSOR_GPS_* Grove Gps (on PM board)
         // 0x10,           // SENSOR_GPS_* XA111 Gps
         // 0x42,           // SENSOR_GPS_* NEO-M8U Gps
@@ -206,10 +211,22 @@ class AuxBoards
         // 0x49,           // SENSOR_ADS1X15_XX_X
         // 0x4a,           // SENSOR_ADS1X15_XX_X
         // 0x4b,           // SENSOR_ADS1X15_XX_X
-        //
+
         // 0x5d,           // SENSOR_SFA30_TEMPERATURE,
         // 0x5d,           // SENSOR_SFA30_HUMIDITY,
         // 0x5d,           // SENSOR_SFA30_FORMALDEHYDE,
+
+        // 0x39            // SENSOR_AS7341_415NM_F1
+        // 0x39            // SENSOR_AS7341_445NM_F2
+        // 0x39            // SENSOR_AS7341_480NM_F3
+        // 0x39            // SENSOR_AS7341_515NM_F4
+        // 0x39            // SENSOR_AS7341_555NM_F5
+        // 0x39            // SENSOR_AS7341_590NM_F6
+        // 0x39            // SENSOR_AS7341_630NM_F7
+        // 0x39            // SENSOR_AS7341_680NM_F8
+        // 0x39            // SENSOR_AS7341_CLEAR
+        // 0x39            // SENSOR_AS7341_NIR
+        // 0x39            // SENSOR_AS7341_FLICKER_FREQ
 
         bool start(SckBase *base, SensorType whichSensor);
         bool stop(SensorType whichSensor);
@@ -221,7 +238,7 @@ class AuxBoards
         void updateDisplay(SckBase* base, bool force=false);
         void plot(String value, const char *title=NULL, const char *unit=NULL);
 #endif
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
         bool updateGPS();
 #endif
 
@@ -230,7 +247,7 @@ class AuxBoards
     private:
     };
 
-#ifdef WITH_GROVE_I2C_ADC
+#ifdef SCK_WITH_GROVE_I2C_ADC
 class GrooveI2C_ADC
     {
     public:
@@ -254,7 +271,7 @@ class GrooveI2C_ADC
     };
 #endif
 
-#ifdef WITH_INA219
+#ifdef SCK_WITH_INA219
 class INA219
     {
     public:
@@ -323,7 +340,7 @@ class Groove_OLED
     };
 #endif
 
-#ifdef WITH_DS18B20
+#ifdef SCK_WITH_DS18B20
 /*! @class DS2482_100
  *  @brief class for handling the DS18B20 temperature sensor connected to the I2C port
  *   through the DS2482-100 board. This was based on an example made by
@@ -355,7 +372,7 @@ class WaterTemp_DS18B20
     };
 #endif
 
-#ifdef WITH_ATLAS
+#ifdef SCK_WITH_ATLAS
 class Atlas
     {
     public:
@@ -445,7 +462,7 @@ class Atlas
     };
 #endif
 
-#ifdef WITH_CHIRP
+#ifdef SCK_WITH_CHIRP
 class Moisture
     {
     private:
@@ -477,12 +494,12 @@ class Moisture
     };
 #endif
 
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
 enum PMslot {SLOT_A, SLOT_B, SLOT_AVG};
 #endif
 enum PMcommands
 {
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
     START_PMA,      // Start PM in slot A
     START_PMB,          // Start PM in slot B
     GET_PMA,        // Get values for PM in slot A
@@ -490,19 +507,19 @@ enum PMcommands
     STOP_PMA,       // Stop PM in slot A
     STOP_PMB,       // Stop PM in slot B
 #endif
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
     DALLASTEMP_START,
     DALLASTEMP_STOP,
     GET_DALLASTEMP,
 #endif
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
     GROVEGPS_START,
     GROVEGPS_STOP,
     GROVEGPS_GET
 #endif
 };
 
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
 class PMsensor
     {
     public:
@@ -548,7 +565,7 @@ class PMsensor
     };
 #endif
 
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
 class PM_DallasTemp
     {
     public:
@@ -566,7 +583,7 @@ class PM_DallasTemp
     };
 #endif
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
 struct GpsReadings
 {
     // Data (40 bytes)
@@ -611,7 +628,7 @@ struct GpsReadings
 };
 #endif
 
-#ifdef WITH_GPS
+#ifdef SCK_WITH_GPS
 class GPS_Source
     {
     public:
@@ -684,7 +701,7 @@ class NEOM8UGPS: public GPS_Source
     };
 #endif
 
-#ifdef WITH_DALLAS_TEMP
+#ifdef SCK_WITH_DALLAS_TEMP
 class Sck_DallasTemp
     {
         // This is for a Dallas temperature sensor connected to the plugged in Aux groove connector using pin pinAUX_WIRE_SCL (13 - PA17)
@@ -699,7 +716,7 @@ class Sck_DallasTemp
     };
 #endif
 
-#ifdef WTIH_RANGE
+#ifdef SCK_WITH_RANGE
 class Sck_Range
     {
     public:
@@ -717,7 +734,7 @@ class Sck_Range
     };
 #endif
 
-#ifdef WITH_ADS1X15
+#ifdef SCK_WITH_ADS1X15
 class Sck_ADS1X15
     {
     public:
@@ -750,7 +767,7 @@ class Sck_ADS1X15
     };
 #endif
 
-#ifdef WITH_SCD30
+#ifdef SCK_WITH_SCD30
 class Sck_SCD30
     {
     public:
@@ -778,7 +795,7 @@ class Sck_SCD30
     };
 #endif
 
-#ifdef  WITH_SFA30
+#ifdef  SCK_WITH_SFA30
 class Sck_SFA30
     {
     public:
@@ -798,7 +815,84 @@ class Sck_SFA30
         bool started = false;
         bool isError(uint16_t response);
 
-        SensirionI2CSfa3x sfa30;
+        SensirionI2CSfa3x sensirion_sfa30;
+    };
+#endif
+
+#ifdef  SCK_WITH_AS7341
+#define SCK_AS7341_ATIME 100
+#define SCK_AS7341_ASTEP 999
+#define SCK_AS7341_INTERVAL_MS 5000
+#define SCK_AS7341_NUM_SAMPLES 128
+#define SCK_AS7341_FD_TIME 700
+#define SCK_AS7341_FD_GAIN AS7341_GAIN_32X
+#define SCK_AS7341_MAX UINT16_MAX
+#define SCK_AS7341_N_SPECTRAL_READINGS 12
+#define SCK_AS7341_N_RETRIES 3
+class Sck_AS7341
+    {
+    public:
+        const byte deviceAddress = 0x39;
+        bool start(SensorType whichSensor);
+        bool stop(SensorType whichSensor);
+        bool getSpectralReading();
+        bool getFlickerReading();
+        bool debug = false;
+        static const uint16_t SAMPLE_NUM = SCK_AS7341_NUM_SAMPLES;
+        static const uint16_t FFT_NUM = SCK_AS7341_NUM_SAMPLES / 2;
+
+        float channel_f1 = 0;
+        float channel_f2 = 0;
+        float channel_f3 = 0;
+        float channel_f4 = 0;
+        float channel_f5 = 0;
+        float channel_f6 = 0;
+        float channel_f7 = 0;
+        float channel_f8 = 0;
+        float channel_clear = 0;
+        float channel_nir = 0;
+        float flickerPeakFreq = 0;
+        float flickerPeakToPeak = 0;
+        // TODO make flicker sampling configurable in gain or dynamic?
+
+    private:
+        static const uint8_t totalMetrics = 12;
+        uint8_t enabled[totalMetrics][2] = {
+            {SENSOR_AS7341_415NM_F1, 0},
+            {SENSOR_AS7341_445NM_F2, 0},
+            {SENSOR_AS7341_480NM_F3, 0},
+            {SENSOR_AS7341_515NM_F4, 0},
+            {SENSOR_AS7341_555NM_F5, 0},
+            {SENSOR_AS7341_590NM_F6, 0},
+            {SENSOR_AS7341_630NM_F7, 0},
+            {SENSOR_AS7341_680NM_F8, 0},
+            {SENSOR_AS7341_CLEAR, 0},
+            {SENSOR_AS7341_NIR, 0},
+            {SENSOR_AS7341_FLICKER_FREQ, 0},
+            {SENSOR_AS7341_FLICKER_P2P, 0}
+        };
+
+        int nextLowerGain(as7341_gain_t currentGain);
+        bool getReadingAtGain(as7341_gain_t gain);
+
+        bool started = false;
+        bool getReadingOK = false;
+        uint32_t lastReadSpectrum = 0;
+        uint32_t lastReadFlicker = 0;
+        Adafruit_AS7341 adafruit_as7341;
+
+        uint16_t spectralReadings[SCK_AS7341_N_SPECTRAL_READINGS]{};
+        uint16_t fifoSamples[SAMPLE_NUM]{};
+
+        Sck_FFT<SAMPLE_NUM> sckFFT;
+        int32_t flickerSource[SAMPLE_NUM]{};
+        int32_t flickerSpectrum[FFT_NUM]{};
+
+        // Day light scale correction factor (as seen in Spectral sensor calibration methods)
+        // Scaled by 100
+        const uint16_t dayLightScaleFactor[8] = {
+            320, 300, 207, 130, 107, 93, 78, 71
+        };
     };
 #endif
 

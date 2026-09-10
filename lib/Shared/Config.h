@@ -61,7 +61,7 @@ struct Extra {
 	uint16_t ccsBaseline;
 	bool pmPowerSave=true;
 	uint32_t pmWarmUpPeriod=15;
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
 	float urbanTemperatureOffset=URBAN_T_OFFSET;
 	float urbanHumidityOffset=URBAN_RH_OFFSET;
 #endif

@@ -41,7 +41,7 @@
 #include <DallasTemperature.h>
 #endif
 
-#ifdef WTIH_RANGE
+#ifdef SCK_WITH_RANGE
 // Sparkfun VL6180x time of flight range finder
 #include <SparkFun_VL6180X.h>
 #endif
@@ -716,7 +716,7 @@ class Sck_DallasTemp
     };
 #endif
 
-#ifdef WTIH_RANGE
+#ifdef SCK_WITH_RANGE
 class Sck_Range
     {
     public:

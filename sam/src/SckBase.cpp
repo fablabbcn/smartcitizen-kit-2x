@@ -318,7 +318,9 @@ void SckBase::reviewState()
         if (st.mode == MODE_NET) {
 
             // If We need conection now
-            if (st.helloPending || timeToPublish || !infoPublished) {
+            if (st.helloPending || timeToPublish || !infoPublished || wifiJustReconnected) {
+
+                wifiJustReconnected = false;
 
                 if (!st.tokenSet) {
 
@@ -1093,6 +1095,7 @@ void SckBase::ESPbusUpdate()
 
 			snprintf(outBuff, 240, "Connected to Wi-Fi!!- RSSI: %s", serESP.buff);
             sckOut();
+            wifiJustReconnected = true;
 			if (!timeSyncAfterBoot) {
 				if (ESPsend(ESPMES_GET_TIME, "")) sckOut("Asked new time sync to ESP...");
 			}

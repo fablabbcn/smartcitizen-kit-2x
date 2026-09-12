@@ -131,6 +131,7 @@ class SckBase
 		bool publishInfo();
 		bool espInfoUpdated = false;
 		bool infoPublished = false;
+		bool wifiJustReconnected = false;
 
 		// Sd card
 		volatile bool sdInitPending = false;

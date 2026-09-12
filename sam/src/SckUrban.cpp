@@ -2167,6 +2167,7 @@ bool Sck_SEN5X::idle()
 
     monitor = false;
     measureStarted = 0;
+    return true;
 }
 
 bool Sck_SEN5X::startCleaning()

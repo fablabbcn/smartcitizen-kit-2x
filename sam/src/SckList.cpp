@@ -969,7 +969,7 @@ SckList::SectorInfo SckList::sectorInfo(uint16_t whichSector)
         base->sckOut();
     }
 
-    SectorInfo info;
+    SectorInfo info = {};
 
     if (whichSector > SCKLIST_SECTOR_NUM) return info;
 

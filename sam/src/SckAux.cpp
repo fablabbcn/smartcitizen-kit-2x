@@ -55,11 +55,17 @@ Sck_ADS1X15         ads4B;
 #ifdef SCK_WITH_SCD30
 Sck_SCD30           scd30;
 #endif
-#ifdef  SCK_WITH_SFA30
-Sck_SFA30           sfa30;
-#endif
+
 #ifdef  SCK_WITH_AS7341
 Sck_AS7341          as7341;
+#endif
+
+#ifdef SCK_WITH_SCD4X
+Sck_SCD4X           scd4x;
+#endif
+
+#ifdef  SCK_WITH_SFA30
+Sck_SFA30           sfa30;
 #endif
 
 // Eeprom flash emulation to store I2C address
@@ -226,6 +232,11 @@ bool AuxBoards::start(SckBase *base, SensorType whichSensor)
         case SENSOR_AS7341_FLICKER_FREQ:
         case SENSOR_AS7341_FLICKER_P2P:             return as7341.start(whichSensor);
 #endif
+#ifdef SCK_WITH_SCD4X
+        case SENSOR_SCD4X_CO2:
+        case SENSOR_SCD4X_TEMP:
+        case SENSOR_SCD4X_HUM:                      return scd4x.start(whichSensor);
+#endif
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.start();
 #endif
@@ -359,6 +370,11 @@ bool AuxBoards::stop(SensorType whichSensor)
         case SENSOR_AS7341_CLEAR:
         case SENSOR_AS7341_FLICKER_FREQ:             return as7341.stop(whichSensor);
         case SENSOR_AS7341_FLICKER_P2P:              return as7341.stop(whichSensor);
+#endif
+#ifdef SCK_WITH_SCD4X
+        case SENSOR_SCD4X_CO2:
+        case SENSOR_SCD4X_TEMP:
+        case SENSOR_SCD4X_HUM:                      return scd4x.stop(whichSensor);
 #endif
 #ifdef SCK_WITH_SENSOR_GROVE_OLED
         case SENSOR_GROVE_OLED:                     return groove_OLED.stop();
@@ -495,6 +511,11 @@ void AuxBoards::getReading(SckBase *base, OneSensor *whichSensor)
         case SENSOR_AS7341_CLEAR:                   if (as7341.getSpectralReading()) { whichSensor->reading = String(as7341.channel_clear); return; } break;
         case SENSOR_AS7341_FLICKER_FREQ:            if (as7341.getFlickerReading())  { whichSensor->reading = String(as7341.flickerPeakFreq); return; } break;
         case SENSOR_AS7341_FLICKER_P2P:             if (as7341.getFlickerReading())  { whichSensor->reading = String(as7341.flickerPeakToPeak); return; } break;
+#endif
+#ifdef SCK_WITH_SCD4X
+        case SENSOR_SCD4X_CO2:                      if (scd4x.getReading())                      { whichSensor->reading = String(scd4x.co2);              return; } break;
+        case SENSOR_SCD4X_TEMP:                     if (scd4x.getReading())                      { whichSensor->reading = String(scd4x.temperature);      return; } break;
+        case SENSOR_SCD4X_HUM:                      if (scd4x.getReading())                      { whichSensor->reading = String(scd4x.humidity);         return; } break;
 #endif
         default: break;
     }
@@ -1109,7 +1130,56 @@ String AuxBoards::control(SensorType whichSensor, String command)
             } else {
                 return F("Wrong command!!\r\nOptions:\r\ninterval [2-1000 (seconds)]\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp/off]\r\npressure");
             }
+        }
+#endif
+#ifdef SCK_WITH_SCD4X
+        case SENSOR_SCD4X_CO2:
+        case SENSOR_SCD4X_TEMP:
+        case SENSOR_SCD4X_HUM: {
 
+            if (command.startsWith("autocal")) {
+
+                command.replace("autocal", "");
+                command.trim();
+
+                if (command.startsWith("on")) scd4x.autoSelfCal(1);
+                else if (command.startsWith("off")) scd4x.autoSelfCal(0);
+
+                return String F("Auto Self Calibration: ") + String(scd4x.autoSelfCal() ? "on" : "off");
+
+            } else if (command.startsWith("calfactor")) {
+
+                command.replace("calfactor", "");
+                command.trim();
+
+                uint16_t newFactor = command.toInt();
+
+                return String F("Forced Recalibration Factor: ") + String(scd4x.forcedRecalFactor(newFactor));
+
+            } else if (command.startsWith("caltemp")) {
+
+                command.replace("caltemp", "");
+                command.trim();
+
+                float userTemp = 0;
+                bool off = false;
+
+                if (command.startsWith("off")) off = true;
+                else {
+                    if (command.length() > 0 && isDigit(command.charAt(0))) userTemp = command.toFloat();
+                    else return String F("\r\nGetting offset: ") + String(scd4x.tempOffset(0, off) ? "OK" : "not OK");
+                }
+
+                return String F("\r\nTemperature offset updated: ") + String(scd4x.tempOffset(userTemp, off) ? "OK" : "not OK");
+            } else if (command.startsWith("factory")) {
+
+                command.replace("factory", "");
+                command.trim();
+
+                return String F("Factory reset: ") + String(scd4x.factoryReset() ? "OK" : "not OK");
+            } else {
+                return F("Wrong command!!\r\nOptions:\r\nautocal [on/off]\r\ncalfactor [400-2000 (ppm)]\r\ncaltemp [newTemp,off]\r\nfactory");
+            }
 
         }
 #endif
@@ -2929,6 +2999,320 @@ float Sck_SCD30::tempOffset(float userTemp, bool off)
     sparkfun_scd30.getTemperatureOffset(&currentOffsetTemp);
 
     return currentOffsetTemp / 100.0;
+}
+#endif
+
+#ifdef SCK_WITH_SCD4X
+bool Sck_SCD4X::start(SensorType whichSensor)
+{
+    if (!I2Cdetect(&auxWire, deviceAddress)) return false;
+
+    if (started) {
+        // Mark this specific metric as enabled
+        for (uint8_t i=0; i<3; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
+        return true;
+    }
+
+    sensirion_scd4x.begin(auxWire, deviceAddress);
+
+    // From SCD4X library
+    delay(30);
+
+    // Stop periodic measurement
+    if (!stopMeasurement()) {
+        return false;
+    }
+
+    // Get sensor variant
+    sensirion_scd4x.getSensorVariant(sensorVariant);
+
+    if (sensorVariant == SCD4X_SENSOR_VARIANT_SCD41) {
+        Serial.println("Found SCD41");
+        if (!wakeUp()) {
+            return false;
+        }
+    }
+
+    // Start measurement in selected power mode (low power by default)
+    if (!startMeasurement()) {
+        return false;
+    }
+
+    // Mark this specific metric as enabled
+    for (uint8_t i=0; i<3; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 1;
+
+    started = true;
+    return true;
+}
+bool Sck_SCD4X::startMeasurement()
+{
+    uint16_t error;
+
+    if (state == SCD4X_MEASUREMENT) {
+        return true;
+    }
+
+    error = sensirion_scd4x.startPeriodicMeasurement();
+
+    if (error == SCK_SCD4X_NO_ERROR) {
+        state = SCD4X_MEASUREMENT;
+        return true;
+    } else {
+        return false;
+    }
+}
+bool Sck_SCD4X::stopMeasurement()
+{
+    uint16_t error;
+
+    if (state != SCD4X_MEASUREMENT) {
+        return true;
+    }
+
+    error = sensirion_scd4x.stopPeriodicMeasurement();
+    if (error != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    state = SCD4X_IDLE;
+    return true;
+}
+bool Sck_SCD4X::stop(SensorType whichSensor)
+{
+    // Mark this specific metric as disabled
+    for (uint8_t i=0; i<3; i++) if (enabled[i][0] == whichSensor) enabled[i][1] = 0;
+
+    // Turn sensor off only if all 3 metrics are disabled
+    for (uint8_t i=0; i<3; i++) {
+        if (enabled[i][1] == 1) return false;
+    }
+
+    if (!stopMeasurement())
+        return false;
+
+    if (sensirion_scd4x.powerDown() != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    state = SCD4X_OFF;
+
+    started = false;
+    return true;
+}
+bool Sck_SCD4X::wakeUp()
+{
+
+    if (sensirion_scd4x.wakeUp() != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    state = SCD4X_IDLE;
+
+    return true;
+}
+bool Sck_SCD4X::getReading()
+{
+    uint16_t _co2, error;
+    float _temperature, _humidity;
+
+    bool dataReady = false;
+    uint8_t dataReadyTries = 0;
+
+    if (millis() - lastRead > SCK_SCD4X_INTERVAL_MS || (lastRead == 0) ){
+
+        while (!dataReady && (dataReadyTries < SCK_SCD4X_MAX_RETRIES)) {
+            error = sensirion_scd4x.getDataReadyStatus(dataReady);
+            if (error != SCK_SCD4X_NO_ERROR || !dataReady) {
+                delay(100);
+                dataReadyTries++;
+            }
+        }
+
+        if (error != SCK_SCD4X_NO_ERROR || !dataReady) {
+            return false;
+        }
+
+        error = sensirion_scd4x.readMeasurement(_co2, _temperature, _humidity);
+
+        if (error != SCK_SCD4X_NO_ERROR || _co2 == 0) {
+            return false;
+        }
+
+        co2 = _co2;
+        temperature = _temperature;
+        humidity = _humidity;
+
+        lastRead = millis();
+
+        return true;
+    }
+
+    return true;
+}
+bool Sck_SCD4X::factoryReset()
+{
+    uint16_t error;
+
+
+    if (!stopMeasurement()) {
+        return false;
+    }
+
+    error = sensirion_scd4x.performFactoryReset();
+
+    if (error != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    if (!startMeasurement()) return false;
+
+    return true;
+}
+
+bool Sck_SCD4X::autoSelfCal(int8_t value)
+{
+    uint16_t error;
+
+    if (!stopMeasurement())
+        return false;
+
+    // Value: 0 -> disable, 1 -> enable, any other -> get current setting
+    if (value == 0 || value == 1) {
+        error = sensirion_scd4x.setAutomaticSelfCalibrationEnabled((uint16_t)value);
+
+        if (error != SCK_SCD4X_NO_ERROR) {
+            return false;
+        }
+
+        error = sensirion_scd4x.persistSettings();
+
+        if (error != SCK_SCD4X_NO_ERROR) {
+            return false;
+        }
+    }
+
+    error = sensirion_scd4x.getAutomaticSelfCalibrationEnabled(ascActive);
+
+    if (error != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    if (!startMeasurement()) return false;
+
+    return ascActive;
+}
+int16_t Sck_SCD4X::forcedRecalFactor(uint16_t newFactor)
+{
+    if (newFactor <= 400 || newFactor >= 2000) {
+        return false;
+    }
+
+    uint16_t error, frcCorr;
+
+    if (!stopMeasurement()) {
+        return false;
+    }
+
+    error = sensirion_scd4x.performForcedRecalibration(newFactor, frcCorr);
+
+    // SCD4X Sensirion datasheet
+    delay(400);
+
+    if (error != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    if (frcCorr == 0xFFFF) {
+        return false;
+    }
+
+    if (!startMeasurement()) return false;
+
+    return (int16_t)(frcCorr - 0x8000);
+}
+float Sck_SCD4X::tempOffset(float userTemp, bool off)
+{
+    // We expect from user the REAL temperature measured during calibration
+    // We calculate the difference against the sensor measured temperature to set the correct offset.
+    // Please wait for sensor to stabilize temperatures before aplying an offset.
+    // Temperature can't be higher (we expect overheat)
+
+    uint16_t error;
+    float prevTempOffset;
+    float updatedTempOffset;
+    float tempOffset;
+    bool dataReady;
+    uint16_t _co2;
+    float _temperature;
+    float _humidity;
+
+    error = sensirion_scd4x.getDataReadyStatus(dataReady);
+    if (error != SCK_SCD4X_NO_ERROR || !dataReady) {
+        return false;
+    }
+
+    error = sensirion_scd4x.readMeasurement(_co2, _temperature, _humidity);
+    if (error != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    Serial.print("Current temperature: ");
+    Serial.println(_temperature);
+
+    if (!stopMeasurement()) {
+        return false;
+    }
+
+    if (off) {
+        error = sensirion_scd4x.setTemperatureOffset(0);
+        if (error != SCK_SCD4X_NO_ERROR) {
+            return false;
+        }
+    } else {
+        error = sensirion_scd4x.getTemperatureOffset(prevTempOffset);
+        Serial.print("Current temperature offset: ");
+        Serial.println(prevTempOffset);
+
+        if (error != SCK_SCD4X_NO_ERROR) {
+            return false;
+        }
+
+        if (userTemp){
+            tempOffset = _temperature - userTemp + prevTempOffset;
+            if (tempOffset < 0) {
+                Serial.println("Temperature setting can't be higher than current");
+                return false;
+            }
+            Serial.print("Setting temp offset at: ");
+            Serial.println(tempOffset);
+            error = sensirion_scd4x.setTemperatureOffset(tempOffset);
+            if (error != SCK_SCD4X_NO_ERROR) {
+                return false;
+            }
+        } else {
+            if (!startMeasurement()) return false;
+            return true;
+        }
+    }
+
+    Serial.println("Persist settings");
+    error = sensirion_scd4x.persistSettings();
+
+    if (error != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    error = sensirion_scd4x.getTemperatureOffset(updatedTempOffset);
+    Serial.print("Updated temperature offset: ");
+    Serial.println(updatedTempOffset);
+
+    if (error != SCK_SCD4X_NO_ERROR) {
+        return false;
+    }
+
+    if (!startMeasurement()) return false;
+
+    return true;
 }
 #endif
 

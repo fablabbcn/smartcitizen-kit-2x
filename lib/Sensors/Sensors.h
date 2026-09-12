@@ -43,6 +43,7 @@
 #define SCK_WITH_SFA30
 #define SCK_WITH_GPS
 #define SCK_WITH_EXT_TEMP
+#define SCK_WITH_SCD4X
 #define URBAN_T_OFFSET -1.0
 #define URBAN_RH_OFFSET 3.5
 #define SCK_WITH_AS7341
@@ -299,6 +300,11 @@ enum SensorType
     SENSOR_AS7341_NIR,
     SENSOR_AS7341_FLICKER_FREQ,
     SENSOR_AS7341_FLICKER_P2P,
+#endif
+#ifdef SCK_WITH_SCD4X
+    SENSOR_SCD4X_CO2,
+    SENSOR_SCD4X_TEMP,
+    SENSOR_SCD4X_HUM,
 #endif
 
     // Actuators (This is temp)
@@ -588,6 +594,12 @@ class AllSensors
             OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_NIR,              "AS7341_NIR",       "AS7341 NIR",                           253,    true,       1,  "",          false         },
             OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_FREQ,     "AS7341_FLICKER_FREQ","AS7341 Flicker Freq",                255,    true,       1,  "Hz",        false         },
             OneSensor { BOARD_AUX,      100,    SENSOR_AS7341_FLICKER_P2P,      "AS7341_FLICKER_P2P", "AS7341 Flicker Peak to Peak",        256,    true,       1,  "",         false         },
+#endif
+
+#ifdef SCK_WITH_SCD4X
+            OneSensor { BOARD_AUX,      100,    SENSOR_SCD4X_CO2,               "SCD4X_CO2",        "SCD4X CO2",                            258,    true,       1,  "ppm"                      },
+            OneSensor { BOARD_AUX,      100,    SENSOR_SCD4X_TEMP,              "SCD4X_TEMP",       "SCD4X Temperature",                    259,    true,       1,  "C",         false         },
+            OneSensor { BOARD_AUX,      100,    SENSOR_SCD4X_HUM,               "SCD4X_HUM",        "SCD4X Humidity",                       260,    true,       1,  "%" ,        false         },
 #endif
 
 #ifdef SCK_WITH_SENSOR_GROVE_OLED

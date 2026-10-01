@@ -93,10 +93,10 @@ class SckLed
 
         // Manage color an pulseModes
         volatile uint8_t colorIndex = 0;
-        volatile bool blinkON;
+        volatile bool blinkON = false;
         volatile int8_t direction = 1;
 
         volatile pulseModes pulseMode = PULSE_SOFT;
-        Color ledColor;
-        Color_float diffColor;
+        Color ledColor = {};
+        Color_float diffColor = {};
     };

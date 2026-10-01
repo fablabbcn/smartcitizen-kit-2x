@@ -353,12 +353,16 @@ uint8_t SckTest::test_flash()
     }
 
     if (!testBase->readingsList.testFlash()) {
-        SerialUSB.println("ERROR writing/reading flash chip!!!");
+        SerialUSB.println("ERROR: flash erase/write/read verification failed!");
         error = 1;
     }
 
-    test_report.tests[TEST_FLASH] = 1;
-    SerialUSB.println("Flash memory test finished OK");
+    // Only mark the test as passed when there are no errors.
+    // Previously TEST_FLASH was set to 1 unconditionally, masking failures.
+    if (error == 0) {
+        test_report.tests[TEST_FLASH] = 1;
+        SerialUSB.println("Flash memory test finished OK");
+    }
     title = true;
     return error;
 }

@@ -104,7 +104,7 @@ public:
         OneCom {50,     COM_HELP,           "help",     "Duhhhh!!",                                                                                                                                                                                     help_com},
         OneCom {60,     COM_PINMUX,         "pinmux",   "Shows SAMD pin mapping status",                                                                                                                                                                pinmux_com},
         OneCom {90,     COM_FLASH,          "flash",    "Shows and manage flash memory state [no-param -> info] [-format (be careful)] [-dump sect-num (0-2040)] [-sector sect-num] [-recover sect-num/all net/sd]",                                   flash_com},
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
         OneCom {80,     COM_LIST_SENSOR,    "sensor",   "Shows/sets sensor state or interval: sensor sensor-name [-enable or -disable] [-interval interval(seconds)] [-oled]",                                                                          sensorConfig_com},
         OneCom {90,     COM_MONITOR_SENSOR, "monitor",  "Continously read sensor: monitor [-sd] [-notime] [-noms] [-oled] [sensorName[,sensorNameN]]",                                                                                                  monitorSensor_com},
         OneCom {100,    COM_DEBUG,          "debug",    "Toggle debug messages: debug [-sdcard] [-oled] [-flash] [-speed] [-serial]",                                                                                                                   debug_com},

@@ -131,6 +131,7 @@ class SckBase
 		bool publishInfo();
 		bool espInfoUpdated = false;
 		bool infoPublished = false;
+		bool wifiJustReconnected = false;
 
 		// Sd card
 		volatile bool sdInitPending = false;
@@ -250,7 +251,7 @@ class SckBase
 		void sckOut(const char *strOut, PrioLevels priority=PRIO_MED, bool newLine=true);	// Accepts constant string
 		void sckOut(PrioLevels priority=PRIO_MED, bool newLine=true);
 		void prompt();
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 		void plot(String value, const char *title=NULL, const char *unit=NULL);
 #endif
 

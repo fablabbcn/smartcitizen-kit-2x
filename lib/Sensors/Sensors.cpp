@@ -6,7 +6,7 @@ SensorType AllSensors::getTypeFromText(const char* input)
     uint8_t maxWordsFound = 0;
 
     // Iterate over all posible sensor types
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
         // Get the title
         SensorType thisSensor = static_cast<SensorType>(i);
@@ -70,12 +70,12 @@ uint8_t AllSensors::sensorNameEndsIn(const char* input)
 
     return index;
 }
-SensorType AllSensors::sensorsPriorized(uint8_t index)
+SensorType AllSensors::sensorsPriorized(uint16_t index)
 {
     if (!sorted) {
-        uint8_t sensorCount = 0;
-        for (uint8_t i=0; i<251; i++) {
-            for (uint8_t ii=0; ii<SENSOR_COUNT; ii++) {
+        uint16_t sensorCount = 0;
+        for (uint16_t i=0; i<251; i++) {
+            for (uint16_t ii=0; ii<SENSOR_COUNT; ii++) {
                 SensorType thisSensorType = static_cast<SensorType>(ii);
                 if (list[thisSensorType].priority == i) {
                     prioSortedList[sensorCount] = thisSensorType;

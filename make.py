@@ -10,7 +10,7 @@ def ERROR(msg=''):
     print('ERROR ' + msg)
     sys.stdout.write("\033[0;0m")
     if not verbose: blockPrint()
-    sys.exit()
+    sys.exit(1)     # Non-zero so CI fails when a build fails
 
 def OK(msg=''):
     enablePrint()

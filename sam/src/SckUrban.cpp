@@ -1902,6 +1902,10 @@ bool Sck_SEN5X::start(SensorType wichSensor)
                     if (debug && !continousMode) Serial.println("SEN5X: Going to continous mode.");
                     continousMode = true;
                 }
+                // The rail was cut after the last PM sample, so there is no cached value for a
+                // newly enabled gas/RHT metric. Invalidate the cache so the next getReading()
+                // powers the sensor up and measures instead of returning stale data.
+                if (state == SEN5X_POWERED_DOWN && gasModeNeededBetweenSamples()) lastReading = 0;
                 return true;
             }
         }
@@ -2023,29 +2027,21 @@ bool Sck_SEN5X::getReading(OneSensor* wichSensor)
 {
     uint32_t now = rtc->getEpoch();
 
+    if (state == SEN5X_POWERED_DOWN) {
+        if (now - lastReading < warmUpPeriod[0] && !monitor) {
+            if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
+            return true;
+        }
+        if (!powerUp()) return false;
+    }
+
     switch (state) {
-        case SEN5X_OFF: {
+        case SEN5X_OFF:
+        case SEN5X_POWERED_DOWN: {
             return false;
         }
-        case SEN5X_IDLE: {
-            // If last reading is recent doesn't make sense to get a new one
-            if (now - lastReading < warmUpPeriod[0] && !monitor) {
-                if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
-                return true;
-            }
-
-            if (!sen_sendCommand(SEN5X_START_MEASUREMENT)) {
-                if (debug) Serial.println("SEN5X: Error starting measurement");
-                return false;
-            }
-            delay(50); // From Sensirion Arduino library
-
-            if (debug) Serial.println("SEN5X: Started measurement (with PMs)");
-            measureStarted = now;
-            state = SEN5X_MEASUREMENT;
-        }
+        case SEN5X_IDLE:
         case SEN5X_RHTGAS_ONLY: {
-            // Note: this is practically the same as above.
             // If last reading is recent doesn't make sense to get a new one
             if (now - lastReading < warmUpPeriod[0] && !monitor) {
                 if (debug) Serial.println("SEN5X: Less than warmUp period since last update, data is still valid...");
@@ -2147,6 +2143,17 @@ bool Sck_SEN5X::idle()
         return false;
     }
 
+#ifdef SCK23_AIR
+    // Idle still draws 2.6 mA and RHT/Gas-only 6.8 mA (at 5 V, before step-up losses).
+    // With no gas/RHT metric to keep running, cut the rail until the next PM sample.
+    if (!gasModeNeededBetweenSamples()) {
+        powerDown();
+        monitor = false;
+        measureStarted = 0;
+        return true;
+    }
+#endif
+
     if (model == SEN50) {
         if (!sen_sendCommand(SEN5X_STOP_MEASUREMENT)) {
             if (debug) Serial.println("SEN5X: Error stoping measurement");
@@ -2167,10 +2174,59 @@ bool Sck_SEN5X::idle()
 
     monitor = false;
     measureStarted = 0;
+    return true;
+}
+bool Sck_SEN5X::gasModeNeededBetweenSamples()
+{
+    // VOC/NOx indices need the 1 Hz on-sensor algorithm to run without gaps, and
+    // RHT self-heating compensation assumes the sensor stays powered.
+    for (uint8_t i=0; i<totalMetrics; i++) {
+        if (!enabled[i][1]) continue;
+        switch (enabled[i][0]) {
+            case SENSOR_SEN5X_HUMIDITY:
+            case SENSOR_SEN5X_TEMPERATURE:
+            case SENSOR_SEN5X_VOCS_IDX:
+            case SENSOR_SEN5X_NOX_IDX:
+            case SENSOR_SEN5X_HUMIDITY_RAW:
+            case SENSOR_SEN5X_TEMPERATURE_RAW:
+            case SENSOR_SEN5X_VOCS_RAW:
+            case SENSOR_SEN5X_NOX_RAW:
+                return true;
+            default: break;
+        }
+    }
+    return false;
+}
+bool Sck_SEN5X::powerUp()
+{
+    digitalWrite(pinPM_ENABLE, HIGH);
+    delay(50);
+
+    if (!I2Cdetect(&Wire, address)) {
+        if (debug) Serial.println("SEN5X: Not responding after power up");
+        digitalWrite(pinPM_ENABLE, LOW);
+        return false;
+    }
+
+    if (debug) Serial.println("SEN5X: Powered up");
+    state = SEN5X_IDLE;
+    return true;
+}
+void Sck_SEN5X::powerDown()
+{
+    if (debug) Serial.println("SEN5X: Powering down until next PM sample");
+    digitalWrite(pinPM_ENABLE, LOW);
+    state = SEN5X_POWERED_DOWN;
+
+    // A freshly powered sensor has no learnt VOC state, so don't read it back
+    // (it would overwrite the state saved to eeprom on reset).
+    firstReading = true;
 }
 
 bool Sck_SEN5X::startCleaning()
 {
+    if (state == SEN5X_POWERED_DOWN && !powerUp()) return false;
+
     state = SEN5X_CLEANING;
 
     // Note that this command can only be run when the sensor is in measurement mode
@@ -2293,6 +2349,18 @@ bool Sck_SEN5X::findModel()
     return true;
 }
 bool Sck_SEN5X::getVer()
+{
+    // If the rail was cut between PM samples, power up just for the query and
+    // cut it again afterwards so the sensor doesn't stay on until the next sample.
+    bool wasPoweredDown = (state == SEN5X_POWERED_DOWN);
+    if (wasPoweredDown && !powerUp()) return false;
+
+    bool result = readVersion();
+
+    if (wasPoweredDown) powerDown();
+    return result;
+}
+bool Sck_SEN5X::readVersion()
 {
     if (!sen_sendCommand(SEN5X_GET_FIRMWARE_VERSION)){
         if (debug) Serial.println("SEN5X: Error sending version command");

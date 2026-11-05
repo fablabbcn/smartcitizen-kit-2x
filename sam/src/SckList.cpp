@@ -932,7 +932,13 @@ uint16_t SckList::recover(uint16_t whichSector, PubFlags whichFlag)
             // Make sure ESP is ready
             if (!base->st.espON) {
                 base->ESPcontrol(base->ESP_ON);
-                while (base->st.espBooting) base->ESPbusUpdate();
+                uint32_t bootStarted = millis();
+                while (base->st.espBooting && millis() - bootStarted < 5000) base->ESPbusUpdate();
+                if (base->st.espBooting) {
+                    sprintf(base->outBuff, "ESP is not answering, can't recover sector %u", whichSector);
+                    base->sckOut();
+                    return totalRecovered;
+                }
             }
 
             // Send MQTT and wait for response or timeout (10 seconds)

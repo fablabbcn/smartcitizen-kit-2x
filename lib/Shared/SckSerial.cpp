@@ -115,10 +115,22 @@ bool SckSerial::receive()
 
 	// Get size
 	uint16_t size;
-	_serial.readBytes(reinterpret_cast<uint8_t*>(&size), sizeof(uint16_t));
+	if (_serial.readBytes(reinterpret_cast<uint8_t*>(&size), sizeof(uint16_t)) != sizeof(uint16_t)) {
+		debugPln("Timeout while receiving size");
+		return false;
+	}
 
 	snprintf(debugBuff, 24, "size: %u", size);
 	debugPln(debugBuff);
+
+	// The size comes straight from the wire: line noise (e.g. the ESP boot ROM
+	// output at 74880 baud on every ESP power up) or a desynchronised stream can
+	// produce a bogus header followed by any size. Never read more than buff can
+	// hold (payload + '\0'), otherwise memory after buff gets overwritten.
+	if (size >= NETBUFF_SIZE) {
+		debugPln("Payload size too big, dropping frame");
+		return false;
+	}
 
 	// Finish now if no payload is present (just command)
 	if (size == 0) {
@@ -146,7 +158,10 @@ bool SckSerial::receive()
 
 	// Gets and compares checksum
 	uint16_t csRec;
-	_serial.readBytes(reinterpret_cast<uint8_t*>(&csRec), sizeof(uint16_t));
+	if (_serial.readBytes(reinterpret_cast<uint8_t*>(&csRec), sizeof(uint16_t)) != sizeof(uint16_t)) {
+		debugPln("Timeout while receiving checksum");
+		return false;
+	}
 
 	snprintf(debugBuff, 24, "Chksum calc: %u", csCalc);
 	debugP(debugBuff);

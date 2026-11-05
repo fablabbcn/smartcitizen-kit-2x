@@ -40,16 +40,17 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
-    - name: Select Python 3.9
-      uses: actions/setup-python@v3
+    - name: Select Python 3.11
+      uses: actions/setup-python@v5
       with:
         # python-version: ${{ matrix.python-version }}
-        python-version: "3.9"
+        python-version: "3.11"
 
     - name: Install PlatformIO
       run: |
         pip install -U -r tools/requirements.txt
-        pio upgrade --dev
+        # Run through python, not pio.exe: on Windows the running pio.exe can't replace itself
+        python -m platformio upgrade --dev
         pio pkg update --global
 
     - name: Run Builds

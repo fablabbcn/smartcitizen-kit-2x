@@ -16,6 +16,57 @@ AuxBoards auxBoards;
 // Eeprom flash emulation to store persistent variables
 FlashStorage(eepromConfig, Configuration);
 
+// CPU fault recovery
+// The Arduino core aliases HardFault_Handler to Dummy_Handler, an endless loop.
+// Since HardFault has a higher priority than every other interrupt, a fault
+// freezes the kit completely: the LED timer (TC5) and the button interrupt stop,
+// the main loop never runs again and the ESP stays powered in whatever state it
+// was. Only an external reset recovers it.
+// Instead, store where the fault happened in RAM that is not cleared on startup
+// and reset the MCU, so the kit recovers on its own and reports it on next boot.
+#define SCK_FAULT_MAGIC 0x5CF4017Bul
+struct SckFaultRecord {
+	uint32_t magic;
+	uint32_t pc;
+	uint32_t lr;
+	uint32_t check;
+};
+static volatile SckFaultRecord faultRecord __attribute__((section(".noinit")));
+
+extern "C" __attribute__((used)) void sckHardFaultRecord(uint32_t *frame)
+{
+	// Only trust the stacked frame if it points inside RAM
+	uint32_t addr = (uint32_t)frame;
+	if (addr >= HMCRAMC0_ADDR && addr <= (HMCRAMC0_ADDR + HMCRAMC0_SIZE - 32)) {
+		faultRecord.pc = frame[6];
+		faultRecord.lr = frame[5];
+	} else {
+		faultRecord.pc = 0;
+		faultRecord.lr = 0;
+	}
+	faultRecord.magic = SCK_FAULT_MAGIC;
+	faultRecord.check = ~SCK_FAULT_MAGIC ^ faultRecord.pc;
+	NVIC_SystemReset();
+}
+extern "C" __attribute__((naked)) void HardFault_Handler(void)
+{
+	// Pass the stack frame of the faulting context (MSP or PSP) to sckHardFaultRecord()
+	__asm volatile(
+		"movs r0, #4			\n"
+		"mov r1, lr				\n"
+		"tst r0, r1				\n"
+		"beq 1f					\n"
+		"mrs r0, psp			\n"
+		"b 2f					\n"
+		"1:						\n"
+		"mrs r0, msp			\n"
+		"2:						\n"
+		"ldr r1, =sckHardFaultRecord	\n"
+		"bx r1					\n"
+		".ltorg					\n"
+	);
+}
+
 void SckBase::setup()
 {
 	// Led
@@ -114,6 +165,13 @@ void SckBase::setup()
     sckOut("Setting up SDcard interrupt");
     attachInterrupt(pinCARD_DETECT, ISR_sdDetect, CHANGE);
     if (sdDetect()) sdInit();
+
+    // Report if last reset was caused by a CPU fault (logged to the sdcard error file if present)
+    if (faultRecord.magic == SCK_FAULT_MAGIC && faultRecord.check == (~SCK_FAULT_MAGIC ^ faultRecord.pc)) {
+        sprintf(outBuff, "Recovered from a CPU fault (PC: 0x%08lX, LR: 0x%08lX)", faultRecord.pc, faultRecord.lr);
+        sckOut(PRIO_ERROR);
+    }
+    faultRecord.magic = 0;
 
 
     // Detect and enable auxiliary boards
@@ -478,6 +536,7 @@ void SckBase::reviewState()
                             st.error = ERROR_MQTT;
 
                             ESPcontrol(ESP_OFF);
+                            st.wifiStat.reset();            // ESP is off: the Wi-Fi link has to be verified again
                             timeToPublish = false;
                             lastPublishTime = rtc.getEpoch();
                             st.publishStat.reset();         // Restart publish error counter
@@ -895,6 +954,8 @@ bool SckBase::createInfo(char* buffer, bool pretty)
 
     if (pretty) serializeJsonPretty(json, buffer, NETBUFF_SIZE);
     else serializeJson(json, buffer, NETBUFF_SIZE);
+
+    return true;
 }
 bool SckBase::publishInfo()
 {

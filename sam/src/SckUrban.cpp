@@ -1902,6 +1902,10 @@ bool Sck_SEN5X::start(SensorType wichSensor)
                     if (debug && !continousMode) Serial.println("SEN5X: Going to continous mode.");
                     continousMode = true;
                 }
+                // The rail was cut after the last PM sample, so there is no cached value for a
+                // newly enabled gas/RHT metric. Invalidate the cache so the next getReading()
+                // powers the sensor up and measures instead of returning stale data.
+                if (state == SEN5X_POWERED_DOWN && gasModeNeededBetweenSamples()) lastReading = 0;
                 return true;
             }
         }

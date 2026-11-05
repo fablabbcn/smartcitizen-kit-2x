@@ -220,6 +220,12 @@ void SckBase::update()
         }
         if (sdInitPending) sdInit();
 
+        // SD re-init after wakeup failed: try once more if the card is still inserted
+        if (sdRetryPending) {
+            sdRetryPending = false;
+            if (!digitalRead(pinCARD_DETECT)) sdInit();
+        }
+
         // SD card debug check file size and backup big files.
         if (config.debug.sdcard) {
             // Just do this every hour
@@ -1698,6 +1704,10 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
         if (!sd.begin(pinCS_SDCARD, SD_SCK_MHZ(50))) {
             st.cardPresent = false;
             st.cardPresentErrorPrinted = false;
+            // Retry sdInit() from update() instead of waiting for a card-detect event
+            // that may never come. Not via sdInitPending: sdDetect() counts as a user
+            // event and would keep the kit awake for the whole sleep timer.
+            sdRetryPending = true;
         }
     }
 
@@ -1909,6 +1919,7 @@ void SckBase::sleepLoop()
         uint32_t sleepPeriod = min(maxSleepPeriod, pendingSensorsWait());
 
         if (    timeToPublish ||                                                            // Publish pending
+                sdInitPending || sdRetryPending ||                                          // SD card event to handle in update()
                 sleepPeriod < 2 ||                                                          // A pending sensor needs polling now
                 (now - lastSensorUpdate) + sleepPeriod + 2 >= config.readInterval ||        // Readings due in the near future
                 (now - dynamicLast) <= (config.sleepTimer * 60) ||                          // Dynamic interval was triggered recently

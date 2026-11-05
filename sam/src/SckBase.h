@@ -135,6 +135,7 @@ class SckBase
 
 		// Sd card
 		bool sdInit();
+		bool sdRetryPending = false;	// SD re-init after wakeup failed, retry from update()
 		bool saveInfo();
 		bool infoSaved = false;
 

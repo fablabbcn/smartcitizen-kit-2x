@@ -241,8 +241,8 @@ int8_t SckList::_setSectPublished(uint16_t whichSector, PubFlags whichFlag)
     // If sector is not in SECTOR_FULL state we dont accept the flag
     if (_getSectState(whichSector) != SECTOR_USED) return -1;
 
-    // Only set flag if ALL groups on the sector are marked as published
-    if (_countSectGroups(whichSector, whichFlag, NOT_PUBLISHED) > 0) return -1;
+    // Only set flag if ALL groups on the sector are marked as published (a negative count is an error)
+    if (_countSectGroups(whichSector, whichFlag, NOT_PUBLISHED) != 0) return -1;
 
     // And write flags byte
     if (!_write(flagsAddr, PUBLISHED)) return -1;
@@ -326,7 +326,7 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t whichSector, PubFlags whic
         // Find out groupSize
         uint16_t groupSize = flash.readWord(potencialNextGroup.address);
 
-        if (groupSize != 0xFFFF && (potencialNextGroup.address + groupSize) <= endAddr) {
+        if (groupSize != 0xFFFF && groupSize != 0 && (potencialNextGroup.address + groupSize) <= endAddr) {
 
             // Check if group is NOT published in the requested flag
             byte byteFlags = flash.readByte(potencialNextGroup.address + addPositionFlag);
@@ -350,7 +350,9 @@ SckList::GroupIndex SckList::_getUnpubGrpIdx(uint16_t whichSector, PubFlags whic
             // Find out groupSize
             uint16_t groupSize = flash.readWord(thisGroup.address);
 
-            if (groupSize == 0xFFFF || (thisGroup.address + groupSize) > endAddr) {
+            // A zero size (corrupt record) would advance the scan by zero and loop forever, so treat
+            // it like the end of written data: groups past it can't be reached anyway.
+            if (groupSize == 0xFFFF || groupSize == 0 || (thisGroup.address + groupSize) > endAddr) {
 
                 // If this sector is already marked as USED and it is not marked as fully published markt it!
                 if (_getSectState(whichSector) == SECTOR_USED && !_isSectPublished(whichSector, whichFlag)) _setSectPublished(whichSector, whichFlag);
@@ -531,7 +533,8 @@ bool SckList::_countSectGroups(uint16_t whichSector, SectorInfo* info)
     uint32_t address = startAddr + 3;   // First tree bytes used for sector state and flags
 
     // Read from the byte 2 until we found 0xFFFF or an unpublished group
-    while (address < endAddr) {
+    // (<= so a final minimal group that exactly fills the sector is still counted)
+    while (address <= endAddr) {
 
         // Find out groupSize
         uint16_t groupSize = flash.readWord(address);
@@ -571,12 +574,16 @@ int16_t SckList::_countSectGroups(uint16_t whichSector, PubFlags whichFlag, byte
     int16_t groupTotal = 0;
 
     // Read from the byte 2 until we found 0xFFFF or an unpublished group
-    while (address < endAddr) {
+    // (<= so a final minimal group that exactly fills the sector is still counted)
+    while (address <= endAddr) {
 
         // Find out groupSize
         uint16_t groupSize = flash.readWord(address);
         if (groupSize == 0xFFFF) break;  // end of written data
-        if (groupSize == 0)      return -1;  // corrupt: zero size would spin forever
+        // Corrupt zero size would spin forever. Stop here and count only the groups before it,
+        // which are the only ones _getUnpubGrpIdx() can reach: unpublished ones keep the sector
+        // unpublished, and a sector with none left can still be closed instead of being retried forever.
+        if (groupSize == 0)      break;
 
         // Check if group is NOT published
         byte byteFlags = flash.readByte(address + addPositionFlag);
@@ -1131,11 +1138,11 @@ uint32_t SckList::getFlashCapacity()
 }
 bool SckList::testFlash()
 {
-    // Use the last sector before the reserved area as a scratch sector so that
-    // the test never touches sector 0 (which may hold the current write cursor)
-    // or any sector that could contain live unpublished readings.
-    const uint16_t TEST_SECTOR = SCKLIST_SECTOR_NUM - 1;
-    const uint32_t BASE = _getSectAddr(TEST_SECTOR);
+    // Use the last sector of the chip as a scratch sector. It is in the reserved
+    // area at the end of the flash, which the readings list never scans or
+    // rotates into, so the test can't erase live unpublished readings.
+    const uint16_t TEST_SECTOR = (SCKLIST_FLASH_SIZE / SECTOR_SIZE) - 1;
+    const uint32_t BASE = (uint32_t)TEST_SECTOR * SECTOR_SIZE;
 
     SerialUSB.print("F: testFlash using sector ");
     SerialUSB.println(TEST_SECTOR);
@@ -1187,14 +1194,20 @@ bool SckList::testFlash()
         return false;
     }
 
-    // ── 5. Sequential write across sector boundary ─────────────────────────
-    // Write a 19-byte string near the end of the sector to make sure multi-byte
-    // operations don't silently truncate at the boundary.
+    // ── 5. Sequential write up to the sector boundary ──────────────────────
+    // Write a string record ending exactly at the end of the sector to make sure
+    // multi-byte operations don't silently truncate at the boundary.
     flash.eraseSector(BASE);
     const char* MSG = "boundary-test-msg";   // 17 chars + null = 18 bytes
-    uint32_t nearEnd = BASE + SECTOR_SIZE - 20;
     String msg(MSG);
-    flash.writeStr(nearEnd, msg);
+    // writeStr() stores a 4-byte length before the string, so place the whole record
+    // (sizeofStr() = 22 bytes) right at the end of the sector without spilling past it.
+    uint32_t nearEnd = BASE + SECTOR_SIZE - flash.sizeofStr(msg);
+    if (!flash.writeStr(nearEnd, msg)) {
+        SerialUSB.println("F: testFlash FAIL — near-boundary string write failed");
+        flash.eraseSector(BASE);
+        return false;
+    }
     String readBack;
     flash.readStr(nearEnd, readBack);
     if (!readBack.equals(MSG)) {

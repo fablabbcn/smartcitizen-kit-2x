@@ -145,6 +145,7 @@ class SckBase
 		uint32_t updatePowerMillis = 0;
 		void configGCLK6(); 			// Taken from https://github.com/arduino-libraries/ArduinoLowPower
 		void sleepLoop();
+		uint32_t pendingSensorsWait();		// Seconds until the first pending sensor is ready (UINT32_MAX if none)
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 			// seconds

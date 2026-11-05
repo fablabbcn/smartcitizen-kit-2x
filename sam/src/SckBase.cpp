@@ -1899,16 +1899,23 @@ void SckBase::sleepLoop()
     // Formula: readInterval / 4 gives 4 wakeups per read cycle as a
     // safety margin; clamped to [5, 30] s so very short or very long
     // read intervals stay sensible.
-    uint16_t sleepPeriod = (uint16_t)constrain(config.readInterval / 4, 5, 30);
+    //
+    // Pending sensors (e.g. a PM sensor in its 16-30 s warm-up) report the
+    // seconds left until ready, so the MCU sleeps through that wait instead
+    // of busy-polling at full clock.
+    const uint32_t maxSleepPeriod = constrain(config.readInterval / 4, 5, 30);
     uint32_t now = rtc.getEpoch();
-    while (     (!timeToPublish) &&                                     // No publish pending
-        (config.readInterval - (now - lastSensorUpdate) > (uint32_t)(sleepPeriod + 2)) &&       // No readings to take in the near future
-        ((now - dynamicLast) > (config.sleepTimer * 60)) &&                         // Dynamic interval wasn't triggered recently
-        (dynamicCounter == 0) &&                                    // Last speed was low
-        (pendingSensorsLinkedList.size() == 0) &&                           // No sensor to wait to
-        (st.timeStat.ok) &&                                         // RTC is synced and working
-        ((millis() - lastUserEvent) > (config.sleepTimer * 60000)) &&                   // No recent user interaction (button, sdcard or USB events)
-        (config.sleepTimer > 0)) {                                  // sleep is enabled
+    while (true) {
+        uint32_t sleepPeriod = min(maxSleepPeriod, pendingSensorsWait());
+
+        if (    timeToPublish ||                                                            // Publish pending
+                sleepPeriod < 2 ||                                                          // A pending sensor needs polling now
+                (now - lastSensorUpdate) + sleepPeriod + 2 >= config.readInterval ||        // Readings due in the near future
+                (now - dynamicLast) <= (config.sleepTimer * 60) ||                          // Dynamic interval was triggered recently
+                dynamicCounter != 0 ||                                                      // Last speed was high
+                !st.timeStat.ok ||                                                          // RTC is not synced
+                (millis() - lastUserEvent) <= (config.sleepTimer * 60000) ||                // Recent user interaction (button, sdcard or USB events)
+                config.sleepTimer == 0) break;                                              // Sleep is disabled
 
         led.off();
         goToSleep(sleepPeriod * 1000);
@@ -1934,6 +1941,22 @@ void SckBase::sleepLoop()
 
         now = rtc.getEpoch();
     }
+}
+uint32_t SckBase::pendingSensorsWait()
+{
+#ifdef SCK23_AIR
+    uint32_t wait = UINT32_MAX;
+    for (uint8_t i=0; i<pendingSensorsLinkedList.size(); i++) {
+        int16_t remaining = sensors[pendingSensorsLinkedList.get(i)].state;
+        if (remaining <= 0) return 0;
+        if ((uint32_t)remaining < wait) wait = remaining;
+    }
+    return wait;
+#else
+    // Other builds have sensors (PMS, SPS30, aux boards) that may need active
+    // polling while pending, so they keep the original never-sleep-while-pending rule.
+    return pendingSensorsLinkedList.size() > 0 ? 0 : UINT32_MAX;
+#endif
 }
 
 // **** Sensors

@@ -49,7 +49,8 @@ jobs:
     - name: Install PlatformIO
       run: |
         pip install -U -r tools/requirements.txt
-        pio upgrade --dev
+        # Run through python, not pio.exe: on Windows the running pio.exe can't replace itself
+        python -m platformio upgrade --dev
         pio pkg update --global
 
     - name: Run Builds

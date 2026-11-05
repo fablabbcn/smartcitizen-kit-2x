@@ -522,6 +522,7 @@ class Sck_SEN5X
         bool gasModeNeededBetweenSamples();
         bool powerUp();
         void powerDown();
+        bool readVersion();     // getVer() without power handling
 
         uint32_t lastReading = 0;
         uint32_t measureStarted = 0;

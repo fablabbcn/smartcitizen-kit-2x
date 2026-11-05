@@ -2350,8 +2350,18 @@ bool Sck_SEN5X::findModel()
 }
 bool Sck_SEN5X::getVer()
 {
-    if (state == SEN5X_POWERED_DOWN && !powerUp()) return false;
+    // If the rail was cut between PM samples, power up just for the query and
+    // cut it again afterwards so the sensor doesn't stay on until the next sample.
+    bool wasPoweredDown = (state == SEN5X_POWERED_DOWN);
+    if (wasPoweredDown && !powerUp()) return false;
 
+    bool result = readVersion();
+
+    if (wasPoweredDown) powerDown();
+    return result;
+}
+bool Sck_SEN5X::readVersion()
+{
     if (!sen_sendCommand(SEN5X_GET_FIRMWARE_VERSION)){
         if (debug) Serial.println("SEN5X: Error sending version command");
         return false;

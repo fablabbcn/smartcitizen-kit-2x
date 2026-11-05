@@ -1640,25 +1640,20 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
         rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
     }
 
-    // Disable the ADC analog frontend before entering STANDBY.
-    // When ADC->CTRLA.bit.ENABLE = 1 the bias generators and reference
-    // stay powered regardless of APB clock gating, drawing ~280 µA.
-    // Arduino's analogRead() enables the ADC and leaves it enabled.
-    // CTRLA settings are preserved while disabled, so no reconfiguration
-    // is needed on wakeup beyond re-asserting the ENABLE bit.
-    ADC->CTRLA.bit.ENABLE = 0;
-    while (ADC->STATUS.bit.SYNCBUSY);
+    // Make sure the ADC is disabled in STANDBY. The Arduino core's analogRead()
+    // already disables it after every conversion, so this is only a guard in
+    // case something left it enabled. Its previous state is restored on wakeup.
+    bool adcWasEnabled = ADC->CTRLA.bit.ENABLE;
+    if (adcWasEnabled) {
+        ADC->CTRLA.bit.ENABLE = 0;
+        while (ADC->STATUS.bit.SYNCBUSY);
+    }
 
-    // Switch BOD33 from continuous monitoring to sampled mode for STANDBY.
-    // Continuous mode draws ~1-2 µA from the OSCULP32K monitoring circuit.
-    // Sampled mode (RUNSTDBY = 1) takes periodic snapshots using the same
-    // oscillator at negligible extra cost. Battery voltage cannot droop
-    // faster than the sample rate, so protection is fully maintained.
-    // BOD33 must be disabled briefly to change the RUNSTDBY bit.
-    SYSCTRL->BOD33.bit.ENABLE = 0;
-    while (!SYSCTRL->PCLKSR.bit.B33SRDY);
-    SYSCTRL->BOD33.bit.RUNSTDBY = 1;
-    SYSCTRL->BOD33.bit.ENABLE = 1;
+    // BOD33 is left untouched: with SYSCTRL->BOD33.RUNSTDBY = 0 (reset value) it is
+    // disabled in STANDBY and back in continuous mode on wakeup. Setting RUNSTDBY = 1
+    // without MODE = 1 (sampling) would keep it in continuous mode during STANDBY,
+    // which costs ~25 µA. If brown-out detection during sleep is ever needed, use
+    // sampling mode (MODE = 1, CEN = 1, PSEL), configured while BOD33 is disabled.
 
     // Put the W25Q64FV SPI flash into deep power-down mode.
     // Normal standby (CS deasserted, SPI idle) draws 30–100 µA.
@@ -1674,6 +1669,11 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     if (st.cardPresent) sd.end();
 
     // Go to Sleep
+    // - SysTick interrupt off around WFI: errata 1.5.7 (lockup if a SysTick
+    //   interrupt coincides with standby entry, all silicon revisions).
+    // - Interrupts must stay enabled (PRIMASK = 0) at WFI: errata 1.5.8 (first
+    //   flash fetch after wakeup can be corrupted with PRIMASK = 1 unless
+    //   NVMCTRL SLEEPPRM = DISABLED, and configGCLK6() uses WAKEUPINSTANT on rev D+).
     USBDevice.standby();
     SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
@@ -1685,18 +1685,14 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     // drives the line again when the ESP is next powered on.
     pinPeripheral(pinESP_TX_WIFI, PIO_SERCOM);
 
-    // Restore BOD33 to continuous monitoring for normal operation.
-    SYSCTRL->BOD33.bit.ENABLE = 0;
-    while (!SYSCTRL->PCLKSR.bit.B33SRDY);
-    SYSCTRL->BOD33.bit.RUNSTDBY = 0;
-    SYSCTRL->BOD33.bit.ENABLE = 1;
-
     // Wake the SPI flash from deep power-down before any flash access.
     readingsList.flashWake();
 
-    // Re-enable ADC so analogRead() works normally after wakeup.
-    ADC->CTRLA.bit.ENABLE = 1;
-    while (ADC->STATUS.bit.SYNCBUSY);
+    // Restore the ADC only if it was enabled before sleep (analogRead() enables it itself).
+    if (adcWasEnabled) {
+        ADC->CTRLA.bit.ENABLE = 1;
+        while (ADC->STATUS.bit.SYNCBUSY);
+    }
 
     // Re-initialise SD card after wakeup. sd.begin() sends CMD0 then the
     // SPI init sequence (~2 ms), transparent against the sleep period.
@@ -1811,26 +1807,32 @@ void SckBase::updatePower()
 }
 void SckBase::configGCLK6()
 {
-    // enable EIC clock
-    GCLK->CLKCTRL.bit.CLKEN = 0; //disable GCLK module
+    // Clock the EIC from OSCULP32K so edge detection keeps working in STANDBY,
+    // where GCLK0 (DFLL48M) is stopped.
+
+    // 1. Set up generator 6 from OSCULP32K first, so the EIC is never routed to a
+    //    stopped generator. RUNSTDBY only matters when the generator drives its
+    //    GCLK_IO pin; otherwise it runs whenever a peripheral (the EIC) requests it.
+    GCLK->GENCTRL.reg = (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_RUNSTDBY | GCLK_GENCTRL_ID(6));
     while (GCLK->STATUS.bit.SYNCBUSY);
 
-    GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK6 | GCLK_CLKCTRL_ID( GCM_EIC )) ;  //EIC clock switched on GCLK6
+    // 2. Disable the EIC generic clock before re-routing it. CLKCTRL must be
+    //    addressed by an 8-bit write of the ID first; a plain read-modify-write of
+    //    CLKEN would act on whichever channel was selected last.
+    *((volatile uint8_t *)&GCLK->CLKCTRL.reg) = GCM_EIC;
+    GCLK->CLKCTRL.bit.CLKEN = 0;
     while (GCLK->STATUS.bit.SYNCBUSY);
 
-    GCLK->GENCTRL.reg = (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_ID(6));  //source for GCLK6 is OSCULP32K
-    while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY);
-
-    GCLK->GENCTRL.bit.RUNSTDBY = 1;  //GCLK6 run standby
-    while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY);
+    // 3. Route generator 6 to the EIC.
+    GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK6 | GCLK_CLKCTRL_ID( GCM_EIC ));
+    while (GCLK->STATUS.bit.SYNCBUSY);
 
     // NVM power during STANDBY.
-    // SAMD21 silicon rev A/B errata: NVM must not power fully down in sleep
-    // (data corruption risk) — workaround is SLEEPPRM_DISABLED (~100 µA).
-    // This was fixed in silicon rev D (DSU->DID.bit.REVISION >= 3).
-    // On rev D+ use WAKEUPINSTANT: NVM powers down in STANDBY and wakes
-    // in ~15 µs before the first post-sleep read, saving ~100 µA at no
-    // functional cost given typical sleep periods of seconds or more.
+    // Errata 1.14.2 (silicon rev A, B, C): in STANDBY/IDLE the device may not wake
+    // up unless SLEEPPRM = DISABLED, which costs ~20 µA. Rev D and later
+    // (DSU->DID.bit.REVISION >= 3) are not affected, so let the NVM power down and
+    // wake instantly. WAKEUPINSTANT also requires interrupts enabled at WFI
+    // (errata 1.5.8), see goToSleep().
     if (DSU->DID.bit.REVISION >= 3) {
         NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_WAKEUPINSTANT_Val;
     } else {

@@ -276,10 +276,10 @@ int8_t SckList::_closeSector(uint16_t whichSector)
     }
 
     // If no readings left, mark sector as published (_setSectPublished() will check if all readings are published)
-    // Use the wichSector parameter (the sector we just closed) rather than (_currSector - 1): when _currSector
+    // Use the whichSector parameter (the sector we just closed) rather than (_currSector - 1): when _currSector
     // wraps from SCKLIST_SECTOR_NUM-1 to 0 the subtraction underflows to 0xFFFF as uint16_t.
-    _setSectPublished(wichSector, PUB_NET);
-    _setSectPublished(wichSector, PUB_SD);
+    _setSectPublished(whichSector, PUB_NET);
+    _setSectPublished(whichSector, PUB_SD);
 
     return 1;
 }
@@ -1193,7 +1193,8 @@ bool SckList::testFlash()
     flash.eraseSector(BASE);
     const char* MSG = "boundary-test-msg";   // 17 chars + null = 18 bytes
     uint32_t nearEnd = BASE + SECTOR_SIZE - 20;
-    flash.writeStr(nearEnd, String(MSG));
+    String msg(MSG);
+    flash.writeStr(nearEnd, msg);
     String readBack;
     flash.readStr(nearEnd, readBack);
     if (!readBack.equals(MSG)) {

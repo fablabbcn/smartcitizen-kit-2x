@@ -134,7 +134,6 @@ class SckBase
 		bool wifiJustReconnected = false;
 
 		// Sd card
-		volatile bool sdInitPending = false;
 		bool sdInit();
 		bool saveInfo();
 		bool infoSaved = false;
@@ -170,6 +169,9 @@ class SckBase
 		void updateDynamic(uint32_t now);
 
 	public:
+		// Set from ISR_sdDetect() in SmartCitizenKit.ino
+		volatile bool sdInitPending = false;
+
 #if defined(SCK21_AIR)
 		const String hardwareVer = "2.1";
 #elif defined(SCK22_AIR)

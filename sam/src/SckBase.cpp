@@ -1,4 +1,5 @@
 #include "SckBase.h"
+#include <new>
 #include "Commands.h"
 
 // Hardware Auxiliary I2C bus
@@ -15,6 +16,15 @@ AuxBoards auxBoards;
 
 // Eeprom flash emulation to store persistent variables
 FlashStorage(eepromConfig, Configuration);
+// Access to the same flash storage without copying Configuration on the stack: FlashStorageClass
+// read()/write() pass it by value, and with little free RAM (stack + heap ~2KB) the extra copies
+// made the stack overwrite the heap when the default config is loaded (first boot after flashing).
+FlashClass eepromConfigFlash(_dataeepromConfig, sizeof(Configuration));
+static void writeConfigFlash(const Configuration *conf)
+{
+    eepromConfigFlash.erase();
+    eepromConfigFlash.write(conf);
+}
 
 void SckBase::setup()
 {
@@ -673,10 +683,9 @@ void SckBase::loadConfig()
 {
 	sckOut("Loading configuration from eeprom...");
 
-	Configuration savedConf = eepromConfig.read();
+	eepromConfigFlash.read(&config);
 
-	if (savedConf.valid) config = savedConf;
-	else {
+	if (!config.valid) {
 		sckOut("Can't find valid configuration. Loading defaults...");
 		saveConfig(true);
 	}
@@ -724,9 +733,7 @@ void SckBase::saveConfig(bool defaults)
 {
 	// Load defaults
 	if (defaults) {
-		Configuration defaultConfig;
-
-        config = defaultConfig;
+        new (&config) Configuration();      // Defaults, constructed in place (no copy on the stack)
 
         for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
@@ -745,7 +752,7 @@ void SckBase::saveConfig(bool defaults)
     // This means that if you want to make sensor state persistent you have to change explicitly config.sensors
 
 	// Save to eeprom
-	eepromConfig.write(config);
+	writeConfigFlash(&config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
 	lastUserEvent = millis();
 
@@ -1487,7 +1494,7 @@ void SckBase::sck_reset()
             sckOut();
             config.extra.ccsBaseline = savedBaseLine;
             config.extra.ccsBaselineValid = true;
-            eepromConfig.write(config);
+            writeConfigFlash(&config);
         }
     }
 #endif

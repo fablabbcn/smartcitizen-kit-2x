@@ -25,7 +25,9 @@ void SckCharger::setup(SckBase *base)
 
     OTG(true);
 
-    chargeState(1);
+    // Charging is enabled at the end of SckBase::setup(): with USB power only (no battery)
+    // having it enabled during boot makes the startup current peaks reset the SAM (#98)
+    chargeState(0);
 }
 bool SckCharger::resetConfig()
 {

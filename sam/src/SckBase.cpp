@@ -105,6 +105,9 @@ void SckBase::setup()
     loadConfig();
     if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
 
+    // Report reset cause before anything else can fail
+    bootReport();
+
     // Urban board
     urbanStart();
 
@@ -177,25 +180,7 @@ void SckBase::update()
 
     if (millis() - generalUpdateTimer > 500) {
 
-        // Avoid ESP hangs
-        if (st.espBooting) {
-            if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
-        }
-
-        if (pendingSyncConfig) {
-            if (millis() - sendConfigTimer > 1000) {
-                sendConfigTimer = millis();
-                if (sendConfigCounter > 3) {
-                    ESPcontrol(ESP_REBOOT);
-                    sendConfigCounter = 0;
-                } else if (st.espON) {
-                    if (!st.espBooting) sendConfig();
-                    sendConfigCounter++;
-                } else {
-                    ESPcontrol(ESP_ON);
-                }
-            }
-        }
+        ESPmaintenance();
 
         if (sdInitPending) sdInit();
 
@@ -233,6 +218,66 @@ void SckBase::update()
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 #endif
     }
+}
+
+void SckBase::ESPmaintenance()
+{
+    // Avoid ESP hangs
+    if (st.espBooting) {
+        if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
+    }
+
+    if (pendingSyncConfig) {
+        if (millis() - sendConfigTimer > 1000) {
+            sendConfigTimer = millis();
+            if (sendConfigCounter > 3) {
+                ESPcontrol(ESP_REBOOT);
+                sendConfigCounter = 0;
+            } else if (st.espON) {
+                if (!st.espBooting) sendConfig();
+                sendConfigCounter++;
+            } else {
+                ESPcontrol(ESP_ON);
+            }
+        }
+    }
+}
+void SckBase::bootReport()
+{
+    // Publish kit info (including reset cause and watchdog hang info) before starting
+    // sensors, so resets during sensor startup (ex. reset loops) are still reported.
+    if (st.mode != MODE_NET || !st.wifiSet || !st.tokenSet) return;
+
+    sckOut("Reporting boot to platform...");
+    uint32_t started = millis();
+    uint32_t lastGeneral = 0;
+    while (!infoPublished && millis() - started < SCK_BOOT_REPORT_TIMEOUT) {
+        wdt.feed();
+
+        // Only the network part of the state machine: no sensors are started yet
+        if (millis() - reviewStateMillis > 250) {
+            reviewStateMillis = millis();
+            reviewState();
+        }
+        if (millis() - lastGeneral > 500) {
+            lastGeneral = millis();
+            ESPmaintenance();
+        }
+        ESPbusUpdate();
+    }
+
+    if (st.infoStat.ok) sckOut("Boot reported to platform");
+    else {
+        sckOut("Boot report failed, will retry later", PRIO_HIGH);
+        infoPublished = false;
+        st.infoStat.reset();
+    }
+
+    // Leave the ESP off while sensors start (avoid adding its consumption to the sensors startup peak)
+    if (st.espON) ESPcontrol(ESP_OFF);
+    st.wifiStat.reset();
+    st.lastWiFiError = 0;
+    st.wifiErrorCounter = 0;
 }
 
 // **** Mode Control
@@ -1304,7 +1349,8 @@ bool SckBase::saveInfo()
     // Save info to sdcard
     if (!infoSaved) {
         if (sd.exists(SD_INFO_NAME)) sd.remove(SD_INFO_NAME);
-        sckFile.open(SD_INFO_NAME, FILE_WRITE);
+        // The boot report can get here before the sdcard is ready: try again from sdInit()
+        if (!sckFile.open(SD_INFO_NAME, FILE_WRITE)) return false;
 
         if (!createInfo(outBuff, true)) return false;
         sckFile.write(outBuff, strlen(outBuff));

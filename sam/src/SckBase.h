@@ -30,6 +30,7 @@
 #define IM_SAM
 
 #define SCK_BOOT_REPORT_TIMEOUT 30000  // ms, max time spent reporting reset cause on boot
+#define SCK_PM_SETTLE_MS 1000           // ms, wait after powering the PM sensor before starting other sensors
 
 class Status
     {

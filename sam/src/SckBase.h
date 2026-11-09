@@ -23,6 +23,7 @@
 #include "SckAux.h"
 #include "SckList.h"
 #include "SckSerial.h"
+#include "SckWatchdog.h"
 
 #include "version.h"
 
@@ -284,6 +285,7 @@ class SckBase
 
 		// Power
 		void sck_reset();
+		void printLastHang();
 		void goToSleep(uint32_t sleepPeriod=3000); 	// sleepPeriod in ms
 		SckBatt battery;
 		SckCharger charger;

@@ -38,6 +38,7 @@ enum CommandType {
     COM_SLEEP,
     COM_LED,
     COM_FILE,
+    COM_WDT,
 
     COM_COUNT
 };
@@ -71,6 +72,7 @@ void ntpConfig_com(SckBase* base, String parameters);
 void sleep_com(SckBase* base, String parameters);
 void led_com(SckBase* base, String parameters);
 void file_com(SckBase* base, String parameters);
+void wdt_com(SckBase* base, String parameters);
 
 typedef void (*com_function)(SckBase* , String);
 
@@ -130,7 +132,8 @@ public:
         OneCom {100,    COM_NTP_CONFIG,     "ntpsrv",   "Configure ntp server address and port: [-host serverName] [-port portNum]",                                                                                                                    ntpConfig_com},
         OneCom {100,    COM_SLEEP,          "sleep",    "Send the kit to sleep",                                                                                                                                                                        sleep_com},
         OneCom {100,    COM_LED,            "led",      "Changes led brightness: led [percent]",                                                                                                                                                        led_com},
-        OneCom {100,    COM_FILE,           "file",     "SD card file operations: [-ls] [-rm filename] [-less filename] [-allcsv]",                                                                                                                     file_com}
+        OneCom {100,    COM_FILE,           "file",     "SD card file operations: [-ls] [-rm filename] [-less filename] [-allcsv]",                                                                                                                     file_com},
+        OneCom {100,    COM_WDT,            "wdt",      "Shows watchdog status (debug): wdt [-hang (block main loop)] [-hangirq (block with interrupts disabled)] [-sleep seconds]",                                                         wdt_com}
 
     };
 

@@ -31,6 +31,9 @@ void SckBase::setup()
 	// Led
 	led.setup();
 
+	// Watchdog
+	wdt.setup();
+
 	// ESP Configuration
 	pinMode(pinPOWER_ESP, OUTPUT);
 	pinMode(pinESP_CH_PD, OUTPUT);
@@ -58,6 +61,8 @@ void SckBase::setup()
 		rtc.setDate(1, 1, 15);
 	}
 	espStarted = now;
+
+	printLastHang();
 
 	// Flash storage
 	sckOut("Starting flash memory...");
@@ -152,6 +157,8 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
+    wdt.feed();
+
     if (millis() - reviewStateMillis > 250) {
         reviewStateMillis = millis();
         reviewState();
@@ -900,6 +907,13 @@ bool SckBase::createInfo(char* buffer, bool pretty)
             break;
     }
 
+    SckWatchdog::HangInfo hang = wdt.lastHang();
+    if (hang.valid) {
+        char hangBuff[24];
+        snprintf(hangBuff, sizeof(hangBuff), "%08lx/%08lx", hang.pc, hang.lr);
+        json["wdt_hang"] = hangBuff;
+    }
+
     if (pretty) serializeJsonPretty(json, buffer, NETBUFF_SIZE);
     else serializeJson(json, buffer, NETBUFF_SIZE);
 }
@@ -954,6 +968,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				uint32_t flashTimeout = millis();
 				uint32_t startTimeout = millis();
 				while(1) {
+					wdt.feed();
 					if (SerialUSB.available()) {
 						SerialESP.write(SerialUSB.read());
 						flashTimeout = millis();
@@ -1340,6 +1355,7 @@ void SckBase::fileManager(fileCom command, const char* name)
             while (sckFile.available() > FBUFF_SIZE) {
                 sckFile.read(fbuff, FBUFF_SIZE);
                 Serial.write(fbuff, FBUFF_SIZE);
+                wdt.feed();     // Big files can take longer than the WDT timeout
             }
 
             // Get remaining chars
@@ -1387,6 +1403,7 @@ void SckBase::fileManager(fileCom command, const char* name)
                     while (sckFile.available() > FBUFF_SIZE) {
                         sckFile.read(fbuff, FBUFF_SIZE);
                         Serial.write(fbuff, FBUFF_SIZE);
+                        wdt.feed();     // Big files can take longer than the WDT timeout
                     }
 
                     // Get remaining chars
@@ -1482,6 +1499,15 @@ void SckBase::saveHeader(FsFile* thisFile)
 }
 
 // **** Power
+void SckBase::printLastHang()
+{
+    SckWatchdog::HangInfo hang = wdt.lastHang();
+    if (!hang.valid) return;
+
+    // Use: arm-none-eabi-addr2line -f -e firmware.elf <pc> <lr>
+    sprintf(outBuff, "Last watchdog reset: code was stuck at PC 0x%08lx (LR 0x%08lx)", hang.pc, hang.lr);
+    sckOut(PRIO_HIGH);
+}
 void SckBase::sck_reset()
 {
 #ifdef SCK_WITH_URBAN
@@ -1651,6 +1677,7 @@ void SckBase::updatePower()
 
                 // Wake up every minute to check if USB power is back
                 while (!charger.onUSB) {
+                    wdt.feed();
                     goToSleep(60000);
                     charger.detectUSB(this);  // When USB is detecteed the kit should reset to start on clean state
                     if (millis() - lastUserEvent < (config.sleepTimer * 60000)) break;  // Wakeup on user interaction (will go to sleep again after sone blinks)
@@ -1771,6 +1798,7 @@ void SckBase::sleepLoop()
         ((millis() - lastUserEvent) > (config.sleepTimer * 60000)) &&                   // No recent user interaction (button, sdcard or USB events)
         (config.sleepTimer > 0)) {                                  // sleep is enabled
 
+        wdt.feed();
         led.off();
         goToSleep(sleepPeriod * 1000);
 

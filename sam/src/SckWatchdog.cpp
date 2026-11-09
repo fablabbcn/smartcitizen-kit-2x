@@ -5,37 +5,51 @@ SckWatchdog wdt;
 // Survives a WDT reset (not zeroed by the startup code). The bootloader may
 // overwrite it, so it is only trusted if the magic matches.
 #define SCK_WDT_HANG_MAGIC 0x57445448  // "WDTH"
+#define SCK_FAULT_MAGIC 0x46415554     // "FAUT"
 struct NoInitHang { uint32_t magic; uint32_t pc; uint32_t lr; uint32_t check; };
 static NoInitHang noInitHang __attribute__((section(".noinit")));
 
 // The stacked exception frame (r0, r1, r2, r3, r12, lr, pc, xpsr) tells us
-// where the main code was running when the Early Warning fired.
+// where the code was running when the Early Warning (or a HardFault) happened.
 extern "C" void WDT_HandlerC(uint32_t *stackFrame)
 {
     wdt.earlyWarning(stackFrame);
 }
+// Gets the stack frame of the interrupted code and calls handlerC with it
+#define SCK_STACKFRAME_TRAMPOLINE(handlerC) \
+    __asm volatile ( \
+        "movs r0, #4        \n" \
+        "mov  r1, lr        \n" \
+        "tst  r0, r1        \n" \
+        "beq  1f            \n" \
+        "mrs  r0, psp       \n" \
+        "b    2f            \n" \
+        "1:                 \n" \
+        "mrs  r0, msp       \n" \
+        "2:                 \n" \
+        "ldr  r1, =" #handlerC " \n" \
+        "bx   r1            \n" \
+    )
 extern "C" __attribute__((naked)) void WDT_Handler(void)
 {
-    __asm volatile (
-        "movs r0, #4        \n"
-        "mov  r1, lr        \n"
-        "tst  r0, r1        \n"
-        "beq  1f            \n"
-        "mrs  r0, psp       \n"
-        "b    2f            \n"
-        "1:                 \n"
-        "mrs  r0, msp       \n"
-        "2:                 \n"
-        "ldr  r1, =WDT_HandlerC \n"
-        "bx   r1            \n"
-    );
+    SCK_STACKFRAME_TRAMPOLINE(WDT_HandlerC);
+}
+extern "C" void HardFault_HandlerC(uint32_t *stackFrame)
+{
+    wdt.hardFault(stackFrame);
+}
+// Instead of hanging forever (Arduino default) save the crash location and reset
+extern "C" __attribute__((naked)) void HardFault_Handler(void)
+{
+    SCK_STACKFRAME_TRAMPOLINE(HardFault_HandlerC);
 }
 
 void SckWatchdog::setup()
 {
     // Recover info from a previous WDT reset
-    if ((PM->RCAUSE.reg & PM_RCAUSE_WDT) && noInitHang.magic == SCK_WDT_HANG_MAGIC && noInitHang.check == (noInitHang.pc ^ noInitHang.lr)) {
-        _lastHang = { true, noInitHang.pc, noInitHang.lr };
+    if (noInitHang.check == (noInitHang.pc ^ noInitHang.lr)) {
+        if ((PM->RCAUSE.reg & PM_RCAUSE_WDT) && noInitHang.magic == SCK_WDT_HANG_MAGIC) _lastHang = { true, HANG_WDT, noInitHang.pc, noInitHang.lr };
+        else if ((PM->RCAUSE.reg & PM_RCAUSE_SYST) && noInitHang.magic == SCK_FAULT_MAGIC) _lastHang = { true, HANG_FAULT, noInitHang.pc, noInitHang.lr };
     }
     noInitHang.magic = 0;
 
@@ -135,6 +149,14 @@ void SckWatchdog::earlyWarning(uint32_t *stackFrame)
         noInitHang.check = noInitHang.pc ^ noInitHang.lr;
         noInitHang.magic = SCK_WDT_HANG_MAGIC;
     }
+}
+void SckWatchdog::hardFault(uint32_t *stackFrame)
+{
+    noInitHang.pc = stackFrame[6];
+    noInitHang.lr = stackFrame[5];
+    noInitHang.check = noInitHang.pc ^ noInitHang.lr;
+    noInitHang.magic = SCK_FAULT_MAGIC;
+    NVIC_SystemReset();
 }
 void SckWatchdog::_sync()
 {

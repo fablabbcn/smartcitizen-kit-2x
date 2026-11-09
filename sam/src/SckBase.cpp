@@ -911,7 +911,8 @@ bool SckBase::createInfo(char* buffer, bool pretty)
     if (hang.valid) {
         char hangBuff[24];
         snprintf(hangBuff, sizeof(hangBuff), "%08lx/%08lx", hang.pc, hang.lr);
-        json["wdt_hang"] = hangBuff;
+        if (hang.type == SckWatchdog::HANG_FAULT) json["fault"] = hangBuff;
+        else json["wdt_hang"] = hangBuff;
     }
 
     if (pretty) serializeJsonPretty(json, buffer, NETBUFF_SIZE);
@@ -1505,7 +1506,8 @@ void SckBase::printLastHang()
     if (!hang.valid) return;
 
     // Use: arm-none-eabi-addr2line -f -e firmware.elf <pc> <lr>
-    sprintf(outBuff, "Last watchdog reset: code was stuck at PC 0x%08lx (LR 0x%08lx)", hang.pc, hang.lr);
+    if (hang.type == SckWatchdog::HANG_FAULT) sprintf(outBuff, "Last reset was caused by a crash (HardFault) at PC 0x%08lx (LR 0x%08lx)", hang.pc, hang.lr);
+    else sprintf(outBuff, "Last watchdog reset: code was stuck at PC 0x%08lx (LR 0x%08lx)", hang.pc, hang.lr);
     sckOut(PRIO_HIGH);
 }
 void SckBase::sck_reset()

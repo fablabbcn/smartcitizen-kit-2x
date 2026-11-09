@@ -25,8 +25,9 @@
 class SckWatchdog
     {
     public:
-        // Info about the place where the code was stuck before the last WDT reset
-        struct HangInfo { bool valid; uint32_t pc; uint32_t lr; };
+        // Info about the place where the code was stuck (WDT) or crashed (HardFault) before the last reset
+        enum HangType { HANG_NONE, HANG_WDT, HANG_FAULT };
+        struct HangInfo { bool valid; HangType type; uint32_t pc; uint32_t lr; };
 
         void setup();                   // Configure and start the WDT
         void enable();
@@ -37,14 +38,15 @@ class SckWatchdog
         bool enabled();
         bool suspended();
         uint32_t lastFeed = 0;          // millis() of the last feed()
-        HangInfo lastHang();            // Valid only if the last reset was caused by the WDT
+        HangInfo lastHang();            // Valid only if the last reset was caused by the WDT or a HardFault
         void earlyWarning(uint32_t *stackFrame);    // Called from WDT interrupt
+        void hardFault(uint32_t *stackFrame);       // Called from HardFault handler
 
     private:
         volatile uint8_t _ewCounter = 0;
         volatile bool _suspended = false;
         bool _enabled = false;
-        HangInfo _lastHang = { false, 0, 0 };
+        HangInfo _lastHang = { false, HANG_NONE, 0, 0 };
         const uint8_t _ewLimit = SCK_WDT_TIMEOUT_S / SCK_WDT_EW_PERIOD_S;
         void _sync();
     };

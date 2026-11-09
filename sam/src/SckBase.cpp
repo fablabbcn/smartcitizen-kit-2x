@@ -1874,14 +1874,40 @@ void SckBase::sleepLoop()
 }
 
 // **** Sensors
+// PM sensors are powered by the 5v step up (pinPM_ENABLE)
+static bool onPMpower(SensorType wichSensor)
+{
+#ifdef SCK_WITH_PMS
+    if (wichSensor >= SENSOR_PMS_PM_1 && wichSensor <= SENSOR_PMS_PN_10) return true;
+#endif
+#ifdef SCK_WITH_SPS30
+    if (wichSensor >= SENSOR_SPS30_PM_1 && wichSensor <= SENSOR_SPS30_TPSIZE) return true;
+#endif
+#ifdef SCK_WITH_SEN5X
+    if (wichSensor >= SENSOR_SEN5X_PM_1 && wichSensor <= SENSOR_SEN5X_NOX_RAW) return true;
+#endif
+    return false;
+}
 void SckBase::urbanStart()
 {
     analogReadResolution(12);
 
-    // Try to start enabled sensors
+    // Start the PM sensor first and alone: with USB power only (no battery) its power-on
+    // current peak added to the other sensors can drop the 3.3v rail and reset the SAM (#98)
+    bool pmStarted = false;
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
+        OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+        if (wichSensor->location == BOARD_URBAN && onPMpower(wichSensor->type) && config.sensors[wichSensor->type].enabled) {
+            if (enableSensor(wichSensor->type)) pmStarted = true;
+        }
+    }
+    if (pmStarted) delay(SCK_PM_SETTLE_MS);
+
+    // Try to start the rest of enabled sensors
     for (uint16_t i=0; i<SENSOR_COUNT; i++) {
         OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
         if (wichSensor->location == BOARD_URBAN) {
+            if (onPMpower(wichSensor->type) && config.sensors[wichSensor->type].enabled) continue;  // Already started
             if (config.sensors[wichSensor->type].enabled) enableSensor(wichSensor->type);
             else sensors[wichSensor->type].enabled = false;
         }

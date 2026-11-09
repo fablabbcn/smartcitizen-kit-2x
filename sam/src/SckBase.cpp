@@ -152,6 +152,9 @@ void SckBase::setup()
     sckOut("Turning on WiFi...");
     ESPcontrol(ESP_ON);
 
+    // Startup peaks are over, enable battery charging (updatePower() manages it from now on)
+    charger.chargeState(1);
+
     // Update battery parcent for power management stuff
     battery.percent(&charger);
 

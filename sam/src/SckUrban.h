@@ -515,8 +515,14 @@ class Sck_SEN5X
             return false;
         }
 
-        enum SEN5XState { SEN5X_OFF, SEN5X_IDLE, SEN5X_RHTGAS_ONLY, SEN5X_MEASUREMENT, SEN5X_MEASUREMENT_2, SEN5X_CLEANING, SEN5X_NOT_DETECTED };
+        // POWERED_DOWN: metrics are enabled but the 5 V rail is cut between PM samples
+        enum SEN5XState { SEN5X_OFF, SEN5X_IDLE, SEN5X_RHTGAS_ONLY, SEN5X_MEASUREMENT, SEN5X_MEASUREMENT_2, SEN5X_CLEANING, SEN5X_NOT_DETECTED, SEN5X_POWERED_DOWN };
         SEN5XState state = SEN5X_OFF;
+
+        bool gasModeNeededBetweenSamples();
+        bool powerUp();
+        void powerDown();
+        bool readVersion();     // getVer() without power handling
 
         uint32_t lastReading = 0;
         uint32_t measureStarted = 0;

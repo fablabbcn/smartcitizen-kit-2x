@@ -1,4 +1,5 @@
 #include "SckBase.h"
+#include <new>
 #include "Commands.h"
 
 // Hardware Auxiliary I2C bus
@@ -15,11 +16,23 @@ AuxBoards auxBoards;
 
 // Eeprom flash emulation to store persistent variables
 FlashStorage(eepromConfig, Configuration);
+// Access to the same flash storage without copying Configuration on the stack: FlashStorageClass
+// read()/write() pass it by value, and with little free RAM (stack + heap ~2KB) the extra copies
+// made the stack overwrite the heap when the default config is loaded (first boot after flashing).
+FlashClass eepromConfigFlash(_dataeepromConfig, sizeof(Configuration));
+static void writeConfigFlash(const Configuration *conf)
+{
+    eepromConfigFlash.erase();
+    eepromConfigFlash.write(conf);
+}
 
 void SckBase::setup()
 {
 	// Led
 	led.setup();
+
+	// Watchdog
+	wdt.setup();
 
 	// ESP Configuration
 	pinMode(pinPOWER_ESP, OUTPUT);
@@ -48,6 +61,8 @@ void SckBase::setup()
 		rtc.setDate(1, 1, 15);
 	}
 	espStarted = now;
+
+	printLastHang();
 
 	// Flash storage
 	sckOut("Starting flash memory...");
@@ -89,6 +104,9 @@ void SckBase::setup()
     // Configuration
     loadConfig();
     if (st.mode == MODE_NOT_CONFIGURED) writeHeader = true;
+
+    // Report reset cause before anything else can fail
+    bootReport();
 
     // Urban board
     urbanStart();
@@ -134,6 +152,9 @@ void SckBase::setup()
     sckOut("Turning on WiFi...");
     ESPcontrol(ESP_ON);
 
+    // Startup peaks are over, enable battery charging (updatePower() manages it from now on)
+    charger.chargeState(1);
+
     // Update battery parcent for power management stuff
     battery.percent(&charger);
 
@@ -142,6 +163,8 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
+    wdt.feed();
+
     if (millis() - reviewStateMillis > 250) {
         reviewStateMillis = millis();
         reviewState();
@@ -160,25 +183,7 @@ void SckBase::update()
 
     if (millis() - generalUpdateTimer > 500) {
 
-        // Avoid ESP hangs
-        if (st.espBooting) {
-            if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
-        }
-
-        if (pendingSyncConfig) {
-            if (millis() - sendConfigTimer > 1000) {
-                sendConfigTimer = millis();
-                if (sendConfigCounter > 3) {
-                    ESPcontrol(ESP_REBOOT);
-                    sendConfigCounter = 0;
-                } else if (st.espON) {
-                    if (!st.espBooting) sendConfig();
-                    sendConfigCounter++;
-                } else {
-                    ESPcontrol(ESP_ON);
-                }
-            }
-        }
+        ESPmaintenance();
 
         if (sdInitPending) sdInit();
 
@@ -216,6 +221,66 @@ void SckBase::update()
         if (sensors[SENSOR_GROVE_OLED].enabled) auxBoards.updateDisplay(this);
 #endif
     }
+}
+
+void SckBase::ESPmaintenance()
+{
+    // Avoid ESP hangs
+    if (st.espBooting) {
+        if (rtc.getEpoch() - espStarted > 3) ESPcontrol(ESP_REBOOT);
+    }
+
+    if (pendingSyncConfig) {
+        if (millis() - sendConfigTimer > 1000) {
+            sendConfigTimer = millis();
+            if (sendConfigCounter > 3) {
+                ESPcontrol(ESP_REBOOT);
+                sendConfigCounter = 0;
+            } else if (st.espON) {
+                if (!st.espBooting) sendConfig();
+                sendConfigCounter++;
+            } else {
+                ESPcontrol(ESP_ON);
+            }
+        }
+    }
+}
+void SckBase::bootReport()
+{
+    // Publish kit info (including reset cause and watchdog hang info) before starting
+    // sensors, so resets during sensor startup (ex. reset loops) are still reported.
+    if (st.mode != MODE_NET || !st.wifiSet || !st.tokenSet) return;
+
+    sckOut("Reporting boot to platform...");
+    uint32_t started = millis();
+    uint32_t lastGeneral = 0;
+    while (!infoPublished && millis() - started < SCK_BOOT_REPORT_TIMEOUT) {
+        wdt.feed();
+
+        // Only the network part of the state machine: no sensors are started yet
+        if (millis() - reviewStateMillis > 250) {
+            reviewStateMillis = millis();
+            reviewState();
+        }
+        if (millis() - lastGeneral > 500) {
+            lastGeneral = millis();
+            ESPmaintenance();
+        }
+        ESPbusUpdate();
+    }
+
+    if (st.infoStat.ok) sckOut("Boot reported to platform");
+    else {
+        sckOut("Boot report failed, will retry later", PRIO_HIGH);
+        infoPublished = false;
+        st.infoStat.reset();
+    }
+
+    // Leave the ESP off while sensors start (avoid adding its consumption to the sensors startup peak)
+    if (st.espON) ESPcontrol(ESP_OFF);
+    st.wifiStat.reset();
+    st.lastWiFiError = 0;
+    st.wifiErrorCounter = 0;
 }
 
 // **** Mode Control
@@ -673,10 +738,9 @@ void SckBase::loadConfig()
 {
 	sckOut("Loading configuration from eeprom...");
 
-	Configuration savedConf = eepromConfig.read();
+	eepromConfigFlash.read(&config);
 
-	if (savedConf.valid) config = savedConf;
-	else {
+	if (!config.valid) {
 		sckOut("Can't find valid configuration. Loading defaults...");
 		saveConfig(true);
 	}
@@ -724,9 +788,7 @@ void SckBase::saveConfig(bool defaults)
 {
 	// Load defaults
 	if (defaults) {
-		Configuration defaultConfig;
-
-        config = defaultConfig;
+        new (&config) Configuration();      // Defaults, constructed in place (no copy on the stack)
 
         for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
@@ -745,7 +807,7 @@ void SckBase::saveConfig(bool defaults)
     // This means that if you want to make sensor state persistent you have to change explicitly config.sensors
 
 	// Save to eeprom
-	eepromConfig.write(config);
+	writeConfigFlash(&config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
 	lastUserEvent = millis();
 
@@ -893,6 +955,14 @@ bool SckBase::createInfo(char* buffer, bool pretty)
             break;
     }
 
+    SckWatchdog::HangInfo hang = wdt.lastHang();
+    if (hang.valid) {
+        char hangBuff[24];
+        snprintf(hangBuff, sizeof(hangBuff), "%08lx/%08lx", hang.pc, hang.lr);
+        if (hang.type == SckWatchdog::HANG_FAULT) json["fault"] = hangBuff;
+        else json["wdt_hang"] = hangBuff;
+    }
+
     if (pretty) serializeJsonPretty(json, buffer, NETBUFF_SIZE);
     else serializeJson(json, buffer, NETBUFF_SIZE);
 }
@@ -947,6 +1017,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				uint32_t flashTimeout = millis();
 				uint32_t startTimeout = millis();
 				while(1) {
+					wdt.feed();
 					if (SerialUSB.available()) {
 						SerialESP.write(SerialUSB.read());
 						flashTimeout = millis();
@@ -1281,7 +1352,8 @@ bool SckBase::saveInfo()
     // Save info to sdcard
     if (!infoSaved) {
         if (sd.exists(SD_INFO_NAME)) sd.remove(SD_INFO_NAME);
-        sckFile.open(SD_INFO_NAME, FILE_WRITE);
+        // The boot report can get here before the sdcard is ready: try again from sdInit()
+        if (!sckFile.open(SD_INFO_NAME, FILE_WRITE)) return false;
 
         if (!createInfo(outBuff, true)) return false;
         sckFile.write(outBuff, strlen(outBuff));
@@ -1333,6 +1405,7 @@ void SckBase::fileManager(fileCom command, const char* name)
             while (sckFile.available() > FBUFF_SIZE) {
                 sckFile.read(fbuff, FBUFF_SIZE);
                 Serial.write(fbuff, FBUFF_SIZE);
+                wdt.feed();     // Big files can take longer than the WDT timeout
             }
 
             // Get remaining chars
@@ -1380,6 +1453,7 @@ void SckBase::fileManager(fileCom command, const char* name)
                     while (sckFile.available() > FBUFF_SIZE) {
                         sckFile.read(fbuff, FBUFF_SIZE);
                         Serial.write(fbuff, FBUFF_SIZE);
+                        wdt.feed();     // Big files can take longer than the WDT timeout
                     }
 
                     // Get remaining chars
@@ -1475,6 +1549,16 @@ void SckBase::saveHeader(FsFile* thisFile)
 }
 
 // **** Power
+void SckBase::printLastHang()
+{
+    SckWatchdog::HangInfo hang = wdt.lastHang();
+    if (!hang.valid) return;
+
+    // Use: arm-none-eabi-addr2line -f -e firmware.elf <pc> <lr>
+    if (hang.type == SckWatchdog::HANG_FAULT) sprintf(outBuff, "Last reset was caused by a crash (HardFault) at PC 0x%08lx (LR 0x%08lx)", hang.pc, hang.lr);
+    else sprintf(outBuff, "Last watchdog reset: code was stuck at PC 0x%08lx (LR 0x%08lx)", hang.pc, hang.lr);
+    sckOut(PRIO_HIGH);
+}
 void SckBase::sck_reset()
 {
 #ifdef SCK_WITH_URBAN
@@ -1487,7 +1571,7 @@ void SckBase::sck_reset()
             sckOut();
             config.extra.ccsBaseline = savedBaseLine;
             config.extra.ccsBaselineValid = true;
-            eepromConfig.write(config);
+            writeConfigFlash(&config);
         }
     }
 #endif
@@ -1644,6 +1728,7 @@ void SckBase::updatePower()
 
                 // Wake up every minute to check if USB power is back
                 while (!charger.onUSB) {
+                    wdt.feed();
                     goToSleep(60000);
                     charger.detectUSB(this);  // When USB is detecteed the kit should reset to start on clean state
                     if (millis() - lastUserEvent < (config.sleepTimer * 60000)) break;  // Wakeup on user interaction (will go to sleep again after sone blinks)
@@ -1764,6 +1849,7 @@ void SckBase::sleepLoop()
         ((millis() - lastUserEvent) > (config.sleepTimer * 60000)) &&                   // No recent user interaction (button, sdcard or USB events)
         (config.sleepTimer > 0)) {                                  // sleep is enabled
 
+        wdt.feed();
         led.off();
         goToSleep(sleepPeriod * 1000);
 
@@ -1791,14 +1877,40 @@ void SckBase::sleepLoop()
 }
 
 // **** Sensors
+// PM sensors are powered by the 5v step up (pinPM_ENABLE)
+static bool onPMpower(SensorType wichSensor)
+{
+#ifdef SCK_WITH_PMS
+    if (wichSensor >= SENSOR_PMS_PM_1 && wichSensor <= SENSOR_PMS_PN_10) return true;
+#endif
+#ifdef SCK_WITH_SPS30
+    if (wichSensor >= SENSOR_SPS30_PM_1 && wichSensor <= SENSOR_SPS30_TPSIZE) return true;
+#endif
+#ifdef SCK_WITH_SEN5X
+    if (wichSensor >= SENSOR_SEN5X_PM_1 && wichSensor <= SENSOR_SEN5X_NOX_RAW) return true;
+#endif
+    return false;
+}
 void SckBase::urbanStart()
 {
     analogReadResolution(12);
 
-    // Try to start enabled sensors
+    // Start the PM sensor first and alone: with USB power only (no battery) its power-on
+    // current peak added to the other sensors can drop the 3.3v rail and reset the SAM (#98)
+    bool pmStarted = false;
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
+        OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
+        if (wichSensor->location == BOARD_URBAN && onPMpower(wichSensor->type) && config.sensors[wichSensor->type].enabled) {
+            if (enableSensor(wichSensor->type)) pmStarted = true;
+        }
+    }
+    if (pmStarted) delay(SCK_PM_SETTLE_MS);
+
+    // Try to start the rest of enabled sensors
     for (uint16_t i=0; i<SENSOR_COUNT; i++) {
         OneSensor *wichSensor = &sensors[static_cast<SensorType>(i)];
         if (wichSensor->location == BOARD_URBAN) {
+            if (onPMpower(wichSensor->type) && config.sensors[wichSensor->type].enabled) continue;  // Already started
             if (config.sensors[wichSensor->type].enabled) enableSensor(wichSensor->type);
             else sensors[wichSensor->type].enabled = false;
         }

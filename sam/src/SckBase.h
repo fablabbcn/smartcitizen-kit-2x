@@ -23,10 +23,13 @@
 #include "SckAux.h"
 #include "SckList.h"
 #include "SckSerial.h"
+#include "SckWatchdog.h"
 
 #include "version.h"
 
 #define IM_SAM
+
+#define SCK_BOOT_REPORT_TIMEOUT 30000  // ms, max time spent reporting reset cause on boot
 
 class Status
     {
@@ -112,6 +115,8 @@ class SckBase
 
 		// ESP communication
 		void ESPbusUpdate();
+		void ESPmaintenance();
+		void bootReport();
 		bool sendConfig();
 		uint32_t sendConfigTimer = 0;
 		uint8_t sendConfigCounter = 0;
@@ -284,6 +289,7 @@ class SckBase
 
 		// Power
 		void sck_reset();
+		void printLastHang();
 		void goToSleep(uint32_t sleepPeriod=3000); 	// sleepPeriod in ms
 		SckBatt battery;
 		SckCharger charger;

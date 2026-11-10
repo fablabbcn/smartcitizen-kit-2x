@@ -1,4 +1,5 @@
 #include "SckBase.h"
+#include <new>
 #include "Commands.h"
 
 // Hardware Auxiliary I2C bus
@@ -15,11 +16,23 @@ AuxBoards auxBoards;
 
 // Eeprom flash emulation to store persistent variables
 FlashStorage(eepromConfig, Configuration);
+// Access to the same flash storage without copying Configuration on the stack: FlashStorageClass
+// read()/write() pass it by value, and with little free RAM (stack + heap ~2KB) the extra copies
+// made the stack overwrite the heap when the default config is loaded (first boot after flashing).
+FlashClass eepromConfigFlash(_dataeepromConfig, sizeof(Configuration));
+static void writeConfigFlash(const Configuration *conf)
+{
+    eepromConfigFlash.erase();
+    eepromConfigFlash.write(conf);
+}
 
 void SckBase::setup()
 {
 	// Led
 	led.setup();
+
+	// Watchdog
+	wdt.setup();
 
 	// ESP Configuration
 	pinMode(pinPOWER_ESP, OUTPUT);
@@ -48,6 +61,8 @@ void SckBase::setup()
 		rtc.setDate(1, 1, 15);
 	}
 	espStarted = now;
+
+	printLastHang();
 
 	// Flash storage
 	sckOut("Starting flash memory...");
@@ -142,6 +157,8 @@ void SckBase::setup()
 }
 void SckBase::update()
 {
+    wdt.feed();
+
     if (millis() - reviewStateMillis > 250) {
         reviewStateMillis = millis();
         reviewState();
@@ -673,10 +690,9 @@ void SckBase::loadConfig()
 {
 	sckOut("Loading configuration from eeprom...");
 
-	Configuration savedConf = eepromConfig.read();
+	eepromConfigFlash.read(&config);
 
-	if (savedConf.valid) config = savedConf;
-	else {
+	if (!config.valid) {
 		sckOut("Can't find valid configuration. Loading defaults...");
 		saveConfig(true);
 	}
@@ -724,9 +740,7 @@ void SckBase::saveConfig(bool defaults)
 {
 	// Load defaults
 	if (defaults) {
-		Configuration defaultConfig;
-
-        config = defaultConfig;
+        new (&config) Configuration();      // Defaults, constructed in place (no copy on the stack)
 
         for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
@@ -745,7 +759,7 @@ void SckBase::saveConfig(bool defaults)
     // This means that if you want to make sensor state persistent you have to change explicitly config.sensors
 
 	// Save to eeprom
-	eepromConfig.write(config);
+	writeConfigFlash(&config);
 	sckOut("Saved configuration on eeprom!!", PRIO_LOW);
 	lastUserEvent = millis();
 
@@ -893,6 +907,14 @@ bool SckBase::createInfo(char* buffer, bool pretty)
             break;
     }
 
+    SckWatchdog::HangInfo hang = wdt.lastHang();
+    if (hang.valid) {
+        char hangBuff[24];
+        snprintf(hangBuff, sizeof(hangBuff), "%08lx/%08lx", hang.pc, hang.lr);
+        if (hang.type == SckWatchdog::HANG_FAULT) json["fault"] = hangBuff;
+        else json["wdt_hang"] = hangBuff;
+    }
+
     if (pretty) serializeJsonPretty(json, buffer, NETBUFF_SIZE);
     else serializeJson(json, buffer, NETBUFF_SIZE);
 }
@@ -947,6 +969,7 @@ void SckBase::ESPcontrol(ESPcontrols controlCommand)
 				uint32_t flashTimeout = millis();
 				uint32_t startTimeout = millis();
 				while(1) {
+					wdt.feed();
 					if (SerialUSB.available()) {
 						SerialESP.write(SerialUSB.read());
 						flashTimeout = millis();
@@ -1333,6 +1356,7 @@ void SckBase::fileManager(fileCom command, const char* name)
             while (sckFile.available() > FBUFF_SIZE) {
                 sckFile.read(fbuff, FBUFF_SIZE);
                 Serial.write(fbuff, FBUFF_SIZE);
+                wdt.feed();     // Big files can take longer than the WDT timeout
             }
 
             // Get remaining chars
@@ -1380,6 +1404,7 @@ void SckBase::fileManager(fileCom command, const char* name)
                     while (sckFile.available() > FBUFF_SIZE) {
                         sckFile.read(fbuff, FBUFF_SIZE);
                         Serial.write(fbuff, FBUFF_SIZE);
+                        wdt.feed();     // Big files can take longer than the WDT timeout
                     }
 
                     // Get remaining chars
@@ -1475,6 +1500,16 @@ void SckBase::saveHeader(FsFile* thisFile)
 }
 
 // **** Power
+void SckBase::printLastHang()
+{
+    SckWatchdog::HangInfo hang = wdt.lastHang();
+    if (!hang.valid) return;
+
+    // Use: arm-none-eabi-addr2line -f -e firmware.elf <pc> <lr>
+    if (hang.type == SckWatchdog::HANG_FAULT) sprintf(outBuff, "Last reset was caused by a crash (HardFault) at PC 0x%08lx (LR 0x%08lx)", hang.pc, hang.lr);
+    else sprintf(outBuff, "Last watchdog reset: code was stuck at PC 0x%08lx (LR 0x%08lx)", hang.pc, hang.lr);
+    sckOut(PRIO_HIGH);
+}
 void SckBase::sck_reset()
 {
 #ifdef SCK_WITH_URBAN
@@ -1487,7 +1522,7 @@ void SckBase::sck_reset()
             sckOut();
             config.extra.ccsBaseline = savedBaseLine;
             config.extra.ccsBaselineValid = true;
-            eepromConfig.write(config);
+            writeConfigFlash(&config);
         }
     }
 #endif
@@ -1644,6 +1679,7 @@ void SckBase::updatePower()
 
                 // Wake up every minute to check if USB power is back
                 while (!charger.onUSB) {
+                    wdt.feed();
                     goToSleep(60000);
                     charger.detectUSB(this);  // When USB is detecteed the kit should reset to start on clean state
                     if (millis() - lastUserEvent < (config.sleepTimer * 60000)) break;  // Wakeup on user interaction (will go to sleep again after sone blinks)
@@ -1764,6 +1800,7 @@ void SckBase::sleepLoop()
         ((millis() - lastUserEvent) > (config.sleepTimer * 60000)) &&                   // No recent user interaction (button, sdcard or USB events)
         (config.sleepTimer > 0)) {                                  // sleep is enabled
 
+        wdt.feed();
         led.off();
         goToSleep(sleepPeriod * 1000);
 

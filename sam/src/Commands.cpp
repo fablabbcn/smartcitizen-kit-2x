@@ -79,6 +79,8 @@ void resetCause_com(SckBase* base, String parameters)
             base->sckOut("SYST: System Reset Request");
             break;
     }
+
+    base->printLastHang();
 }
 void outlevel_com(SckBase* base, String parameters)
 {
@@ -532,6 +534,7 @@ void monitorSensor_com(SckBase* base, String parameters)
     uint32_t lastMillis = millis();
     while (!SerialUSB.available()) {
 
+        wdt.feed();
         uint32_t provLastMillis = millis();
         bool PMreadingReady = false;
         uint8_t printit = 0;
@@ -729,6 +732,7 @@ void flash_com(SckBase* base, String parameters)
             uint32_t totalRecovered = 0;
             if (all) {
                 for (uint16_t i=0; i<SCKLIST_SECTOR_NUM; i++)  {
+                    wdt.feed();
                     totalRecovered += base->readingsList.recover(i, thisFlag);
                 }
             } else totalRecovered = base->readingsList.recover(sectV, thisFlag);
@@ -1349,4 +1353,35 @@ void file_com(SckBase* base, String parameters)
             return;
         }
     }
+}
+void wdt_com(SckBase* base, String parameters)
+{
+    if (parameters.indexOf("-hangirq") >= 0) {
+        // Only the hardware WDT can get us out of here (16 seconds)
+        base->sckOut("Hanging with interrupts disabled...");
+        __disable_irq();
+        while (true) __asm volatile ("nop");
+    }
+
+    if (parameters.indexOf("-hang") >= 0) {
+        sprintf(base->outBuff, "Hanging main loop, reset expected in about %u seconds...", SCK_WDT_TIMEOUT_S);
+        base->sckOut();
+        while (true) __asm volatile ("nop");
+    }
+
+    int16_t sleepI = parameters.indexOf("-sleep");
+    if (sleepI >= 0) {
+        uint32_t sleepSeconds = parameters.substring(sleepI + 7).toInt();
+        if (sleepSeconds == 0) sleepSeconds = 30;
+        base->goToSleep(sleepSeconds * 1000);
+        return;
+    }
+
+    sprintf(base->outBuff, "Watchdog: %s%s", wdt.enabled() ? "enabled" : "disabled", wdt.suspended() ? " (suspended)" : "");
+    base->sckOut();
+    sprintf(base->outBuff, "Timeout: ~%u seconds (hardware: 16 seconds)", SCK_WDT_TIMEOUT_S);
+    base->sckOut();
+    sprintf(base->outBuff, "Last feed: %lu ms ago", millis() - wdt.lastFeed);
+    base->sckOut();
+    base->printLastHang();
 }

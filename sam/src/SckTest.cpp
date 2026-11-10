@@ -616,10 +616,11 @@ bool SckTest::publishResult()
 	sprintf(buffer, "{\"time\":\"%s\",\"id\":\"%s\",\"mac\":\"%s\",\"errors\":%u,\"tests\":[", test_report.time.c_str(), id.c_str(), test_report.mac.c_str(), errors);
 
     for (uint8_t i=0; i<TEST_COUNT; i++) {
-        if (i > 0) sprintf(buffer, "%s,", buffer);
-        sprintf(buffer, "%s{\"%u\":%0.2f}", buffer, i, test_report.tests[i]);
+        if (i > 0) strncat(buffer, ",", NETBUFF_SIZE - strlen(buffer) - 1);
+        size_t _l = strlen(buffer);
+        snprintf(buffer + _l, NETBUFF_SIZE - _l, "{\"%u\":%0.2f}", i, test_report.tests[i]);
     }
-    sprintf(buffer, "%s]}", buffer);
+    strncat(buffer, "]}", NETBUFF_SIZE - strlen(buffer) - 1);
 
     // Clean any ESP msg
     uint32_t start = millis();

@@ -59,6 +59,13 @@ if 'dump-env' in sys.argv:
         ERROR('dump-env cannot be combined with other actions: ' + ', '.join(other_actions)); sys.exit()
     kit = sck.sck(check_pio_sam=True, check_pio_esp=True, dump_env=True)
 
+# Without pio-envs.json sck finds no environments: building does nothing and flashing fails
+elif not os.path.exists('pio-envs.json'):
+    enablePrint()
+    print('pio-envs.json not found, creating it...')
+    if not verbose: blockPrint()
+    kit = sck.sck(check_pio_sam=True, check_pio_esp=True, dump_env=True)
+
 check_pio_sam = True
 check_pio_esp = True
 if '--no-sam-pio-check' in sys.argv:

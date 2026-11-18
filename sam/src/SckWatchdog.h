@@ -15,8 +15,9 @@
 // timeout (SCK_WDT_TIMEOUT_S) while still resetting after 16 seconds if
 // interrupts get blocked.
 //
-// The generator does not run in standby, so the WDT is frozen while the kit
-// sleeps and resumes counting on wakeup.
+// The WDT keeps running in standby, so the Early Warning interrupt also wakes
+// the kit every 8 seconds while it sleeps. SckBase::goToSleep() suspends the
+// WDT and goes back to sleep when that was the only reason to wake up.
 
 #define SCK_WDT_TIMEOUT_S 60        // Main loop must call feed() at least this often (seconds)
 #define SCK_WDT_EW_PERIOD_S 8       // Early Warning interrupt period (seconds)
@@ -38,6 +39,7 @@ class SckWatchdog
         bool enabled();
         bool suspended();
         uint32_t lastFeed = 0;          // millis() of the last feed()
+        volatile bool ewWakeup = false; // Set by the Early Warning interrupt (it also wakes the kit from standby)
         HangInfo lastHang();            // Valid only if the last reset was caused by the WDT or a HardFault
         void earlyWarning(uint32_t *stackFrame);    // Called from WDT interrupt
         void hardFault(uint32_t *stackFrame);       // Called from HardFault handler

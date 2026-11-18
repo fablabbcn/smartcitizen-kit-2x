@@ -1538,6 +1538,8 @@ void SckBase::sck_reset()
 
 void SckBase::goToSleep(uint32_t sleepPeriod)
 {
+    uint32_t wakeupEpoch = 0;
+
     led.off();
     if (st.espON) ESPcontrol(ESP_OFF);
 
@@ -1600,7 +1602,8 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
         // Set alarm to wakeup via RTC
         rtc.attachInterrupt(NULL);
         uint32_t now = rtc.getEpoch();
-        rtc.setAlarmEpoch(now + sleepPeriod/1000);
+        wakeupEpoch = now + sleepPeriod/1000;
+        rtc.setAlarmEpoch(wakeupEpoch);
         rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
     }
 
@@ -1608,8 +1611,17 @@ void SckBase::goToSleep(uint32_t sleepPeriod)
     USBDevice.standby();
     SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-    __DSB();
-    __WFI();
+
+    // The WDT Early Warning wakes us every 8 seconds: sleep again unless something else woke us
+    // (button, sdcard, RTC alarm) or the sleep period is over. Sleeping is not a hang.
+    wdt.suspend();
+    do {
+        wdt.ewWakeup = false;
+        __DSB();
+        __WFI();
+    } while (wdt.ewWakeup && digitalRead(pinBUTTON) && (sckOFF || rtc.getEpoch() < wakeupEpoch));
+    wdt.resume();
+
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 
 #ifdef SCK_WITH_URBAN

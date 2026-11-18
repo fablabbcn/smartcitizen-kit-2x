@@ -134,6 +134,7 @@ SckWatchdog::HangInfo SckWatchdog::lastHang()
 void SckWatchdog::earlyWarning(uint32_t *stackFrame)
 {
     WDT->INTFLAG.reg = WDT_INTFLAG_EW;
+    ewWakeup = true;
 
     if (!_suspended) _ewCounter++;
 

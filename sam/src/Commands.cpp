@@ -1373,7 +1373,10 @@ void wdt_com(SckBase* base, String parameters)
     if (sleepI >= 0) {
         uint32_t sleepSeconds = parameters.substring(sleepI + 7).toInt();
         if (sleepSeconds == 0) sleepSeconds = 30;
+        uint32_t started = base->rtc.getEpoch();
         base->goToSleep(sleepSeconds * 1000);
+        sprintf(base->outBuff, "Slept for %lu seconds", base->rtc.getEpoch() - started);
+        base->sckOut();
         return;
     }
 

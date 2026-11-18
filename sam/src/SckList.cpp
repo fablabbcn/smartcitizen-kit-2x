@@ -39,7 +39,10 @@ bool SckList::_flashFormat()
 {
     base->sckOut("Formating... be patient, don't turn off your kit!", PRIO_HIGH);
 
-    if (!flash.eraseChip()) {
+    wdt.suspend();
+    bool erased = flash.eraseChip();
+    wdt.resume();
+    if (!erased) {
         return false;
         base->sckOut("ERROR while formating flash memory!!!", PRIO_HIGH);
     }
@@ -1019,6 +1022,7 @@ void SckList::flashInfo(FlashInfo* info)
     uint8_t sectPrinted = 0;
 
     for (uint16_t i=0; i<SCKLIST_SECTOR_NUM; i++) {
+        wdt.feed();
 
         byte state = _getSectState(i);
 

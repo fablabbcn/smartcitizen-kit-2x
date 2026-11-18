@@ -88,7 +88,7 @@ bool SckSerial::send(SCKMessage whichMessage, const char *content)
 	// or to send a msg without payload (by sending an empty content: "")
 
 	// Check if message fits on buffer
-	if (strlen(content) > NETBUFF_SIZE) return false;
+	if (strlen(content) >= NETBUFF_SIZE) return false;
 
 	// Fills buffer with content
 	sprintf(buff, "%s", content);
@@ -114,11 +114,17 @@ bool SckSerial::receive()
 	debugPln(debugBuff);
 
 	// Get size
-	uint16_t size;
+	uint16_t size = 0;
 	_serial.readBytes(reinterpret_cast<uint8_t*>(&size), sizeof(uint16_t));
 
 	snprintf(debugBuff, 24, "size: %u", size);
 	debugPln(debugBuff);
+
+	// Discard corrupted messages (ex. ESP boot noise) that would overflow the buffer
+	if (size >= NETBUFF_SIZE) {
+		debugPln("Payload size too big, discarding");
+		return false;
+	}
 
 	// Finish now if no payload is present (just command)
 	if (size == 0) {

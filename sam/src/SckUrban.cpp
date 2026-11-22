@@ -8,13 +8,13 @@ void SERCOM5_Handler() {
 }
 
 
-#ifdef WITH_URBAN
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_URBAN
+#ifdef SCK_WITH_SEN5X
 // SEN5X flash space to save last cleaning date and VOC index algorithm state
 FlashStorage(eepromSEN5xLastCleaning, Sck_SEN5X::lastCleaning);
 FlashStorage(eepromSEN5xVOCstate, Sck_SEN5X::VOCstateStruct);
 #endif
-#ifdef WITH_SPS30
+#ifdef SCK_WITH_SPS30
 // SPS30 flash space to save last cleaning date
 FlashStorage(eepromSPS30LastCleaning, Sck_SPS30::lastCleaning);
 #endif
@@ -23,28 +23,31 @@ FlashStorage(eepromSPS30LastCleaning, Sck_SPS30::lastCleaning);
 bool SckUrban::start(SensorType wichSensor)
 {
     switch(wichSensor) {
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
         case SENSOR_LIGHT:              return sck_bh1730fvc.start();
         case SENSOR_TEMPERATURE:
         case SENSOR_HUMIDITY:           return sck_sht31.start();
+#ifdef SCK_WITH_NOISE
         case SENSOR_NOISE_DBA:
         case SENSOR_NOISE_DBC:
         case SENSOR_NOISE_DBZ:
+        case SENSOR_NOISE_PEAK_FREQ:
         case SENSOR_NOISE_FFT:          return sck_noise.start();
-#ifdef WITH_MPL
+#endif
+#ifdef SCK_WITH_MPL
         case SENSOR_MPL_ALTITUDE:
         case SENSOR_MPL_PRESSURE:
         case SENSOR_MPL_TEMP:           return sck_mpl3115A2.start();
 #endif
-#ifdef WITH_LPS33
+#ifdef SCK_WITH_LPS33
         case SENSOR_LPS33_PRESSURE:
         case SENSOR_LPS33_TEMP:         return sck_lps33.start();
 #endif
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_CCS811
         case SENSOR_CCS811_VOCS:        return sck_ccs811.start();
         case SENSOR_CCS811_ECO2:        return sck_ccs811.start();
 #endif
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
         case SENSOR_PMS_PM_1:
         case SENSOR_PMS_PM_25:
         case SENSOR_PMS_PM_10:
@@ -55,7 +58,7 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_PMS_PN_5:
         case SENSOR_PMS_PN_10:              return sck_pms.start();
 #endif
-#ifdef WITH_SPS30
+#ifdef SCK_WITH_SPS30
         case SENSOR_SPS30_PM_1:
         case SENSOR_SPS30_PM_25:
         case SENSOR_SPS30_PM_4:
@@ -67,7 +70,7 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_SPS30_PN_10:
         case SENSOR_SPS30_TPSIZE:        return sck_sps30.start(wichSensor);
 #endif
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_SEN5X
         case SENSOR_SEN5X_PM_1:
         case SENSOR_SEN5X_PM_25:
         case SENSOR_SEN5X_PM_4:
@@ -87,13 +90,13 @@ bool SckUrban::start(SensorType wichSensor)
         case SENSOR_SEN5X_VOCS_RAW:
         case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.start(wichSensor);
 #endif
-#ifdef WITH_BME68X
+#ifdef SCK_WITH_BME68X
         case SENSOR_BME68X_TEMPERATURE:
         case SENSOR_BME68X_HUMIDITY:
         case SENSOR_BME68X_PRESSURE:
         case SENSOR_BME68X_VOCS:        return sck_bme68x.start();
 #endif
-#ifdef WITH_AS7331
+#ifdef SCK_WITH_AS7331
         case SENSOR_AS7331_UVA:
         case SENSOR_AS7331_UVB:
         case SENSOR_AS7331_UVC:         return sck_as7331.start(wichSensor);
@@ -107,28 +110,31 @@ bool SckUrban::start(SensorType wichSensor)
 bool SckUrban::stop(SensorType wichSensor)
 {
     switch(wichSensor) {
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
         case SENSOR_LIGHT:              return sck_bh1730fvc.stop();
         case SENSOR_TEMPERATURE:
         case SENSOR_HUMIDITY:           return sck_sht31.stop();
+#ifdef SCK_WITH_NOISE
         case SENSOR_NOISE_DBA:
         case SENSOR_NOISE_DBC:
         case SENSOR_NOISE_DBZ:
+        case SENSOR_NOISE_PEAK_FREQ:
         case SENSOR_NOISE_FFT:          return sck_noise.stop();
-#ifdef WITH_MPL
+#endif
+#ifdef SCK_WITH_MPL
         case SENSOR_MPL_ALTITUDE:
         case SENSOR_MPL_PRESSURE:
         case SENSOR_MPL_TEMP:           return sck_mpl3115A2.stop();
 #endif
-#ifdef WITH_LPS33
+#ifdef SCK_WITH_LPS33
         case SENSOR_LPS33_PRESSURE:
         case SENSOR_LPS33_TEMP:         return sck_lps33.stop();
 #endif
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_CCS811
         case SENSOR_CCS811_VOCS:
         case SENSOR_CCS811_ECO2:        return sck_ccs811.stop();
 #endif
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
         case SENSOR_PMS_PM_1:
         case SENSOR_PMS_PM_25:
         case SENSOR_PMS_PM_10:
@@ -139,7 +145,7 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_PMS_PN_5:
         case SENSOR_PMS_PN_10:          return sck_pms.stop();
 #endif
-#ifdef WITH_SPS30
+#ifdef SCK_WITH_SPS30
         case SENSOR_SPS30_PM_1:
         case SENSOR_SPS30_PM_25:
         case SENSOR_SPS30_PM_4:
@@ -151,7 +157,7 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_SPS30_PN_10:
         case SENSOR_SPS30_TPSIZE:       return sck_sps30.stop(wichSensor);
 #endif
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_SEN5X
         case SENSOR_SEN5X_PM_1:
         case SENSOR_SEN5X_PM_25:
         case SENSOR_SEN5X_PM_4:
@@ -171,13 +177,13 @@ bool SckUrban::stop(SensorType wichSensor)
         case SENSOR_SEN5X_VOCS_RAW:
         case SENSOR_SEN5X_NOX_RAW:      return sck_sen5x.stop(wichSensor);
 #endif
-#ifdef WITH_BME68X
+#ifdef SCK_WITH_BME68X
         case SENSOR_BME68X_TEMPERATURE:
         case SENSOR_BME68X_HUMIDITY:
         case SENSOR_BME68X_PRESSURE:
         case SENSOR_BME68X_VOCS:        return sck_bme68x.stop();
 #endif
-#ifdef WITH_AS7331
+#ifdef SCK_WITH_AS7331
         case SENSOR_AS7331_UVA:
         case SENSOR_AS7331_UVB:
         case SENSOR_AS7331_UVC:         return sck_as7331.stop(wichSensor);
@@ -193,44 +199,47 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 {
     wichSensor->state = 0;
     switch(wichSensor->type) {
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
         case SENSOR_LIGHT:                  if (sck_bh1730fvc.get())                    { wichSensor->reading = String(sck_bh1730fvc.reading);                          return; } break;
-        case SENSOR_TEMPERATURE:            if (sck_sht31.getReading(base))                 { wichSensor->reading = String(sck_sht31.temperature);                          return; } break;
-        case SENSOR_HUMIDITY:               if (sck_sht31.getReading(base))                 { wichSensor->reading = String(sck_sht31.humidity);                             return; } break;
+        case SENSOR_TEMPERATURE:            if (sck_sht31.getReading(base))                 { wichSensor->reading = String(sck_sht31.temperature);                      return; } break;
+        case SENSOR_HUMIDITY:               if (sck_sht31.getReading(base))                 { wichSensor->reading = String(sck_sht31.humidity);                         return; } break;
+#ifdef SCK_WITH_NOISE
         case SENSOR_NOISE_DBA:              if (sck_noise.getReading(SENSOR_NOISE_DBA)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
         case SENSOR_NOISE_DBC:              if (sck_noise.getReading(SENSOR_NOISE_DBC)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
         case SENSOR_NOISE_DBZ:              if (sck_noise.getReading(SENSOR_NOISE_DBZ)) { wichSensor->reading = String(sck_noise.readingDB);                            return; } break;
+        case SENSOR_NOISE_PEAK_FREQ:        if (sck_noise.getReading(SENSOR_NOISE_PEAK_FREQ)) { wichSensor->reading = String(sck_noise.readingPeakFreq);                return; } break;
         case SENSOR_NOISE_FFT:              if (sck_noise.getReading(SENSOR_NOISE_FFT)) {
             // TODO find a way to give access to readingsFFT instead of storing them on a String (too much RAM)
             // For now it just prints the values to console
             for (uint16_t i=1; i<sck_noise.FFT_NUM; i++) SerialUSB.println(sck_noise.readingFFT[i]);
             return;
         }
-#ifdef WITH_CCS811
+#endif
+#ifdef SCK_WITH_CCS811
         case SENSOR_CCS811_VOCS:            if (sck_ccs811.getReading(base))            { wichSensor->reading = String(sck_ccs811.VOCgas);                              return; } break;
         case SENSOR_CCS811_ECO2:            if (sck_ccs811.getReading(base))            { wichSensor->reading = String(sck_ccs811.ECO2gas);                             return; } break;
 #endif
-#ifdef WITH_MPL
+#ifdef SCK_WITH_MPL
         case SENSOR_MPL_ALTITUDE:           if (sck_mpl3115A2.getAltitude())            { wichSensor->reading = String(sck_mpl3115A2.altitude);                         return; } break;
         case SENSOR_MPL_PRESSURE:           if (sck_mpl3115A2.getPressure())            { wichSensor->reading = String(sck_mpl3115A2.pressure);                         return; } break;
         case SENSOR_MPL_TEMP:               if (sck_mpl3115A2.getTemperature())         { wichSensor->reading = String(sck_mpl3115A2.temperature);                      return; } break;
 #endif
-#ifdef WITH_LPS33
-        case SENSOR_LPS33_PRESSURE:            if (sck_lps33.getPressure())                { wichSensor->reading = String(sck_lps33.pressure);                             return; } break;
+#ifdef SCK_WITH_LPS33
+        case SENSOR_LPS33_PRESSURE:            if (sck_lps33.getPressure())             { wichSensor->reading = String(sck_lps33.pressure);                             return; } break;
         case SENSOR_LPS33_TEMP:             if (sck_lps33.getTemperature())             { wichSensor->reading = String(sck_lps33.temperature);                          return; } break;
 #endif
-#ifdef WITH_PMS
-        case SENSOR_PMS_PM_1:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm1);                                     return; } break;
-        case SENSOR_PMS_PM_25:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm25);                                    return; } break;
-        case SENSOR_PMS_PM_10:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm10);                                    return; } break;
-        case SENSOR_PMS_PN_03:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn03);                                    return; } break;
-        case SENSOR_PMS_PN_05:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn05);                                    return; } break;
-        case SENSOR_PMS_PN_1:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn1);                                     return; } break;
-        case SENSOR_PMS_PN_25:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn25);                                    return; } break;
-        case SENSOR_PMS_PN_5:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn5);                                     return; } break;
-        case SENSOR_PMS_PN_10:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn10);                                    return; } break;
+#ifdef SCK_WITH_PMS
+        case SENSOR_PMS_PM_1:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm1);                               return; } break;
+        case SENSOR_PMS_PM_25:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm25);                              return; } break;
+        case SENSOR_PMS_PM_10:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pm10);                              return; } break;
+        case SENSOR_PMS_PN_03:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn03);                              return; } break;
+        case SENSOR_PMS_PN_05:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn05);                              return; } break;
+        case SENSOR_PMS_PN_1:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn1);                               return; } break;
+        case SENSOR_PMS_PN_25:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn25);                              return; } break;
+        case SENSOR_PMS_PN_5:                   if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn5);                               return; } break;
+        case SENSOR_PMS_PN_10:                  if (sck_pms.getReading(wichSensor, base))    { wichSensor->reading = String(sck_pms.pn10);                              return; } break;
 #endif
-#ifdef WITH_SPS30
+#ifdef SCK_WITH_SPS30
         case SENSOR_SPS30_PM_1:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_1p0);                   return; } break;
         case SENSOR_SPS30_PM_25:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_2p5);                   return; } break;
         case SENSOR_SPS30_PM_4:             if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.mc_4p0);                   return; } break;
@@ -242,7 +251,7 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_SPS30_PN_10:            if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.nc_10p0);                  return; } break;
         case SENSOR_SPS30_TPSIZE:           if (sck_sps30.getReading(wichSensor))       { wichSensor->reading = String(sck_sps30.pm_readings.typical_particle_size);    return; } break;
 #endif
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_SEN5X
         case SENSOR_SEN5X_PM_1:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM1p0);                                return; } break;
         case SENSOR_SEN5X_PM_25:            if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM2p5);                                return; } break;
         case SENSOR_SEN5X_PM_4:             if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.pM4p0);                                return; } break;
@@ -262,13 +271,13 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
         case SENSOR_SEN5X_VOCS_RAW:         if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawVoc);                               return; } break;
         case SENSOR_SEN5X_NOX_RAW:          if (sck_sen5x.getReading(wichSensor))       { wichSensor->reading = String(sck_sen5x.rawNox);                               return; } break;
 #endif
-#ifdef WITH_BME68X
+#ifdef SCK_WITH_BME68X
         case SENSOR_BME68X_TEMPERATURE:     if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.temperature);                         return; } break;
         case SENSOR_BME68X_HUMIDITY:        if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.humidity);                            return; } break;
         case SENSOR_BME68X_PRESSURE:        if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.pressure);                            return; } break;
         case SENSOR_BME68X_VOCS:            if (sck_bme68x.getReading())                { wichSensor->reading = String(sck_bme68x.VOCgas);                              return; } break;
 #endif
-#ifdef WITH_AS7331
+#ifdef SCK_WITH_AS7331
         case SENSOR_AS7331_UVA:             if (sck_as7331.getReading(wichSensor))      { wichSensor->reading = String(sck_as7331.uva);                                 return; } break;
         case SENSOR_AS7331_UVB:             if (sck_as7331.getReading(wichSensor))      { wichSensor->reading = String(sck_as7331.uvb);                                 return; } break;
         case SENSOR_AS7331_UVC:             if (sck_as7331.getReading(wichSensor))      { wichSensor->reading = String(sck_as7331.uvc);                                 return; } break;
@@ -281,10 +290,11 @@ void SckUrban::getReading(SckBase *base, OneSensor *wichSensor)
 bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 {
     switch (wichSensor) {
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
         case SENSOR_NOISE_DBA:
         case SENSOR_NOISE_DBC:
         case SENSOR_NOISE_DBZ:
+        case SENSOR_NOISE_PEAK_FREQ:
         case SENSOR_NOISE_FFT:
             {
                 if (command.startsWith("debug")) {
@@ -370,7 +380,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					return "\r\n";
                 }
             }
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_CCS811
         case SENSOR_CCS811_VOCS:
         case SENSOR_CCS811_ECO2:
             {
@@ -410,7 +420,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 
             }
 #endif
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
         case SENSOR_PMS_PM_1:
         case SENSOR_PMS_PM_25:
         case SENSOR_PMS_PM_10:
@@ -472,7 +482,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                 }
             }
 #endif
-#ifdef WITH_SPS30
+#ifdef SCK_WITH_SPS30
         case SENSOR_SPS30_PM_1:
         case SENSOR_SPS30_PM_25:
         case SENSOR_SPS30_PM_4:
@@ -523,7 +533,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
                 }
             }
 #endif
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_SEN5X
         case SENSOR_SEN5X_PM_1:
         case SENSOR_SEN5X_PM_25:
         case SENSOR_SEN5X_PM_4:
@@ -600,7 +610,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
     return false;
 }
 
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
 // Light
 bool Sck_BH1730FVC::start()
 {
@@ -969,7 +979,7 @@ bool Sck_SHT31::setHumidityOffset(float calOffset)
     humidityOffset+= calOffset;
     return true;
 }
-
+#ifdef SCK_WITH_NOISE
 // Noise
 bool Sck_Noise::start()
 {
@@ -989,17 +999,21 @@ bool Sck_Noise::stop()
 }
 bool Sck_Noise::getReading(SensorType wichSensor)
 {
-    if (!I2S.begin(I2S_PHILIPS_MODE, sampleRate, 32)) return false;
+    if (millis() - lastReading < SCK_NOISE_SAMPLE_INTERVAL_MS) {
+        return true;
+    }
+
+    if (!I2S.begin(I2S_PHILIPS_MODE, sampleRateHz, 32)) return false;
 
     // Wait 263000 I2s cycles or 85 ms at 441000 hz
     uint32_t startPoint = millis();
-    while (millis() - startPoint < 200) I2S.read();
+    while (millis() - startPoint < SCK_NOISE_DISCARD_I2S_MS) I2S.read();
 
     // Fill buffer with samples from I2S bus
     uint16_t bufferIndex = 0;
 
     startPoint = millis();
-    uint8_t timeOut = 30;   // (ms) Timeout to avoid hangs if the I2S is not responfing
+    uint8_t timeOut = SCK_NOISE_TIMEOUT_I2S_MS;   // (ms) Timeout to avoid hangs if the I2S is not responfing
     while (bufferIndex < SAMPLE_NUM) {
         int32_t buff = I2S.read();
         if (buff) {
@@ -1014,7 +1028,7 @@ bool Sck_Noise::getReading(SensorType wichSensor)
     }
     I2S.end();
 
-    // Get de average of recorded samples
+    // Get the average of recorded samples
     int32_t sum = 0;
     for (uint16_t i=0; i<SAMPLE_NUM; i++) sum += source[i];
     int32_t avg = sum / SAMPLE_NUM;
@@ -1023,7 +1037,7 @@ bool Sck_Noise::getReading(SensorType wichSensor)
     for (uint16_t i=0; i<SAMPLE_NUM; i++) source[i] = source[i] - avg;
 
     // FFT
-    FFT(source);
+    sckFFT.computeSpectrum(source, readingFFT);
 
     switch(wichSensor) {
 
@@ -1039,23 +1053,24 @@ bool Sck_Noise::getReading(SensorType wichSensor)
             // Just Equalization
             for (uint16_t i=0; i<FFT_NUM; i++) readingFFT[i] *= (double)(equalTab[i] / 65536.0);
             break;
+        case SENSOR_NOISE_PEAK_FREQ:
+            break;
         case SENSOR_NOISE_FFT:
             // Convert FFT to dB
             fft2db();
             return true;
             break;
-        default: break;
+        default:
+            break;
     }
 
     // RMS
-    long long rmsSum = 0;
-    double rmsOut = 0;
-    for (uint16_t i=0; i<FFT_NUM; i++) rmsSum += pow(readingFFT[i], 2) / FFT_NUM;
-    rmsOut = sqrt(rmsSum);
-    rmsOut = rmsOut * 1 / RMS_HANN * sqrt(FFT_NUM) / sqrt(2);
+    uint16_t peakBin = sckFFT.dominantBin(readingFFT);
+    double rmsOut = sckFFT.rms(readingFFT);
 
     // Convert to dB
     readingDB = (double) (FULL_SCALE_DBSPL - (FULL_SCALE_DBFS - (20 * log10(rmsOut * sqrt(2)))));
+    readingPeakFreq = peakBin * (sampleRateHz / SAMPLE_NUM);
 
     if (debugFlag) {
         SerialUSB.println("samples, FFT_weighted");
@@ -1067,217 +1082,9 @@ bool Sck_Noise::getReading(SensorType wichSensor)
         }
     }
 
+    lastReading = millis();
+
     return true;
-}
-bool Sck_Noise::FFT(int32_t *source)
-{
-    double divider = dynamicScale(source, scaledSource);
-
-    applyWindow(scaledSource, hannWindow, SAMPLE_NUM);
-
-    static int16_t ALIGN4 scratchData[SAMPLE_NUM * 2];
-
-    // Split the data
-    for(int i=0; i<SAMPLE_NUM*2; i+=2){
-        scratchData[i] = scaledSource[i/2]; // Real
-        scratchData[i+1] = 0; // Imaginary
-    }
-
-    arm_radix2_butterfly(scratchData, (int16_t)SAMPLE_NUM, (int16_t *)twiddleCoefQ15_512);
-    arm_bitreversal(scratchData, SAMPLE_NUM, (uint16_t *)armBitRevTable8);
-
-    for (int i=0; i<SAMPLE_NUM/2; i++) {
-
-        // Calculate result and normalize SpectrumBuffer, also revert dynamic scaling
-        uint32_t myReal = pow(scratchData[i*2], 2);
-        uint32_t myImg = pow(scratchData[(i*2)+1], 2);
-
-        readingFFT[i] = sqrt(myReal + myImg) * divider * 4;
-    }
-
-    // Exception for the first bin
-    readingFFT[0] = readingFFT[0] / 2;
-
-    return 0;
-}
-double Sck_Noise::dynamicScale(int32_t *source, int16_t *scaledSource)
-{
-    int32_t maxLevel = 0;
-    for (uint16_t i=0; i<SAMPLE_NUM; i++) if (abs(source[i]) > maxLevel) maxLevel = abs(source[i]);
-    double divider = (maxLevel+1) / 32768.0; // 16 bits
-    if (divider < 1) divider = 1;
-
-    for (uint16_t i=0; i<SAMPLE_NUM; i++) scaledSource[i] = source[i] / divider;
-
-    return divider;
-}
-void Sck_Noise::applyWindow(int16_t *src, const uint16_t *window, uint16_t len)
-{
-    /* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
-        -------
-        This is an FFT library for ARM cortex M0+ CPUs
-        Adafruit invests time and resources providing this open source code,
-        please support Adafruit and open-source hardware by purchasing products from Adafruit!
-        Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
-        ------
-    */
-
-    while(len--){
-        int32_t val = *src * *window++;
-        *src = val >> 15;
-        src++;
-    }
-}
-void Sck_Noise::arm_radix2_butterfly(int16_t * pSrc, int16_t fftLen, int16_t * pCoef)
-{
-    /* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
-        -------
-        This is an FFT library for ARM cortex M0+ CPUs
-        Adafruit invests time and resources providing this open source code,
-        please support Adafruit and open-source hardware by purchasing products from Adafruit!
-        Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
-        ------
-    */
-
-    int i, j, k, l;
-    int n1, n2, ia;
-    int16_t xt, yt, cosVal, sinVal;
-
-    n2 = fftLen;
-
-    n1 = n2;
-    n2 = n2 >> 1;
-    ia = 0;
-
-    // loop for groups
-    for (j=0; j<n2; j++) {
-        cosVal = pCoef[ia * 2];
-        sinVal = pCoef[(ia * 2) + 1];
-        ia++;
-
-        // loop for butterfly
-        for (i=j; i<fftLen; i+=n1) {
-            l = i + n2;
-            xt = (pSrc[2 * i] >> 2u) - (pSrc[2 * l] >> 2u);
-            pSrc[2 * i] = ((pSrc[2 * i] >> 2u) + (pSrc[2 * l] >> 2u)) >> 1u;
-
-            yt = (pSrc[2 * i + 1] >> 2u) - (pSrc[2 * l + 1] >> 2u);
-            pSrc[2 * i + 1] =
-                ((pSrc[2 * l + 1] >> 2u) + (pSrc[2 * i + 1] >> 2u)) >> 1u;
-
-            pSrc[2u * l] = (((int16_t) (((int32_t) xt * cosVal) >> 16)) +
-                ((int16_t) (((int32_t) yt * sinVal) >> 16)));
-
-            pSrc[2u * l + 1u] = (((int16_t) (((int32_t) yt * cosVal) >> 16)) -
-                ((int16_t) (((int32_t) xt * sinVal) >> 16)));
-
-        }                           // butterfly loop end
-    }                             // groups loop end
-
-    uint16_t twidCoefModifier = 2;
-
-    // loop for stage
-    for (k = fftLen / 2; k > 2; k = k >> 1) {
-        n1 = n2;
-        n2 = n2 >> 1;
-        ia = 0;
-
-        // loop for groups
-        for (j=0; j<n2; j++) {
-            cosVal = pCoef[ia * 2];
-            sinVal = pCoef[(ia * 2) + 1];
-
-            ia = ia + twidCoefModifier;
-
-            // loop for butterfly
-            for (i=j; i<fftLen; i+=n1) {
-                l = i + n2;
-                xt = pSrc[2 * i] - pSrc[2 * l];
-                pSrc[2 * i] = (pSrc[2 * i] + pSrc[2 * l]) >> 1u;
-
-                yt = pSrc[2 * i + 1] - pSrc[2 * l + 1];
-                pSrc[2 * i + 1] = (pSrc[2 * l + 1] + pSrc[2 * i + 1]) >> 1u;
-
-                pSrc[2u * l] = (((int16_t) (((int32_t) xt * cosVal) >> 16)) +
-                    ((int16_t) (((int32_t) yt * sinVal) >> 16)));
-
-                pSrc[2u * l + 1u] = (((int16_t) (((int32_t) yt * cosVal) >> 16)) -
-                    ((int16_t) (((int32_t) xt * sinVal) >> 16)));
-
-            }                         // butterfly loop end
-        }                           // groups loop end
-        twidCoefModifier = twidCoefModifier << 1u;
-    }                             // stages loop end
-
-    n1 = n2;
-    n2 = n2 >> 1;
-    ia = 0;
-    // loop for groups
-    for (j=0; j<n2; j++) {
-        cosVal = pCoef[ia * 2];
-        sinVal = pCoef[(ia * 2) + 1];
-
-        ia = ia + twidCoefModifier;
-
-        // loop for butterfly
-        for (i=j; i<fftLen; i+=n1) {
-            l = i + n2;
-            xt = pSrc[2 * i] - pSrc[2 * l];
-            pSrc[2 * i] = (pSrc[2 * i] + pSrc[2 * l]);
-
-            yt = pSrc[2 * i + 1] - pSrc[2 * l + 1];
-            pSrc[2 * i + 1] = (pSrc[2 * l + 1] + pSrc[2 * i + 1]);
-
-            pSrc[2u * l] = xt;
-
-            pSrc[2u * l + 1u] = yt;
-
-        }                           // butterfly loop end
-    }                             // groups loop end
-}
-void Sck_Noise::arm_bitreversal(int16_t * pSrc16, uint32_t fftLen, uint16_t * pBitRevTab)
-{
-    /* This code is from https://github.com/adafruit/Adafruit_ZeroFFT thank you!
-        -------
-        This is an FFT library for ARM cortex M0+ CPUs
-        Adafruit invests time and resources providing this open source code,
-        please support Adafruit and open-source hardware by purchasing products from Adafruit!
-        Written by Dean Miller for Adafruit Industries. MIT license, all text above must be included in any redistribution
-        ------
-    */
-
-    int32_t *pSrc = (int32_t *) pSrc16;
-    int32_t in;
-    uint32_t fftLenBy2, fftLenBy2p1;
-    uint32_t i, j;
-
-    /*  Initializations */
-    j = 0u;
-    fftLenBy2 = fftLen / 2u;
-    fftLenBy2p1 = (fftLen / 2u) + 1u;
-
-    /* Bit Reversal Implementation */
-    for (i = 0u; i <= (fftLenBy2 - 2u); i += 2u) {
-        if(i < j) {
-            in = pSrc[i];
-            pSrc[i] = pSrc[j];
-            pSrc[j] = in;
-
-            in = pSrc[i + fftLenBy2p1];
-            pSrc[i + fftLenBy2p1] = pSrc[j + fftLenBy2p1];
-            pSrc[j + fftLenBy2p1] = in;
-        }
-
-        in = pSrc[i + 1u];
-        pSrc[i + 1u] = pSrc[j + fftLenBy2];
-        pSrc[j + fftLenBy2] = in;
-
-        /*  Reading the index for the bit reversal */
-        j = *pBitRevTab;
-
-        /*  Updating the bit reversal index depending on the fft length  */
-        pBitRevTab++;
-    }
 }
 void Sck_Noise::fft2db()
 {
@@ -1286,8 +1093,9 @@ void Sck_Noise::fft2db()
         if (readingFFT[i] < 0) readingFFT[i] = 0;
     }
 }
+#endif
 
-#ifdef WITH_MPL
+#ifdef SCK_WITH_MPL
 // Barometric pressure and Altitude
 bool Sck_MPL3115A2::start()
 {
@@ -1336,7 +1144,7 @@ bool Sck_MPL3115A2::getTemperature()
     return true;
 }
 #endif
-#ifdef WITH_LPS33
+#ifdef SCK_WITH_LPS33
 // Barometric pressure and Altitude
 bool Sck_LPS33::start()
 {
@@ -1376,7 +1184,7 @@ bool Sck_LPS33::getTemperature()
 }
 #endif
 
-#ifdef WITH_PMS
+#ifdef SCK_WITH_PMS
 // PM sensor
 bool Sck_PMS::start()
 {
@@ -1673,7 +1481,7 @@ bool Sck_PMS::wake()
 }
 #endif
 
-#ifdef WITH_CCS811
+#ifdef SCK_WITH_CCS811
 // VOC and ECO2
 bool Sck_CCS811::start()
 {
@@ -1787,7 +1595,7 @@ bool Sck_CCS811::setDriveMode(uint8_t whichDrivemode)
 }
 #endif
 
-#ifdef WITH_SPS30
+#ifdef SCK_WITH_SPS30
 // Sensirion SPS30 PM sensor option
 bool Sck_SPS30::start(SensorType wichSensor)
 {
@@ -2079,7 +1887,7 @@ bool Sck_SPS30::wake()
 }
 #endif
 
-#ifdef WITH_SEN5X
+#ifdef SCK_WITH_SEN5X
 bool Sck_SEN5X::start(SensorType wichSensor)
 {
     // If detection already failed dont try again until next reset
@@ -2857,7 +2665,7 @@ bool Sck_SEN5X::vocStateFromSensor()
     return true;
 }
 #endif
-#ifdef WITH_BME68X
+#ifdef SCK_WITH_BME68X
 Sck_BME68X::Sck_BME68X(byte customAddress)
 {
     address = customAddress;
@@ -2894,7 +2702,7 @@ bool Sck_BME68X::getReading()
     return true;
 }
 #endif
-#ifdef WITH_AS7331
+#ifdef SCK_WITH_AS7331
 bool Sck_AS7331::start(SensorType wichSensor)
 {
     if (!I2Cdetect(&Wire, address)) return false;

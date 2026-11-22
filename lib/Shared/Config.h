@@ -42,7 +42,7 @@ enum errorType {
 	ERROR_ESP
 };
 
-#ifdef WITH_SENSOR_GROVE_OLED
+#ifdef SCK_WITH_SENSOR_GROVE_OLED
 struct SensorConfig { bool enabled; uint8_t everyNint; bool oled_display=true; };
 struct Debug { bool sdcard=false; bool serial=false; bool oled=false; bool flash=false; bool speed=false; };
 #else
@@ -61,7 +61,7 @@ struct Extra {
 	uint16_t ccsBaseline;
 	bool pmPowerSave=true;
 	uint32_t pmWarmUpPeriod=15;
-#ifdef WITH_URBAN
+#ifdef SCK_WITH_URBAN
 	float urbanTemperatureOffset=URBAN_T_OFFSET;
 	float urbanHumidityOffset=URBAN_RH_OFFSET;
 #endif

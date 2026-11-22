@@ -604,7 +604,7 @@ uint8_t SckList::_formatSD(GroupIndex whichGroup, char* buffer)
         base->sckOut(PRIO_MED, false);
     }
 
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
         SensorType wichSensorType = base->sensors.sensorsPriorized(i);
 
@@ -744,7 +744,7 @@ SckList::GroupIndex SckList::saveGroup()
     // Store sensor readings
     uint16_t pos = GROUP_READINGS;  // Variable to store the buffer index position
     uint8_t enabledSensors = 0;
-    for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+    for (uint16_t i=0; i<SENSOR_COUNT; i++) {
 
         SensorType stype = static_cast<SensorType>(i);
 

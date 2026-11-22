@@ -55,12 +55,16 @@ bool SckList::_flashFormat()
 bool SckList::_write(uint32_t wichAddr, char value)
 {
     // Validate the target address before writing:
-    // - inside the current sector we must stay at or before _addr
+    // - never outside the readings area (the reserved sectors at the end are not ours)
+    // - inside the current sector we must stay before _addr: the next group starts there
     // - inside any other sector the sector must not be empty (erased)
+    const uint32_t listEnd = uint32_t(SCKLIST_SECTOR_NUM) * SECTOR_SIZE;
     uint16_t wichSector = wichAddr / SECTOR_SIZE;
     bool outOfBounds = false;
-    if (wichSector == (uint16_t)_currSector) {
-        if (wichAddr > _addr) outOfBounds = true;
+    if (wichAddr >= listEnd) {
+        outOfBounds = true;
+    } else if (wichSector == (uint16_t)_currSector) {
+        if (wichAddr >= _addr) outOfBounds = true;
     } else {
         if (_getSectState(wichSector) == SECTOR_EMPTY) outOfBounds = true;
     }
@@ -925,9 +929,10 @@ SckList::GroupIndex SckList::readGroup(PubFlags whichFlag, GroupIndex forceIndex
 uint8_t SckList::setPublished(GroupIndex whichGroup, PubFlags whichFlag)
 {
     // Sanity check
-    if (whichGroup.group < 0) return -1;
+    if (whichGroup.group < 0) return PUBLISH_ERROR;
 
-    _setGrpPublished(whichGroup, whichFlag);
+    // If the flag write fails the group stays unpublished: report it instead of a reading count
+    if (_setGrpPublished(whichGroup, whichFlag) <= 0) return PUBLISH_ERROR;
 
     // Try to mark this sector as published (flag will be rejected if not all groups are published)
     _setSectPublished(whichGroup.sector, whichFlag);

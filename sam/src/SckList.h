@@ -86,7 +86,8 @@ class SckList
         void flashUpdate();             // After SCK config changes (ej. from sd card mode to net mode) updating flash indexes (or reseting the kit) is mandatory to find all readings.
         GroupIndex saveGroup();         // Saves group to flash memory, return group index
         GroupIndex readGroup(PubFlags whichFlag, GroupIndex forceIndex={-1,-1,0}); // Copies to buffer the next available group that hasn't been published to NET or SD. The format of data is dependant on the provided flag. If no group available it returns index.group = -1 unless forceIndex parameter exists and is a valid group index
-        uint8_t setPublished(GroupIndex whichGroup, PubFlags whichFlag); // Set the group as published depending on the flag (accepted flags: NET, SD). Return the number of readings on published group.
+        static const uint8_t PUBLISH_ERROR = 0xFF;
+        uint8_t setPublished(GroupIndex whichGroup, PubFlags whichFlag); // Set the group as published depending on the flag (accepted flags: NET, SD). Return the number of readings on published group, or PUBLISH_ERROR if it couldn't be marked.
         uint32_t countGroups(PubFlags whichFlag); // Returns the number of non published (for the specified flag) groups founded on flash.
 
 

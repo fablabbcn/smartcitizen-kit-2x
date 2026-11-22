@@ -959,8 +959,11 @@ uint16_t SckList::recover(uint16_t whichSector, PubFlags whichFlag)
         base->sckOut();
     }
 
-    uint16_t groupNum = _countSectGroups(whichSector, PUB_NET, PUBLISHED, true);  // Gets all groups with in the sector (getAll = true)
+    // Gets all groups within the sector (getAll = true). -1 means a bad sector: stored in a
+    // uint16_t it became 65535 and started a huge recovery loop.
+    int16_t groupNum = _countSectGroups(whichSector, PUB_NET, PUBLISHED, true);
     uint16_t totalRecovered = 0;
+    if (groupNum <= 0) return 0;
 
     for (int16_t i=0; i<groupNum; i++) {
 
@@ -969,6 +972,15 @@ uint16_t SckList::recover(uint16_t whichSector, PubFlags whichFlag)
         GroupIndex thisGroup = {(int16_t)whichSector, i};
         GroupIndex tryingGroup = readGroup(whichFlag, thisGroup);
 
+        // readGroup() resolves the group's flash address and formats its readings.
+        // thisGroup has no address (0), so it must not be used to set the published flag:
+        // that wrote into sector 0's header (its SD flag, or the first group's size).
+        if (tryingGroup.group < 0) {
+            sprintf(base->outBuff, "Group %u of sector %u has no readings, skipping", i, whichSector);
+            base->sckOut();
+            continue;
+        }
+
         if (whichFlag == PUB_SD) {
 
             // Save to sdcard
@@ -976,7 +988,7 @@ uint16_t SckList::recover(uint16_t whichSector, PubFlags whichFlag)
                 sprintf(base->outBuff, "Group %u of sector %u saving to sd-card ERROR!!", i, whichSector);
                 base->sckOut();
             } else {
-                _setGrpPublished(thisGroup, whichFlag);
+                _setGrpPublished(tryingGroup, whichFlag);
                 totalRecovered++;
                 base->epoch2iso(flash.readULong(tryingGroup.address + GROUP_TIME), base->ISOtimeBuff);  // print time stamp to buffer
                 sprintf(base->outBuff, "(%s) - Group %u of sector %u saved to sd-card OK!", base->ISOtimeBuff, i, whichSector);
@@ -997,7 +1009,7 @@ uint16_t SckList::recover(uint16_t whichSector, PubFlags whichFlag)
 
                 base->ESPbusUpdate();
                 if (base->st.publishStat.ok) {
-                    _setGrpPublished(thisGroup, whichFlag);
+                    _setGrpPublished(tryingGroup, whichFlag);
                     totalRecovered++;
                     base->st.publishStat.reset();
                     base->epoch2iso(flash.readULong(tryingGroup.address + GROUP_TIME), base->ISOtimeBuff);  // print time stamp to buffer

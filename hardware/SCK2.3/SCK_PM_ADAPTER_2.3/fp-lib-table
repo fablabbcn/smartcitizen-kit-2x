@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "SCK_PM_ADAPTER")(type "KiCad")(uri "${KIPRJMOD}/SCK_PM_ADAPTER.pretty")(options "")(descr "SCK PM adapter footprints"))
+)

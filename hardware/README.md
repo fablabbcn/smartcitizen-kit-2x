@@ -35,6 +35,7 @@ This folder contains the Eagle design files for the Smart Citizen Kit 2.X, as we
 - Design files:
     + [SCK 2.3 Data Board design files](SCK2.3/SCK_DATA_BOARD_2.3)
     + [SCK 2.3 Urban Board design files](SCK2.3/SCK_URBAN_BOARD_2.3)
+- [SCK 2.3 PM adapter](SCK2.3/SCK_PM_ADAPTER_2.3) (SEN5x / SEN6x, replaces the Urban board, not tested yet)
 - [Test plan](SCK2.3/test/SCK2.3_TESTPLAN.pdf)
 - [Bootloader](SCK2.3/bootloader)
 

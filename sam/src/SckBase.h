@@ -29,6 +29,8 @@
 
 #define IM_SAM
 
+#define SCK_BOOT_REPORT_TIMEOUT 30000  // ms, max time spent reporting reset cause on boot
+
 class Status
     {
 
@@ -113,6 +115,8 @@ class SckBase
 
 		// ESP communication
 		void ESPbusUpdate();
+		void ESPmaintenance();
+		void bootReport();
 		bool sendConfig();
 		uint32_t sendConfigTimer = 0;
 		uint8_t sendConfigCounter = 0;

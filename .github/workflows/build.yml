@@ -18,6 +18,9 @@ jobs:
   build:
     name: Run Tests
     runs-on: "${{ matrix.os }}"
+    # Builds only need to read the repository
+    permissions:
+      contents: read
     # runs-on: "ubuntu-latest"
     strategy:
       fail-fast: true

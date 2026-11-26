@@ -81,6 +81,12 @@ class SckList
         bool debug = false;
         char flashBuff[NETBUFF_SIZE];
 
+        // Power management: put the W25Q64FV into deep power-down (~1 µA)
+        // before the SAM enters STANDBY, and wake it before the first access.
+        // Saves ~50 µA compared to normal standby (CS deasserted, SPI idle).
+        void flashSleep()  { flash.powerDown(); }
+        void flashWake()   { flash.powerUp(); }
+
         int8_t setup();             // Starts flash memory. returns 0 on success, 1 on success but flash has been formated or -1 on error
         bool flashFormat();             // Erases the flash memory and starts it again
         void flashUpdate();             // After SCK config changes (ej. from sd card mode to net mode) updating flash indexes (or reseting the kit) is mandatory to find all readings.
@@ -115,6 +121,7 @@ class SckList
         GroupIndex potencialNextGroup = {-1,-1,0};  // To store potencial next groups to be published in batch mode
         GroupIndex _lastGroup = {-1,-1,0};      // To store the last saved group
 
+        bool _write(uint32_t wichAddr, char value); // Bounds-checked single-byte write; validates address is within a written sector
         bool _append(char value);           // Appends a byte at the end of the list
 
         // Flash memory functions

@@ -140,8 +140,8 @@ class SckBase
 		bool wifiJustReconnected = false;
 
 		// Sd card
-		volatile bool sdInitPending = false;
 		bool sdInit();
+		bool sdRetryPending = false;	// SD re-init after wakeup failed, retry from update()
 		bool saveInfo();
 		bool infoSaved = false;
 
@@ -152,6 +152,7 @@ class SckBase
 		uint32_t updatePowerMillis = 0;
 		void configGCLK6(); 			// Taken from https://github.com/arduino-libraries/ArduinoLowPower
 		void sleepLoop();
+		uint32_t pendingSensorsWait();		// Seconds until the first pending sensor is ready (UINT32_MAX if none)
 
 		// **** Sensors
 		uint32_t lastPublishTime = 0; 			// seconds
@@ -176,6 +177,9 @@ class SckBase
 		void updateDynamic(uint32_t now);
 
 	public:
+		// Set from ISR_sdDetect() in SmartCitizenKit.ino
+		volatile bool sdInitPending = false;
+
 #if defined(SCK21_AIR)
 		const String hardwareVer = "2.1";
 #elif defined(SCK22_AIR)

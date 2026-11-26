@@ -1371,7 +1371,13 @@ void wdt_com(SckBase* base, String parameters)
 
     int16_t sleepI = parameters.indexOf("-sleep");
     if (sleepI >= 0) {
-        uint32_t sleepSeconds = parameters.substring(sleepI + 7).toInt();
+        long requested = parameters.substring(sleepI + 7).toInt();
+        // goToSleep() takes milliseconds in a uint32_t: reject values that would wrap
+        if (requested < 0 || requested > (long)(UINT32_MAX / 1000)) {
+            base->sckOut("Sleep time must be between 0 and 4294967 seconds");
+            return;
+        }
+        uint32_t sleepSeconds = requested;
         if (sleepSeconds == 0) sleepSeconds = 30;
         uint32_t started = base->rtc.getEpoch();
         base->goToSleep(sleepSeconds * 1000);

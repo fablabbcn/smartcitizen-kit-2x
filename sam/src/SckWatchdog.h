@@ -19,7 +19,7 @@
 // the kit every 8 seconds while it sleeps. SckBase::goToSleep() suspends the
 // WDT and goes back to sleep when that was the only reason to wake up.
 
-#define SCK_WDT_TIMEOUT_S 60        // Main loop must call feed() at least this often (seconds)
+#define SCK_WDT_TIMEOUT_S 60        // Approximate reset target: the reset comes 56-64 s after the last feed() (EW granularity), so feed well within that
 #define SCK_WDT_EW_PERIOD_S 8       // Early Warning interrupt period (seconds)
 #define SCK_WDT_GCLK 5              // Generic clock generator used by the WDT
 

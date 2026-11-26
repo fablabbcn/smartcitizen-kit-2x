@@ -11,7 +11,7 @@
 #define SCKLIST_FLASH_SIZE 8388608
 #define SECTOR_SIZE 4096
 #define SCKLIST_RESERVED_SECTOR_COUNT 8     // Number of sectors to be reserved (at the end of memory) for other uses
-#define SCKLIST_SECTOR_NUM (SCKLIST_FLASH_SIZE/SECTOR_SIZE)-SCKLIST_RESERVED_SECTOR_COUNT   // 2048 - 8 = 2040
+#define SCKLIST_SECTOR_NUM ((SCKLIST_FLASH_SIZE/SECTOR_SIZE)-SCKLIST_RESERVED_SECTOR_COUNT)   // 2048 - 8 = 2040
 
 #define SECTOR_EMPTY 0xFF
 #define SECTOR_USED 0x00
@@ -86,7 +86,8 @@ class SckList
         void flashUpdate();             // After SCK config changes (ej. from sd card mode to net mode) updating flash indexes (or reseting the kit) is mandatory to find all readings.
         GroupIndex saveGroup();         // Saves group to flash memory, return group index
         GroupIndex readGroup(PubFlags whichFlag, GroupIndex forceIndex={-1,-1,0}); // Copies to buffer the next available group that hasn't been published to NET or SD. The format of data is dependant on the provided flag. If no group available it returns index.group = -1 unless forceIndex parameter exists and is a valid group index
-        uint8_t setPublished(GroupIndex whichGroup, PubFlags whichFlag); // Set the group as published depending on the flag (accepted flags: NET, SD). Return the number of readings on published group.
+        static const uint8_t PUBLISH_ERROR = 0xFF;
+        uint8_t setPublished(GroupIndex whichGroup, PubFlags whichFlag); // Set the group as published depending on the flag (accepted flags: NET, SD). Return the number of readings on published group, or PUBLISH_ERROR if it couldn't be marked.
         uint32_t countGroups(PubFlags whichFlag); // Returns the number of non published (for the specified flag) groups founded on flash.
 
 
@@ -115,6 +116,7 @@ class SckList
         GroupIndex potencialNextGroup = {-1,-1,0};  // To store potencial next groups to be published in batch mode
         GroupIndex _lastGroup = {-1,-1,0};      // To store the last saved group
 
+        bool _write(uint32_t wichAddr, char value); // Bounds-checked single-byte write; validates address is within a written sector
         bool _append(char value);           // Appends a byte at the end of the list
 
         // Flash memory functions

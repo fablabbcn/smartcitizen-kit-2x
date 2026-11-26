@@ -516,8 +516,13 @@ void SckBase::reviewState()
                             uint8_t readingNum = readingsList.setPublished(whichGroupPublishing, readingsList.PUB_NET);
                             whichGroupPublishing.group = -1;
                             timeToPublish = false;
-                            sprintf(outBuff, "Network publish OK! (%u readings)", readingNum);
-                            sckOut();
+                            if (readingNum == SckList::PUBLISH_ERROR) {
+                                // The group stays unpublished in flash and will be sent again later
+                                sckOut("Network publish OK, but marking the group as published in flash failed!", PRIO_HIGH);
+                            } else {
+                                sprintf(outBuff, "Network publish OK! (%u readings)", readingNum);
+                                sckOut();
+                            }
 
                             if (readingsList.availableReadings[readingsList.PUB_NET]) {
 
@@ -2021,6 +2026,12 @@ void SckBase::updateSensors()
 
                 if (sdPublish()) {
                     uint8_t readingNum = readingsList.setPublished(thisGroup, readingsList.PUB_SD);
+                    if (readingNum == SckList::PUBLISH_ERROR) {
+                        // Stop instead of carrying on with a flash that can't be written. The group
+                        // is still unmarked, so a later pass will save it to the sdcard again.
+                        sckOut("Saved to sdcard, but marking the group as saved in flash failed!", PRIO_HIGH);
+                        break;
+                    }
                     sprintf(outBuff, "(%s) %u readings saved to sdcard.", ISOtimeBuff, readingNum);
                     sckOut();
                     counter++;
